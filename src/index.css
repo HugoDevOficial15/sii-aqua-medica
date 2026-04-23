@@ -1,0 +1,57 @@
+/* RESET GLOBAL DEL SISTEMA */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ALTURA COMPLETA DE LA APP */
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+/* CONFIGURACIÓN BASE */
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  text-rendering: optimizeLegibility;
+}
+
+/* BODY */
+
+body {
+  margin: 0;
+  background: #f5f7fa;
+  color: #333;
+}
+
+/* ENLACES */
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* BOTONES */
+
+button {
+  font-family: inherit;
+}
+
+/* IMÁGENES */
+
+img {
+  max-width: 100%;
+  display: block;
+}

@@ -1,0 +1,53 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
+# Dependencias
+node_modules/
+
+# Archivos lock (NO subirlos)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Firebase keys / config sensible
+.env
+.env.local
+.env.*.local
+
+# Firebase
+firebase-debug.log
+.firebaserc
+.firebase
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+src/config/firebase.js
+
+node_modules/
+src/config/firebase.js
+.env
