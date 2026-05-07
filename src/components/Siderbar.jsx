@@ -45,7 +45,7 @@ export default function Sidebar({ collapsed }) {
         { to: "/almacen/peps", icon: <FaMattressPillow />, label: "PEPS", permiso: "peps.ver" },
 
         // Estos puedes dejarlos libres o agregar permisos luego
-        { to: "/citas-medicas", icon: <FaAmbulance />, label: "S. Médico - Citas", permiso: "citasm.ver" },
+        { to: "/citas-medicas", icon: <FaAmbulance />, label: "S. Médico - Citas", permiso: "citas.ver" },
         { to: "/herramientas", icon: <FaTools />, label: "Herramientas", permiso: "herramientas.ver" },
         { to: "/notas", icon: <FaStickyNote />, label: "Notas", permiso: "notas.ver" },
         { to: "/configuracion", icon: <FaCog />, label: "Configuración", permiso: "config.ver" },

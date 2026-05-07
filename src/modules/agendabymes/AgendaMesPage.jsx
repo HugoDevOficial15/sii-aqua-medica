@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 
+
+
 // services
 import { getEquipos } from "../../services/equiposServices"
-import { getServicios } from "../../services/serviciosService"
+import { getServicios, getServiciosGlobal, getDiasBloqueados, getBloqueosHorarios } from "../../services/serviciosService"
 
 // config
 import { MANTENIMIENTO_MES } from "../../catalogs/mantenimientoConfig"
@@ -30,6 +32,8 @@ export default function AgendaMesPage() {
     const [servicios, setServicios] = useState([])
     const [loading, setLoading] = useState(false);
 
+    const [diasBloqueados, setDiasBloqueados] = useState([]);
+
 
     const [selectedEquipo, setSelectedEquipo] = useState(null);
 
@@ -38,6 +42,15 @@ export default function AgendaMesPage() {
     // setShowModal(true);
 
     const anio = new Date().getFullYear();
+
+    const [bloqueosHorarios, setBloqueosHorarios] = useState([]);
+
+    // Validar
+    const hoy = new Date();
+    const mesActual = hoy.getMonth() + 1; // 1-12
+
+    // ❌ bloquear mes actual o anteriores
+    const puedeAgendar = Number(mes) > mesActual;
 
 
     const ordenarEquipos = (lista) => {
@@ -65,8 +78,8 @@ export default function AgendaMesPage() {
 
             // 3. ordenar por fecha
             if (a.fecha && b.fecha) {
-                const fechaA = new Date(a.fecha)
-                const fechaB = new Date(b.fecha)
+                const fechaA = parseFechaLocal(a.fecha)
+                const fechaB = parseFechaLocal(b.fecha)
 
                 if (fechaA.getTime() !== fechaB.getTime()) {
                     return fechaA - fechaB
@@ -88,7 +101,10 @@ export default function AgendaMesPage() {
             .replace(/[\u0300-\u036f]/g, ""); // elimina los acentos
     }
 
-
+    const parseFechaLocal = (fechaStr) => {
+        const [y, m, d] = fechaStr.split("-").map(Number);
+        return new Date(y, m - 1, d);
+    };
 
 
     const fetchData = async () => {
@@ -102,14 +118,37 @@ export default function AgendaMesPage() {
 
             const areaNew = quitarAcentos(user.areaId.toLowerCase());
 
-            const srv = await getServicios(areaNew, anio, Number(mes));
+            // const srv = await getServicios(areaNew, anio, Number(mes));
 
 
-            // const equiposArea = eq.filter(e => e.areaId === "produccion" && e.estado);
-            const equiposArea = eq.filter(e => e.areaId === areaNew && e.estado);
-            // const equiposArea = eq.filter(e => e.areaId === areaNew && e.estado);
+            let srv = [];
 
-            // console.log("Equipo Filtro:", equiposArea);
+            if (areaNew === "servicio medico") {
+
+                const srvMedico = await getServicios("servicio medico", anio, Number(mes));
+                const srvSalud = await getServicios("salud ocupacional", anio, Number(mes));
+
+                srv = [...srvMedico, ...srvSalud];
+
+            } else {
+
+                srv = await getServicios(areaNew, anio, Number(mes));
+
+            }
+
+
+            let equiposArea;
+
+            if (areaNew === "servicio medico") {
+                const areasUsuario = [areaNew, "salud ocupacional"]; // áreas permitidas
+                equiposArea = eq.filter(e =>
+                    areasUsuario.includes(e.areaId) && e.estado
+                );
+            } else {
+                equiposArea = eq.filter(e =>
+                    e.areaId === areaNew && e.estado
+                );
+            }
 
 
             const mesNum = Number(mes);
@@ -123,13 +162,13 @@ export default function AgendaMesPage() {
                 return tiposMes.includes(tipo)
             });
 
-            console.log("Pruebas:", equiposFiltrados);
-
-
             const tabla = equiposFiltrados.map(e => {
 
                 const serviciosEquipo = srv
-                    .filter(s => s.equipoId === e.id)
+                    .filter(s =>
+                        s.equipoId === e.id ||
+                        s.equipoCodigo === e.codigo
+                    )
                     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
                 const servicio = serviciosEquipo[0];
@@ -143,9 +182,16 @@ export default function AgendaMesPage() {
                 };
             });
 
-            const ordenados = ordenarEquipos(tabla)
-            setEquipos(ordenados)
-            setServicios(srv)
+
+            const ordenados = ordenarEquipos(tabla);
+            setEquipos(ordenados);
+            setServicios(srv);
+
+            const bloqueados = await getDiasBloqueados(anio, Number(mes));
+            setDiasBloqueados(bloqueados);
+
+            const horarios = await getBloqueosHorarios(anio, Number(mes));
+            setBloqueosHorarios(horarios);
 
         } catch (error) {
             console.log("Error AgendaMes:", error)
@@ -153,6 +199,8 @@ export default function AgendaMesPage() {
             setLoading(false)
         }
     }
+
+
 
     useEffect(() => {
 
@@ -179,12 +227,16 @@ export default function AgendaMesPage() {
 
                 <button
                     className="btn btm-sm btn-success"
-                    onClick={() => {
-                        setSelectedEquipo()
+                    onClick={async () => {
+                        setSelectedEquipo();
+
+                        const global = await getServiciosGlobal(anio, Number(mes));
+                        setServicios(global);
+
                         setShowDisponibilidad(true);
                     }}
                 >
-                    <FaCalendarDay className="me-2"/>
+                    <FaCalendarDay className="me-2" />
                     Ver disponibilidad
                 </button>
 
@@ -236,10 +288,38 @@ export default function AgendaMesPage() {
                                             <td>{e.horaInicio || "-"}</td>
                                             <td>{e.horaFin || "-"}</td>
 
-                                            <td>
+                                            {/* <td>
                                                 {e.estado === "sin_agendar" && <span className="custom-badge-danger">Sin agendar</span>}
                                                 {e.estado === "pendiente" && <span className="custom-badge-warning">Pendiente</span>}
                                                 {e.estado === "realizado" && <span className="custom-badge-success">Realizado</span>}
+                                            </td> */}
+
+                                            <td>
+
+                                                {e.servicioExterno && (
+                                                    <span className="custom-badge-dark">
+                                                        Servicio externo
+                                                    </span>
+                                                )}
+
+                                                {!e.servicioExterno && e.estado === "sin_agendar" && (
+                                                    <span className="custom-badge-danger">
+                                                        Sin agendar
+                                                    </span>
+                                                )}
+
+                                                {!e.servicioExterno && e.estado === "pendiente" && (
+                                                    <span className="custom-badge-warning">
+                                                        Pendiente
+                                                    </span>
+                                                )}
+
+                                                {!e.servicioExterno && e.estado === "realizado" && (
+                                                    <span className="custom-badge-success">
+                                                        Realizado
+                                                    </span>
+                                                )}
+
                                             </td>
 
                                             <td>
@@ -249,7 +329,12 @@ export default function AgendaMesPage() {
                                                         setSelectedEquipo(e)
                                                         setShowModal(true)
                                                     }}
-                                                    disabled={e.estado === "pendiente" || e.estado === "realizado"}
+                                                    disabled={
+                                                        e.estado === "pendiente" ||
+                                                        e.estado === "realizado" ||
+                                                        e.servicioExterno ||
+                                                        !puedeAgendar
+                                                    }
                                                 >
                                                     <FaPlus /> Agendar
                                                 </button>
@@ -275,6 +360,8 @@ export default function AgendaMesPage() {
                     onClose={() => setShowModal(false)}
                     servicios={servicios}
                     onSuccess={fetchData}
+                    diasBloqueados={diasBloqueados}
+                    bloqueosHorarios={bloqueosHorarios}
                 />
             )}
 
@@ -285,6 +372,8 @@ export default function AgendaMesPage() {
                     mes={mes}
                     anio={anio}
                     equipo={selectedEquipo}
+                    diasBloqueados={diasBloqueados}
+                    bloqueosHorarios={bloqueosHorarios}
                     onClose={() => setShowDisponibilidad(false)}
                 />
             )}
@@ -370,6 +459,15 @@ export default function AgendaMesPage() {
             .custom-btn:hover {
                 transform: translateY(-1px);
             }
+
+            .custom-badge-dark {
+    background: #e5e7eb;
+    color: #111827;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+}
 
         `}</style>
 

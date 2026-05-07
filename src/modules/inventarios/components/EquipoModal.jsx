@@ -116,6 +116,20 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
                             placeholder="Observaciones"
                         />
 
+
+                        <label style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px"
+                        }}>
+                            <input
+                                type="checkbox"
+                                {...register("servicioExterno")}
+                            />
+
+                            Servicio externo
+                        </label>
+
                         {/* FOOTER */}
                         <div style={styles.footer}>
                             <button type="submit" style={styles.saveButton}>

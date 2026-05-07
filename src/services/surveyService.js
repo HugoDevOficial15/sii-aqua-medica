@@ -1,6 +1,9 @@
 import { Await } from "react-router-dom";
 import { db } from "../config/firebase";
 
+import { query, where } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+
 import { collection, addDoc, getDocs, doc, updateDoc, } from "firebase/firestore";
 
 const surveyCollection = collection(db, "encuestas");
@@ -9,17 +12,21 @@ const surveyCollection = collection(db, "encuestas");
 // Obtener encuestas
 export const getSurveys = async () => {
 
-    const snapshot = await getDocs(surveyCollection);
+    const auth = getAuth();
+
+    const q = query(
+        surveyCollection,
+        where("userId", "==", auth.currentUser?.uid)
+    );
+
+    const snapshot = await getDocs(q);
 
     const surveys = snapshot.docs.map(doc => ({
-
         id: doc.id,
         ...doc.data()
-
     }));
 
     return surveys;
-
 }
 
 // Crear

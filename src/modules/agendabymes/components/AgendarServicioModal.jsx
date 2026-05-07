@@ -1,315 +1,212 @@
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
+import { FaCalendarAlt } from "react-icons/fa";
 
-import { crearServicio } from "../../../services/serviciosService";
+import {
+    notifyError,
+    notifySuccess
+} from "../../../utils/notify";
 
-import Loader from "../../../components/Loader";
-import { notifyError, notifySuccess } from "../../../utils/notify";
-import { useAuth } from "../../../hooks/useAuth";
+export default function AgendaPage() {
 
-import { FaSave, FaTimes } from "react-icons/fa";
+    const navigate = useNavigate();
 
-export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, servicios }) {
+    const hoy = new Date();
+    const mesActual = hoy.getMonth(); // 0 = Enero
 
-    const { user } = useAuth();
-    const [loading, setLoading] = useState(false);
+    const meses = [
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
 
+    // ✅ Solo meses actuales o futuros
+    const isMesHabilitado = (index) => {
+        return index >= mesActual;
+    };
 
+    // ✅ Validar si ya puede entrar al mes
+    const puedeEntrarAlMes = (index) => {
 
-    const anio = new Date().getFullYear();
-    const mesFormateado = String(mes).padStart(2, "0");
+        const hoy = new Date();
+        const anioActual = hoy.getFullYear();
 
-    const minDate = `${anio}-${mesFormateado}-01`;
-    const maxDate = new Date(anio, mes, 0).toISOString().split("T")[0];
-
-    const { register, handleSubmit, reset } = useForm({
-        defaultValues: {
-            fecha: minDate
+        // ✅ Mes actual
+        if (index === mesActual) {
+            return true;
         }
-    });
 
-    // const { register, handleSubmit } = useForm();
+        // ❌ Meses pasados
+        if (index < mesActual) {
+            return false;
+        }
 
-    useEffect(() => {
-        const anio = new Date().getFullYear();
-        const mesFormateado = String(mes).padStart(2, "0");
+        let anioDelMes = anioActual;
 
-        const minDate = `${anio}-${mesFormateado}-01`;
+        // ✅ Diciembre -> Enero siguiente año
+        if (mesActual === 11 && index === 0) {
+            anioDelMes = anioActual + 1;
+        }
 
-        reset({
-            fecha: minDate
+        // Fecha inicio del mes
+        const inicioMes = new Date(anioDelMes, index, 1);
+
+        // Fecha habilitada (7 días antes)
+        const unaSemanaAntes = new Date(inicioMes);
+        unaSemanaAntes.setDate(inicioMes.getDate() - 7);
+
+        return hoy >= unaSemanaAntes;
+    };
+
+    // ✅ Obtener fecha exacta permitida
+    const obtenerFechaPermitida = (index) => {
+
+        const anioActual = hoy.getFullYear();
+
+        let anioDelMes = anioActual;
+
+        if (mesActual === 11 && index === 0) {
+            anioDelMes = anioActual + 1;
+        }
+
+        const inicioMes = new Date(anioDelMes, index, 1);
+
+        const unaSemanaAntes = new Date(inicioMes);
+        unaSemanaAntes.setDate(inicioMes.getDate() - 7);
+
+        return unaSemanaAntes.toLocaleDateString("es-MX", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric"
         });
-
-    }, [mes, reset]);
-
-    const duracionMap = {
-        radio: 30,
-        pc: 150,
-        impresora: 120,
-        pantalla: 30
     };
 
-    const hayCruce = (servicios, nuevaFecha, nuevaHoraInicio, nuevaHoraFin) => {
-        const nuevaInicio = new Date(`${nuevaFecha}T${nuevaHoraInicio}`);
-        const nuevaFin = new Date(`${nuevaFecha}T${nuevaHoraFin}`);
+    // ✅ Click de tarjeta
+    const handleClickMes = (index, mes, habilitado) => {
 
-        return servicios.some(servicio => {
-            const inicio = new Date(`${servicio.fecha}T${servicio.horaInicio}`);
-            const fin = new Date(`${servicio.fecha}T${servicio.horaFin}`);
-
-            return nuevaInicio < fin && nuevaFin > inicio;
-        });
-    };
-
-    const calcularHoraFin = (horaInicio, duracionMin) => {
-        const [h, m] = horaInicio.split(":").map(Number);
-
-        const date = new Date();
-        date.setHours(h);
-        date.setMinutes(m + duracionMin);
-
-        return date.toTimeString().slice(0, 5);
-    };
-
-    const validarHorario = (fecha, horaInicio) => {
-        const date = new Date(fecha);
-        const dia = date.getDay();
-
-        const [hora, minutos] = horaInicio.split(":").map(Number);
-        const totalMin = hora * 60 + minutos;
-
-        if (dia >= 1 && dia <= 4) {
-            return totalMin >= 480 && totalMin <= 1410;
+        // ❌ Mes pasado
+        if (!habilitado) {
+            notifyError("No puedes acceder a meses anteriores.");
+            return;
         }
 
-        return totalMin >= 480 && totalMin <= 1080;
-    };
+        // ❌ Aún no disponible
+        if (!puedeEntrarAlMes(index)) {
 
-    const onSubmit = async (form) => {
+            const fechaDisponible = obtenerFechaPermitida(index);
 
-        try {
-            setLoading(true);
+            notifyError(
+                `El mes de ${mes} estará disponible a partir del ${fechaDisponible}.`
+            );
 
-            const duracion = duracionMap[equipo.tipo];
-            const horaFin = calcularHoraFin(form.horaInicio, duracion);
-
-
-            const yaExiste = servicios.some(s => s.equipoId === equipo.id);
-
-            if (yaExiste) {
-                notifyError("Este equipo ya tiene un servicio agendado en este mes");
-                return
-            }
-
-            if (!validarHorario(form.fecha, form.horaInicio)) {
-                notifyError("Horario no permitido");
-                return;
-            }
-
-            const cruce = hayCruce(servicios, form.fecha, form.horaInicio, horaFin);
-
-            if (cruce) {
-                notifyError("Ya existe un servicio en ese horario");
-                return;
-            }
-
-
-            console.log("Mes que esta mal",Number(form.fecha.split("-")[1]));
-            
-
-            await crearServicio({
-                equipoId: equipo.id,
-                equipoCodigo: equipo.codigo,
-                tipoEquipo: equipo.tipo,
-                areaId: equipo.areaId.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
-                usuarioNombre: equipo.usuarioNombre,
-                fecha: form.fecha,
-                horaInicio: form.horaInicio,
-                horaFin,
-                duracionMin: duracion,
-                estado: "pendiente",
-                anio: new Date(form.fecha).getFullYear(),
-                mes: Number(form.fecha.split("-")[1]), // 🔥 FIX AQUÍ
-                creadoPor: user.nombre,
-                createdAt: new Date()
-            });
-
-            notifySuccess("Servicio agendado correctamente");
-            onSuccess();
-            onClose();
-
-        } catch (error) {
-            console.log(error);
-            notifyError("Error al agendar");
-        } finally {
-            setLoading(false);
+            return;
         }
+
+        // ✅ Navegar
+        notifySuccess(`Ingresando a ${mes}...`);
+
+        navigate(`/agenda/${index + 1}`);
     };
 
     return (
-        <div className="custom-modal-backdrop">
+        <div className="agenda-container">
 
-            <div className="custom-modal">
+            <h6 className="fw-bold mb-3">
+                Agenda de Servicios - AQUA Médica
+            </h6>
 
-                {/* HEADER */}
-                <div className="custom-modal-header d-flex justify-content-between align-items-center">
-                    <h6 className="mb-0 fw-bold">AGENDAR SERVICIO</h6>
-                    <button className="btn-close-custom" onClick={onClose}>
-                        <FaTimes />
-                    </button>
-                </div>
+            <div className="agenda-grid">
 
-                {/* BODY */}
-                <div className="custom-modal-body">
+                {meses.map((mes, index) => {
 
-                    {loading && <Loader />}
+                    const habilitado = isMesHabilitado(index);
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="d-flex flex-column gap-2">
+                    return (
+                        <div
+                            key={index}
+                            className={`agenda-card ${!habilitado ? "disabled" : ""}`}
+                            onClick={() =>
+                                handleClickMes(index, mes, habilitado)
+                            }
+                        >
+                            <div className="d-flex justify-content-between">
+                                <FaCalendarAlt size={28} />
+                            </div>
 
-                        <div className="info-box">
-                            <strong>{equipo.codigo}</strong> - {equipo.usuarioNombre}
+                            <h5 className="mt-auto">{mes}</h5>
                         </div>
-                        {/* 
-                        <input
-                            type="date"
-                            className="form-control custom-input"
-                            {...register("fecha", { required: true })}
-                        /> */}
-
-
-                        <input
-                            type="date"
-                            className="form-control custom-input"
-                            min={minDate}
-                            max={maxDate}
-                            {...register("fecha", { required: true })}
-                        />
-
-                        <input
-                            type="time"
-                            className="form-control custom-input"
-                            {...register("horaInicio", { required: true })}
-                        />
-
-                        {/* FOOTER */}
-                        <div className="custom-modal-footer mt-2">
-
-                            <button
-                                type="button"
-                                className="btn btn-light custom-btn"
-                                onClick={onClose}
-                            >
-                                Cancelar
-                            </button>
-
-                            <button
-                                type="submit"
-                                className="btn btn-primary custom-btn d-flex align-items-center gap-1"
-                                disabled={loading}
-                            >
-                                <FaSave size={12} />
-                                {loading ? "Guardando..." : "Guardar"}
-                            </button>
-
-                        </div>
-
-                    </form>
-
-                </div>
+                    );
+                })}
 
             </div>
 
-            {/* 🎨 ESTILOS */}
-            <style jsx>{`
+            <style>{`
 
-            .custom-modal-backdrop {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.4);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 1000;
-            }
-
-            .custom-modal {
-                background: #fff;
-                border-radius: 16px;
-                width: 420px;
-                max-width: 95%;
-                box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-                overflow: hidden;
-                animation: fadeIn 0.2s ease;
-            }
-
-            .custom-modal-header {
-                padding: 14px 18px;
-                border-bottom: 1px solid #eee;
-                background: #f9fafb;
-            }
-
-            .btn-close-custom {
-                border: none;
-                background: transparent;
-                cursor: pointer;
-                font-size: 14px;
-                color: #6b7280;
-            }
-
-            .custom-modal-body {
-                padding: 18px;
-            }
-
-            .info-box {
-                background: #f3f4f6;
-                padding: 10px;
-                border-radius: 8px;
-                font-size: 13px;
-            }
-
-            .custom-input {
-                border-radius: 10px;
-                border: 1px solid #e5e7eb;
-                font-size: 13px;
-                padding: 8px;
-                transition: all 0.2s ease;
-            }
-
-            .custom-input:focus {
-                border-color: #2563eb;
-                box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
-            }
-
-            .custom-modal-footer {
-                display: flex;
-                justify-content: flex-end;
-                gap: 10px;
-            }
-
-            .custom-btn {
-                border-radius: 8px;
-                transition: all 0.2s ease;
-            }
-
-            .custom-btn:hover {
-                transform: translateY(-1px);
-            }
-
-            @keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(-10px);
+                .agenda-container {
+                    height: 85vh;
+                    display: flex;
+                    flex-direction: column;
+                    padding: 10px 20px;
+                    overflow: hidden;
                 }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
 
-        `}</style>
+                .agenda-grid {
+                    flex: 1;
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    grid-template-rows: repeat(3, 1fr);
+                    gap: 16px;
+                }
+
+                .agenda-card {
+                    background: linear-gradient(135deg, #4facfe, #00f2fe);
+                    color: white;
+                    border-radius: 16px;
+                    padding: 16px;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    transition: all 0.3s ease;
+                }
+
+                .agenda-card:hover {
+                    transform: scale(1.03);
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                }
+
+                /* ❌ Meses pasados */
+                .agenda-card.disabled {
+                    background: #ccc;
+                    cursor: not-allowed;
+                    opacity: 0.6;
+                }
+
+                .agenda-card.disabled:hover {
+                    transform: none;
+                    box-shadow: none;
+                }
+
+                /* 📱 Responsive */
+                @media (max-width: 992px) {
+                    .agenda-grid {
+                        grid-template-columns: repeat(3, 1fr);
+                        grid-template-rows: repeat(4, 1fr);
+                    }
+                }
+
+                @media (max-width: 768px) {
+                    .agenda-grid {
+                        grid-template-columns: repeat(2, 1fr);
+                        grid-template-rows: repeat(6, 1fr);
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .agenda-grid {
+                        grid-template-columns: 1fr;
+                        grid-template-rows: repeat(12, 1fr);
+                    }
+                }
+
+            `}</style>
 
         </div>
     );

@@ -1,38 +1,151 @@
 import { useNavigate } from "react-router-dom";
 import { FaCalendarAlt } from "react-icons/fa";
 
+import {
+    notifyError,
+    notifySuccess
+} from "../../utils/notify";
+
 export default function AgendaPage() {
 
     const navigate = useNavigate();
-    const mesActual = new Date().getMonth(); // 0 = Enero, 11 = Diciembre
+
+    const hoy = new Date();
+    const mesActual = hoy.getMonth();
 
     const meses = [
         "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     ];
 
+    // ✅ Solo meses actuales o futuros
     const isMesHabilitado = (index) => {
-        // Caso especial: si estamos en diciembre, permitir enero
-        if (mesActual === 11 && index === 0) return true;
-
-        // Permitir meses actuales o futuros
         return index >= mesActual;
+    };
+
+    // ✅ Obtener DOS lunes antes del inicio del mes
+    const obtenerFechaInicioSemana = (index) => {
+
+        const anioActual = hoy.getFullYear();
+
+        let anioDelMes = anioActual;
+
+        // ✅ Diciembre → Enero siguiente año
+        if (mesActual === 11 && index === 0) {
+            anioDelMes = anioActual + 1;
+        }
+
+        // Inicio del mes destino
+        const inicioMes = new Date(anioDelMes, index, 1);
+
+        const fechaApertura = new Date(inicioMes);
+
+        const diaSemana = fechaApertura.getDay();
+
+        // getDay()
+        // 0 = Domingo
+        // 1 = Lunes
+        // ...
+        // 6 = Sábado
+
+        let diasRetroceso;
+
+        // ✅ Primer lunes anterior
+        if (diaSemana === 1) {
+            diasRetroceso = 7;
+        } else if (diaSemana === 0) {
+            diasRetroceso = 6;
+        } else {
+            diasRetroceso = diaSemana - 1;
+        }
+
+        // ✅ Retroceder al primer lunes
+        fechaApertura.setDate(
+            fechaApertura.getDate() - diasRetroceso
+        );
+
+        // ✅ Retroceder otro lunes más (7 días)
+        fechaApertura.setDate(
+            fechaApertura.getDate() - 7
+        );
+
+        return fechaApertura;
+    };
+
+    // ✅ Validar acceso
+    const puedeEntrarAlMes = (index) => {
+
+        // ✅ Mes actual
+        if (index === mesActual) {
+            return true;
+        }
+
+        // ❌ Mes pasado
+        if (index < mesActual) {
+            return false;
+        }
+
+        const fechaApertura = obtenerFechaInicioSemana(index);
+
+        return hoy >= fechaApertura;
+    };
+
+    // ✅ Formato fecha
+    const formatearFecha = (fecha) => {
+        return fecha.toLocaleDateString("es-MX", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric"
+        });
+    };
+
+    // ✅ Click
+    const handleClickMes = (index, mes, habilitado) => {
+
+        // ❌ Mes pasado
+        if (!habilitado) {
+            notifyError("No puedes acceder a meses anteriores.");
+            return;
+        }
+
+        // ❌ Todavía no disponible
+        if (!puedeEntrarAlMes(index)) {
+
+            const fechaDisponible = formatearFecha(
+                obtenerFechaInicioSemana(index)
+            );
+
+            notifySuccess(
+                `Podrás ingresar a ${mes} a partir del ${fechaDisponible}.`
+            );
+
+            return;
+        }
+
+
+        navigate(`/agenda/${index + 1}`);
     };
 
     return (
         <div className="agenda-container">
 
-            <h6 className="fw-bold mb-3">Agenda de Servicios - AQUA Médica</h6>
+            <h6 className="fw-bold mb-3">
+                Agenda de Servicios - AQUA Médica
+            </h6>
 
             <div className="agenda-grid">
+
                 {meses.map((mes, index) => {
+
                     const habilitado = isMesHabilitado(index);
 
                     return (
                         <div
                             key={index}
                             className={`agenda-card ${!habilitado ? "disabled" : ""}`}
-                            onClick={() => habilitado && navigate(`/agenda/${index + 1}`)}
+                            onClick={() =>
+                                handleClickMes(index, mes, habilitado)
+                            }
                         >
                             <div className="d-flex justify-content-between">
                                 <FaCalendarAlt size={28} />
@@ -42,15 +155,17 @@ export default function AgendaPage() {
                         </div>
                     );
                 })}
+
             </div>
 
             <style>{`
+
                 .agenda-container {
                     height: 85vh;
                     display: flex;
                     flex-direction: column;
                     padding: 10px 20px;
-                    overflow: hidden; 
+                    overflow: hidden;
                 }
 
                 .agenda-grid {
@@ -77,7 +192,7 @@ export default function AgendaPage() {
                     box-shadow: 0 10px 25px rgba(0,0,0,0.15);
                 }
 
-                /* ❌ Deshabilitado */
+                /* ❌ Meses pasados */
                 .agenda-card.disabled {
                     background: #ccc;
                     cursor: not-allowed;

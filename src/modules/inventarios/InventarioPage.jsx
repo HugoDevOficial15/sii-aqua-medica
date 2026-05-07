@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import EquipoModal from "../../modules/inventarios/components/EquipoModal";
 
 // Icons
-import { FaPlus, FaEdit, FaArrowDown } from "react-icons/fa";
+import { FaPlus, FaEdit, FaArrowDown, FaClipboardList } from "react-icons/fa";
 
 // Loader
 import Loader from "../../components/Loader";
@@ -15,12 +15,19 @@ import { notifySuccess, notifyError } from "../../utils/notify";
 // Services
 import { getEquipos, bajaEquipo, activarEquipo } from "../../services/equiposServices";
 
+// Logs
+import LogsEquipoModal from "../../modules/inventarios/components/LogsEquipoModal";
+
 export default function InventarioPage() {
 
     const [equipos, setEquipos] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [selected, setSelected] = useState(null);
+
+
+    const [showLogs, setShowLogs] = useState(false);
+    const [selectedLogs, setSelectedLogs] = useState(null);
 
     // Busqueda
     const [search, setSearch] = useState("");
@@ -181,7 +188,7 @@ export default function InventarioPage() {
 
                                             {e.estado ? (
                                                 <button
-                                                    className="btn btn-sm btn-outline-danger custom-btn"
+                                                    className="btn btn-sm btn-outline-danger me-2 custom-btn"
                                                     onClick={() => handleBaja(e.id)}
                                                 >
                                                     <FaArrowDown className="me-1" />
@@ -189,13 +196,24 @@ export default function InventarioPage() {
                                                 </button>
                                             ) : (
                                                 <button
-                                                    className="btn btn-sm btn-outline-success custom-btn"
+                                                    className="btn btn-sm btn-outline-success me-2 custom-btn"
                                                     onClick={() => handleActivar(e.id)}
                                                 >
-                                                    <FaPlus className="me-1" />
+                                                    <FaPlus className="me-2" />
                                                     Alta
                                                 </button>
                                             )}
+
+                                            <button
+                                                className="btn btn-sm btn-outline-dark me-2 custom-btn"
+                                                onClick={() => {
+                                                    setSelectedLogs(e);
+                                                    setShowLogs(true);
+                                                }}
+                                            >
+                                                <FaClipboardList className="me-1" />
+                                                Logs
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -215,6 +233,15 @@ export default function InventarioPage() {
                     onClose={() => setShowModal(false)}
                     onSuccess={fetchData}
                     data={selected}
+                />
+            )}
+
+
+            {showLogs && (
+                <LogsEquipoModal
+                    equipo={selectedLogs}
+                    onClose={() => setShowLogs(false)}
+                    onSuccess={fetchData}
                 />
             )}
 

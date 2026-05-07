@@ -15,6 +15,9 @@ import { AREAS } from "../../catalogs/areas";
 // CSS
 import '../../styles/index.css';
 
+
+import { getAuth } from "firebase/auth";
+
 // Areas
 
 // UseFrom
@@ -28,6 +31,8 @@ export default function CreateSurvey() {
 
 
     const [loading, setLoading] = useState(true);
+
+
 
 
 
@@ -80,7 +85,12 @@ export default function CreateSurvey() {
 
             preguntas: []
         }
+
+
+
+
     });
+    console.log("errores:", errors);
 
     // array
     const { fields, append, remove, update } = useFieldArray({
@@ -129,25 +139,51 @@ export default function CreateSurvey() {
 
             setSaving(true);
 
-            const surveyData = {
-                ...data,
-                activa: true,
-                createdAt: new Date()
+            const auth = getAuth();
 
+            if (!auth.currentUser) {
+                notifyError("Error", "No hay usuario autenticado");
+                return;
+            }
+
+            // 🔥 LIMPIAR undefined (CLAVE)
+            const cleanData = {
+                ...data,
+                preguntas: data.preguntas.map(p => {
+
+                    let respuesta = p.respuestaCorrecta;
+
+                    // 🔥 evitar undefined
+                    if (respuesta === undefined) {
+                        respuesta = null;
+                    }
+
+                    return {
+                        ...p,
+                        opciones: p.opciones || [],
+                        pares: p.pares || [],
+                        respuestaCorrecta: respuesta
+                    };
+                })
+            };
+
+            const surveyData = {
+                ...cleanData,
+                activa: true,
+                createdAt: new Date(),
+                userId: auth.currentUser.uid
             };
 
             if (editing) {
 
                 await updateSurvey(currentId, surveyData);
 
-                notifySuccess("Encuesta Actualizada", "Se actualizó correctamnete");
+                notifySuccess("Encuesta Actualizada", "Se actualizó correctamente");
 
             } else {
 
-                // creacion
                 await createSurvey(surveyData);
 
-                // Notificacion de exito
                 notifySuccess(
                     "Encuesta Creada",
                     "La encuesta fue registrada"
@@ -169,7 +205,6 @@ export default function CreateSurvey() {
 
             console.log("Error global:", error);
 
-            // Notificacion de error
             notifyError("Error", "No se pudo crear la encuesta");
 
         } finally {
@@ -179,7 +214,6 @@ export default function CreateSurvey() {
         }
 
     };
-
     const handleTipoChange = (index, tipo) => {
 
         update(index, {

@@ -157,7 +157,7 @@ export default function AppRouter() {
                     <Route
                         path="/citas-medicas"
                         element={
-                            <ProtectedRoute permiso="citas-medicas.ver">
+                            <ProtectedRoute permiso="citas.ver">
                                 <AgendaMedicaPage />
                             </ProtectedRoute>
                         }
