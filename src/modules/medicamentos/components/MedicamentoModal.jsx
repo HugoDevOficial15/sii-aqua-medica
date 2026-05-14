@@ -37,10 +37,12 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
             Object.keys(data).forEach(k => {
                 if (k === "fechaCaducidad" || k === "fechaIngreso") {
                     const val = data[k]?.toDate?.()
+
                     if (val) {
                         const formatted = val.toISOString().split("T")[0]
                         setValue(k, formatted)
                     }
+
                 } else {
                     setValue(k, data[k])
                 }
@@ -49,38 +51,66 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
     }, [])
 
     const onSubmit = async (form) => {
+
         try {
+
             setLoading(true)
 
             if (data) {
+
                 await updateMedicamento(data.id, form)
-                notifySuccess("Medicamento actualizado", "Actualizado correctamente")
+
+                notifySuccess(
+                    "Medicamento actualizado",
+                    "Actualizado correctamente"
+                )
+
             } else {
+
                 await createMedicamento(form)
-                notifySuccess("Medicamento creado", "Creado correctamente")
+
+                notifySuccess(
+                    "Medicamento creado",
+                    "Creado correctamente"
+                )
             }
 
             onSuccess()
             onClose()
 
         } catch {
-            notifyError("Error", "Error al guardar")
+
+            notifyError(
+                "Error",
+                "Error al guardar"
+            )
+
         } finally {
+
             setLoading(false)
         }
     }
 
     return (
+
         <div style={styles.backdrop}>
 
             <div style={styles.modalCard}>
 
                 {/* HEADER */}
                 <div style={styles.header}>
+
                     <h5 style={styles.title}>
                         {data ? "Editar Medicamento" : "Nuevo Medicamento"}
                     </h5>
-                    <button style={styles.closeButton} onClick={onClose}>×</button>
+
+                    <button
+                        style={styles.closeButton}
+                        onClick={onClose}
+                    >
+                        ×
+                    </button>
+
                 </div>
 
                 {/* BODY */}
@@ -88,45 +118,105 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
                     {loading && <Loader />}
 
-                    <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
+                    <form
+                        onSubmit={handleSubmit(onSubmit)}
+                        style={styles.form}
+                    >
 
                         <input
                             placeholder="Medicamento"
                             {...register("nombreMedicamento")}
-                            style={{ ...styles.input, ...(errors.nombreMedicamento ? styles.inputError : {}) }}
+                            style={{
+                                ...styles.input,
+                                ...(errors.nombreMedicamento
+                                    ? styles.inputError
+                                    : {})
+                            }}
                         />
 
-                        <select {...register("presentacion")} style={styles.input}>
+                        <select
+                            {...register("presentacion")}
+                            style={styles.input}
+                        >
                             <option value="">Presentación</option>
                             <option value="Tabletas">Tabletas</option>
                             <option value="Inyectable">Inyectable</option>
                             <option value="Suspension">Suspensión</option>
+                            <option value="Comprimidos">Comprimidos</option>
+                            <option value="Capsulas">Cápsulas</option>
+                            <option value="Polvos">Polvos</option>
+                            <option value="Efervescentes">Efervescentes</option>
+                            <option value="Gotas">Gotas</option>
                         </select>
 
-                        <div style={{ display: "flex", gap: 10 }}>
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 18
+                            }}
+                        >
+
                             <input
                                 type="number"
                                 placeholder="Cantidad"
-                                {...register("cantidad", { valueAsNumber: true })}
-                                style={styles.input}
+                                {...register("cantidad", {
+                                    valueAsNumber: true
+                                })}
+                                style={{
+                                    ...styles.input,
+                                    flex: 1
+                                }}
                             />
 
-                            <select {...register("unidadCantidad")} style={styles.input}>
+                            <select
+                                {...register("unidadCantidad")}
+                                style={{
+                                    ...styles.input,
+                                    width: "160px"
+                                }}
+                            >
                                 <option value="">Unidad</option>
                                 <option value="Cajas">Cajas</option>
                                 <option value="Frascos">Frascos</option>
                                 <option value="Unidades">Unidades</option>
                             </select>
+
+                            <input
+                                placeholder="Lote"
+                                {...register("lote")}
+                                style={{
+                                    ...styles.input,
+                                    flex: 1
+                                }}
+                            />
+
                         </div>
 
-                        <input placeholder="Lote" {...register("lote")} style={styles.input} />
+                        <label style={styles.label}>
+                            Fecha de Caducidad
+                        </label>
 
-                        <label className="text-secondary">Fecha de Caducidad</label>
-                        <input type="date" {...register("fechaCaducidad")} style={styles.input} />
-                        <label className="text-secondary">Fecha de Ingreso</label>
-                        <input type="date" {...register("fechaIngreso")} style={styles.input} />
+                        <input
+                            type="date"
+                            {...register("fechaCaducidad")}
+                            style={styles.input}
+                        />
 
-                        <input placeholder="Ubicación" {...register("ubicacion")} style={styles.input} />
+                        <label style={styles.label}>
+                            Fecha de Ingreso
+                        </label>
+
+                        <input
+                            type="date"
+                            {...register("fechaIngreso")}
+                            style={styles.input}
+                        />
+
+                        <input
+                            placeholder="Ubicación"
+                            {...register("ubicacion")}
+                            style={styles.input}
+                        />
 
                         <textarea
                             placeholder="Observaciones"
@@ -136,10 +226,20 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
                         {/* FOOTER */}
                         <div style={styles.footer}>
-                            <button type="submit" style={styles.saveButton}>
+
+                            <button
+                                type="submit"
+                                style={styles.saveButton}
+                            >
+
                                 <FaPlus style={{ marginRight: 6 }} />
-                                {loading ? "Guardando..." : "Guardar"}
+
+                                {loading
+                                    ? "Guardando..."
+                                    : "Guardar"}
+
                             </button>
+
                         </div>
 
                     </form>
@@ -150,88 +250,215 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
         </div>
     )
-
-
 }
 
 const styles = {
+
     backdrop: {
+
         position: "fixed",
+
         top: 0,
+
         left: 0,
+
         width: "100%",
+
         height: "100%",
-        background: "rgba(0,0,0,0.5)",
+
+        background:
+            "rgba(15,23,42,0.55)",
+
+        backdropFilter: "blur(6px)",
+
         display: "flex",
+
         alignItems: "center",
+
         justifyContent: "center",
-        zIndex: 1000
+
+        padding: "20px",
+
+        zIndex: 9999
     },
+
     modalCard: {
-        background: "#fff",
-        borderRadius: "16px",
-        width: "450px",
-        maxWidth: "95%",
-        boxShadow: "0 15px 40px rgba(0,0,0,0.2)",
-        overflow: "hidden"
+
+        width: "620px",
+
+        maxWidth: "95vh",
+
+        background:
+            "rgba(255,255,255,0.94)",
+
+        backdropFilter: "blur(10px)",
+
+        borderRadius: "30px",
+
+        border:
+            "1px solid rgba(255,255,255,0.4)",
+
+        boxShadow:
+            "0 24px 48px rgba(0,0,0,0.18)",
+
+        overflow: "hidden",
+
+        animation:
+            "modalFade .18s ease"
     },
+
     header: {
-        padding: "16px 20px",
-        borderBottom: "1px solid #eee",
+
         display: "flex",
+
         justifyContent: "space-between",
+
         alignItems: "center",
-        background: "#f9fafb"
+
+        padding: "24px 30px",
+
+        borderBottom:
+            "1px solid #f3f4f6"
     },
+
     title: {
+
         margin: 0,
-        fontSize: "18px",
-        fontWeight: "600"
+
+        fontSize: "1.5rem",
+
+        fontWeight: "800",
+
+        color: "#111827"
     },
+
     closeButton: {
+
+        width: "42px",
+
+        height: "42px",
+
         border: "none",
-        background: "transparent",
+
+        borderRadius: "14px",
+
+        background: "#f3f4f6",
+
         fontSize: "20px",
+
         cursor: "pointer"
     },
     body: {
-        padding: "20px"
+
+        padding: "20px",
+
+        overflowY: "auto",
+
+        maxHeight: "calc(97vh - 90px)"
     },
+
     form: {
+
         display: "flex",
+
         flexDirection: "column",
-        gap: "10px"
+
+        gap: "20px"
     },
+
+    label: {
+
+        fontSize: "13px",
+
+        fontWeight: "700",
+
+        color: "#374151",
+
+        marginBottom: "-10px"
+    },
+
     input: {
-        padding: "10px 12px",
-        borderRadius: "8px",
-        border: "1px solid #ccc",
-        fontSize: "14px"
-    },
-    textarea: {
-        padding: "10px 12px",
-        borderRadius: "8px",
-        border: "1px solid #ccc",
+
+        height: "54px",
+
+        borderRadius: "14px",
+
+        border:
+            "1px solid #d1d5db",
+
+        padding: "0 14px",
+
+        background: "#fff",
+
         fontSize: "14px",
-        minHeight: "80px"
+
+        outline: "none"
     },
+
+    textarea: {
+
+        padding: "14px",
+
+        borderRadius: "14px",
+
+        border:
+            "1px solid #d1d5db",
+
+        fontSize: "14px",
+
+        minHeight: "80px",
+
+        resize: "vertical",
+
+        outline: "none"
+    },
+
     inputError: {
-        border: "1px solid #e74c3c"
+
+        border:
+            "1px solid #dc2626",
+
+        boxShadow:
+            "0 0 0 4px rgba(220,38,38,0.10)"
     },
+
     footer: {
-        marginTop: "10px",
+
+        marginTop: "12px",
+
         display: "flex",
-        justifyContent: "flex-end"
+
+        justifyContent: "flex-end",
+
+        gap: "12px"
     },
+
     saveButton: {
-        padding: "10px 16px",
-        borderRadius: "8px",
+
+        height: "50px",
+
+        padding: "0 24px",
+
+        borderRadius: "14px",
+
         border: "none",
-        background: "#2563eb",
+
+        background:
+            "linear-gradient(135deg,#2563eb,#1d4ed8)",
+
         color: "#fff",
-        fontWeight: "500",
+
+        fontWeight: "700",
+
         cursor: "pointer",
+
         display: "flex",
-        alignItems: "center"
+
+        alignItems: "center",
+
+        justifyContent: "center",
+
+        boxShadow:
+            "0 12px 24px rgba(37,99,235,0.22)"
     }
 }

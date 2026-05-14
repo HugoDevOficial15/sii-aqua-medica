@@ -53,7 +53,16 @@ export default function MedicamentosPage() {
 
             {/* HEADER */}
             <div className="d-flex justify-content-between align-items-center mb-3">
-                <h6 className="mb-0">Medicamentos - AQUA Médica</h6>
+                 <div className="page mb-3">
+                    <h6 >
+                        <strong>Medicamentos</strong>
+                    </h6>
+
+                    <span className="badge-title">
+                        AQUA Médica
+                    </span>
+                </div>
+
 
                 <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleNew}>
                     <FaPlus />

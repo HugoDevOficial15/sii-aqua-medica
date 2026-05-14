@@ -62,10 +62,38 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
         }
     };
 
+
+    useEffect(() => {
+
+        const style = document.createElement("style");
+
+        style.innerHTML = `
+        @keyframes modalFade {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+    `;
+
+        document.head.appendChild(style);
+
+        return () => {
+            document.head.removeChild(style);
+        };
+
+    }, []);
+
     return (
         <div style={styles.backdrop}>
 
-            <div style={styles.modalCard}>
+            {/* <div style={styles.modalCard}> */}
+            <div style={{ ...styles.modalCard, ...modalAnimation }}>
 
                 {/* HEADER */}
                 <div style={styles.header}>
@@ -155,77 +183,148 @@ const styles = {
         left: 0,
         width: "100%",
         height: "100%",
-        background: "rgba(0,0,0,0.5)",
+        // background: "rgba(0,0,0,0.5)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 1000
+        // zIndex: 1000
+        background: "rgba(15,23,42,0.55)",
+
+        backdropFilter: "blur(6px)",
+
+        padding: "20px",
+
+        zIndex: 9999,
     },
     modalCard: {
-        background: "#fff",
-        borderRadius: "16px",
         width: "420px",
         maxWidth: "95%",
-        boxShadow: "0 15px 40px rgba(0,0,0,0.2)",
-        overflow: "hidden"
+        overflow: "hidden",
+
+        background: "rgba(255,255,255,0.94)",
+
+        backdropFilter: "blur(12px)",
+
+        borderRadius: "30px",
+
+        border: "1px solid rgba(255,255,255,0.4)",
+
+        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+        animation: "modalFade .18s ease",
+
     },
     header: {
-        padding: "16px 20px",
-        borderBottom: "1px solid #eee",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        background: "#f9fafb"
+        padding: "24px 30px",
+        borderBottom: "1px solid #f3f4f6",
     },
     title: {
         margin: 0,
-        fontSize: "18px",
-        fontWeight: "600"
+        fontSize: "1.5rem",
+        fontWeight: "800",
+        color: "#111827",
     },
     closeButton: {
+
+        width: "42px",
+
+        height: "42px",
+
         border: "none",
-        background: "transparent",
+
+        borderRadius: "14px",
+
+        background: "#f3f4f6",
+
         fontSize: "20px",
+
         cursor: "pointer"
     },
     body: {
-        padding: "20px"
+        padding: "30px"
     },
     form: {
         display: "flex",
         flexDirection: "column",
-        gap: "10px"
+        gap: "20px"
     },
     input: {
-        padding: "10px 12px",
-        borderRadius: "8px",
-        border: "1px solid #ccc",
-        fontSize: "14px"
+
+        height: "54px",
+
+        borderRadius: "14px",
+
+        border: "1px solid #d1d5db",
+
+        padding: "0 14px",
+
+        background: "#fff",
+
+        fontSize: "14px",
+
+        outline: "none"
     },
     textarea: {
-        padding: "10px 12px",
-        borderRadius: "8px",
-        border: "1px solid #ccc",
+
+        padding: "14px",
+
+        borderRadius: "14px",
+
+        border: "1px solid #d1d5db",
+
         fontSize: "14px",
-        minHeight: "80px"
+
+        minHeight: "100px",
+
+        resize: "vertical",
+
+        outline: "none"
     },
     inputError: {
-        border: "1px solid #e74c3c"
+        border: "1px solid #dc2626",
+
+        boxShadow: "0 0 0 4px rgba(220,38,38,0.10)"
     },
     footer: {
-        marginTop: "10px",
+        marginTop: "12px",
+        gap: "12px",
         display: "flex",
         justifyContent: "flex-end"
     },
     saveButton: {
-        padding: "10px 16px",
-        borderRadius: "8px",
+
+        height: "50px",
+
+        padding: "0 24px",
+
+        borderRadius: "14px",
+
         border: "none",
-        background: "#2563eb",
+
+        background:
+            "linear-gradient(135deg,#2563eb,#1d4ed8)",
+
         color: "#fff",
-        fontWeight: "500",
+
+        fontWeight: "700",
+
         cursor: "pointer",
+
         display: "flex",
-        alignItems: "center"
+
+        alignItems: "center",
+
+        justifyContent: "center",
+
+        boxShadow:
+            "0 12px 24px rgba(37,99,235,0.22)"
     }
+
+
+};
+
+const modalAnimation = {
+    animation: "modalFade .18s ease"
 };

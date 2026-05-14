@@ -1,11 +1,13 @@
 import { db } from "../config/firebase";
+
 import {
     collection,
     addDoc,
+    getDocs,
     query,
     where,
     orderBy,
-    getDocs
+    serverTimestamp
 } from "firebase/firestore";
 
 const ref = collection(db, "movimientos");
@@ -111,4 +113,61 @@ export const vaciarRack = async (rackId, user) => {
     });
 
     await Promise.all(operaciones);
+};
+
+/*
+|--------------------------------------------------------------------------
+| Registrar movimiento
+|--------------------------------------------------------------------------
+*/
+
+export const registrarMovimiento = async (data) => {
+
+    return await addDoc(
+        collection(db, "movimientos"),
+        {
+            ...data,
+
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        }
+    );
+};
+
+/*
+|--------------------------------------------------------------------------
+| Obtener movimientos por rango de fecha
+|--------------------------------------------------------------------------
+*/
+
+export const obtenerMovimientosPorFecha = async (
+    rackId,
+    fechaInicio,
+    fechaFin
+) => {
+
+    const q = query(
+        collection(db, "movimientos"),
+
+        where("rackId", "==", rackId),
+
+        orderBy("createdAt", "desc")
+    );
+
+    const snap = await getDocs(q);
+
+    const movimientos = snap.docs.map(docItem => ({
+        id: docItem.id,
+        ...docItem.data()
+    }));
+
+    return movimientos.filter(mov => {
+
+        const fecha = mov.fecha;
+
+        return (
+            fecha >= fechaInicio &&
+            fecha <= fechaFin
+        );
+    });
 };

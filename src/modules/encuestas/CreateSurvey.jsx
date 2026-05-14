@@ -268,7 +268,16 @@ export default function CreateSurvey() {
             {/* Header */}
             <div className="d-flex justify-content-between mb-4">
 
-                <h6>Encuestas - AQUA Médica</h6>
+
+                <div className="page mb-3">
+                    <h6 >
+                        <strong>Encuestas</strong>
+                    </h6>
+
+                    <span className="badge-title">
+                        AQUA Médica
+                    </span>
+                </div>
 
                 <button className="btn btn-sm btn-primary"
                     onClick={() => {

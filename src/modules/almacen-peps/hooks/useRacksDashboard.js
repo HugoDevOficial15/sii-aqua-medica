@@ -1,21 +1,74 @@
-import { useEffect, useState } from "react";
-import { obtenerRacks } from "../../../services/rackService";
+import {
+    useEffect,
+    useState
+} from "react";
+
+import {
+    obtenerRacks
+} from "../../../services/rackService";
+
+import {
+    obtenerStockPorRack
+} from "../../../services/rackStockService";
 
 export const useRacksDashboard = () => {
 
     const [racks, setRacks] = useState([]);
-    const [loading, setLoading] = useState(true);
+
+    const [loading, setLoading] =
+        useState(true);
 
     const load = async () => {
-        setLoading(true);
-        const data = await obtenerRacks();
-        setRacks(data);
-        setLoading(false);
+
+        try {
+
+            setLoading(true);
+
+            const racksData =
+                await obtenerRacks();
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cargar stock de cada rack
+            |--------------------------------------------------------------------------
+            */
+
+            const racksWithStock =
+                await Promise.all(
+
+                    racksData.map(async rack => {
+
+                        const stock =
+                            await obtenerStockPorRack(
+                                rack.id
+                            );
+
+                        return {
+                            ...rack,
+                            stock
+                        };
+                    })
+                );
+
+            setRacks(racksWithStock);
+
+        } catch (e) {
+
+            console.log(e);
+
+        } finally {
+
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         load();
     }, []);
 
-    return { racks, loading, load };
+    return {
+        racks,
+        loading,
+        load
+    };
 };

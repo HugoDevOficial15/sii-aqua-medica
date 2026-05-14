@@ -26,7 +26,10 @@ export default function AgendaMesPage() {
 
     const { mes } = useParams();
 
-    const { user } = useAuth()
+    const { user, userData } = useAuth();
+
+    console.log("USER AGENDA:", user);
+    console.log("NOMINA:", user?.nomina);
 
     const [equipos, setEquipos] = useState([])
     const [servicios, setServicios] = useState([])
@@ -45,12 +48,54 @@ export default function AgendaMesPage() {
 
     const [bloqueosHorarios, setBloqueosHorarios] = useState([]);
 
-    // Validar
-    const hoy = new Date();
-    const mesActual = hoy.getMonth() + 1; // 1-12
 
-    // ❌ bloquear mes actual o anteriores
-    const puedeAgendar = Number(mes) > mesActual;
+
+    const hoy = new Date();
+    const mesActual = hoy.getMonth() + 1;
+
+    const obtenerFechaApertura = () => {
+
+        const inicioMes = new Date(anio, Number(mes) - 1, 1);
+
+        const fechaApertura = new Date(inicioMes);
+
+        fechaApertura.setDate(
+            fechaApertura.getDate() - 14
+        );
+
+        return fechaApertura;
+    };
+
+    const puedeAgendar = () => {
+
+        const usuario = String(
+            user?.username || ""
+        ).trim();
+
+        const usuariosExcepcion = [
+            "5502",
+            "5001",
+            "5002"
+        ];
+
+        if (usuariosExcepcion.includes(usuario)) {
+            return true;
+        }
+
+        if (Number(mes) === mesActual) {
+            return false;
+        }
+
+        const fechaApertura = obtenerFechaApertura();
+
+        return hoy >= fechaApertura;
+    };
+    // // Validar
+    // const hoy = new Date();
+    // const mesActual = hoy.getMonth() + 1; // 1-12
+
+    // // ❌ bloquear mes actual o anteriores
+    // const puedeAgendar = Number(mes) > mesActual;
 
 
     const ordenarEquipos = (lista) => {
@@ -325,15 +370,20 @@ export default function AgendaMesPage() {
                                             <td>
                                                 <button
                                                     className="btn btn-sm btn-primary custom-btn"
+
                                                     onClick={() => {
-                                                        setSelectedEquipo(e)
-                                                        setShowModal(true)
+
+                                                        setSelectedEquipo(e);
+
+                                                        setTimeout(() => {
+                                                            setShowModal(true);
+                                                        }, 0);
                                                     }}
+
                                                     disabled={
                                                         e.estado === "pendiente" ||
                                                         e.estado === "realizado" ||
-                                                        e.servicioExterno ||
-                                                        !puedeAgendar
+                                                        !puedeAgendar()
                                                     }
                                                 >
                                                     <FaPlus /> Agendar
@@ -353,11 +403,14 @@ export default function AgendaMesPage() {
 
             )}
 
-            {showModal && (
+            {showModal && selectedEquipo && (
                 <AgendarServicioModal
                     equipo={selectedEquipo}
                     mes={mes}
-                    onClose={() => setShowModal(false)}
+                    onClose={() => {
+                        setShowModal(false);
+                        setSelectedEquipo(null);
+                    }}
                     servicios={servicios}
                     onSuccess={fetchData}
                     diasBloqueados={diasBloqueados}

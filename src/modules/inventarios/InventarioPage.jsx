@@ -98,7 +98,15 @@ export default function InventarioPage() {
             {/* HEADER */}
             <div className="d-flex justify-content-between align-items-center mb-4 custom-users-header">
 
-                <h6>Inventario - AQUA Médica</h6>
+                <div className="page mb-3">
+                    <h6 >
+                        <strong>Inventario</strong>
+                    </h6>
+
+                    <span className="badge-title">
+                        AQUA Médica
+                    </span>
+                </div>
 
                 <div className="d-flex gap-3">
 

@@ -55,3 +55,28 @@ img {
   max-width: 100%;
   display: block;
 }
+
+/* OCULTAR SCROLLBAR GLOBAL */
+* {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE y Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari y Opera */
+}
+
+.badge-title {
+  background: #e0e7ff;
+  color: #4338ca;
+
+  padding: 6px 14px;
+
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 600;
+}

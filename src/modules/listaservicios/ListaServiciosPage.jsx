@@ -11,7 +11,15 @@ import {
 import { getServiciosProgramadosByMes } from "../../services/serviciosProgramadosService";
 
 import Loader from "../../components/Loader";
-import { FaCheck, FaCalendarAlt, FaClosedCaptioning } from "react-icons/fa";
+
+import {
+    FaCheck, FaCalendarAlt,
+    FaClosedCaptioning, FaCalendarMinus, FaCalendarDay,
+    FaBuilding, FaSearch, FaFilePdf,
+    FaFileExport, FaEyeSlash, FaLock, FaChartPie,
+    FaChartBar, FaCalendarPlus
+} from "react-icons/fa";
+
 import { notifySuccess, notifyError } from "../../utils/notify";
 
 import CambiarEstadoModal from "../listaservicios/components/CambiarEstadoModal";
@@ -19,7 +27,11 @@ import ResumenServiciosModal from "../listaservicios/components/ResumenServicioM
 
 import { getEquipos } from "../../services/equiposServices";
 
+import { exportMantenimientoPDF } from "../../utils/exportMantenimientoPDF"
+
 export default function ListaServiciosPage() {
+
+
 
     const [equipos, setEquipos] = useState([]);
     const [servicios, setServicios] = useState([]);
@@ -38,7 +50,9 @@ export default function ListaServiciosPage() {
 
     const [selected, setSelected] = useState(null);
     const [showBloqueo, setShowBloqueo] = useState(false);
+    // PDF
     const [showResumen, setShowResumen] = useState(false);
+    const [showPdfModal, setShowPdfModal] = useState(false);
 
     const [diasBloqueados, setDiasBloqueados] = useState([]);
     const [bloqueosHorarios, setBloqueosHorarios] = useState([]);
@@ -192,41 +206,71 @@ export default function ListaServiciosPage() {
         <div className="container-fluid page-transition">
 
             {/* HEADER */}
-            <div className="custom-users-header d-flex justify-content-between align-items-center mb-3">
 
-                <h6 className="fw-bold d-flex align-items-center gap-2 m-0">
-                    <FaCalendarAlt size={14} />
-                    LISTA DE SERVICIOS - MES {mes}
+            {/* HEADER SUPERIOR */}
+            {/* <div className="mb-4 pb-2"> */}
+
+            {/*  */}
+
+            {/* </div> */}
+
+            <div className="page mb-3">
+                <h6 >
+                    <strong>Lista De Servicios Mes {mes}</strong>
                 </h6>
 
-                <div className="header-actions d-flex align-items-center">
+                <span className="badge-title">
+                    AQUA Médica
+                </span>
+            </div>
 
-                    <input
-                        type="text"
-                        className="form-control form-control-sm me-2"
-                        placeholder="Área..."
-                        value={filtroArea}
-                        onChange={(e) => setFiltroArea(e.target.value)}
-                    />
 
-                    <button
-                        className={`btn btn-sm me-2 ${showBloqueo ? "btn-danger" : "btn-outline-danger"}`}
-                        onClick={() => setShowBloqueo(!showBloqueo)}
-                    >
-                        {showBloqueo ? "Ocultar" : "Bloquear"}
-                    </button>
+            {/* FILTROS Y ACCIONES */}
+            <div
+                className="d-grid gap-3 mb-4"
+                style={{
+                    gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))"
+                }}
+            >
 
-                    <button
-                        className="btn btn-primary btn-sm me-2"
-                        onClick={() => setShowResumen(true)}
-                    >
-                        Resumen
-                    </button>
+                {/* AREA */}
+                <div>
 
+                    <div className="position-relative">
+
+                        <FaSearch
+                            className="position-absolute top-50 translate-middle-y text-secondary"
+                            style={{
+                                left: "10px",
+                                zIndex: 2
+                            }}
+                        />
+
+                        <input
+                            type="text"
+                            className="form-control ps-5 rounded-3 shadow-sm"
+                            placeholder="Buscar área..."
+                            value={filtroArea}
+                            onChange={(e) => setFiltroArea(e.target.value)}
+                            style={{
+                                height: "36px",
+                                fontSize: "15px"
+                            }}
+                        />
+
+                    </div>
+
+                </div>
+
+                {/* MES */}
+                <div>
                     <select
-                        className="form-select form-select-sm me-2"
+                        className="form-select rounded-3 fw-semibold"
                         value={mes}
                         onChange={(e) => setMes(Number(e.target.value))}
+                        style={{
+                            height: "36px"
+                        }}
                     >
                         {[...Array(12)].map((_, i) => (
                             <option key={i} value={i + 1}>
@@ -235,29 +279,101 @@ export default function ListaServiciosPage() {
                         ))}
                     </select>
 
-                    {/* <input
-                        type="date"
-                        className="form-control form-control-sm me-2"
-                        value={filtroFecha}
-                        onChange={(e) => setFiltroFecha(e.target.value)}
-                    /> */}
+                </div>
 
+
+                {/* FECHA INICIO */}
+                <div>
 
                     <input
                         type="date"
-                        className="form-control form-control-sm me-2"
+                        className="form-control rounded-3"
                         value={filtroFechaInicio}
                         onChange={(e) => setFiltroFechaInicio(e.target.value)}
-                    />
-
-                    <input
-                        type="date"
-                        className="form-control form-control-sm me-2"
-                        value={filtroFechaFin}
-                        onChange={(e) => setFiltroFechaFin(e.target.value)}
+                        style={{
+                            height: "36px"
+                        }}
                     />
 
                 </div>
+
+
+                {/* FECHA FIN */}
+                <div>
+                    <input
+                        type="date"
+                        className="form-control rounded-3"
+                        value={filtroFechaFin}
+                        onChange={(e) => setFiltroFechaFin(e.target.value)}
+                        style={{
+                            height: "36px"
+                        }}
+                    />
+
+                </div>
+
+
+                {/* EXPORTAR */}
+                <div>
+
+                    <button
+                        className="btn btn-danger w-100 rounded-3"
+                        style={{
+                            height: "36px"
+                        }}
+                        onClick={() => setShowPdfModal(true)}
+                    >
+                        <FaFilePdf className="me-2" />
+                        Exportar PDF
+                    </button>
+
+                </div>
+
+
+                {/* BLOQUEAR */}
+                <div>
+
+                    <button
+                        className={`btn w-100 rounded-3 ${showBloqueo
+                            ? "btn-danger"
+                            : "btn-outline-danger"
+                            }`}
+                        style={{
+                            height: "36px"
+                        }}
+                        onClick={() => setShowBloqueo(!showBloqueo)}
+                    >
+                        {showBloqueo ? (
+                            <>
+                                <FaEyeSlash className="me-2" />
+                                Ocultar
+                            </>
+                        ) : (
+                            <>
+                                <FaLock className="me-2" />
+                                Bloquear
+                            </>
+                        )}
+                    </button>
+
+                </div>
+
+                {/* RESUMEN */}
+                <div>
+
+                    <button
+                        className="btn btn-primary w-100 rounded-3"
+                        style={{
+                            height: "36px"
+                        }}
+                        onClick={() => setShowResumen(true)}
+                    >
+                        <FaChartBar className="me-2" />
+                        Resumen
+                    </button>
+
+                </div>
+
 
             </div>
 
@@ -481,6 +597,75 @@ export default function ListaServiciosPage() {
                     mes={mes}
                     onClose={() => setShowResumen(false)}
                 />
+            )}
+
+
+            {showPdfModal && (
+
+                <div className="modal fade show d-block">
+
+                    <div className="modal-dialog modal-dialog-centered">
+
+                        <div className="modal-content">
+
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    Confirmar exportación
+                                </h5>
+                            </div>
+
+                            <div className="modal-body">
+                                ¿Deseas generar el PDF del programa de mantenimiento?
+                            </div>
+
+                            <div className="modal-footer">
+
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => setShowPdfModal(false)}
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={async () => {
+
+                                        try {
+
+                                            setShowPdfModal(false);
+
+                                            if (!serviciosFiltrados.length) {
+                                                notifyError("No hay servicios para exportar");
+                                                return;
+                                            }
+
+                                            await exportMantenimientoPDF({
+                                                servicios: serviciosFiltrados,
+                                                mes,
+                                                anio
+                                            });
+
+                                            notifySuccess("PDF generado correctamente");
+
+                                        } catch (error) {
+
+                                            console.log(error);
+
+                                            notifyError("Error al generar PDF");
+                                        }
+                                    }}
+                                >
+                                    Descargar PDF
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
             )}
 
         </div>

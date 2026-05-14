@@ -44,7 +44,15 @@ export default function PuestosPage() {
 
             <div className="d-flex justify-content-between align-items-center mb-4">
 
-                <h6>Catálogo de Puestos - AQUA Médica</h6>
+                <div className="page mb-3">
+                    <h6 >
+                        <strong>Puestos</strong>
+                    </h6>
+
+                    <span className="badge-title">
+                        AQUA Médica
+                    </span>
+                </div>
 
                 <div className="d-flex gap-3">
 

@@ -381,7 +381,15 @@ export default function Users() {
             {/* HEADER */}
             <div className="d-flex justify-content-between align-items-center mb-4 custom-users-header">
 
-                <h6>Usuarios - AQUA Médica</h6>
+                <div className="page mb-3">
+                    <h6 >
+                        <strong>Servicios</strong>
+                    </h6>
+
+                    <span className="badge-title">
+                        AQUA Médica
+                    </span>
+                </div>
 
                 <div className="d-flex gap-3">
 
@@ -690,50 +698,243 @@ export default function Users() {
 
             /* MODAL MEJORADO */
             .custom-modal-backdrop {
+
+                position: fixed;
+
+                inset: 0;
+
                 display: flex;
+
                 align-items: center;
+
                 justify-content: center;
-                background: rgba(0,0,0,0.4);
+
+                background:
+                    rgba(15,23,42,0.55);
+
+                backdrop-filter: blur(6px);
+
+                z-index: 9999;
+
+                padding: 20px;
             }
 
             .custom-modal {
-                border-radius: 16px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+
+                width: 640px;
+
+                background:
+                    rgba(255,255,255,0.94);
+
+                backdrop-filter: blur(12px);
+
+                border-radius: 30px;
+
+                padding: 0;
+
+                border:
+                    1px solid rgba(255,255,255,0.4);
+
+                box-shadow:
+                    0 24px 48px rgba(0,0,0,0.18);
+
+                overflow: hidden;
             }
 
-            .custom-modal-header {
-                border-bottom: 1px solid #eee;
+           .custom-modal-header {
+
+                display: flex;
+
+                justify-content: space-between;
+
+                align-items: center;
+
+                padding: 24px 30px;
+
+                border-bottom:
+                    1px solid #f3f4f6;
             }
 
+            .custom-modal-header h5 {
+
+                margin: 0;
+
+                font-size: 1.5rem;
+
+                font-weight: 800;
+
+                color: #111827;
+            }
+                
+            .modal-footer {
+
+                display: flex;
+
+                justify-content: flex-end;
+
+                gap: 12px;
+
+                padding: 24px 30px;
+
+                border-top:
+                    1px solid #f3f4f6;
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        #f9fafb,
+                        #ffffff
+                    );
+            }
+
+            .modal-body label {
+
+                font-size: 13px;
+                        
+                font-weight: 700;
+                        
+                color: #374151;
+                        
+                margin-bottom: 8px;
+                        
+                display: block;
+            }
             
-/* 🔥 TABLE */
-.table {
-    border-collapse: separate !important;
-    border-spacing: 0 10px !important;
+
+            .modal-body .form-control,
+            .modal-body .form-select {
+                        
+                height: 54px;
+                        
+                border-radius: 14px;
+                        
+                border:
+                    1px solid #d1d5db;
+                        
+                padding: 0 14px;
+                        
+                background: #fff;
+                        
+                box-shadow: none;
+            }
+
+            .modal-body .form-control:focus,
+            .modal-body .form-select:focus {
+                        
+                border-color: #2563eb;
+                        
+                box-shadow:
+                    0 0 0 4px rgba(37,99,235,0.10);
+            }
+
+            .modal-footer .btn-secondary {
+
+                height: 48px;
+                        
+                padding: 0 18px;
+                        
+                border: none;
+                        
+                border-radius: 14px;
+                        
+                background: #e5e7eb;
+                        
+                font-weight: 700;
+            }
+
+
+            .modal-footer .btn-primary {
+
+                height: 50px;
+
+                padding: 0 24px;
+
+                border: none;
+
+                border-radius: 14px;
+
+                background:
+                    linear-gradient(
+                        135deg,
+                        #2563eb,
+                        #1d4ed8
+                    );
+
+                color: #fff;
+
+                font-weight: 700;
+
+                box-shadow:
+                    0 12px 24px rgba(37,99,235,0.22);
+            }
+
+
+            .btn-close {
+
+    width: 42px;
+
+    height: 42px;
+
+    border-radius: 14px;
+
+    background-color: #f3f4f6;
+
+    opacity: 1;
 }
 
-.table thead th {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: #6b7280;
-    border: none !important;
+.row.g-3 {
+
+    --bs-gutter-y: 20px;
+
+    --bs-gutter-x: 20px;
 }
 
-.table tbody tr {
-    background: #ffffff;
-    transition: all 0.2s ease;
+.custom-modal {
+
+    animation: modalFade .18s ease;
 }
 
-.table tbody tr:hover {
-    transform: scale(1.01);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+@keyframes modalFade {
+
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
-.table td {
-    vertical-align: middle;
-    border-top: none !important;
-    padding: 12px;
-}
+            /*  TABLE */
+            .table {
+                border-collapse: separate !important;
+                border-spacing: 0 10px !important;
+            }
+
+            .table thead th {
+                font-size: 12px;
+                text-transform: uppercase;
+                color: #6b7280;
+                border: none !important;
+            }
+
+            .table tbody tr {
+                background: #ffffff;
+                transition: all 0.2s ease;
+            }
+
+            .table tbody tr:hover {
+                transform: scale(1.01);
+                box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+            }
+
+            .table td {
+                vertical-align: middle;
+                border-top: none !important;
+                padding: 12px;
+            }
 
 
            

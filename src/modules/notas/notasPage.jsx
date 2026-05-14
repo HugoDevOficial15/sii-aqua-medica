@@ -94,7 +94,17 @@ export default function NotasPage() {
         <div className="container mt-3">
 
             <div className="d-flex justify-content-between mb-3">
-                <h6>Mis Notas - AQUA Médica</h6>
+
+                <div className="page mb-3">
+                    <h6 >
+                        <strong>Mis notas</strong>
+                    </h6>
+
+                    <span className="badge-title">
+                        AQUA Médica
+                    </span>
+                </div>
+
 
                 <button
                     className="btn btn-primary"
@@ -131,7 +141,7 @@ export default function NotasPage() {
                 show={showModal}
                 onClose={() => setShowModal(false)}
                 onSave={handleSave}
-                data={notaEditar}  
+                data={notaEditar}
             />
 
         </div>

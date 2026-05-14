@@ -1,27 +1,59 @@
 import RackCard from "./RackCard";
 
-export default function RackGrid({ racks, onSelect }) {
+export default function RackGrid({
+    racks,
+    onSelect
+}) {
+
     return (
-        <div className="container-fluid">
-            <div className="row g-3">
-                {racks.map(rack => (
-                    <div
+
+        <div className="rack-grid">
+
+            {
+                racks.map(rack => (
+
+                    <RackCard
                         key={rack.id}
-                        className="
-                            col-12       
-                            col-sm-6
-                            col-md-4     
-                            col-lg-3                                 
-                            col-xl-2   
-                        "
-                    >
-                        <RackCard
-                            rack={rack}
-                            onClick={() => onSelect(rack)}
-                        />
-                    </div>
-                ))}
-            </div>
+                        rack={rack}
+                        onClick={() =>
+                            onSelect(rack)
+                        }
+                    />
+
+                ))
+            }
+
+            <style jsx>{`
+
+                .rack-grid {
+
+                    display: grid;
+
+                    grid-template-columns:
+                        repeat(
+                            auto-fill,
+                            minmax(260px, 1fr)
+                        );
+
+                    gap: 20px;
+
+                    width: 100%;
+                }
+
+                @media (max-width: 768px) {
+
+                    .rack-grid {
+
+                        grid-template-columns:
+                            repeat(
+                                auto-fill,
+                                minmax(220px, 1fr)
+                            );
+                    }
+                }
+
+            `}</style>
+
         </div>
     );
 }

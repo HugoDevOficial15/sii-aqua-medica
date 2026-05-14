@@ -20,7 +20,7 @@ export default function AgendaMedicaPage() {
     const [showModal, setShowModal] = useState(false);
     const [agendaSelected, setAgendaSelected] = useState(null);
 
-    
+
 
     const handleToggle = async (agenda) => {
         await toggleAgendaEstado(agenda.id, agenda.estado);
@@ -46,7 +46,7 @@ export default function AgendaMedicaPage() {
 
     if (loading) return <Loader text="Cargando agendas..." />;
 
-    
+
 
     // 👉 DETALLE
     if (agendaSelected) {
@@ -63,7 +63,17 @@ export default function AgendaMedicaPage() {
 
             {/* HEADER */}
             <div className="d-flex justify-content-between mb-4 custom-users-header">
-                <h6>Servicio Médico - Agendas</h6>
+
+                <div className="page mb-3">
+                    <h6 >
+                        <strong>Servicio Médico</strong>
+                    </h6>
+
+                    <span className="badge-title">
+                        AQUA Médica
+                    </span>
+                </div>
+
 
                 <button
                     className="btn btn-primary btn-sm"

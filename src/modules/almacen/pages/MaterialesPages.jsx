@@ -36,7 +36,17 @@ export default function MaterialesPage() {
 
             {/* HEADER */}
             <div className="d-flex justify-content-between align-items-center mb-3">
-                <h6 className="mb-0">Materiales - AQUA Médica</h6>
+
+                <div className="page mb-3">
+                    <h6 >
+                        <strong>Materiales</strong>
+                    </h6>
+
+                    <span className="badge-title">
+                        AQUA Médica
+                    </span>
+                </div>
+
                 <button
                     className="btn btn-primary d-flex align-items-center gap-2"
                     onClick={() => {

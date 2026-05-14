@@ -1,140 +1,695 @@
 import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
-import { FaPlus } from "react-icons/fa";
+
+import {
+    useEffect,
+    useState
+} from "react";
+
+import {
+    FaPlus
+} from "react-icons/fa";
 
 import Loader from "../../../components/Loader";
-import { notifySuccess, notifyError } from "../../../utils/notify";
 
-import { bloquearRack, liberarRack, actualizarRack } from "../../../services/rackService";
-import { registrarEntrada } from "../../../services/movimientosService";
+import {
+    notifySuccess,
+    notifyError
+} from "../../../utils/notify";
 
-import { obtenerMateriaPrima } from "../../../services/materiaPrimaService";
-import { obtenerAcondicionamiento } from "../../../services/acondicionamientoService";
+import {
+    bloquearRack,
+    liberarRack
+} from "../../../services/rackService";
 
-import { obtenerProducto } from "../../../services/productoService";
+import {
+    obtenerMateriaPrima
+} from "../../../services/materiaPrimaService";
 
+import {
+    obtenerAcondicionamiento
+} from "../../../services/acondicionamientoService";
 
-// hooks
-import { useAuth } from "../../../hooks/useAuth";
+import {
+    obtenerProducto
+} from "../../../services/productoService";
 
-export default function MovimientoModal({ rack, onClose, refresh }) {
+import {
+    crearStock
+} from "../../../services/rackStockService";
+
+import {
+    registrarMovimiento
+} from "../../../services/movimientosService";
+
+import {
+    useAuth
+} from "../../../hooks/useAuth";
+
+export default function MovimientoModal({
+
+    rack,
+    onClose,
+    refresh
+
+}) {
 
     const { user } = useAuth();
 
-    const { register, handleSubmit, watch } = useForm();
+    const {
+        register,
+        handleSubmit,
+        watch
+    } = useForm();
 
-    const [loading, setLoading] = useState(false);
-    const [items, setItems] = useState([]);
+    const [loading, setLoading] =
+        useState(false);
+
+    const [items, setItems] =
+        useState([]);
 
     const tipo = watch("tipo");
 
+    /*
+    |--------------------------------------------------------------------------
+    | Load productos
+    |--------------------------------------------------------------------------
+    */
+
     useEffect(() => {
+
         const load = async () => {
-            if (tipo === "materia_prima") setItems(await obtenerMateriaPrima());
-            if (tipo === "material_acondicionamiento") setItems(await obtenerAcondicionamiento());
-            if (tipo === "producto_terminado") setItems(await obtenerProducto());
+
+            if (
+                tipo === "materia_prima"
+            ) {
+                setItems(
+                    await obtenerMateriaPrima()
+                );
+            }
+
+            if (
+                tipo ===
+                "material_acondicionamiento"
+            ) {
+                setItems(
+                    await obtenerAcondicionamiento()
+                );
+            }
+
+            if (
+                tipo ===
+                "producto_terminado"
+            ) {
+                setItems(
+                    await obtenerProducto()
+                );
+            }
         };
-        if (tipo) load();
+
+        if (tipo) {
+            load();
+        }
+
     }, [tipo]);
 
-    const onSubmit = async (form) => {
+    /*
+    |--------------------------------------------------------------------------
+    | Submit
+    |--------------------------------------------------------------------------
+    */
+
+    const onSubmit = async (
+        form
+    ) => {
 
         try {
+
             setLoading(true);
 
-            console.log(user);
-            
+            const item =
+                items.find(
+                    i =>
+                        i.id ===
+                        form.itemId
+                );
 
-            await bloquearRack(rack.id, user.id);
+            /*
+            |--------------------------------------------------------------------------
+            | Bloquear rack
+            |--------------------------------------------------------------------------
+            */
 
-            const item = items.find(i => i.id === form.itemId);
+            await bloquearRack(
+                rack.id,
+                user.id
+            );
 
-            await registrarEntrada({
+            /*
+            |--------------------------------------------------------------------------
+            | Crear stock
+            |--------------------------------------------------------------------------
+            */
+
+            const stockPayload = {
+
                 rackId: rack.id,
-                itemId: form.itemId,
-                nombreItem: item?.nombre,
-                tipoItem: form.tipo,
-                lote: form.lote,
-                numeroAnalisis: form.numeroAnalisis,
-                cantidad: Number(form.cantidad),
-                fecha: form.fecha,
-                userId: user.id,
-                userNombre: user.nombre
+
+                rackNumero:
+                    rack.numeroRack,
+
+                itemId:
+                    form.itemId,
+
+                nombreItem:
+                    item?.nombre,
+
+                tipoItem:
+                    form.tipo,
+
+                lote:
+                    form.lote,
+
+                cantidadActual:
+                    Number(
+                        form.cantidad
+                    ),
+
+                unidad:
+                    item?.tipoUnidad || "",
+
+                fechaEntrada:
+                    form.fecha,
+
+                fechaCaducidad:
+                    form.fechaCaducidad
+                    || null,
+
+                numeroAnalisis:
+                    form.numeroAnalisis || "",
+
+                createdBy: {
+
+                    id: user.id,
+
+                    nombre:
+                        user.nombre
+                }
+            };
+
+            const stockRef =
+                await crearStock(
+                    stockPayload
+                );
+
+            /*
+            |--------------------------------------------------------------------------
+            | Movimiento
+            |--------------------------------------------------------------------------
+            */
+
+            await registrarMovimiento({
+
+                stockId:
+                    stockRef.id,
+
+                rackId:
+                    rack.id,
+
+                rackNumero:
+                    rack.numeroRack,
+
+                tipoMovimiento:
+                    "entrada",
+
+                itemId:
+                    form.itemId,
+
+                nombreItem:
+                    item?.nombre,
+
+                tipoItem:
+                    form.tipo,
+
+                lote:
+                    form.lote,
+
+                cantidad:
+                    Number(
+                        form.cantidad
+                    ),
+
+                unidad:
+                    item?.tipoUnidad || "",
+
+                fecha:
+                    form.fecha,
+
+                fechaCaducidad:
+                    form.fechaCaducidad
+                    || null,
+
+                numeroAnalisis:
+                    form.numeroAnalisis || "",
+
+                usuario: {
+
+                    id: user.id,
+
+                    nombre:
+                        user.nombre
+                }
             });
 
-            // 🔥 CAMBIA A OCUPADO
-            await actualizarRack(rack.id, {
-                estatus: "ocupado"
-            });
+            /*
+            |--------------------------------------------------------------------------
+            | Liberar
+            |--------------------------------------------------------------------------
+            */
 
-            await liberarRack(rack.id);
+            await liberarRack(
+                rack.id
+            );
 
             await refresh();
 
-            notifySuccess("Movimiento guardado", "Correctamente");
+            notifySuccess(
+                "Movimiento guardado",
+                "Correctamente"
+            );
+
             onClose();
 
         } catch (e) {
-            console.log("error movi:", e);
 
-            notifyError("Error", "No se pudo guardar");
-            await liberarRack(rack.id);
+            console.log(e);
+
+            notifyError(
+                "Error",
+                "No se pudo guardar"
+            );
+
+            await liberarRack(
+                rack.id
+            );
+
         } finally {
+
             setLoading(false);
         }
     };
 
     return (
-        <div style={styles.backdrop}>
-            <div style={styles.modalCard}>
 
-                <div style={styles.header}>
-                    <h5>Movimiento - Rack {rack.numeroRack}</h5>
-                    <button onClick={onClose}>×</button>
+        <div className="movement-backdrop">
+
+            <div className="movement-modal">
+
+                <div className="movement-header">
+
+                    <div>
+
+                        <div className="movement-title">
+                            Entrada de inventario
+                        </div>
+
+                        <div className="movement-subtitle">
+
+                            Rack
+                            {" "}
+                            {rack.numeroRack}
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        className="movement-close"
+
+                        onClick={onClose}
+                    >
+                        ×
+                    </button>
+
                 </div>
 
-                <div style={styles.body}>
+                {
+                    loading && <Loader />
+                }
 
-                    {loading && <Loader />}
+                <form
+                    onSubmit={
+                        handleSubmit(
+                            onSubmit
+                        )
+                    }
 
-                    <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
+                    className="movement-form"
+                >
 
-                        <select {...register("tipo")} style={styles.input}>
-                            <option value="">Tipo</option>
-                            <option value="materia_prima">Materia Prima</option>
-                            <option value="material_acondicionamiento">Acondicionamiento</option>
-                            <option value="producto_terminado">Producto Terminado</option>
-                        </select>
+                    <div className="movement-grid">
 
-                        <select {...register("itemId")} style={styles.input}>
-                            <option value="">Producto</option>
-                            {items.map(i => (
-                                <option key={i.id} value={i.id}>{i.nombre}</option>
-                            ))}
-                        </select>
+                        <div className="movement-group">
 
-                        <input type="date" {...register("fecha")} style={styles.input} />
-                        <input placeholder="Lote" {...register("lote")} style={styles.input} />
-                        <input placeholder="Número análisis" {...register("numeroAnalisis")} style={styles.input} />
-                        <input type="number" placeholder="Cantidad" {...register("cantidad")} style={styles.input} />
+                            <label>
+                                Tipo
+                            </label>
 
-                        <button style={styles.saveButton}>
-                            <FaPlus /> Guardar
-                        </button>
+                            <select
+                                {...register(
+                                    "tipo"
+                                )}
+                            >
 
-                    </form>
-                </div>
+                                <option value="">
+                                    Seleccionar
+                                </option>
+
+                                <option value="materia_prima">
+                                    Materia Prima
+                                </option>
+
+                                <option value="material_acondicionamiento">
+                                    Acondicionamiento
+                                </option>
+
+                                <option value="producto_terminado">
+                                    Producto Terminado
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                        <div className="movement-group">
+
+                            <label>
+                                Producto
+                            </label>
+
+                            <select
+                                {...register(
+                                    "itemId"
+                                )}
+                            >
+
+                                <option value="">
+                                    Seleccionar
+                                </option>
+
+                                {
+                                    items.map(i => (
+
+                                        <option
+                                            key={i.id}
+
+                                            value={i.id}
+                                        >
+                                            {i.nombre}
+                                        </option>
+                                    ))
+                                }
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                    <div className="movement-grid">
+
+                        <div className="movement-group">
+
+                            <label>
+                                Fecha entrada
+                            </label>
+
+                            <input
+                                type="date"
+
+                                {...register(
+                                    "fecha"
+                                )}
+                            />
+
+                        </div>
+
+                        <div className="movement-group">
+
+                            <label>
+                                Fecha caducidad
+                            </label>
+
+                            <input
+                                type="date"
+
+                                {...register(
+                                    "fechaCaducidad"
+                                )}
+                            />
+
+                        </div>
+
+                    </div>
+
+                    <div className="movement-grid">
+
+                        <div className="movement-group">
+
+                            <label>
+                                Lote
+                            </label>
+
+                            <input
+                                placeholder="Lote"
+
+                                {...register(
+                                    "lote"
+                                )}
+                            />
+
+                        </div>
+
+                        <div className="movement-group">
+
+                            <label>
+                                Número análisis
+                            </label>
+
+                            <input
+                                placeholder="Número análisis"
+
+                                {...register(
+                                    "numeroAnalisis"
+                                )}
+                            />
+
+                        </div>
+
+                    </div>
+
+                    <div className="movement-grid">
+
+                        <div className="movement-group">
+
+                            <label>
+                                Cantidad
+                            </label>
+
+                            <input
+                                type="number"
+
+                                step="0.01"
+
+                                placeholder="Cantidad"
+
+                                {...register(
+                                    "cantidad"
+                                )}
+                            />
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        className="movement-submit"
+                    >
+
+                        <FaPlus
+                            className="me-2"
+                        />
+
+                        Guardar entrada
+
+                    </button>
+
+                </form>
+
             </div>
+
+            <style jsx>{`
+
+                .movement-backdrop {
+
+                    position: fixed;
+
+                    inset: 0;
+
+                    background:
+                        rgba(15,23,42,0.55);
+
+                    backdrop-filter: blur(6px);
+
+                    display: flex;
+
+                    justify-content: center;
+
+                    align-items: center;
+
+                    z-index: 9999;
+                }
+
+                .movement-modal {
+
+                    width: 700px;
+
+                    background:
+                        rgba(255,255,255,0.95);
+
+                    backdrop-filter: blur(12px);
+
+                    border-radius: 30px;
+
+                    padding: 30px;
+
+                    border:
+                        1px solid rgba(255,255,255,0.4);
+
+                    box-shadow:
+                        0 24px 48px rgba(0,0,0,0.18);
+                }
+
+                .movement-header {
+
+                    display: flex;
+
+                    justify-content: space-between;
+
+                    align-items: center;
+
+                    margin-bottom: 26px;
+                }
+
+                .movement-title {
+
+                    font-size: 1.6rem;
+
+                    font-weight: 800;
+
+                    color: #111827;
+                }
+
+                .movement-subtitle {
+
+                    color: #6b7280;
+
+                    margin-top: 4px;
+                }
+
+                .movement-close {
+
+                    width: 42px;
+
+                    height: 42px;
+
+                    border: none;
+
+                    border-radius: 14px;
+
+                    background: #f3f4f6;
+
+                    font-size: 20px;
+                }
+
+                .movement-form {
+
+                    display: flex;
+
+                    flex-direction: column;
+
+                    gap: 22px;
+                }
+
+                .movement-grid {
+
+                    display: grid;
+
+                    grid-template-columns:
+                        repeat(2, 1fr);
+
+                    gap: 18px;
+                }
+
+                .movement-group {
+
+                    display: flex;
+
+                    flex-direction: column;
+
+                    gap: 8px;
+                }
+
+                .movement-group label {
+
+                    font-size: 13px;
+
+                    font-weight: 700;
+
+                    color: #374151;
+                }
+
+                .movement-group input,
+                .movement-group select {
+
+                    height: 54px;
+
+                    border-radius: 14px;
+
+                    border:
+                        1px solid #d1d5db;
+
+                    padding: 0 14px;
+
+                    background: #fff;
+                }
+
+                .movement-submit {
+
+                    height: 54px;
+
+                    border: none;
+
+                    border-radius: 16px;
+
+                    background:
+                        linear-gradient(
+                            135deg,
+                            #2563eb,
+                            #1d4ed8
+                        );
+
+                    color: #fff;
+
+                    font-weight: 700;
+
+                    font-size: 15px;
+
+                    box-shadow:
+                        0 14px 28px rgba(37,99,235,0.22);
+                }
+
+            `}</style>
+
         </div>
     );
 }
-
-const styles = {
-    backdrop: { position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center" },
-    modalCard: { background: "#fff", padding: 20, borderRadius: 10, width: 400 },
-    header: { display: "flex", justifyContent: "space-between" },
-    body: { marginTop: 10 },
-    form: { display: "flex", flexDirection: "column", gap: 10 },
-    input: { padding: 10, borderRadius: 8, border: "1px solid #ccc" },
-    saveButton: { background: "#2563eb", color: "#fff", padding: 10, border: "none", borderRadius: 8 }
-};

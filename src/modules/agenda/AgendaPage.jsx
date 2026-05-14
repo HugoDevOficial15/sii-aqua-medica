@@ -18,79 +18,50 @@ export default function AgendaPage() {
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     ];
 
-    // ✅ Solo meses actuales o futuros
     const isMesHabilitado = (index) => {
         return index >= mesActual;
     };
 
-    // ✅ Obtener DOS lunes antes del inicio del mes
-    const obtenerFechaInicioSemana = (index) => {
+    const obtenerFechaApertura = (index) => {
 
         const anioActual = hoy.getFullYear();
 
         let anioDelMes = anioActual;
 
-        // ✅ Diciembre → Enero siguiente año
         if (mesActual === 11 && index === 0) {
             anioDelMes = anioActual + 1;
         }
 
-        // Inicio del mes destino
         const inicioMes = new Date(anioDelMes, index, 1);
 
         const fechaApertura = new Date(inicioMes);
 
-        const diaSemana = fechaApertura.getDay();
-
-        // getDay()
-        // 0 = Domingo
-        // 1 = Lunes
-        // ...
-        // 6 = Sábado
-
-        let diasRetroceso;
-
-        // ✅ Primer lunes anterior
-        if (diaSemana === 1) {
-            diasRetroceso = 7;
-        } else if (diaSemana === 0) {
-            diasRetroceso = 6;
-        } else {
-            diasRetroceso = diaSemana - 1;
-        }
-
-        // ✅ Retroceder al primer lunes
         fechaApertura.setDate(
-            fechaApertura.getDate() - diasRetroceso
-        );
-
-        // ✅ Retroceder otro lunes más (7 días)
-        fechaApertura.setDate(
-            fechaApertura.getDate() - 7
+            fechaApertura.getDate() - 14
         );
 
         return fechaApertura;
     };
 
-    // ✅ Validar acceso
     const puedeEntrarAlMes = (index) => {
 
-        // ✅ Mes actual
         if (index === mesActual) {
             return true;
         }
 
-        // ❌ Mes pasado
         if (index < mesActual) {
             return false;
         }
 
-        const fechaApertura = obtenerFechaInicioSemana(index);
+        if (index > mesActual + 1) {
+            return false;
+        }
+
+        const fechaApertura = obtenerFechaApertura(index);
 
         return hoy >= fechaApertura;
     };
 
-    // ✅ Formato fecha
     const formatearFecha = (fecha) => {
         return fecha.toLocaleDateString("es-MX", {
             day: "2-digit",
@@ -99,20 +70,26 @@ export default function AgendaPage() {
         });
     };
 
-    // ✅ Click
     const handleClickMes = (index, mes, habilitado) => {
 
-        // ❌ Mes pasado
         if (!habilitado) {
             notifyError("No puedes acceder a meses anteriores.");
             return;
         }
 
-        // ❌ Todavía no disponible
+        if (index > mesActual + 1) {
+
+            notifyError(
+                "Solo puedes acceder al siguiente mes."
+            );
+
+            return;
+        }
+
         if (!puedeEntrarAlMes(index)) {
 
             const fechaDisponible = formatearFecha(
-                obtenerFechaInicioSemana(index)
+                obtenerFechaApertura(index)
             );
 
             notifySuccess(
@@ -122,16 +99,22 @@ export default function AgendaPage() {
             return;
         }
 
-
         navigate(`/agenda/${index + 1}`);
     };
 
     return (
+
         <div className="agenda-container">
 
-            <h6 className="fw-bold mb-3">
-                Agenda de Servicios - AQUA Médica
-            </h6>
+            <div className="page mb-3">
+                <h6 >
+                    <strong>Agenda de Servicios</strong>
+                </h6>
+
+                <span className="badge-title">
+                    AQUA Médica
+                </span>
+            </div>
 
             <div className="agenda-grid">
 
@@ -139,19 +122,33 @@ export default function AgendaPage() {
 
                     const habilitado = isMesHabilitado(index);
 
+                    const esMesActual = index === mesActual;
+
                     return (
                         <div
                             key={index}
-                            className={`agenda-card ${!habilitado ? "disabled" : ""}`}
+                            className={`
+                                agenda-card
+                                ${!habilitado ? "disabled" : ""}
+                                ${esMesActual ? "mes-actual" : ""}
+                            `}
                             onClick={() =>
                                 handleClickMes(index, mes, habilitado)
                             }
                         >
+
+                            {esMesActual && (
+                                <span className="badge-actual">
+                                    Mes actual
+                                </span>
+                            )}
+
                             <div className="d-flex justify-content-between">
                                 <FaCalendarAlt size={28} />
                             </div>
 
                             <h5 className="mt-auto">{mes}</h5>
+
                         </div>
                     );
                 })}
@@ -159,6 +156,18 @@ export default function AgendaPage() {
             </div>
 
             <style>{`
+
+            .badge-title{
+                    background:#e0e7ff;
+                    color:#4338ca;
+
+                    padding:6px 14px;
+
+                    border-radius:999px;
+
+                    font-size:12px;
+                    font-weight:600;
+                }
 
                 .agenda-container {
                     height: 85vh;
@@ -185,6 +194,8 @@ export default function AgendaPage() {
                     display: flex;
                     flex-direction: column;
                     transition: all 0.3s ease;
+                    position: relative;
+                    overflow: hidden;
                 }
 
                 .agenda-card:hover {
@@ -192,7 +203,6 @@ export default function AgendaPage() {
                     box-shadow: 0 10px 25px rgba(0,0,0,0.15);
                 }
 
-                /* ❌ Meses pasados */
                 .agenda-card.disabled {
                     background: #ccc;
                     cursor: not-allowed;
@@ -204,7 +214,25 @@ export default function AgendaPage() {
                     box-shadow: none;
                 }
 
-                /* 📱 Responsive */
+                .mes-actual {
+                    border: 3px solid #facc15;
+                    box-shadow:
+                        0 0 0 2px rgba(250,204,21,0.4),
+                        0 10px 25px rgba(0,0,0,0.15);
+                }
+
+                .badge-actual {
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    background: #facc15;
+                    color: #111827;
+                    padding: 4px 10px;
+                    border-radius: 999px;
+                    font-size: 11px;
+                    font-weight: 700;
+                }
+
                 @media (max-width: 992px) {
                     .agenda-grid {
                         grid-template-columns: repeat(3, 1fr);

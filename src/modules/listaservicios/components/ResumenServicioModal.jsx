@@ -51,12 +51,12 @@ export default function ResumenServiciosModal({
     const total = equiposDelMes.length;
     const faltantes = total - programados;
 
-    // 🔥 PORCENTAJE SOLO REALIZADOS
+    //  PORCENTAJE SOLO REALIZADOS
     const porcentaje = total > 0
         ? Math.round((realizados / total) * 100)
         : 0;
 
-    // 🔥 SOLO FALTANTES PARA LISTA
+    // SOLO FALTANTES PARA LISTA
     const equiposFaltantes = equiposDelMes.filter(e => {
         const key = (e.codigo || "").toLowerCase().trim();
         return !serviciosMap[key];
