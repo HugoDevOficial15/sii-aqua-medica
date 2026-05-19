@@ -1,17 +1,24 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { equipoSchema } from "../../../schemas/equipoSchema";
-import { createEquipo, updateEquipo } from "../../../services/equiposServices";
 import { notifySuccess, notifyError } from "../../../utils/notify";
 import Loader from "../../../components/Loader";
 import { getUsers } from "../../../services/usersService";
 import { AREAS } from "../../../catalogs/areas";
 import { FaPlus } from "react-icons/fa";
 import { useEffect, useState } from "react";
+import { createEquipo, updateEquipo } from "../../../services/equiposServices";
+import { createLogEquipo } from "../../../services/logsServices";
+import { useAuth } from "../../../hooks/useAuth";
+
 
 export default function EquipoModal({ onClose, onSuccess, data }) {
+
+    const { user } = useAuth();
+
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState([]);
+
 
     const {
         register,
@@ -46,10 +53,41 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
             };
 
             if (data) {
+
                 await updateEquipo(data.id, payload);
+
+                if (form.servicioExterno) {
+
+                    await createLogEquipo(
+                        data.id,
+                        {
+                            tipo: "servicio_externo",
+                            observacion: "Equipo enviado a servicio externo",
+                            realizadoPor: user?.nombre || "Sistema",
+                            equipoCodigo: form.codigo
+                        }
+                    );
+                }
+
                 notifySuccess("Equipo actualizado", "Actualizado correctamente");
+
             } else {
-                await createEquipo(payload);
+
+                const nuevoEquipo = await createEquipo(payload);
+
+                if (form.servicioExterno) {
+
+                    await createLogEquipo(
+                        nuevoEquipo.id,
+                        {
+                            tipo: "servicio_externo",
+                            observacion: "Equipo enviado a servicio externo",
+                            realizadoPor: user?.nombre || "Sistema",
+                            equipoCodigo: form.codigo
+                        }
+                    );
+                }
+
                 notifySuccess("Equipo creado", "Creado correctamente");
             }
 
@@ -144,7 +182,6 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
                             placeholder="Observaciones"
                         />
 
-
                         <label style={{
                             display: "flex",
                             alignItems: "center",
@@ -156,6 +193,19 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
                             />
 
                             Servicio externo
+                        </label>
+
+                        <label style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px"
+                        }}>
+                            <input
+                                type="checkbox"
+                                {...register("garantia")}
+                            />
+
+                            Cuenta con garantía
                         </label>
 
                         {/* FOOTER */}

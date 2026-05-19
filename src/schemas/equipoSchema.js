@@ -9,6 +9,10 @@ export const equipoSchema = z.object({
 
     areaId: z.string().min(1, "Área requerida"),
 
-    observaciones: z.string().optional()
+    observaciones: z.string().optional(),
+
+    servicioExterno: z.boolean().optional(),
+
+    garantia: z.boolean().optional(),
 
 })

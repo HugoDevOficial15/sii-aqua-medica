@@ -90,54 +90,21 @@ export default function AgendaMesPage() {
 
         return hoy >= fechaApertura;
     };
-    // // Validar
-    // const hoy = new Date();
-    // const mesActual = hoy.getMonth() + 1; // 1-12
-
-    // // ❌ bloquear mes actual o anteriores
-    // const puedeAgendar = Number(mes) > mesActual;
-
 
     const ordenarEquipos = (lista) => {
 
-        const ordenTipos = {
-            pantalla: 1,
-            pc: 2,
-            impresora: 3,
-            radio: 4
-        }
-
         return lista.sort((a, b) => {
 
-            // 1. ordenar por tipo
-            const tipoA = ordenTipos[a.tipo] || 99
-            const tipoB = ordenTipos[b.tipo] || 99
-
-            if (tipoA !== tipoB) {
-                return tipoA - tipoB
-            }
-
-            // 2. los que tienen fecha primero
-            if (a.fecha && !b.fecha) return -1
-            if (!a.fecha && b.fecha) return 1
-
-            // 3. ordenar por fecha
-            if (a.fecha && b.fecha) {
-                const fechaA = parseFechaLocal(a.fecha)
-                const fechaB = parseFechaLocal(b.fecha)
-
-                if (fechaA.getTime() !== fechaB.getTime()) {
-                    return fechaA - fechaB
+            return a.codigo.localeCompare(
+                b.codigo,
+                undefined,
+                {
+                    numeric: true,
+                    sensitivity: "base"
                 }
-            }
+            );
 
-            // 4. ordenar por hora
-            if (a.horaInicio && b.horaInicio) {
-                return a.horaInicio.localeCompare(b.horaInicio)
-            }
-
-            return 0
-        })
+        });
     }
 
     function quitarAcentos(texto) {
@@ -321,7 +288,12 @@ export default function AgendaMesPage() {
                                     }
 
                                     return (
-                                        <tr key={e.id}>
+                                        <tr
+                                            key={e.id}
+                                            style={{
+                                                opacity: e.garantia ? 0.6 : 1
+                                            }}
+                                        >
 
                                             <td>{e.codigo}</td>
                                             <td>{e.tipo.toUpperCase()}</td>
@@ -333,21 +305,22 @@ export default function AgendaMesPage() {
                                             <td>{e.horaInicio || "-"}</td>
                                             <td>{e.horaFin || "-"}</td>
 
-                                            {/* <td>
-                                                {e.estado === "sin_agendar" && <span className="custom-badge-danger">Sin agendar</span>}
-                                                {e.estado === "pendiente" && <span className="custom-badge-warning">Pendiente</span>}
-                                                {e.estado === "realizado" && <span className="custom-badge-success">Realizado</span>}
-                                            </td> */}
 
                                             <td>
 
-                                                {e.servicioExterno && (
+                                                {e.garantia && (
+                                                    <span className="custom-badge-info">
+                                                        En garantía
+                                                    </span>
+                                                )}
+
+                                                {!e.garantia && e.servicioExterno && (
                                                     <span className="custom-badge-dark">
                                                         Servicio externo
                                                     </span>
                                                 )}
 
-                                                {!e.servicioExterno && e.estado === "sin_agendar" && (
+                                                {!e.garantia && !e.servicioExterno && e.estado === "sin_agendar" && (
                                                     <span className="custom-badge-danger">
                                                         Sin agendar
                                                     </span>
@@ -383,10 +356,19 @@ export default function AgendaMesPage() {
                                                     disabled={
                                                         e.estado === "pendiente" ||
                                                         e.estado === "realizado" ||
+                                                        e.garantia ||
+                                                        e.servicioExterno ||
                                                         !puedeAgendar()
                                                     }
                                                 >
-                                                    <FaPlus /> Agendar
+
+                                                    <FaPlus />
+
+                                                    {e.garantia
+                                                        ? " En garantía"
+                                                        : e.servicioExterno
+                                                            ? " Servicio externo"
+                                                            : " Agendar"}
                                                 </button>
                                             </td>
 
@@ -516,6 +498,15 @@ export default function AgendaMesPage() {
             .custom-badge-dark {
     background: #e5e7eb;
     color: #111827;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+            .custom-badge-info {
+    background: #dbeafe;
+    color: #1d4ed8;
     padding: 6px 12px;
     border-radius: 999px;
     font-size: 12px;

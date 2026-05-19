@@ -38,7 +38,19 @@ export default function InventarioPage() {
         setLoading(true);
         try {
             const data = await getEquipos();
-            setEquipos(data);
+
+            const ordenados = data.sort((a, b) =>
+                a.codigo.localeCompare(
+                    b.codigo,
+                    undefined,
+                    {
+                        numeric: true,
+                        sensitivity: "base"
+                    }
+                )
+            );
+
+            setEquipos(ordenados);
         } catch (error) {
             notifyError("Error al cargar los equipos", "error");
         } finally {
@@ -162,6 +174,7 @@ export default function InventarioPage() {
                                     <th>Área</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
+                                    <th>Distintivos</th>
                                 </tr>
                             </thead>
 
@@ -222,6 +235,30 @@ export default function InventarioPage() {
                                                 <FaClipboardList className="me-1" />
                                                 Logs
                                             </button>
+                                        </td>
+
+
+
+                                        <td>
+
+                                            {e.garantia && (
+                                                <span className="custom-badge-info me-2">
+                                                    En garantía
+                                                </span>
+                                            )}
+
+                                            {e.servicioExterno && (
+                                                <span className="custom-badge-dark">
+                                                    Servicio externo
+                                                </span>
+                                            )}
+
+                                            {!e.garantia && !e.servicioExterno && (
+                                                <span style={{ color: "#9ca3af", fontSize: "12px" }}>
+                                                    -
+                                                </span>
+                                            )}
+
                                         </td>
                                     </tr>
                                 ))}
@@ -295,6 +332,22 @@ export default function InventarioPage() {
                 .custom-btn {
                     border-radius: 8px;
                 }
+
+                .custom-badge-dark {
+    background: #e5e7eb;
+    color: #111827;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+}
+
+.custom-badge-info {
+    background: #dbeafe;
+    color: #1d4ed8;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+}
 
                 
 /* 🔥 TABLE */

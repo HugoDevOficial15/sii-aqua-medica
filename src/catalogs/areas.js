@@ -20,5 +20,6 @@ export const AREAS = [
     { id: "sistemas", nombre: "Sistemas" },
     { id: "validaciones", nombre: "Validaciones" },
     { id: "vigilancia", nombre: "Vigilancia" },
+    { id: "compras", nombre: "Compras" },
 
 ];

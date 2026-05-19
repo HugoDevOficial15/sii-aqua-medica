@@ -1,16 +1,17 @@
-import { FaBell, FaUserCircle } from "react-icons/fa";
+import {
+    FaBell,
+    FaUserCircle,
+    FaBars,
+    FaSignOutAlt
+} from "react-icons/fa";
+
 import { useAuth } from "../hooks/useAuth";
-import { FaBars } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { FaSignOutAlt } from "react-icons/fa";
 
-
-export default function Header({toggleSidebar}) {
-
+export default function Header({ toggleSidebar }) {
 
     const { logout, user } = useAuth();
     const navigate = useNavigate();
-
 
     const handleLogout = () => {
         logout();
@@ -18,174 +19,469 @@ export default function Header({toggleSidebar}) {
     };
 
     return (
-        <header className="header custom-header">
+        <>
+            <header className="pro-header">
 
-            <div className="d-flex justify-content-between align-items-center w-100">
+                <div className="pro-header-container">
 
+                    {/* LEFT */}
+                    <div className="pro-left">
 
-                <button
-                    className="btn btn-light me-2"
-                    onClick={toggleSidebar}
-                >
-                    <FaBars />
-                </button>
-
-                {/* IZQUIERDA */}
-                <div className="custom-header-left">
-                    <h5 className="custom-title">SII AQUA Médica</h5>
-                </div>
-
-                {/* DERECHA */}
-                <div className="custom-header-right">
-
-                    {/* NOTIFICACIONES */}
-                    <div className="custom-icon-btn">
-                        <FaBell />
-                        <span className="custom-badge">3</span>
-                    </div>
-
-                    {/* USUARIO */}
-                    <div className="custom-user-box">
-                        <FaUserCircle className="custom-user-icon" />
-                        <div className="custom-user-info">
-                            <span className="custom-name">
-                                {user?.nombre || "Usuario"}
-                            </span>
-                            <small className="custom-role">Administrador</small>
-                        </div>
-                    </div>
-
-                    <div className="sidebar-footer">
                         <button
-                            className="btn btn-sm btn-danger"
+                            className="menu-btn"
+                            onClick={toggleSidebar}
+                        >
+                            <FaBars />
+                        </button>
+
+                        <div className="brand-box">
+                            <div className="brand-glow"></div>
+
+                            <div>
+                                <h4 className="brand-title">
+                                    SII AQUA Médica
+                                </h4>
+
+                                <span className="brand-subtitle">
+                                    Sistema Integral de Información
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* RIGHT */}
+                    <div className="pro-right">
+
+                        {/* NOTIFICATIONS */}
+                        <button className="notification-btn">
+
+                            <FaBell />
+
+                            <span className="notification-badge">
+                                3
+                            </span>
+
+                        </button>
+
+                        {/* USER CARD */}
+                        <div className="user-card">
+
+                            <div className="avatar-wrapper">
+                                <FaUserCircle className="user-avatar" />
+                                <span className="status-dot"></span>
+                            </div>
+
+                            <div className="user-info">
+
+                                <span className="user-name">
+                                    {user?.nombre || "Usuario"}
+                                </span>
+
+                                <span className="user-role">
+                                    Administrador
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                        {/* LOGOUT */}
+                        <button
+                            className="logout-pro-btn"
                             onClick={handleLogout}
                         >
-                            <FaSignOutAlt className="me-2" />
-                            Salir
+                            <FaSignOutAlt />
+                            <span>Salir</span>
                         </button>
+
                     </div>
 
                 </div>
 
-            </div>
+            </header>
 
             <style>{`
-                /* 🔥 SOLO estilos nuevos con prefijo custom */
+/* =========================
+   HEADER
+========================= */
 
-                .custom-header {
-                    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-                    color: white;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                }
+.pro-header {
+    position: sticky;
+    top: 0;
+    z-index: 999;
 
-                .custom-title {
-                    margin: 0;
-                    font-weight: 600;
-                }
-
-                .custom-header-right {
-                    display: flex;
-                    align-items: center;
-                    gap: 20px;
-                }
-
-                /* ICONOS */
-                .custom-icon-btn {
-                    position: relative;
-                    font-size: 18px;
-                    cursor: pointer;
-                    padding: 8px;
-                    border-radius: 8px;
-                    transition: all 0.2s ease;
-                }
-
-                .custom-icon-btn:hover {
-                    background: rgba(255,255,255,0.15);
-                }
-
-                .custom-badge {
-                    position: absolute;
-                    top: 2px;
-                    right: 2px;
-                    background: red;
-                    color: white;
-                    font-size: 10px;
-                    padding: 2px 6px;
-                    border-radius: 50%;
-                }
-
-                /* USER */
-                .custom-user-box {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    padding: 6px 10px;
-                    border-radius: 10px;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                }
-
-                .custom-user-box:hover {
-                    background: rgba(255,255,255,0.15);
-                }
-
-                .custom-user-icon {
-                    font-size: 28px;
-                }
-
-                .custom-user-info {
-                    display: flex;
-                    flex-direction: column;
-                    line-height: 1;
-                }
-
-                .custom-name {
-                    font-size: 14px;
-                    font-weight: 500;
-                }
-
-                .custom-role {
-                    font-size: 11px;
-                    opacity: 0.8;
-                }
-
-
-                .logout-btn {
     width: 100%;
+
+    padding: 14px 24px;
+
+    backdrop-filter: blur(18px);
+
+    background:
+        rgba(255,255,255,0.78);
+
+    border-bottom:
+        1px solid rgba(37,99,235,0.08);
+
+    box-shadow:
+        0 8px 30px rgba(37,99,235,0.08);
+}
+
+/* =========================
+   CONTAINER
+========================= */
+
+.pro-header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+/* =========================
+   LEFT
+========================= */
+
+.pro-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+/* =========================
+   MENU BUTTON
+========================= */
+
+.menu-btn {
+    width: 46px;
+    height: 46px;
+
+    border: none;
+
+    border-radius: 16px;
+
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-    background: #f9fafb;
-    color: #374151;
-    font-size: 13px;
-    transition: all 0.2s ease;
+
+    background:
+        rgba(255,255,255,0.9);
+
+    color: #2563eb;
+
+    font-size: 18px;
+
+    border:
+        1px solid rgba(37,99,235,0.08);
+
+    box-shadow:
+        0 8px 20px rgba(37,99,235,0.08);
+
+    transition: all 0.25s ease;
 }
 
-/* HOVER elegante */
-.logout-btn:hover {
-    background: #fee2e2;
-    color: #dc2626;
-    border-color: #fecaca;
+.menu-btn:hover {
+
+    transform:
+        translateY(-2px);
+
+    background:
+        #2563eb;
+
+    color: white;
+
+    box-shadow:
+        0 12px 24px rgba(37,99,235,0.2);
 }
 
-/* ICONO */
-.logout-btn svg {
+/* =========================
+   BRAND
+========================= */
+
+.brand-box {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.brand-glow {
+    width: 14px;
+    height: 52px;
+
+    border-radius: 999px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #2563eb,
+            #60a5fa
+        );
+
+    box-shadow:
+        0 0 20px rgba(37,99,235,0.3);
+}
+
+.brand-title {
+    margin: 0;
+
+    color: #1e3a8a;
+
+    font-size: 1.2rem;
+    font-weight: 700;
+
+    letter-spacing: 0.3px;
+}
+
+.brand-subtitle {
+    color: #64748b;
+
     font-size: 12px;
+    font-weight: 500;
 }
 
-                /* RESPONSIVE */
-                @media (max-width: 768px) {
-                    .custom-user-info {
-                        display: none;
-                    }
-                }
+/* =========================
+   RIGHT
+========================= */
+
+.pro-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* =========================
+   NOTIFICATIONS
+========================= */
+
+.notification-btn {
+    position: relative;
+
+    width: 46px;
+    height: 46px;
+
+    border: none;
+
+    border-radius: 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        rgba(255,255,255,0.9);
+
+    color: #2563eb;
+
+    font-size: 18px;
+
+    border:
+        1px solid rgba(37,99,235,0.08);
+
+    box-shadow:
+        0 8px 20px rgba(37,99,235,0.08);
+
+    transition: all 0.25s ease;
+}
+
+.notification-btn:hover {
+
+    transform:
+        translateY(-2px);
+
+    background:
+        #2563eb;
+
+    color: white;
+
+    box-shadow:
+        0 12px 24px rgba(37,99,235,0.2);
+}
+
+.notification-badge {
+    position: absolute;
+
+    top: -4px;
+    right: -2px;
+
+    min-width: 20px;
+    height: 20px;
+
+    border-radius: 999px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ef4444,
+            #dc2626
+        );
+
+    color: white;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    border: 2px solid white;
+
+    box-shadow:
+        0 4px 12px rgba(239,68,68,0.3);
+}
+
+/* =========================
+   USER CARD
+========================= */
+
+.user-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 8px 14px;
+
+    border-radius: 18px;
+
+    background:
+        rgba(255,255,255,0.85);
+
+    border:
+        1px solid rgba(37,99,235,0.08);
+
+    box-shadow:
+        0 8px 20px rgba(37,99,235,0.06);
+
+    transition: all 0.25s ease;
+}
+
+.user-card:hover {
+
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 12px 24px rgba(37,99,235,0.12);
+}
+
+.avatar-wrapper {
+    position: relative;
+}
+
+.user-avatar {
+    font-size: 38px;
+    color: #2563eb;
+}
+
+.status-dot {
+    position: absolute;
+
+    bottom: 2px;
+    right: 0;
+
+    width: 12px;
+    height: 12px;
+
+    border-radius: 999px;
+
+    background: #22c55e;
+
+    border: 2px solid white;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.user-name {
+    color: #1e293b;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.user-role {
+    color: #64748b;
+
+    font-size: 11px;
+    font-weight: 500;
+}
+
+/* =========================
+   LOGOUT
+========================= */
+
+.logout-pro-btn {
+    height: 46px;
+
+    border: none;
+
+    padding: 0 18px;
+
+    border-radius: 14px;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ef4444,
+            #dc2626
+        );
+
+    color: white;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    box-shadow:
+        0 8px 20px rgba(239,68,68,0.18);
+
+    transition: all 0.25s ease;
+}
+
+.logout-pro-btn:hover {
+
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 12px 24px rgba(239,68,68,0.28);
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 768px) {
+
+    .brand-subtitle,
+    .user-info,
+    .logout-pro-btn span {
+        display: none;
+    }
+
+    .logout-pro-btn {
+        width: 46px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .pro-header {
+        padding: 12px 16px;
+    }
+
+    .pro-right {
+        gap: 10px;
+    }
+}
 
             `}</style>
-
-        </header>
+        </>
     );
 }

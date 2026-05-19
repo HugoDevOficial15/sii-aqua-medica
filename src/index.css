@@ -70,13 +70,24 @@ img {
 }
 
 .badge-title {
-  background: #e0e7ff;
-  color: #4338ca;
+  width: fit-content;
 
-  padding: 6px 14px;
+  margin-top: 6px;
+
+  padding: 6px 12px;
 
   border-radius: 999px;
 
+  background:
+    linear-gradient(135deg,
+      #dbeafe,
+      #eff6ff);
+
+  color: #2563eb;
+
   font-size: 12px;
   font-weight: 600;
+
+  border:
+    1px solid rgba(37, 99, 235, 0.08);
 }
