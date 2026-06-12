@@ -24,6 +24,8 @@ import ProtectedRoute from "../components/ProtectedRouter";
 import Users from "../pages/admin/Users";
 import PuestosPage from "../modules/puestos/page/PuestosPage";
 
+import MaintenancePage from "../components/MaintenancePage";
+
 export default function AppRouter() {
     return (
         <BrowserRouter>
@@ -197,6 +199,33 @@ export default function AppRouter() {
                         element={
                             <ProtectedRoute permiso="peps.ver">
                                 <RacksDashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+
+
+                    <Route
+                        path="/herramientas"
+                        element={
+                            <ProtectedRoute permiso="herramientas.ver">
+                                <MaintenancePage
+                                    title="Mantenimiento"
+                                    subtitle="Herramientas no disponibles"
+                                    message="El módulo de herramientas aún se encuentra en desarrollo."
+                                />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/configuracion"
+                        element={
+                            <ProtectedRoute permiso="config.ver">
+                                <MaintenancePage
+                                    title="Configuración"
+                                    subtitle="Módulo temporalmente deshabilitado"
+                                    message="Estamos trabajando en nuevas funciones para configuración."
+                                />
                             </ProtectedRoute>
                         }
                     />

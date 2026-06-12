@@ -37,6 +37,9 @@ export function AuthProvider({ children }) {
     // LOGIN
     const login = (userData) => {
         setUser(userData);
+
+        console.log("Vemos data:", + userData);
+        
         localStorage.setItem("user", JSON.stringify(userData));
     };
 

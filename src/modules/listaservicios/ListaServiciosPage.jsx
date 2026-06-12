@@ -8,7 +8,7 @@ import {
     eliminarBloqueoHorario
 } from "../../services/serviciosService";
 
-import { getServiciosProgramadosByMes } from "../../services/serviciosProgramadosService";
+import { getServiciosProgramadosByMes, eliminarServicio } from "../../services/serviciosProgramadosService";
 
 import Loader from "../../components/Loader";
 
@@ -31,7 +31,7 @@ import { exportMantenimientoPDF } from "../../utils/exportMantenimientoPDF"
 
 export default function ListaServiciosPage() {
 
-
+    const [servicioEliminar, setServicioEliminar] = useState(null);
 
     const [equipos, setEquipos] = useState([]);
     const [servicios, setServicios] = useState([]);
@@ -102,17 +102,6 @@ export default function ListaServiciosPage() {
         fetchData();
     }, [mes]);
 
-    // const serviciosFiltrados = (servicios || []).filter(s => {
-    //     const matchFecha = filtroFecha ? s.fecha === filtroFecha : true;
-    //     const matchArea = filtroArea
-    //         ? s.areaId?.toLowerCase().includes(filtroArea.toLowerCase())
-    //         : true;
-
-    //     return matchFecha && matchArea;
-    // });
-
-
-
     const serviciosFiltrados = (servicios || []).filter(s => {
 
         let matchFecha = true;
@@ -142,7 +131,6 @@ export default function ListaServiciosPage() {
             notifyError("Error al eliminar");
         }
     };
-
 
     const handleEliminarBloqueoHorario = async (id) => {
         try {
@@ -198,21 +186,33 @@ export default function ListaServiciosPage() {
         }
     };
 
+    const handleEliminarServicio = async () => {
+
+        try {
+
+            await eliminarServicio(servicioEliminar.id);
+
+            notifySuccess("Servicio eliminado correctamente");
+
+            setServicioEliminar(null);
+
+            fetchData();
+
+        } catch (error) {
+
+            console.log(error);
+
+            notifyError("Error al eliminar servicio");
+
+        }
+    };
+
     if (loading) {
         return <Loader text="Cargando servicios..." />;
     }
 
     return (
         <div className="container-fluid page-transition">
-
-            {/* HEADER */}
-
-            {/* HEADER SUPERIOR */}
-            {/* <div className="mb-4 pb-2"> */}
-
-            {/*  */}
-
-            {/* </div> */}
 
             <div className="page mb-3">
                 <h6 >
@@ -328,7 +328,6 @@ export default function ListaServiciosPage() {
                     </button>
 
                 </div>
-
 
                 {/* BLOQUEAR */}
                 <div>
@@ -541,6 +540,7 @@ export default function ListaServiciosPage() {
                                 <th>Hora</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
+                                <th>Eliminar</th>
                             </tr>
                         </thead>
 
@@ -570,6 +570,14 @@ export default function ListaServiciosPage() {
                                         </button>
 
                                     </td>
+                                    {s.estado === "pendiente" && (
+                                        <button
+                                            className="btn btn-sm btn-outline-danger ms-2"
+                                            onClick={() => setServicioEliminar(s)}
+                                        >
+                                            Eliminar
+                                        </button>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>
@@ -578,9 +586,6 @@ export default function ListaServiciosPage() {
 
                 </div>
             </div>
-
-
-
 
             {selected && (
                 <CambiarEstadoModal
@@ -598,7 +603,6 @@ export default function ListaServiciosPage() {
                     onClose={() => setShowResumen(false)}
                 />
             )}
-
 
             {showPdfModal && (
 
@@ -657,6 +661,63 @@ export default function ListaServiciosPage() {
                                     }}
                                 >
                                     Descargar PDF
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            )}
+
+
+
+
+            {servicioEliminar && (
+                <div className="modal fade show d-block">
+
+                    <div className="modal-dialog modal-dialog-centered">
+
+                        <div className="modal-content">
+
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    Eliminar servicio
+                                </h5>
+                            </div>
+
+                            <div className="modal-body">
+
+                                ¿Deseas eliminar el servicio de
+
+                                <strong>
+                                    {" "}{servicioEliminar.equipoCodigo}
+                                </strong>
+
+                                {" "}programado para el día
+
+                                <strong>
+                                    {" "}{servicioEliminar.fecha}
+                                </strong>?
+
+                            </div>
+
+                            <div className="modal-footer">
+
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={() => setServicioEliminar(null)}
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={handleEliminarServicio}
+                                >
+                                    Eliminar
                                 </button>
 
                             </div>

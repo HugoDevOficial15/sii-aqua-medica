@@ -75,13 +75,17 @@ export default function AgendaMedicaPage() {
                 </div>
 
 
-                <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => setShowModal(true)}
-                >
-                    <FaPlus className="me-2" />
-                    Nueva Agenda
-                </button>
+                <div className="d-flex gap-3">
+                    <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => setShowModal(true)}
+                    >
+                        <FaPlus className="me-2" />
+                        Nueva Agenda
+                    </button>
+
+                </div>
+
             </div>
 
             {/* TABLE */}

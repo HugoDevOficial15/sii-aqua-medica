@@ -1,0 +1,27 @@
+:root {
+
+    --operator-primary: #0A4D9D;
+    --operator-primary-light: #1E6DD8;
+
+    --operator-background: #F5F7FB;
+
+    --operator-card: #FFFFFF;
+
+    --operator-text: #1E293B;
+
+    --operator-text-soft: #64748B;
+
+    --operator-border: #E5E7EB;
+
+    --operator-success: #10B981;
+
+    --operator-warning: #F59E0B;
+
+    --operator-danger: #EF4444;
+
+    --operator-radius: 24px;
+
+    --operator-shadow:
+        0 10px 30px rgba(0, 0, 0, .06);
+
+}

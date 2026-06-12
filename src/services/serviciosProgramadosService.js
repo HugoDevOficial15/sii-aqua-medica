@@ -2,7 +2,7 @@ import {
     collection,
     getDocs,
     query,
-    where
+    where, deleteDoc, doc
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 
@@ -26,4 +26,12 @@ export const getServiciosProgramadosByMes = async (anio, mes) => {
         console.error("Error servicios_programados:", error);
         return [];
     }
+};
+
+export const eliminarServicio = async (id) => {
+
+    await deleteDoc(
+        doc(db, "servicios_programados", id)
+    );
+
 };

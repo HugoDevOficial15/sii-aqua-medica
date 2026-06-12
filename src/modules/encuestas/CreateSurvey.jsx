@@ -281,22 +281,26 @@ export default function CreateSurvey() {
                     </span>
                 </div>
 
-                <button className="btn btn-sm btn-primary"
+                <div className="d-flex gap-3">
 
-                    onClick={() => {
-                        reset();
-                        setEditing(false);
+                    <button className="btn btn-sm btn-primary"
 
-                        setCurrentStep(1);
+                        onClick={() => {
+                            reset();
+                            setEditing(false);
 
-                        setShowModal(true);
-                    }}
-                >
+                            setCurrentStep(1);
 
-                    <FaPlus className="me-2" />
-                    Crear Encuesta
+                            setShowModal(true);
+                        }}
+                    >
 
-                </button>
+                        <FaPlus className="me-2" />
+                        Crear Encuesta
+
+                    </button>
+
+                </div>
 
             </div>
 
@@ -1038,14 +1042,6 @@ export default function CreateSurvey() {
     flex-direction: column;
 }
 
-.page h6 {
-    margin: 0;
-
-    font-size: 1.5rem;
-    font-weight: 700;
-
-    color: #1e3a8a;
-}
 
 .badge-title {
     width: fit-content;
@@ -1736,9 +1732,7 @@ export default function CreateSurvey() {
                     padding: 14px 10px !important;
     }
 
-                .page h6 {
-                    font - size: 1.2rem;
-    }
+     
 }
 
 

@@ -43,7 +43,7 @@ export default function RacksPages() {
                 </div>
 
 
-                <button className="btn btn-primary d-flex align-items-center gap-2" onClick={() => setShow(true)}>
+                <button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShow(true)}>
                     <FaPlus />
                     Nuevo Rack
                 </button>

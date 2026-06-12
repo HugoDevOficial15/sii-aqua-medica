@@ -40,6 +40,8 @@ export default function Login() {
     const { showLoader, hideLoader } = useLoader();
     const [loading, setLoading] = useState(false);
 
+    const [showPassword, setShowPassword] = useState(false);
+
     // LOGIN
     const handlelogin = async (e) => {
         e.preventDefault();
@@ -105,13 +107,22 @@ export default function Login() {
         console.table(userData);
 
         // 🔥 GUARDAR SESIÓN
+        // login({
+        //     username: username,
+        //     rol: userData.rol,
+        //     nombre: userData.nombre,
+        //     mustChangePassword: userData.mustChangePassword || false,
+        //     id: userData.id,
+        //     areaId: userData.area
+        // });
+
         login({
+            ...userData,
+
             username: username,
-            rol: userData.rol,
-            nombre: userData.nombre,
-            mustChangePassword: userData.mustChangePassword || false,
-            id: userData.id,
-            areaId: userData.area
+
+            mustChangePassword:
+                userData.mustChangePassword || false
         });
 
         console.log("Usuario Guardado en sesión:", userData);
@@ -144,78 +155,147 @@ export default function Login() {
 
     // UI
     return (
-        <div className="container-fluid vh-100">
-            <div className="row h-100">
+        <div className="login-page">
 
-                {/* LOGIN */}
-                <div className="col-12 col-lg-6 d-flex align-items-center justify-content-center">
+            {/* PANEL LOGIN */}
 
-                    <div className="login-box">
+            <div className="login-panel">
 
-                        <div className="text-center mb-4 d-flex justify-content-center">
-                            <img src="/logo.png" alt="AQUA Médica" className="login-logo" />
+                <div className="login-card-premium">
+
+                    <div className="login-logo-wrapper">
+
+                        <img
+                            src="/logo.png"
+                            alt="AQUA"
+                            className="login-logo-premium"
+                        />
+
+                    </div>
+
+                    <div className="login-header">
+
+                        <h1>
+                            SII AQUA
+                        </h1>
+
+                        <p>
+                            Bienvenido nuevamente
+                        </p>
+
+                        <span>
+                            Accede a tu cuenta para continuar
+                        </span>
+
+                    </div>
+
+                    {error && (
+                        <div className="login-error">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handlelogin}>
+
+                        <div className="input-group-premium">
+
+                            <label>
+                                Usuario
+                            </label>
+
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) =>
+                                    setUsername(e.target.value)
+                                }
+                                placeholder="Ingresa tu usuario"
+                            />
+
                         </div>
 
-                        <h5 className="text-center mb-4 text-secondary">
-                            Sistema Integral de Información
-                            <br />
-                            AQUA Médica
-                        </h5>
+                        <div className="input-group-premium">
 
-                        {error && (
-                            <div className="alert alert-danger">
-                                {error}
-                            </div>
-                        )}
+                            <label>
+                                Contraseña
+                            </label>
 
-                        <form onSubmit={handlelogin}>
+                            <div className="password-wrapper">
 
-                            <div className="mb-3">
-                                <label className="form-label">Usuario</label>
                                 <input
-                                    type="text"
-                                    className="form-control"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="mb-3">
-                                <label className="form-label">Contraseña</label>
-                                <input
-                                    type="password"
-                                    className="form-control"
-                                    placeholder="Ingrese su contraseña"
+                                    type={showPassword ? "text" : "password"}
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(e) =>
+                                        setPassword(e.target.value)
+                                    }
+                                    placeholder="Ingresa tu contraseña"
                                 />
+
+                                <button
+                                    type="button"
+                                    className="password-toggle"
+                                    onClick={() =>
+                                        setShowPassword(!showPassword)
+                                    }
+                                >
+                                    {showPassword ? "Ocultar" : "Ver"}
+                                </button>
+
                             </div>
 
-                            <button className="btn btn-primary w-100 login-btn">
-                                {loading ? (
-                                    <div className="btn-loader"></div>
-                                ) : (
-                                    "Iniciar Sesión"
-                                )}
-                            </button>
+                        </div>
 
-                        </form>
+                        <button
+                            type="submit"
+                            className="login-btn-premium"
+                        >
+
+                            {loading
+                                ? "Validando..."
+                                : "Iniciar Sesión"}
+
+                        </button>
+
+                    </form>
+
+                    <div className="login-footer">
+
+                        AQUA Médica © 2026
 
                     </div>
-                </div>
 
-                {/* IMAGEN */}
-                <div className="col-lg-6 d-none d-lg-flex align-items-center justify-content-center p-0">
-                    <div className="login-image w-100 h-100">
-                        <img
-                            src="/fachada.jpg"
-                            alt="Aqua Médica"
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                    </div>
                 </div>
 
             </div>
+
+            {/* PANEL IMAGEN */}
+
+            <div className="login-image-panel">
+
+                <div className="login-overlay">
+
+                    <div className="login-company-info">
+
+                        <h2>
+                            Plataforma Integral
+                        </h2>
+
+                        <p>
+                            Gestión, operación y comunicación
+                            en un solo lugar.
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <img
+                    src="/fachada.jpg"
+                    alt="AQUA"
+                />
+
+            </div>
+
         </div>
     );
 }

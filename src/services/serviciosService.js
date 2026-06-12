@@ -85,18 +85,7 @@ export const getDiasBloqueados = async (anio, mes) => {
     }));
 };
 
-// export const bloquearDia = async (fecha, motivo) => {
 
-//     const fechaObj = new Date(fecha);
-
-//     return await addDoc(collection(db, "dias_bloqueados"), {
-//         fecha,
-//         motivo,
-//         anio: fechaObj.getFullYear(),
-//         mes: fechaObj.getMonth() + 1,
-//         createdAt: new Date()
-//     });
-// };
 
 export const bloquearDia = async (fecha, motivo) => {
 

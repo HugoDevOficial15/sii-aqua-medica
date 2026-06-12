@@ -73,7 +73,8 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
 
     const obtenerRangoDia = (fecha) => {
 
-        const dia = new Date(fecha).getDay();
+        // const dia = new Date(fecha).getDay();
+        const dia = parseFechaLocal(fecha).getDay();
 
         // LUNES
         if (dia === 1) {
@@ -105,6 +106,12 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
         return totalMin >= min && totalMin <= max;
     };
 
+    const parseFechaLocal = (fechaStr) => {
+        const [y, m, d] = fechaStr.split("-").map(Number);
+        return new Date(y, m - 1, d);
+    };
+
+
     const onSubmit = async (form) => {
 
         try {
@@ -112,6 +119,16 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
 
             const duracion = duracionMap[equipo.tipo];
             const horaFin = calcularHoraFin(form.horaInicio, duracion);
+
+
+            const minutos = Number(form.horaInicio.split(":")[1]);
+
+            if (minutos !== 0 && minutos !== 30) {
+                notifyError(
+                    "Solo se permiten horas completas o medias horas (ej. 13:00 o 13:30)"
+                );
+                return;
+            }
 
 
             const yaExiste = servicios.some(s => s.equipoId === equipo.id);
@@ -204,12 +221,21 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
                             max={maxDate}
                             {...register("fecha", { required: true })}
                         />
-
+                        {/* 
                         <input
                             type="time"
                             className="form-control custom-input"
                             {...register("horaInicio", { required: true })}
+                        /> */}
+
+
+                        <input
+                            type="time"
+                            step="1800"
+                            className="form-control custom-input"
+                            {...register("horaInicio", { required: true })}
                         />
+
 
                         {/* FOOTER */}
                         <div className="custom-modal-footer mt-2">

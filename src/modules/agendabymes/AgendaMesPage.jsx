@@ -28,11 +28,12 @@ export default function AgendaMesPage() {
 
     const { user, userData } = useAuth();
 
-    console.log("USER AGENDA:", user);
-    console.log("NOMINA:", user?.nomina);
-
     const [equipos, setEquipos] = useState([])
+
     const [servicios, setServicios] = useState([])
+
+    const [serviciosGlobales, setServiciosGlobales] = useState([])
+
     const [loading, setLoading] = useState(false);
 
     const [diasBloqueados, setDiasBloqueados] = useState([]);
@@ -73,7 +74,7 @@ export default function AgendaMesPage() {
         ).trim();
 
         const usuariosExcepcion = [
-            "5502",
+            "hrodriguez",
             "5001",
             "5002"
         ];
@@ -127,8 +128,16 @@ export default function AgendaMesPage() {
 
             const eq = await getEquipos();
 
+            const global = await getServiciosGlobal(
+                anio,
+                Number(mes)
+            );
 
-            const areaNew = quitarAcentos(user.areaId.toLowerCase());
+
+            console.log("Data Proof", user);
+
+
+            const areaNew = quitarAcentos(user.area.toLowerCase());
 
             // const srv = await getServicios(areaNew, anio, Number(mes));
 
@@ -142,7 +151,26 @@ export default function AgendaMesPage() {
 
                 srv = [...srvMedico, ...srvSalud];
 
-            } else {
+            } else if (areaNew === "seguridad") {
+
+
+
+                const srvSeg = await getServicios("vigilancia", anio, Number(mes));
+                const srvVig = await getServicios("seguridad", anio, Number(mes));
+
+                srv = [...srvSeg, ...srvVig];
+
+
+            } else if (areaNew === "mantenimiento") {
+
+                const srvMant = await getServicios("mantenimiento", anio, Number(mes));
+                const srvServ = await getServicios("servicios", anio, Number(mes));
+
+                srv = [...srvMant, ...srvServ];
+
+            }
+
+            else {
 
                 srv = await getServicios(areaNew, anio, Number(mes));
 
@@ -156,6 +184,16 @@ export default function AgendaMesPage() {
                 equiposArea = eq.filter(e =>
                     areasUsuario.includes(e.areaId) && e.estado
                 );
+            } else if (areaNew === "seguridad") {
+                const areasUsuario = [areaNew, "vigilancia"]; // áreas permitidas
+                equiposArea = eq.filter(e =>
+                    areasUsuario.includes(e.areaId) && e.estado
+                );
+            } else if (areaNew === "mantenimiento") {
+                const areasUsuario = [areaNew, "servicios"]; // áreas permitidas
+                equiposArea = eq.filter(e =>
+                    areasUsuario.includes(e.areaId) && e.estado
+                );
             } else {
                 equiposArea = eq.filter(e =>
                     e.areaId === areaNew && e.estado
@@ -165,9 +203,6 @@ export default function AgendaMesPage() {
 
             const mesNum = Number(mes);
             const tiposMes = MANTENIMIENTO_MES[mesNum] || [];
-
-            // console.log("Mes Check:", tiposMes);
-
 
             const equiposFiltrados = equiposArea.filter(e => {
                 const tipo = (e.tipo || "").toLowerCase().trim()
@@ -198,6 +233,7 @@ export default function AgendaMesPage() {
             const ordenados = ordenarEquipos(tabla);
             setEquipos(ordenados);
             setServicios(srv);
+            setServiciosGlobales(global);
 
             const bloqueados = await getDiasBloqueados(anio, Number(mes));
             setDiasBloqueados(bloqueados);
@@ -393,7 +429,8 @@ export default function AgendaMesPage() {
                         setShowModal(false);
                         setSelectedEquipo(null);
                     }}
-                    servicios={servicios}
+                    // servicios={servicios}
+                    servicios={serviciosGlobales}
                     onSuccess={fetchData}
                     diasBloqueados={diasBloqueados}
                     bloqueosHorarios={bloqueosHorarios}

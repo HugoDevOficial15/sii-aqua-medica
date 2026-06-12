@@ -231,44 +231,107 @@ export default function Dashboard() {
                         <h3>Estado Operadores</h3>
                     </div>
 
-                    <ResponsiveContainer width="100%" height={500}>
+                    <div style={{ width: "100%", height: 520 }}>
 
-                        <PieChart>
+                        <ResponsiveContainer width="100%" height="100%">
 
-                            <Pie
-                                data={operadoresChart}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={120}
-                                outerRadius={170}
-                                paddingAngle={4}
-                                dataKey="value"
-                            >
+                            <PieChart>
 
-                                <Cell fill="#80F96D" />
-                                <Cell fill="#D80300" />
+                                <defs>
 
-                            </Pie>
+                                    <linearGradient id="greenGradient" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stopColor="#4ADE80" />
+                                        <stop offset="100%" stopColor="#22C55E" />
+                                    </linearGradient>
 
-                            <Tooltip />
+                                    <linearGradient id="redGradient" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stopColor="#FB7185" />
+                                        <stop offset="100%" stopColor="#DC2626" />
+                                    </linearGradient>
 
-                        </PieChart>
+                                    <filter id="shadow">
+                                        <feDropShadow
+                                            dx="0"
+                                            dy="8"
+                                            stdDeviation="12"
+                                            floodOpacity="0.18"
+                                        />
+                                    </filter>
 
-                    </ResponsiveContainer>
+                                </defs>
 
-                    <div className="center-info">
+                                <Pie
+                                    data={operadoresChart}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={140}
+                                    outerRadius={185}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                    animationDuration={1400}
+                                    stroke="none"
+                                    filter="url(#shadow)"
+                                >
 
-                        <h1>
-                            {porcentajeActivos}%
-                        </h1>
+                                    <Cell fill="url(#greenGradient)" />
+                                    <Cell fill="url(#redGradient)" />
 
-                        <span>
-                            Activos
-                        </span>
+                                </Pie>
 
-                        <p>
-                            {porcentajeBajas}% Bajas
-                        </p>
+                                <Tooltip
+                                    contentStyle={{
+                                        borderRadius: "18px",
+                                        border: "none",
+                                        boxShadow: "0 10px 30px rgba(0,0,0,.12)",
+                                        padding: "12px"
+                                    }}
+                                />
+
+                                <text
+                                    x="50%"
+                                    y="46%"
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                    style={{
+                                        fontSize: "76px",
+                                        fontWeight: 800,
+                                        fill: "#0F172A"
+                                    }}
+                                >
+                                    {porcentajeActivos}%
+                                </text>
+
+                                <text
+                                    x="50%"
+                                    y="57%"
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                    style={{
+                                        fontSize: "28px",
+                                        fill: "#64748B",
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    Operadores Activos
+                                </text>
+
+                                <text
+                                    x="50%"
+                                    y="65%"
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                    style={{
+                                        fontSize: "22px",
+                                        fill: "#DC2626",
+                                        fontWeight: 700
+                                    }}
+                                >
+                                    {porcentajeBajas}% Bajas
+                                </text>
+
+                            </PieChart>
+
+                        </ResponsiveContainer>
 
                     </div>
 
@@ -353,15 +416,15 @@ export default function Dashboard() {
                     <h3>Operadores por Área</h3>
                 </div>
 
-                <ResponsiveContainer width="100%" height={420}>
+                <ResponsiveContainer width="100%" height={usuariosPorArea.length * 35}>
 
                     <BarChart
                         data={usuariosPorArea}
                         layout="vertical"
                         margin={{
                             top: 10,
-                            right: 30,
-                            left: 30,
+                            right: 5,
+                            left: 5,
                             bottom: 10
                         }}
                     >
@@ -380,7 +443,7 @@ export default function Dashboard() {
                             type="category"
                             dataKey="area"
                             stroke="#64748B"
-                            width={160}
+                            width={240}
                         />
 
                         <Tooltip />
@@ -396,15 +459,23 @@ export default function Dashboard() {
                                     key={index}
                                     fill={
                                         [
-                                            "#FFD600",
+                                            "#ffff00",
                                             "#DC4A00",
                                             "#6aff81",
-                                            "#f8bdf3",
-                                            "#1883FF",
+                                            "#ec61e0",
+                                            "#cc05ab",
                                             "#1600a5",
-                                            "#ff8bd0",
-                                            "#828282"
-                                        ][index % 8]
+                                            "#747474",
+                                            "#4a9ce4",
+                                            "#d4d4d4",
+                                            "#ecff95",
+                                            "#010101",
+                                            "#007f4a",
+                                            "#0d56cb",
+                                            "#e48b50",
+                                            "#000000",
+                                            "#3fc7d3",
+                                        ][index % 16]
                                     }
                                 />
 
@@ -551,17 +622,24 @@ export default function Dashboard() {
 
                     position:relative;
 
-                    background:white;
+                    background:
+                    linear-gradient(
+                        145deg,
+                        #ffffff,
+                        #f8fbff
+                    );
 
-                    border-radius:30px;
+                    border-radius:32px;
 
                     padding:25px;
 
-                    border:
-                    1px solid #edf2f7;
+                    border:1px solid rgba(255,255,255,.8);
 
                     box-shadow:
-                    0 10px 30px rgba(15,23,42,.05);
+                    0 10px 40px rgba(15,23,42,.06),
+                    inset 0 1px 0 rgba(255,255,255,.7);
+
+                    backdrop-filter: blur(10px);
 
                     transition:.35s ease;
                 }
@@ -598,52 +676,6 @@ export default function Dashboard() {
                     font-weight:700;
                 }
 
-                .center-info{
-
-                    position:absolute;
-
-                    top:50%;
-                    left:50%;
-
-                    transform:
-                    translate(-50%,-40%);
-
-                    text-align:center;
-                }
-
-                .center-info h1{
-
-                    margin:0;
-
-                    font-size:72px;
-
-                    font-weight:800;
-
-                    color:#0f172a;
-                }
-
-                .center-info span{
-
-                    display:block;
-
-                    margin-top:-10px;
-
-                    color:#64748b;
-
-                    font-size:24px;
-                }
-
-                .center-info p{
-
-                    margin-top:10px;
-
-                    font-size:20px;
-
-                    font-weight:700;
-
-                    color:#D80300;
-                }
-
                 .chart-footer{
 
                     display:flex;
@@ -672,11 +704,11 @@ export default function Dashboard() {
                 }
 
                 .green{
-                    background:#80F96D;
+                    background:#22C55E;
                 }
 
                 .red{
-                    background:#D80300;
+                    background:#DC2626;
                 }
 
                 .bottom-chart{
@@ -739,16 +771,6 @@ export default function Dashboard() {
                     .right-column{
 
                         grid-template-columns:1fr;
-                    }
-
-                    .center-info h1{
-
-                        font-size:48px;
-                    }
-
-                    .metric-card h2{
-
-                        font-size:38px;
                     }
 
                 }

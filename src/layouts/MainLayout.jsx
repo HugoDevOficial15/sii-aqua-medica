@@ -1,37 +1,3 @@
-// import Sidebar from "../components/Siderbar";
-// import Header from "../components/Header";
-// import { Outlet } from "react-router-dom";
-
-// import "../styles/layouts.css";
-
-// export default function MainLayout() {
-
-//     return (
-
-//         <div className="layout">
-
-//             <Sidebar />
-
-//             <div className="main">
-
-//                 <Header />
-
-//                 <div className="content">
-
-//                     <Outlet />
-
-//                 </div>
-
-//             </div>
-
-//         </div>
-
-//     )
-
-// }
-
-
-
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Siderbar";
 import Header from "../components/Header";

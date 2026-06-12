@@ -30,7 +30,7 @@ export default function Sidebar({ collapsed }) {
         { to: "/puestos", icon: <FaUserTie />, label: "Puestos", permiso: "puestos.ver" },
         { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
         { to: "/inventario", icon: <FaBoxes />, label: "Inventario", permiso: "inventario.ver" },
-        { to: "/agenda", icon: <FaLaptopCode />, label: "Agenda Serv", permiso: "servicios.agendar" },
+        { to: "/agenda", icon: <FaLaptopCode />, label: "Agenda Servicios", permiso: "servicios.agendar" },
         { to: "/servicioshoy", icon: <FaListAlt />, label: "Lista Servicios", permiso: "servicios.ver_global" },
         { to: "/aniversarios", icon: <FaBirthdayCake />, label: "Aniversarios", permiso: "aniversarios.ver" },
         { to: "/medicamento", icon: <FaSyringe />, label: "Medicamentos", permiso: "medicamentos.ver" },

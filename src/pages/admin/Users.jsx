@@ -134,13 +134,13 @@ export default function Users() {
                 didOpen: () => {
                     Swal.showLoading();
                 }
-            })
+            });
 
             const userData = {
                 ...data,
+                nomina: Number(data.nomina),
                 email: data.nomina + "@aquamediaca.com",
-                activo: true // Nuevo usuario siempre activo
-
+                activo: true
             }
 
             if (editing) {
@@ -402,9 +402,9 @@ export default function Users() {
                         style={{ width: "16rem" }}
                     />
 
-                    <button className="d-none" onClick={migrateNomina}>
+                    {/* <button className="d-none" onClick={migrateNomina}>
                         Migrar Nóminas
-                    </button>
+                    </button> */}
 
                     <button className="btn btn-sm btn-success" onClick={exportToExcel}>
                         <FaFileExcel className="me-2" />
@@ -630,7 +630,7 @@ export default function Users() {
 
                                 <button
                                     type="button"
-                                    className="btn btn-secondary"
+                                    className="btnbtn-secondary"
                                     onClick={() => setShowModal(false)}
                                 >
                                     Cancelar
