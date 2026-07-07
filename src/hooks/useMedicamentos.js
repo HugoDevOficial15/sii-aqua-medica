@@ -14,7 +14,8 @@ export const useMedicamentos = () => {
     const [loading, setLoading] = useState(true)
 
     const [filtroSemaforo, setFiltroSemaforo] = useState('todos')
-    const [filtroEstado, setFiltroEstado] = useState('activos')
+    // const [filtroEstado, setFiltroEstado] = useState('activos')
+    const [filtroEstado, setFiltroEstado] = useState('todos')
 
     const fetchData = async () => {
         setLoading(true)
@@ -39,17 +40,40 @@ export const useMedicamentos = () => {
         fetchData()
     }, [])
 
-    // 🔥 filtros
     const filtered = data.filter(item => {
-        if (filtroEstado === 'activos' && item.estado !== 'activo') return false
-        if (filtroEstado === 'inactivos' && item.estado !== 'inactivo') return false
 
-        if (filtroSemaforo !== 'todos') {
-            if (item.semaforo.color !== filtroSemaforo) return false
+        // Filtro por estado
+        if (filtroEstado !== "todos") {
+
+            if (
+                filtroEstado === "activos" &&
+                item.estado !== "activo"
+            ) {
+                return false;
+            }
+
+            if (
+                filtroEstado === "inactivos" &&
+                item.estado !== "inactivo"
+            ) {
+                return false;
+            }
+
         }
 
-        return true
-    })
+        // Filtro por semáforo
+        if (filtroSemaforo !== "todos") {
+
+            if (item.semaforo.color !== filtroSemaforo) {
+                return false;
+            }
+
+        }
+
+        return true;
+
+    });
+
 
     return {
         data: filtered,

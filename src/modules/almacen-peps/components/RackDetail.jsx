@@ -38,6 +38,11 @@ export default function RackDetail({ rack, refresh }) {
     const [showTransfer, setShowTransfer] =
         useState(false);
 
+
+    const rackBloqueado =
+        rack?.estatus === "mantenimiento" ||
+        rack?.estatus === "baja";
+
     if (!rack) {
         return (
             <div className="p-3 text-muted text-center">
@@ -65,6 +70,7 @@ export default function RackDetail({ rack, refresh }) {
 
 
 
+
     return (
         <div className="p-3 text-center">
 
@@ -77,12 +83,32 @@ export default function RackDetail({ rack, refresh }) {
 
             <hr />
 
+            {rackBloqueado && (
+                <div className="alert alert-warning text-start">
+
+                    <strong>Rack bloqueado</strong>
+
+                    <br />
+
+                    Este rack se encuentra en
+                    <strong> {rack.estatus}</strong>.
+
+                    <br />
+
+                    No es posible realizar movimientos,
+                    salidas o traslados hasta que vuelva
+                    al estado <strong>Activo</strong>.
+
+                </div>
+            )}
+
             <h6>Acciones</h6>
 
             <div className="d-flex gap-2 justify-content-center">
 
                 <button
                     className="btn btn-warning btn-sm"
+                    disabled={rackBloqueado}
 
                     onClick={() =>
                         setShowSalida(true)
@@ -94,6 +120,7 @@ export default function RackDetail({ rack, refresh }) {
 
                 <button
                     className="btn btn-info btn-sm"
+                    disabled={rackBloqueado}
 
                     onClick={() =>
                         setShowTransfer(true)
@@ -107,7 +134,12 @@ export default function RackDetail({ rack, refresh }) {
                 </button>
                 <button
                     className="btn btn-primary btn-sm"
-                    disabled={rack.estatus === "ocupado"}
+
+                    disabled={
+                        rack.estatus === "ocupado" ||
+                        rackBloqueado
+                    }
+
                     onClick={() => setShow(true)}
                 >
                     <FaCarAlt className="me-2" />

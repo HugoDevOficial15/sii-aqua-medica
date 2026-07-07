@@ -133,7 +133,6 @@ export default function AgendaMesPage() {
                 Number(mes)
             );
 
-
             console.log("Data Proof", user);
 
 

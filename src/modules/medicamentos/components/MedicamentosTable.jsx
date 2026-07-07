@@ -4,6 +4,16 @@ import { FaEdit, FaTrash } from "react-icons/fa"
 import { SemaforoBadge } from "./SemaforoBadge"
 
 export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
+
+
+      const medicamentosOrdenados = [...data].sort((a, b) =>
+        (a.nombreMedicamento || "").localeCompare(
+            b.nombreMedicamento || "",
+            "es",
+            { sensitivity: "base" }
+        )
+    );
+
     return (
         <div className="card shadow-sm">
             <div className="card-body">
@@ -23,7 +33,7 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
                     </thead>
 
                     <tbody>
-                        {data.map(item => {
+                        {medicamentosOrdenados.map(item => {
 
                             // 🔥 NORMALIZACIÓN DE FECHA (CORRECTO)
                             const fecha = item.fechaCaducidad?.toDate?.() || item.fechaCaducidad

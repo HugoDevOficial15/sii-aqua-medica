@@ -21,23 +21,62 @@ export default function RacksDashboard() {
 
     const filtered = racks.filter(r => {
 
-
-        if (filters.search && !r.numeroRack.toLowerCase().includes(filters.search.toLowerCase())) {
+        // Buscar por número de rack
+        if (
+            filters.search &&
+            !String(r.numeroRack)
+                .toLowerCase()
+                .includes(filters.search.toLowerCase())
+        ) {
             return false;
         }
 
-        if (filters.estado && r.estatus !== filters.estado) {
-            return false;
+        // Filtrar por estado
+        if (filters.estado) {
+
+            // Libre = sin stock
+            if (
+                filters.estado === "libre" &&
+                (r.stock || []).length > 0
+            ) {
+                return false;
+            }
+
+            // Ocupado = con stock
+            if (
+                filters.estado === "ocupado" &&
+                (r.stock || []).length === 0
+            ) {
+                return false;
+            }
+
+            // Mantenimiento
+            if (
+                filters.estado === "mantenimiento" &&
+                r.estatus !== "mantenimiento"
+            ) {
+                return false;
+            }
+
+            // Baja (por si lo agregas después)
+            if (
+                filters.estado === "baja" &&
+                r.estatus !== "baja"
+            ) {
+                return false;
+            }
+
         }
 
-        if (filters.planta && r.planta != filters.planta) {
+        // Planta
+        if (
+            filters.planta &&
+            r.planta != filters.planta
+        ) {
             return false;
         }
-
-
 
         return true;
-
 
     });
 

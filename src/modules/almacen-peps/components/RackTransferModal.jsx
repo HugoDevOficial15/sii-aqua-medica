@@ -198,58 +198,84 @@ export default function RackTransferModal({
             |--------------------------------------------------------------------------
             */
 
-            for (
-                const mov of movimientos
-            ) {
+            for (const mov of movimientos) {
 
+                // Movimiento del rack origen
                 await registrarMovimiento({
 
-                    tipoMovimiento:
-                        "traslado",
+                    tipoMovimiento: "traslado",
 
                     rackId: rack.id,
 
-                    rackNumero:
-                        rack.numeroRack,
+                    rackNumero: rack.numeroRack,
 
-                    rackDestinoId:
-                        rackDestino.id,
+                    rackDestinoId: rackDestino.id,
 
-                    rackDestinoNumero:
-                        rackDestino.numeroRack,
+                    rackDestinoNumero: rackDestino.numeroRack,
 
-                    stockId:
-                        mov.stockId,
+                    stockId: mov.stockId,
 
-                    itemId:
-                        form.itemId,
+                    itemId: form.itemId,
 
-                    nombreItem:
-                        mov.nombreItem,
+                    nombreItem: mov.nombreItem,
 
-                    tipoItem:
-                        mov.tipoItem,
+                    tipoItem: mov.tipoItem,
 
-                    lote:
-                        mov.lote,
+                    lote: mov.lote,
 
-                    cantidad:
-                        mov.cantidad,
+                    cantidad: mov.cantidad,
 
-                    unidad:
-                        mov.unidad,
+                    unidad: mov.unidad,
 
-                    fecha:
-                        new Date()
-                            .toISOString()
-                            .slice(0, 10),
+                    fecha: new Date()
+                        .toISOString()
+                        .slice(0, 10),
 
                     usuario: {
                         id: user.id,
-                        nombre:
-                            user.nombre
+                        nombre: user.nombre
                     }
+
                 });
+
+                // Movimiento del rack destino
+                await registrarMovimiento({
+
+                    tipoMovimiento: "entrada",
+
+                    rackId: rackDestino.id,
+
+                    rackNumero: rackDestino.numeroRack,
+
+                    rackOrigenId: rack.id,
+
+                    rackOrigenNumero: rack.numeroRack,
+
+                    stockId: mov.stockId,
+
+                    itemId: form.itemId,
+
+                    nombreItem: mov.nombreItem,
+
+                    tipoItem: mov.tipoItem,
+
+                    lote: mov.lote,
+
+                    cantidad: mov.cantidad,
+
+                    unidad: mov.unidad,
+
+                    fecha: new Date()
+                        .toISOString()
+                        .slice(0, 10),
+
+                    usuario: {
+                        id: user.id,
+                        nombre: user.nombre
+                    }
+
+                });
+
             }
 
             await refresh();

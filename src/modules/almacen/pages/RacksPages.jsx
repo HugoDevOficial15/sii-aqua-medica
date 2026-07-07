@@ -10,13 +10,12 @@ export default function RacksPages() {
     const [show, setShow] = useState(false);
     const [selected, setSelected] = useState(null);
 
-
-    const cambiarAMantenimiento = async (rack) => {
+    const cambiarEstatus = async (rack, nuevoEstatus) => {
         try {
 
             await actualizarRack(rack.id, {
                 ...rack,
-                estatus: "mantenimiento"
+                estatus: nuevoEstatus
             });
 
             load();
@@ -121,13 +120,42 @@ export default function RacksPages() {
                                             Editar
                                         </button>
 
-                                        {r.estatus !== "mantenimiento" && (
+                                        {r.estatus === "activo" && (
                                             <button
                                                 className="btn btn-sm btn-outline-warning"
-                                                onClick={() => cambiarAMantenimiento(r)}
+                                                onClick={() => cambiarEstatus(r, "mantenimiento")}
                                             >
                                                 <FaTools className="me-2" />
                                                 Mantenimiento
+                                            </button>
+                                        )}
+
+                                        {r.estatus === "mantenimiento" && (
+                                            <>
+                                                <button
+                                                    className="btn btn-sm btn-outline-success"
+                                                    onClick={() => cambiarEstatus(r, "activo")}
+                                                >
+                                                    <FaTools className="me-2" />
+                                                    Activar
+                                                </button>
+
+                                                <button
+                                                    className="btn btn-sm btn-outline-danger"
+                                                    onClick={() => cambiarEstatus(r, "baja")}
+                                                >
+                                                    <FaTools className="me-2" />
+                                                    Dar de baja
+                                                </button>
+                                            </>
+                                        )}
+
+                                        {r.estatus === "baja" && (
+                                            <button
+                                                className="btn btn-sm btn-outline-success"
+                                                onClick={() => cambiarEstatus(r, "activo")}
+                                            >
+                                                Reactivar
                                             </button>
                                         )}
 

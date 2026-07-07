@@ -56,18 +56,20 @@ export default function RackMovimientos({
     |--------------------------------------------------------------------------
     */
 
-    const getTypeConfig = (tipo) => {
+    const getTypeConfig = (log) => {
 
-        if (tipo === "entrada") {
+        if (log.tipoMovimiento === "entrada") {
 
             return {
-                label: "Entrada",
+                label: log.rackOrigenNumero
+                    ? `Entrada ← Rack #${log.rackOrigenNumero}`
+                    : "Entrada",
                 color: "#16a34a",
                 bg: "#dcfce7"
             };
         }
 
-        if (tipo === "salida") {
+        if (log.tipoMovimiento === "salida") {
 
             return {
                 label: "Salida",
@@ -76,10 +78,10 @@ export default function RackMovimientos({
             };
         }
 
-        if (tipo === "traslado") {
+        if (log.tipoMovimiento === "traslado") {
 
             return {
-                label: "Traslado",
+                label: `Traslado → Rack #${log.rackDestinoNumero}`,
                 color: "#2563eb",
                 bg: "#dbeafe"
             };
@@ -122,10 +124,11 @@ export default function RackMovimientos({
                 {
                     recientes.map(log => {
 
-                        const type =
-                            getTypeConfig(
-                                log.tipoMovimiento
-                            );
+                        // console.log("Data:", log);
+
+                        const type = getTypeConfig(log);
+
+                        console.log(type);
 
                         return (
 
@@ -138,26 +141,34 @@ export default function RackMovimientos({
 
                                     <div
                                         className="rack-history-badge"
-
                                         style={{
-                                            background:
-                                                type.bg,
-
-                                            color:
-                                                type.color
+                                            background: type.bg,
+                                            color: type.color
                                         }}
                                     >
                                         {
-                                            type.label
+                                            log.tipoMovimiento === "traslado"
+                                                ? `Traslado → Rack #${log.rackDestinoNumero}`
+                                                : type.label
                                         }
                                     </div>
 
-                                    <div
-                                        className="rack-history-date"
-                                    >
+
+                                    {/* <hr /> */}
+                                    <div className="rack-history-date">
 
                                         {
-                                            log.fecha
+                                            log.createdAt?.toDate
+                                                ? log.createdAt
+                                                    .toDate()
+                                                    .toLocaleString("es-MX", {
+                                                        day: "2-digit",
+                                                        month: "2-digit",
+                                                        year: "numeric",
+                                                        hour: "2-digit",
+                                                        minute: "2-digit"
+                                                    })
+                                                : log.fecha
                                         }
 
                                     </div>
@@ -294,13 +305,20 @@ export default function RackMovimientos({
                                                             type.label
                                                         }
                                                     </div>
-
                                                     <div>
-
                                                         {
-                                                            log.fecha
+                                                            log.createdAt?.toDate
+                                                                ? log.createdAt
+                                                                    .toDate()
+                                                                    .toLocaleString("es-MX", {
+                                                                        day: "2-digit",
+                                                                        month: "2-digit",
+                                                                        year: "numeric",
+                                                                        hour: "2-digit",
+                                                                        minute: "2-digit"
+                                                                    })
+                                                                : log.fechaEntrada
                                                         }
-
                                                     </div>
 
                                                 </div>
@@ -318,7 +336,7 @@ export default function RackMovimientos({
                                                     <div>
 
                                                         <small>
-                                                            Lote: 
+                                                            Lote:  {" "}
                                                         </small>
 
                                                         <strong>
@@ -330,7 +348,7 @@ export default function RackMovimientos({
                                                     <div>
 
                                                         <small>
-                                                            Cantidad: 
+                                                            Cantidad:{" "}
                                                         </small>
 
                                                         <strong>
@@ -435,14 +453,17 @@ export default function RackMovimientos({
 
                 .rack-history-top {
 
-                    display: flex;
+    display: flex;
 
-                    justify-content: space-between;
+    flex-direction: column;
 
-                    align-items: center;
+    align-items: flex-start;
 
-                    margin-bottom: 10px;
-                }
+    gap: 8px;
+
+    margin-bottom: 12px;
+
+}
 
                 .rack-history-badge {
 
@@ -455,12 +476,15 @@ export default function RackMovimientos({
                     font-weight: 700;
                 }
 
-                .rack-history-date {
+             .rack-history-date {
 
-                    font-size: 12px;
+    font-size: 12px;
 
-                    color: #6b7280;
-                }
+    color: #6b7280;
+
+    font-weight: 500;
+
+}
 
                 .rack-history-name {
 

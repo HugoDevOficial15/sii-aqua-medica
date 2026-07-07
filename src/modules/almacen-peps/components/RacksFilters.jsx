@@ -50,6 +50,7 @@ export default function RacksFilters({ filters, setFilters }) {
                         <option value="libre">Libre</option>
                         <option value="ocupado">Ocupado</option>
                         <option value="mantenimiento">Mantenimiento</option>
+                        <option value="baja">Fuera de servicio</option>
                     </select>
                 </div>
 
@@ -68,7 +69,7 @@ export default function RacksFilters({ filters, setFilters }) {
                     >
                         <option value="">Todas</option>
 
-                        {[1, 2, 3, 4, 5].map((p) => (
+                        {["I", "II", "III", "IV", "V"].map((p) => (
                             <option key={p} value={p}>
                                 Planta {p}
                             </option>

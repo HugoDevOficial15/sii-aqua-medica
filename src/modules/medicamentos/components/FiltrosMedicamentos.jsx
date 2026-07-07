@@ -1,6 +1,7 @@
 // components/FiltrosMedicamentos.jsx
 
-import { FaCircle } from "react-icons/fa"
+
+import { FaCircle, FaBroom } from "react-icons/fa";
 
 export const FiltrosMedicamentos = ({
     filtroSemaforo,
@@ -28,6 +29,18 @@ export const FiltrosMedicamentos = ({
             </button>
 
             <div className="ms-auto d-flex gap-2">
+
+                <button
+                    className="btn btn-outline-dark"
+                    onClick={() => {
+                        setFiltroSemaforo("todos");
+                        setFiltroEstado("todos");
+                    }}
+                >
+                    <FaBroom className="me-2" />
+                    Limpiar filtros
+                </button>
+
                 <button className="btn btn-outline-primary" onClick={() => setFiltroEstado('activos')}>
                     Activos
                 </button>

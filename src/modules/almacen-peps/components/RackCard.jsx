@@ -46,17 +46,28 @@ export default function RackCard({
     | Status visual
     |--------------------------------------------------------------------------
     */
-
     const getStatusConfig = () => {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Vacío
-        |--------------------------------------------------------------------------
-        */
+        // Rack en mantenimiento
+        if (rack.estatus === "mantenimiento") {
+            return {
+                color: "#f59e0b",
+                bg: "#fef3c7",
+                text: "Mantenimiento"
+            };
+        }
 
+        // Rack dado de baja
+        if (rack.estatus === "baja") {
+            return {
+                color: "#dc2626",
+                bg: "#fee2e2",
+                text: "Fuera de servicio"
+            };
+        }
+
+        // Libre
         if (totalLotes === 0) {
-
             return {
                 color: "#22c55e",
                 bg: "rgba(34,197,94,0.12)",
@@ -64,14 +75,8 @@ export default function RackCard({
             };
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Medio
-        |--------------------------------------------------------------------------
-        */
-
+        // Parcial
         if (porcentaje < 70) {
-
             return {
                 color: "#f59e0b",
                 bg: "rgba(245,158,11,0.12)",
@@ -79,12 +84,7 @@ export default function RackCard({
             };
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Alto
-        |--------------------------------------------------------------------------
-        */
-
+        // Ocupado
         return {
             color: "#ef4444",
             bg: "rgba(239,68,68,0.12)",
@@ -97,7 +97,12 @@ export default function RackCard({
     return (
 
         <div
-            className="rack-card"
+            className={`rack-card ${rack.estatus === "mantenimiento"
+                ? "rack-card-warning"
+                : rack.estatus === "baja"
+                    ? "rack-card-danger"
+                    : ""
+                }`}
             onClick={onClick}
         >
 
@@ -398,6 +403,30 @@ export default function RackCard({
                     border-radius: 999px;
 
                     transition: 0.3s ease;
+                }
+
+
+                .rack-card-warning{
+
+                    background:#fff8e1;
+                            
+                    border:2px solid #f59e0b;
+                            
+                    box-shadow:
+                        0 12px 30px rgba(245,158,11,.18);
+
+                        
+                }
+
+                .rack-card-danger{
+
+                    background:#fef2f2;
+
+                    border:2px solid #dc2626;
+
+                    box-shadow:
+                        0 12px 30px rgba(220,38,38,.18);
+
                 }
 
             `}</style>

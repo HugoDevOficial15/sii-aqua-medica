@@ -193,7 +193,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                                     Planta
                                 </option>
 
-                                {[1, 2, 3, 4, 5].map(p => (
+                                {["I", "II", "III", "IV", "V"].map(p => (
                                     <option
                                         key={p}
                                         value={p}
@@ -233,6 +233,15 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
                             <option value="lote_en_uso">
                                 Lote en uso
+                            </option>
+
+
+                            <option value="materia_prima">
+                                Materia Prima
+                            </option>
+
+                            <option value="material_acondicionamiento">
+                                Material Acondicionamiento
                             </option>
 
                         </select>
