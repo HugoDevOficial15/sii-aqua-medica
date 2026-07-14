@@ -7,8 +7,13 @@ import {
     useForm
 } from "react-hook-form";
 
+// import {
+//     obtenerStockPorRack,
+//     trasladarStockPEPS
+// } from "../../../services/rackStockService";
+
 import {
-    obtenerStockPorRack,
+    suscribirStockPorRack,
     trasladarStockPEPS
 } from "../../../services/rackStockService";
 
@@ -28,6 +33,9 @@ import {
 import {
     useAuth
 } from "../../../hooks/useAuth";
+
+import SnapshotManager
+    from "../../../services/snapshots/snapshotManager";
 
 export default function RackTransferModal({
 
@@ -65,35 +73,57 @@ export default function RackTransferModal({
 
     useEffect(() => {
 
-        const load = async () => {
+        const cargarRacks = async () => {
 
-            try {
+            const racksData =
+                await obtenerRacks();
 
-                const stockData =
-                    await obtenerStockPorRack(
-                        rack.id
-                    );
+            setRacks(
 
-                const racksData =
-                    await obtenerRacks();
+                racksData.filter(
 
-                setStock(stockData);
+                    r => r.id !== rack.id
 
-                setRacks(
-                    racksData.filter(
-                        r => r.id !== rack.id
-                    )
-                );
+                )
 
-            } catch (e) {
+            );
 
-                console.log(e);
-            }
         };
 
-        load();
+        cargarRacks();
 
-    }, [rack]);
+        const unsubscribe =
+            suscribirStockPorRack(
+
+                rack.id,
+
+                (data) => {
+
+                    setStock(data);
+
+                }
+
+            );
+
+        SnapshotManager.subscribe(
+
+            `transfer-${rack.id}`,
+
+            unsubscribe
+
+        );
+
+        return () => {
+
+            SnapshotManager.unsubscribe(
+
+                `transfer-${rack.id}`
+
+            );
+
+        };
+
+    }, [rack.id]);
 
     /*
     |--------------------------------------------------------------------------
@@ -278,7 +308,7 @@ export default function RackTransferModal({
 
             }
 
-            await refresh();
+            // await refresh();
 
             notifySuccess(
                 "Traslado realizado",

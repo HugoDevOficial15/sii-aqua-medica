@@ -7,28 +7,12 @@ import {
     query,
     where,
     orderBy,
-    serverTimestamp
+    serverTimestamp,
+    onSnapshot
 } from "firebase/firestore";
 
 const ref = collection(db, "movimientos");
 
-// 🔥 ENTRADA
-export const registrarEntrada = async (data) => {
-    return await addDoc(ref, {
-        ...data,
-        tipoMovimiento: "entrada",
-        createdAt: new Date()
-    });
-};
-
-// 🔥 SALIDA (para después FIFO)
-export const registrarSalida = async (data) => {
-    return await addDoc(ref, {
-        ...data,
-        tipoMovimiento: "salida",
-        createdAt: new Date()
-    });
-};
 
 // 🔥 HISTORIAL
 export const obtenerMovimientosPorRack = async (rackId) => {
@@ -47,73 +31,6 @@ export const obtenerMovimientosPorRack = async (rackId) => {
     }));
 };
 
-// 🔥 STOCK POR RACK (PEPS BASE)
-export const obtenerStockPorRack = async (rackId) => {
-
-    const q = query(
-        ref,
-        where("rackId", "==", rackId),
-        orderBy("fecha", "asc")
-    );
-
-    const snap = await getDocs(q);
-
-    const movimientos = snap.docs.map(d => d.data());
-
-    const stock = {};
-
-    movimientos.forEach(m => {
-
-        const key = `${m.itemId}_${m.lote}`;
-
-        if (!stock[key]) {
-            stock[key] = {
-                nombre: m.nombreItem,
-                lote: m.lote,
-                fecha: m.fecha,
-                cantidad: 0
-            };
-        }
-
-        if (m.tipoMovimiento === "entrada") {
-            stock[key].cantidad += m.cantidad;
-        } else {
-            stock[key].cantidad -= m.cantidad;
-        }
-    });
-
-    return Object.values(stock).filter(s => s.cantidad > 0);
-};
-
-export const vaciarRack = async (rackId, user) => {
-
-    const stock = await obtenerStockPorRack(rackId);
-
-    const operaciones = stock.map(item => {
-
-        return addDoc(collection(db, "movimientos"), {
-            rackId,
-
-            itemId: item.itemId || null,
-            nombreItem: item.nombre,
-            tipoItem: item.tipoItem || "",
-
-            lote: item.lote,
-            cantidad: item.cantidad,
-
-            tipoMovimiento: "salida",
-
-            fecha: new Date(),
-
-            userId: user.id,
-            userNombre: user.nombre,
-
-            createdAt: new Date()
-        });
-    });
-
-    await Promise.all(operaciones);
-};
 
 /*
 |--------------------------------------------------------------------------
@@ -124,7 +41,8 @@ export const vaciarRack = async (rackId, user) => {
 export const registrarMovimiento = async (data) => {
 
     return await addDoc(
-        collection(db, "movimientos"),
+        // collection(db, "movimientos"),
+        ref,
         {
             ...data,
 
@@ -147,7 +65,7 @@ export const obtenerMovimientosPorFecha = async (
 ) => {
 
     const q = query(
-        collection(db, "movimientos"),
+        ref, (db, "movimientos"),
 
         where("rackId", "==", rackId),
 
@@ -170,4 +88,89 @@ export const obtenerMovimientosPorFecha = async (
             fecha <= fechaFin
         );
     });
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| Snapshot de movimientos
+|--------------------------------------------------------------------------
+*/
+
+export const suscribirMovimientos = (
+
+    rackId,
+
+    callback
+
+) => {
+
+    const q = query(
+
+        ref, (db, "movimientos"),
+
+        where("rackId", "==", rackId),
+
+        orderBy("createdAt", "desc")
+
+    );
+
+    return onSnapshot(
+
+        q,
+
+        (snapshot) => {
+
+            const movimientos = snapshot.docs.map(doc => ({
+
+                id: doc.id,
+
+                ...doc.data()
+
+            }));
+
+            callback(movimientos);
+
+        }
+
+    );
+
+};
+
+export const vaciarRack = async (rackId, user) => {
+
+    const stock = await obtenerStockPorRack(rackId);
+
+    const operaciones = stock.map(item => {
+
+        return addDoc(collection(db, "movimientos"), {
+
+            rackId,
+
+            itemId: item.itemId || null,
+
+            nombreItem: item.nombre,
+
+            tipoItem: item.tipoItem || "",
+
+            lote: item.lote,
+
+            cantidad: item.cantidad,
+
+            tipoMovimiento: "salida",
+
+            fecha: new Date(),
+
+            userId: user.id,
+
+            userNombre: user.nombre,
+
+            createdAt: new Date()
+
+        });
+
+    });
+
+    await Promise.all(operaciones);
+
 };

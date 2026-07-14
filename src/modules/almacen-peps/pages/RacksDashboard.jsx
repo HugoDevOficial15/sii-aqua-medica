@@ -17,7 +17,9 @@ export default function RacksDashboard() {
 
 
     const [filters, setFilters] = useState({});
-    const [selected, setSelected] = useState(null);
+
+    // const [selected, setSelected] = useState(null);
+    const [selectedId, setSelectedId] = useState(null);
 
     const filtered = racks.filter(r => {
 
@@ -34,12 +36,20 @@ export default function RacksDashboard() {
         // Filtrar por estado
         if (filters.estado) {
 
-            // Libre = sin stock
-            if (
-                filters.estado === "libre" &&
-                (r.stock || []).length > 0
-            ) {
-                return false;
+            // Libre = sin stock y activo
+            if (filters.estado === "libre") {
+
+                if (
+                    (r.stock || []).length > 0 ||
+                    r.estatus === "mantenimiento" ||
+                    r.estatus === "baja" ||
+                    r.estatus === "inactivo"
+                ) {
+
+                    return false;
+
+                }
+
             }
 
             // Ocupado = con stock
@@ -66,6 +76,14 @@ export default function RacksDashboard() {
                 return false;
             }
 
+            // Inactivo
+            if (
+                filters.estado === "inactivo" &&
+                r.estatus !== "inactivo"
+            ) {
+                return false;
+            }
+
         }
 
         // Planta
@@ -80,15 +98,9 @@ export default function RacksDashboard() {
 
     });
 
-
-
-
-    // if (loading) {
-    //     return <Loader text="Cargando Dashboard..." />
-    // }
-
-    // setLoading(false);
-
+    const selected = racks.find(
+        r => r.id === selectedId
+    );
 
     return (
 
@@ -153,7 +165,7 @@ export default function RacksDashboard() {
 
                         <RackGrid
                             racks={filtered}
-                            onSelect={setSelected}
+                            onSelect={(rack) => setSelectedId(rack.id)}
                         />
 
                     </div>

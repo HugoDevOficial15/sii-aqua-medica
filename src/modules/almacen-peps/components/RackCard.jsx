@@ -66,6 +66,15 @@ export default function RackCard({
             };
         }
 
+         // Rack dado de baja
+        if (rack.estatus === "inactivo") {
+            return {
+                color: "#dc2626",
+                bg: "#fee2e2",
+                text: "Fuera de servicio"
+            };
+        }
+
         // Libre
         if (totalLotes === 0) {
             return {

@@ -12,6 +12,12 @@ import RackTransferModal from "./RackTransferModal";
 import RackPdfModal from "./RackPdfModal";
 
 import {
+    bloquearRack,
+    liberarRack
+} from "../../../services/rackService";
+
+
+import {
     FaArrowRightArrowLeft
 } from "react-icons/fa6";
 
@@ -38,10 +44,10 @@ export default function RackDetail({ rack, refresh }) {
     const [showTransfer, setShowTransfer] =
         useState(false);
 
-
     const rackBloqueado =
         rack?.estatus === "mantenimiento" ||
-        rack?.estatus === "baja";
+        rack?.estatus === "baja"||
+        rack?.estatus === "inactivo";
 
     if (!rack) {
         return (
@@ -50,6 +56,7 @@ export default function RackDetail({ rack, refresh }) {
             </div>
         );
     }
+
 
     const handleVaciar = async () => {
 
@@ -68,8 +75,49 @@ export default function RackDetail({ rack, refresh }) {
         notifySuccess("Rack vaciado", "Correctamente");
     };
 
+    const abrirMovimiento = async () => {
 
+        try {
 
+            const result = await bloquearRack(
+
+                rack.id,
+
+                user
+
+            );
+
+            if (!result.ok) {
+
+                notifyError(
+
+                    "Rack ocupado",
+
+                    result.message
+
+                );
+
+                return;
+
+            }
+
+            setShow(true);
+
+        } catch (e) {
+
+            console.error(e);
+
+            notifyError(
+
+                "Error",
+
+                "No fue posible abrir el rack."
+
+            );
+
+        }
+
+    };
 
     return (
         <div className="p-3 text-center">
@@ -108,11 +156,36 @@ export default function RackDetail({ rack, refresh }) {
 
                 <button
                     className="btn btn-warning btn-sm"
+
                     disabled={rackBloqueado}
 
-                    onClick={() =>
-                        setShowSalida(true)
-                    }
+                    onClick={async () => {
+
+                        const result = await bloquearRack(
+
+                            rack.id,
+
+                            user
+
+                        );
+
+                        if (!result.ok) {
+
+                            notifyError(
+
+                                "Rack ocupado",
+
+                                result.message
+
+                            );
+
+                            return;
+
+                        }
+
+                        setShowSalida(true);
+
+                    }}
                 >
                     <FaCloudDownloadAlt className="me-2" />
                     Salida
@@ -120,11 +193,36 @@ export default function RackDetail({ rack, refresh }) {
 
                 <button
                     className="btn btn-info btn-sm"
+
                     disabled={rackBloqueado}
 
-                    onClick={() =>
-                        setShowTransfer(true)
-                    }
+                    onClick={async () => {
+
+                        const result = await bloquearRack(
+
+                            rack.id,
+
+                            user
+
+                        );
+
+                        if (!result.ok) {
+
+                            notifyError(
+
+                                "Rack ocupado",
+
+                                result.message
+
+                            );
+
+                            return;
+
+                        }
+
+                        setShowTransfer(true);
+
+                    }}
                 >
                     <FaArrowRightArrowLeft
                         className="me-2"
@@ -132,15 +230,19 @@ export default function RackDetail({ rack, refresh }) {
 
                     Traslado
                 </button>
+
                 <button
                     className="btn btn-primary btn-sm"
 
                     disabled={
+
                         rack.estatus === "ocupado" ||
+
                         rackBloqueado
+
                     }
 
-                    onClick={() => setShow(true)}
+                    onClick={abrirMovimiento}
                 >
                     <FaCarAlt className="me-2" />
                     Movimiento
@@ -168,7 +270,21 @@ export default function RackDetail({ rack, refresh }) {
             {show && (
                 <MovimientoModal
                     rack={rack}
-                    onClose={() => setShow(false)}
+
+                    onClose={async () => {
+
+                        try {
+
+                            await liberarRack(rack.id);
+
+                        } finally {
+
+                            setShow(false);
+
+                        }
+
+                    }}
+
                     refresh={refresh}
                 />
             )}
@@ -176,14 +292,21 @@ export default function RackDetail({ rack, refresh }) {
             {/* Modal de salida */}
             {
                 showSalida && (
-
                     <RackSalidaModal
 
                         rack={rack}
 
-                        onClose={() =>
-                            setShowSalida(false)
-                        }
+                        onClose={async () => {
+
+                            await liberarRack(
+
+                                rack.id
+
+                            );
+
+                            setShowSalida(false);
+
+                        }}
 
                         refresh={refresh}
                     />
@@ -213,9 +336,17 @@ export default function RackDetail({ rack, refresh }) {
 
                         rack={rack}
 
-                        onClose={() =>
-                            setShowTransfer(false)
-                        }
+                        onClose={async () => {
+
+                            await liberarRack(
+
+                                rack.id
+
+                            );
+
+                            setShowTransfer(false);
+
+                        }}
 
                         refresh={refresh}
                     />

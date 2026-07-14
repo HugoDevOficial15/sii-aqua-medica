@@ -7,8 +7,13 @@ import {
     useForm
 } from "react-hook-form";
 
+// import {
+//     obtenerStockPorRack,
+//     descontarStockPEPS
+// } from "../../../services/rackStockService";
+
 import {
-    obtenerStockPorRack,
+    suscribirStockPorRack,
     descontarStockPEPS
 } from "../../../services/rackStockService";
 
@@ -24,6 +29,9 @@ import {
 import {
     useAuth
 } from "../../../hooks/useAuth";
+
+import SnapshotManager
+    from "../../../services/snapshots/snapshotManager";
 
 export default function RackSalidaModal({
     rack,
@@ -55,19 +63,38 @@ export default function RackSalidaModal({
 
     useEffect(() => {
 
-        const load = async () => {
+        const unsubscribe =
+            suscribirStockPorRack(
 
-            const data =
-                await obtenerStockPorRack(
-                    rack.id
-                );
+                rack.id,
 
-            setStock(data);
+                (data) => {
+
+                    setStock(data);
+
+                }
+
+            );
+
+        SnapshotManager.subscribe(
+
+            `salida-${rack.id}`,
+
+            unsubscribe
+
+        );
+
+        return () => {
+
+            SnapshotManager.unsubscribe(
+
+                `salida-${rack.id}`
+
+            );
+
         };
 
-        load();
-
-    }, [rack]);
+    }, [rack.id]);
 
     /*
     |--------------------------------------------------------------------------
@@ -209,7 +236,7 @@ export default function RackSalidaModal({
                 });
             }
 
-            await refresh();
+            // await refresh();
 
             notifySuccess(
                 "Salida realizada",

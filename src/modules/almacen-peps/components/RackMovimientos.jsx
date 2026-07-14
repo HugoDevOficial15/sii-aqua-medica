@@ -4,8 +4,11 @@ import {
 } from "react";
 
 import {
-    obtenerMovimientosPorRack
+    suscribirMovimientos
 } from "../../../services/movimientosService";
+
+import SnapshotManager
+    from "../../../services/snapshots/snapshotManager";
 
 export default function RackMovimientos({
     rack
@@ -22,31 +25,42 @@ export default function RackMovimientos({
     | Load movimientos
     |--------------------------------------------------------------------------
     */
-
     useEffect(() => {
 
-        const load = async () => {
+        if (!rack) return;
 
-            if (!rack) return;
+        const unsubscribe =
+            suscribirMovimientos(
 
-            try {
+                rack.id,
 
-                const data =
-                    await obtenerMovimientosPorRack(
-                        rack.id
-                    );
+                (data) => {
 
-                setLogs(data);
+                    setLogs(data);
 
-            } catch (e) {
+                }
 
-                console.log(e);
-            }
+            );
+
+        SnapshotManager.subscribe(
+
+            `movimientos-${rack.id}`,
+
+            unsubscribe
+
+        );
+
+        return () => {
+
+            SnapshotManager.unsubscribe(
+
+                `movimientos-${rack.id}`
+
+            );
+
         };
 
-        load();
-
-    }, [rack]);
+    }, [rack?.id]);
 
     if (!rack) return null;
 
@@ -128,7 +142,6 @@ export default function RackMovimientos({
 
                         const type = getTypeConfig(log);
 
-                        console.log(type);
 
                         return (
 
@@ -277,9 +290,7 @@ export default function RackMovimientos({
                                     logs.map(log => {
 
                                         const type =
-                                            getTypeConfig(
-                                                log.tipoMovimiento
-                                            );
+                                            getTypeConfig(log);
 
                                         return (
 

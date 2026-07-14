@@ -1,17 +1,30 @@
-import { useEffect, useState } from "react";
-import { obtenerRacks } from "../../../services/rackService";
+import {
+    useEffect,
+    useState
+} from "react";
+
+import {
+    suscribirRacks
+} from "../../../services/rackService";
 
 export const useRacks = () => {
+
     const [racks, setRacks] = useState([]);
 
-    const load = async () => {
-        const data = await obtenerRacks();
-        setRacks(data);
-    };
-
     useEffect(() => {
-        load();
+
+        const unsubscribe = suscribirRacks((data) => {
+
+            setRacks(data);
+
+        });
+
+        return () => unsubscribe();
+
     }, []);
 
-    return { racks, load };
+    return {
+        racks
+    };
+
 };

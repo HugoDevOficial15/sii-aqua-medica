@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 
 import {
     useEffect,
-    useState
+    useState,
 } from "react";
 
 import {
@@ -16,10 +16,6 @@ import {
     notifyError
 } from "../../../utils/notify";
 
-import {
-    bloquearRack,
-    liberarRack
-} from "../../../services/rackService";
 
 import {
     obtenerMateriaPrima
@@ -139,10 +135,10 @@ export default function MovimientoModal({
             |--------------------------------------------------------------------------
             */
 
-            await bloquearRack(
-                rack.id,
-                user.id
-            );
+            // await bloquearRack(
+            //     rack.id,
+            //     user
+            // );
 
             /*
             |--------------------------------------------------------------------------
@@ -266,12 +262,6 @@ export default function MovimientoModal({
             |--------------------------------------------------------------------------
             */
 
-            await liberarRack(
-                rack.id
-            );
-
-            await refresh();
-
             notifySuccess(
                 "Movimiento guardado",
                 "Correctamente"
@@ -288,9 +278,6 @@ export default function MovimientoModal({
                 "No se pudo guardar"
             );
 
-            await liberarRack(
-                rack.id
-            );
 
         } finally {
 
@@ -324,8 +311,12 @@ export default function MovimientoModal({
 
                     <button
                         className="movement-close"
+                        onClick={async () => {
 
-                        onClick={onClose}
+
+                            onClose();
+
+                        }}
                     >
                         ×
                     </button>

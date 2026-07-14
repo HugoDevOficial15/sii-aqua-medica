@@ -1,7 +1,6 @@
 import {
     collection,
     addDoc,
-    getDocs,
     query,
     where,
     orderBy,
@@ -10,6 +9,7 @@ import {
     doc,
     deleteDoc,
     writeBatch,
+    onSnapshot, getDocs
 } from "firebase/firestore";
 
 import { db } from "../config/firebase";
@@ -37,41 +37,6 @@ export const crearStock = async (data) => {
             activo: true
         }
     );
-};
-
-/*
-|--------------------------------------------------------------------------
-| Obtener stock por rack
-|--------------------------------------------------------------------------
-*/
-
-export const obtenerStockPorRack = async (rackId) => {
-
-    const q = query(
-        collection(db, COLLECTION),
-
-        where("rackId", "==", rackId),
-
-        where("activo", "==", true)
-    );
-
-    const snap = await getDocs(q);
-
-    const data = snap.docs.map(docItem => ({
-        id: docItem.id,
-        ...docItem.data()
-    }));
-
-    return data.sort((a, b) => {
-
-        const fechaA =
-            a.createdAt?.seconds || 0;
-
-        const fechaB =
-            b.createdAt?.seconds || 0;
-
-        return fechaA - fechaB;
-    });
 };
 /*
 |--------------------------------------------------------------------------
@@ -370,4 +335,131 @@ export const trasladarStockPEPS = async ({
     }
 
     return movimientos;
+};
+
+/*
+|--------------------------------------------------------------------------
+| Snapshot Stock por Rack
+|--------------------------------------------------------------------------
+*/
+
+export const suscribirStockPorRack = (
+
+    rackId,
+
+    callback
+
+) => {
+
+    const q = query(
+
+        collection(db, COLLECTION),
+
+        where("rackId", "==", rackId),
+
+        where("activo", "==", true)
+
+    );
+
+    return onSnapshot(q, (snapshot) => {
+
+        const data = snapshot.docs.map(docItem => ({
+
+            id: docItem.id,
+
+            ...docItem.data()
+
+        }));
+
+        data.sort((a, b) => {
+
+            const fechaA =
+                a.createdAt?.seconds || 0;
+
+            const fechaB =
+                b.createdAt?.seconds || 0;
+
+            return fechaA - fechaB;
+
+        });
+
+        callback(data);
+
+    });
+
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| Snapshot Todo el Stock
+|--------------------------------------------------------------------------
+*/
+
+export const suscribirStock = (
+
+    callback
+
+) => {
+
+    const q = query(
+
+        collection(db, COLLECTION),
+
+        where("activo", "==", true)
+
+    );
+
+    return onSnapshot(q, (snapshot) => {
+
+        const stock = snapshot.docs.map(doc => ({
+
+            id: doc.id,
+
+            ...doc.data()
+
+        }));
+
+        callback(stock);
+
+    });
+
+};
+
+
+/*
+|--------------------------------------------------------------------------
+| Obtener stock por rack
+|--------------------------------------------------------------------------
+*/
+
+export const obtenerStockPorRack = async (rackId) => {
+
+    const q = query(
+        collection(db, COLLECTION),
+
+        where("rackId", "==", rackId),
+
+        where("activo", "==", true)
+    );
+
+    const snap = await getDocs(q);
+
+    const data = snap.docs.map(docItem => ({
+        id: docItem.id,
+        ...docItem.data()
+    }));
+
+    return data.sort((a, b) => {
+
+        const fechaA =
+            a.createdAt?.seconds || 0;
+
+        const fechaB =
+            b.createdAt?.seconds || 0;
+
+        return fechaA - fechaB;
+
+    });
+
 };

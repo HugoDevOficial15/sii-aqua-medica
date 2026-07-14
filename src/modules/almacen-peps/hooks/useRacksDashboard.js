@@ -3,72 +3,138 @@ import {
     useState
 } from "react";
 
+import SnapshotManager
+    from "../../../services/snapshots/snapshotManager";
+
 import {
-    obtenerRacks
+    suscribirRacks
 } from "../../../services/rackService";
 
 import {
-    obtenerStockPorRack
+    suscribirStock
 } from "../../../services/rackStockService";
 
 export const useRacksDashboard = () => {
 
     const [racks, setRacks] = useState([]);
 
+    const [stockPorRack, setStockPorRack] =
+        useState({});
+
     const [loading, setLoading] =
         useState(true);
 
-    const load = async () => {
-
-        try {
-
-            setLoading(true);
-
-            const racksData =
-                await obtenerRacks();
-
-            /*
-            |--------------------------------------------------------------------------
-            | Cargar stock de cada rack
-            |--------------------------------------------------------------------------
-            */
-
-            const racksWithStock =
-                await Promise.all(
-
-                    racksData.map(async rack => {
-
-                        const stock =
-                            await obtenerStockPorRack(
-                                rack.id
-                            );
-
-                        return {
-                            ...rack,
-                            stock
-                        };
-                    })
-                );
-
-            setRacks(racksWithStock);
-
-        } catch (e) {
-
-            console.log(e);
-
-        } finally {
-
-            setLoading(false);
-        }
-    };
+    /*
+    |--------------------------------------------------------------------------
+    | Snapshot de Racks
+    |--------------------------------------------------------------------------
+    */
 
     useEffect(() => {
-        load();
+
+        const unsubscribe = suscribirRacks((data) => {
+
+            setRacks(data);
+
+            setLoading(false);
+
+        });
+
+        SnapshotManager.subscribe(
+            "racks-dashboard",
+            unsubscribe
+        );
+
+        return () => {
+
+            SnapshotManager.unsubscribe(
+                "racks-dashboard"
+            );
+
+        };
+
     }, []);
 
+    /*
+    |--------------------------------------------------------------------------
+    | Snapshot Stock
+    |--------------------------------------------------------------------------
+    */
+
+    useEffect(() => {
+
+        const unsubscribe = suscribirStock((stockData) => {
+
+            const agrupado = {};
+
+            stockData.forEach(item => {
+
+                if (!agrupado[item.rackId]) {
+
+                    agrupado[item.rackId] = [];
+
+                }
+
+                agrupado[item.rackId].push(item);
+
+            });
+
+            Object.keys(agrupado).forEach(rackId => {
+
+                agrupado[rackId].sort((a, b) => {
+
+                    const fechaA =
+                        a.createdAt?.seconds || 0;
+
+                    const fechaB =
+                        b.createdAt?.seconds || 0;
+
+                    return fechaA - fechaB;
+
+                });
+
+            });
+
+            setStockPorRack(agrupado);
+
+        });
+
+        SnapshotManager.subscribe(
+            "rack-stock",
+            unsubscribe
+        );
+
+        return () => {
+
+            SnapshotManager.unsubscribe(
+                "rack-stock"
+            );
+
+        };
+
+    }, []);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Unir racks + stock
+    |--------------------------------------------------------------------------
+    */
+
+    const racksConStock = racks.map(rack => ({
+
+        ...rack,
+
+        stock:
+            stockPorRack[rack.id] || []
+
+    }));
+
     return {
-        racks,
-        loading,
-        load
+
+        racks: racksConStock,
+
+        loading
+
     };
+
 };
