@@ -1,7 +1,7 @@
 {
   "name": "aqua-medica",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,9 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/device": "^8.0.3",
     "@hookform/resolvers": "^5.2.2",
-    "boostrap": "^2.0.0",
     "bootstrap": "^5.3.8",
+    "capacitor": "^0.5.6",
     "chart.js": "^4.5.1",
     "firebase": "^12.10.0",
     "framer-motion": "^12.38.0",
@@ -33,6 +36,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.2",
     "@eslint/js": "^9.39.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

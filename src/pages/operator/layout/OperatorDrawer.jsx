@@ -7,12 +7,14 @@ import {
     FiUser,
     FiBell,
     FiSettings,
+    FiHelpCircle,
     FiLogOut,
     FiChevronRight,
     FiX
 } from "react-icons/fi";
 
 import { useAuth } from "../../../hooks/useAuth";
+import { useLogout } from "../../../hooks/useLogout";
 
 
 
@@ -23,6 +25,7 @@ export default function OperatorDrawer({
 }) {
 
     const { user } = useAuth();
+    const handleLogout = useLogout();
 
     const items = [
 
@@ -72,6 +75,18 @@ export default function OperatorDrawer({
             id: "notifications",
             icon: <FiBell />,
             label: "Notificaciones"
+        },
+
+        {
+            id: "preferences",
+            icon: <FiSettings />,
+            label: "Preferencias"
+        },
+
+        {
+            id: "support",
+            icon: <FiHelpCircle />,
+            label: "Soporte"
         }
 
     ];
@@ -185,7 +200,10 @@ export default function OperatorDrawer({
 
                 </div>
 
-                <button className="drawer-logout-v2">
+                <button
+                    className="drawer-logout-v2"
+                    onClick={handleLogout}
+                >
 
                     <FiLogOut />
 

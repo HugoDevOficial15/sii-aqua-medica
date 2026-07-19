@@ -722,6 +722,7 @@ export default function Users() {
             .custom-modal {
 
                 width: 640px;
+                max-width: 95%;
 
                 background:
                     rgba(255,255,255,0.94);

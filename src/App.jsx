@@ -7,22 +7,27 @@ import AppRouter from './router/AppRouter';
 import { AuthProvider } from './context/AuthProvider';
 // Conetxt Laoder
 import { LoaderProvider } from './context/LoaderProvider';
+// Preferencias (tema y tamaño de texto)
+import { PreferencesProvider } from './context/PreferencesProvider';
 
 
 function App() {
 
   return (
 
+    <PreferencesProvider>
 
-    <AuthProvider>
+      <AuthProvider>
 
-      <LoaderProvider>
+        <LoaderProvider>
 
-        <AppRouter />
+          <AppRouter />
 
-      </LoaderProvider>
+        </LoaderProvider>
 
-    </AuthProvider>
+      </AuthProvider>
+
+    </PreferencesProvider>
 
   );
 

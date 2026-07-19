@@ -5,6 +5,7 @@ import {
     FiBell,
     FiFolder,
     FiSettings,
+    FiHelpCircle,
     FiChevronRight,
     FiTrendingUp
 } from "react-icons/fi";
@@ -58,10 +59,17 @@ export default function OperatorMore({
         },
 
         {
-            id: "settings",
+            id: "preferences",
             icon: <FiSettings />,
-            title: "Configuración",
-            subtitle: "Preferencias"
+            title: "Preferencias",
+            subtitle: "Tema y tamaño de texto"
+        },
+
+        {
+            id: "support",
+            icon: <FiHelpCircle />,
+            title: "Soporte",
+            subtitle: "Ayuda, términos y acerca de"
         }
 
     ];

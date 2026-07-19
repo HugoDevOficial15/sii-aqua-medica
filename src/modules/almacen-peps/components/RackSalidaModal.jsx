@@ -483,6 +483,7 @@ export default function RackSalidaModal({
             .salida-modal {
 
                 width: 620px;
+                max-width: 95%;
 
                 background:
                     rgba(255,255,255,0.94);

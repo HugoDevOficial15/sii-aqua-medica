@@ -13,6 +13,27 @@ body,
 #root {
   height: 100%;
   width: 100%;
+  max-width: 100%;
+}
+
+/* ELIMINA CUALQUIER SCROLL/DESBORDE HORIZONTAL */
+
+html,
+body {
+  overflow-x: hidden;
+  position: relative;
+}
+
+#root {
+  overflow-x: clip;
+}
+
+img,
+video,
+svg,
+table,
+canvas {
+  max-width: 100%;
 }
 
 /* CONFIGURACIÓN BASE */
@@ -26,6 +47,12 @@ body,
   -moz-osx-font-smoothing: grayscale;
 
   text-rendering: optimizeLegibility;
+
+  /* SAFE AREAS (notch, punch-hole, Dynamic Island, barras de sistema) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 /* BODY */
@@ -34,6 +61,36 @@ body {
   margin: 0;
   background: #f5f7fa;
   color: #333;
+  transition: background-color .2s ease, color .2s ease;
+}
+
+/* =========================================
+   TEMA (Preferencias > Tema)
+   data-theme se aplica en <html> desde
+   PreferencesProvider: "light" | "dark".
+========================================= */
+
+html[data-theme="dark"] body {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+/* =========================================
+   TAMAÑO DE TEXTO (Preferencias > Tamaño)
+   La mayoría de los estilos del proyecto usan
+   px fijos, así que el tamaño de texto se
+   aplica escalando toda la app con zoom
+   (soportado de forma nativa por el WebView
+   de Android/Chromium en el que corre esta
+   app), sin reescribir cada regla a rem.
+========================================= */
+
+html[data-fontsize="small"] #root {
+  zoom: 0.9;
+}
+
+html[data-fontsize="large"] #root {
+  zoom: 1.15;
 }
 
 /* ENLACES */

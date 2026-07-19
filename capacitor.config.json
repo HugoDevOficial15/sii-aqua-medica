@@ -1,0 +1,7 @@
+{
+  "appId": "com.siiaquamedica.app",
+  "appName": "SII AQUA",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
+

@@ -569,6 +569,7 @@ export default function RackTransferModal({
                 .transfer-modal {
 
                     width: 560px;
+                    max-width: 95%;
 
                     background:
                         rgba(255,255,255,0.94);

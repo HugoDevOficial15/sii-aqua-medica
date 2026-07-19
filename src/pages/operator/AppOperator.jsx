@@ -26,6 +26,12 @@ import OperatorSurveyDetail from "./OperatorSurveyDetail";
 import OperatorSurveyResult
     from "./OperatorSurveyResult";
 
+import OperatorPreferences from "./OperatorPreferences";
+import OperatorSupport from "./OperatorSupport";
+import OperatorReportProblem from "./OperatorReportProblem";
+import OperatorLegal from "./OperatorLegal";
+import OperatorAbout from "./OperatorAbout";
+
 export default function AppOperator() {
 
     const [screen, setScreen] =
@@ -88,6 +94,42 @@ export default function AppOperator() {
 
             case "news":
                 return <OperatorNews />;
+
+            case "preferences":
+                return (
+                    <OperatorPreferences
+                        onBack={() => setScreen("more")}
+                    />
+                );
+
+            case "support":
+                return (
+                    <OperatorSupport
+                        onNavigate={setScreen}
+                        onBack={() => setScreen("more")}
+                    />
+                );
+
+            case "report-problem":
+                return (
+                    <OperatorReportProblem
+                        onBack={() => setScreen("support")}
+                    />
+                );
+
+            case "legal":
+                return (
+                    <OperatorLegal
+                        onBack={() => setScreen("support")}
+                    />
+                );
+
+            case "about":
+                return (
+                    <OperatorAbout
+                        onBack={() => setScreen("support")}
+                    />
+                );
 
 
             case "suggestion-create":

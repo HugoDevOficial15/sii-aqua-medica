@@ -4,13 +4,92 @@
     position: relative;
 }
 
+/* Mientras el Drawer está abierto, la pantalla de fondo (header, contenido
+   y bottom nav viven dentro de .operator-shell) deja de recibir eventos
+   táctiles; el overlay/drawer están fuera de .operator-shell como hermanos
+   con mayor z-index, así que siguen siendo interactivos. */
+.operator-shell.shell-locked {
+    pointer-events: none;
+    touch-action: none;
+}
+
+/* =====================================
+   LANDSCAPE RESPONSIVE
+   Reorganiza el shell y las tarjetas en
+   dos columnas cuando hay ancho suficiente,
+   sin afectar el modo vertical.
+===================================== */
+
+@media (orientation: landscape) and (min-width: 480px) {
+
+    .operator-shell {
+        max-width: 900px;
+    }
+
+    .header-premium-inner {
+        max-width: 900px;
+    }
+
+    .operator-nav-premium {
+        max-width: 620px;
+    }
+
+    .preferences-screen {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .more-grid,
+    .notifications-screen,
+    .certificates-screen,
+    .suggestions-v2,
+    .news-screen,
+    .training-screen,
+    .recognitions-screen,
+    .points-screen,
+    .profile-v2,
+    .survey-list,
+    .support-screen {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+        align-items: start;
+    }
+
+    .notifications-hero,
+    .certificates-hero,
+    .suggestions-hero,
+    .news-hero,
+    .training-hero,
+    .recognitions-hero,
+    .points-hero,
+    .profile-hero-v2,
+    .surveys-hero,
+    .support-hero,
+    .certificate-stats,
+    .suggestions-stats,
+    .training-stats,
+    .points-stats-grid,
+    .points-progress-card,
+    .survey-stats,
+    .featured-recognition,
+    .news-search,
+    .new-suggestion-btn,
+    .section-label,
+    .news-card.featured {
+        grid-column: 1 / -1;
+    }
+}
+
 .operator-content {
 
     padding: 10px;
+    padding-left: calc(10px + var(--safe-left));
+    padding-right: calc(10px + var(--safe-right));
 
-    padding-top: 100px;
+    padding-top: calc(100px + var(--safe-top) + 6px);
 
-    padding-bottom: 50px;
+    padding-bottom: calc(50px + var(--safe-bottom));
 }
 
 
@@ -475,273 +554,9 @@
 }
 
 
-/* =========================================
-HEADER PREMIUM
-========================================= */
-/* =====================================
-HEADER PREMIUM
-===================================== */
-
-.operator-header {
-    position: sticky;
-    top: 0;
-
-    width: 100%;
-    max-width: 430px;
-
-    z-index: 9999;
-
-    background: #F5F7FB;
-
-    padding: 20px;
-    padding-top: 12px;
-    padding-bottom: 16px;
-
-    box-sizing: border-box;
-
-    border-bottom: 1px solid rgba(0, 0, 0, .05);
-
-    backdrop-filter: blur(12px);
-
-
-    background: rgba(255, 255, 255, .92);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-
-    border-bottom: 1px solid rgba(0, 0, 0, .05);
-}
-
-.operator-header {
-    position: fixed;
-    top: 0;
-
-    width: 430px;
-    max-width: 100%;
-
-    z-index: 9999;
-
-    background: #F5F7FB;
-
-    border-bottom: 1px solid #e5e7eb;
-}
-
-/* .operator-header-premium {
-    background: white;
-    padding: 18px 20px 20px;
-    border-bottom: 1px solid #eef2f7;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-} */
-
-.operator-header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 18px;
-}
-
 .notification-btn {
     position: relative;
 }
-
-.notification-dot {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-
-    min-width: 20px;
-    height: 20px;
-
-    background: #ef4444;
-
-    color: white;
-
-    border-radius: 999px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.operator-header-brand h1 {
-    margin: 0;
-    font-size: 28px;
-    font-weight: 800;
-    color: #0A4D9D;
-}
-
-.operator-header-brand p {
-    margin: 4px 0 0;
-    color: #64748b;
-    font-size: 14px;
-}
-
-/* =========================================
-DRAWER PREMIUM
-========================================= */
-
-.drawer-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, .35);
-    opacity: 0;
-    pointer-events: none;
-    transition: .25s;
-    z-index: 5500;
-}
-
-.drawer-overlay.show {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.operator-drawer-premium {
-    position: fixed;
-    top: 0;
-    left: -340px;
-    width: 320px;
-    height: 100vh;
-    background: white;
-    z-index: 6000;
-    transition: .25s;
-    display: flex;
-    flex-direction: column;
-}
-
-.operator-drawer-premium.open {
-    left: 0;
-}
-
-.drawer-top {
-    display: flex;
-    justify-content: flex-end;
-    padding: 16px;
-}
-
-.drawer-close-btn {
-    border: none;
-    background: none;
-    font-size: 20px;
-}
-
-.drawer-profile {
-    text-align: center;
-    padding: 10px 20px 30px;
-}
-
-.drawer-avatar {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    background: #eef4ff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: auto;
-    font-size: 42px;
-    margin-bottom: 14px;
-}
-
-.drawer-profile h4 {
-    margin-bottom: 4px;
-}
-
-.drawer-profile span {
-    color: var(--operator-text-soft);
-}
-
-.drawer-profile small {
-    display: block;
-    margin-top: 4px;
-    color: var(--operator-text-soft);
-}
-
-.drawer-menu {
-    flex: 1;
-    padding: 0 16px;
-}
-
-.drawer-item {
-    width: 100%;
-    border: none;
-    background: none;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px;
-    border-radius: 14px;
-}
-
-.drawer-item:hover {
-    background: #f5f7fb;
-}
-
-.drawer-footer {
-    padding: 20px;
-}
-
-.logout-btn {
-    width: 100%;
-    border: none;
-    background: #fff5f5;
-    color: #ef4444;
-    border-radius: 14px;
-    padding: 14px;
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.drawer-brand {
-    text-align: center;
-}
-
-/* ======================================
-BOTTOM NAV PREMIUM
-====================================== */
-
-.operator-nav-premium {
-
-    position: fixed;
-
-    bottom: 10px;
-
-    left: 50%;
-
-    transform: translateX(-50%);
-
-    width: calc(100% - 32px);
-
-    max-width: 398px;
-
-    height: 82px;
-
-    background:
-        rgba(255, 255, 255, .96);
-
-    backdrop-filter: blur(20px);
-
-    border-radius: 32px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-around;
-
-    box-shadow:
-        0 10px 30px rgba(0, 0, 0, .12),
-        0 0 0 1px rgba(0, 0, 0, .05);
-
-    z-index: 6000;
-}
-
-
 
 .hero-card-v2 {
     background: white;
@@ -799,103 +614,6 @@ BOTTOM NAV PREMIUM
 .metric-card small {
     font-size: 10px;
     color: #64748B;
-}
-
-
-/* =====================================
-DRAWER V3
-===================================== */
-
-.drawer-brand-header {
-    text-align: center;
-    padding: 10px 20px 24px;
-    border-bottom: 1px solid #edf2f7;
-}
-
-.drawer-logo span {
-    display: block;
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--operator-primary);
-    line-height: 1;
-}
-
-.drawer-logo small {
-    display: block;
-    letter-spacing: 2px;
-    color: #64748B;
-    font-weight: 700;
-}
-
-.drawer-brand-header p {
-    margin-top: 10px;
-    color: #94A3B8;
-    font-size: 13px;
-}
-
-.drawer-profile-v2 {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 20px;
-    border-bottom: 1px solid #edf2f7;
-}
-
-.drawer-avatar-v2 {
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    background: #eef4ff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    flex-shrink: 0;
-}
-
-.drawer-profile-v2 h4 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-}
-
-.drawer-profile-v2 span {
-    color: #64748B;
-    font-size: 13px;
-}
-
-.drawer-item {
-    width: 100%;
-    border: none;
-    background: white;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    border-radius: 16px;
-    margin-bottom: 6px;
-    transition: .2s;
-}
-
-.drawer-item:hover {
-    background: #f8fafc;
-}
-
-.drawer-item-content {
-    flex: 1;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.drawer-item-content svg {
-    color: #94A3B8;
-}
-
-.drawer-menu {
-    flex: 1;
-    padding: 14px;
-    overflow-y: auto;
 }
 
 

@@ -6,17 +6,12 @@ import {
 } from "react-icons/fa";
 
 import { useAuth } from "../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useLogout } from "../hooks/useLogout";
 
 export default function Header({ toggleSidebar }) {
 
-    const { logout, user } = useAuth();
-    const navigate = useNavigate();
-
-    const handleLogout = () => {
-        logout();
-        navigate("/");
-    };
+    const { user } = useAuth();
+    const handleLogout = useLogout();
 
     return (
         <>
@@ -114,6 +109,9 @@ export default function Header({ toggleSidebar }) {
     width: 100%;
 
     padding: 14px 24px;
+    padding-top: calc(14px + var(--safe-top) + 6px);
+    padding-left: calc(24px + var(--safe-left));
+    padding-right: calc(24px + var(--safe-right));
 
     backdrop-filter: blur(18px);
 
@@ -474,6 +472,9 @@ export default function Header({ toggleSidebar }) {
 
     .pro-header {
         padding: 12px 16px;
+        padding-top: calc(12px + var(--safe-top) + 6px);
+        padding-left: calc(16px + var(--safe-left));
+        padding-right: calc(16px + var(--safe-right));
     }
 
     .pro-right {

@@ -571,6 +571,7 @@ export default function RackMovimientos({
                 .rack-modal {
 
                     width: 700px;
+                    max-width: 95%;
 
                     max-height: 80vh;
 

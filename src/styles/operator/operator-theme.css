@@ -25,3 +25,58 @@
         0 10px 30px rgba(0, 0, 0, .06);
 
 }
+
+/* =========================================
+   TEMA OSCURO
+   data-theme="dark" se aplica en <html> desde
+   PreferencesProvider (Claro / Oscuro / Sistema).
+========================================= */
+
+html[data-theme="dark"] {
+
+    --operator-primary: #3B82F6;
+    --operator-primary-light: #60A5FA;
+
+    --operator-background: #0F172A;
+
+    --operator-card: #1E293B;
+
+    --operator-text: #F1F5F9;
+
+    --operator-text-soft: #94A3B8;
+
+    --operator-border: #334155;
+
+    --operator-shadow:
+        0 10px 30px rgba(0, 0, 0, .35);
+}
+
+/* Superficies principales del shell operador que no usan las variables
+   (fondos "blancos" escritos directamente en el CSS existente). */
+
+html[data-theme="dark"] .operator-shell,
+html[data-theme="dark"] .operator-content,
+html[data-theme="dark"] body {
+    background: var(--operator-background);
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .header-premium,
+html[data-theme="dark"] .operator-nav-premium,
+html[data-theme="dark"] .drawer-v2,
+html[data-theme="dark"] .drawer-menu-v2 {
+    background: rgba(30, 41, 59, .96);
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .header-center span,
+html[data-theme="dark"] .header-icon-btn,
+html[data-theme="dark"] .drawer-item-v2,
+html[data-theme="dark"] .nav-item {
+    background: var(--operator-card);
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .drawer-points-card {
+    background: rgba(59, 130, 246, .12);
+}

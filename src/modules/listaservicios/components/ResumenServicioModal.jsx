@@ -161,6 +161,7 @@ export default function ResumenServiciosModal({
 
                 .custom-modal {
                     width: 650px;
+                    max-width: 95%;
                     background: white;
                     border-radius: 16px;
                     padding: 18px;
