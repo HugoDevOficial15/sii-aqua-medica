@@ -1,7 +1,7 @@
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db, } from "../config/firebase";
 
-import { collection, addDoc, getDocs, doc, updateDoc, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where } from "firebase/firestore";
 
 
 const userCollection = collection(db, "users");
@@ -62,6 +62,36 @@ export const updateUser = async (id, data) => {
 
 }
 
+
+// Solicitar cambio de datos (Perfil operador): nombre, curp, rfc, nss
+// Localiza el documento por número de nómina y aplica una actualización
+// parcial (update()) que crea los campos si no existen y los actualiza si ya existen.
+export const requestProfileChange = async (nomina, changes) => {
+
+    const q = query(userCollection, where("nomina", "==", Number(nomina)));
+
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+        return { success: false, error: "NOMINA_NOT_FOUND" };
+    }
+
+    const userDoc = snapshot.docs[0];
+
+    const updates = {};
+
+    if (changes.nombre) updates.nombre = changes.nombre;
+    if (changes.curp) updates.curp = changes.curp;
+    if (changes.rfc) updates.rfc = changes.rfc;
+    if (changes.nss) updates.nss = changes.nss;
+
+    await updateDoc(doc(db, "users", userDoc.id), updates);
+
+    return {
+        success: true,
+        data: { id: userDoc.id, ...userDoc.data(), ...updates }
+    };
+};
 
 export const migrateNomina = async () => {
 

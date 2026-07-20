@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"styles\\\\|theme\")",
+      "Bash(cd \"C:\\\\Users\\\\HP\\\\Downloads\\\\sii-aqua-medica\" && cat android/app/src/main/assets/capacitor.plugins.json; echo ---; find android/capacitor-cordova-android-plugins -maxdepth 3 -type d; echo ---; find / -maxdepth 0 2>/dev/null; ls node_modules/@capacitor 2>/dev/null)",
+      "Bash(grep -rn \"width:\\\\s*[0-9]\\\\{3,4\\\\}px\" src/pages/admin src/components/ui src/modules --include=\"*.jsx\" --include=\"*.css\")",
+      "Bash(rm -f _landscape_test.html)",
+      "Bash(mv _landscape_test.html public/_landscape_test.html)",
+      "Bash(cp public/_landscape_test.html public/_landscape_test.html)",
+      "Bash(rm -f public/_landscape_test.html .claude/launch.json)",
+      "Bash(rmdir .claude)",
+      "Bash(npm run *)",
+      "Bash(npx cap *)",
+      "Bash(python3 -c \"import PIL; print\\(PIL.__version__\\)\")",
+      "Bash(python -c \"import PIL; print\\(PIL.__version__\\)\")",
+      "Bash(xargs -I{} sh -c 'echo ==={}===; cat \"{}\" 2>/dev/null')",
+      "Bash(npm install *)",
+      "Bash(xxd)",
+      "Bash(rm -f capacitor.config.json.save)"
+    ]
+  }
+}

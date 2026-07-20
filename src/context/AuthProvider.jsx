@@ -50,6 +50,15 @@ export function AuthProvider({ children }) {
         localStorage.removeItem("user");
     };
 
+    // 🔥 Actualiza parcialmente el usuario en memoria/localStorage sin re-login
+    const updateUserProfile = (partialData) => {
+        setUser((prev) => {
+            const updated = { ...prev, ...partialData };
+            localStorage.setItem("user", JSON.stringify(updated));
+            return updated;
+        });
+    };
+
     // 🔥 FUNCIÓN CLAVE
     const can = (permiso) => {
         if (!permisos) return false;
@@ -64,7 +73,8 @@ export function AuthProvider({ children }) {
                 can,
                 loading,
                 login,
-                logout
+                logout,
+                updateUserProfile
             }}
         >
             {children}

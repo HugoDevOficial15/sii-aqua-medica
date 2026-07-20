@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import {
     FiEdit3,
     FiPhone,
@@ -5,17 +7,22 @@ import {
     FiMapPin,
     FiCalendar,
     FiBriefcase,
-    FiChevronRight
+    FiChevronRight,
+    FiFileText,
+    FiHash
 } from "react-icons/fi";
 
 import { useAuth } from "../../hooks/useAuth";
+import RequestChangeModal from "../../components/ui/RequestChangeModal";
 
 
 
 
 export default function OperatorProfile() {
 
-    const { user } = useAuth();
+    const { user, updateUserProfile } = useAuth();
+
+    const [showChangeModal, setShowChangeModal] = useState(false);
 
     let nameFull =
         user?.nombre?.split(" ")[0] + " " + user?.nombre?.split(" ")[2];
@@ -47,7 +54,10 @@ export default function OperatorProfile() {
                     {user?.puesto}
                 </p>
 
-                <button className="profile-edit-v2">
+                <button
+                    className="profile-edit-v2"
+                    onClick={() => setShowChangeModal(true)}
+                >
 
                     <FiEdit3 />
 
@@ -131,7 +141,36 @@ export default function OperatorProfile() {
 
                 </div>
 
+                {user?.curp && (
+                    <div className="profile-row-v2">
+                        <FiFileText />
+                        <span>CURP: {user.curp}</span>
+                    </div>
+                )}
+
+                {user?.rfc && (
+                    <div className="profile-row-v2">
+                        <FiFileText />
+                        <span>RFC: {user.rfc}</span>
+                    </div>
+                )}
+
+                {user?.nss && (
+                    <div className="profile-row-v2">
+                        <FiHash />
+                        <span>NSS: {user.nss}</span>
+                    </div>
+                )}
+
             </div>
+
+            {showChangeModal && (
+                <RequestChangeModal
+                    user={user}
+                    onClose={() => setShowChangeModal(false)}
+                    onSuccess={(updatedData) => updateUserProfile(updatedData)}
+                />
+            )}
 
             <div className="profile-action-card">
 
