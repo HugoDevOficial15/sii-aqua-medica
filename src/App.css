@@ -45,3 +45,35 @@
 body {
   font-family: 'Inter', sans-serif;
 }
+
+/* La corrección real del menú inferior (clases .operator-nav-premium/.nav-item)
+   vive en src/styles/operator/operator-theme.css, atada a [data-theme="dark"]. */
+
+/* Evita cualquier scroll horizontal residual en móviles */
+@media (max-width: 768px) {
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+}
+
+/* ==========================================================================
+   📊 TABLAS RESPONSIVAS PARA MÓVILES
+   ========================================================================== */
+/* Asegúrate de envolver tu etiqueta <table> dentro de un <div> con esta clase */
+.table-responsive-container {
+  width: 100%;
+  overflow-x: auto; /* Activa el scroll horizontal solo si es necesario */
+  -webkit-overflow-scrolling: touch; /* Hace que el scroll sea fluido en el celular */
+  display: block;
+  border-radius: 8px; /* Opcional: para mantener la estética redondeada */
+}
+
+/* Evita que el texto de las celdas se parta a la mitad o se amontone */
+.table-responsive-container table {
+  width: 100%;
+  min-width: 700px; /* Fuerza un tamaño mínimo para que la info se vea bien */
+  white-space: nowrap; 
+}

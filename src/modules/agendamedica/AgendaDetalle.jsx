@@ -91,7 +91,7 @@ export default function AgendaDetalle({ agenda, onBack }) {
             {/* TABLA */}
             <div className="card custom-users-card">
 
-                <div className="card-body">
+                <div className="card-body table-responsive-container">
 
                     <table className="table custom-table">
 

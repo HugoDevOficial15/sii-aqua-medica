@@ -528,7 +528,7 @@ export default function ListaServiciosPage() {
 
             {/* TABLA RESTAURADA */}
             <div className="card shadow-sm">
-                <div className="card-body">
+                <div className="card-body table-responsive-container">
 
                     <table className="table">
                         <thead>

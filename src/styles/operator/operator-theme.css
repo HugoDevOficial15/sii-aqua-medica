@@ -71,12 +71,71 @@ html[data-theme="dark"] .drawer-menu-v2 {
 
 html[data-theme="dark"] .header-center span,
 html[data-theme="dark"] .header-icon-btn,
-html[data-theme="dark"] .drawer-item-v2,
-html[data-theme="dark"] .nav-item {
+html[data-theme="dark"] .drawer-item-v2 {
     background: var(--operator-card);
     color: var(--operator-text);
 }
 
 html[data-theme="dark"] .drawer-points-card {
     background: rgba(59, 130, 246, .12);
+}
+
+/* =========================================
+   MENÚ INFERIOR — MODO OSCURO
+   Sin bloques/sombras detrás de los iconos;
+   el estado activo únicamente cambia color.
+========================================= */
+
+html[data-theme="dark"] .operator-nav-premium {
+    background: rgba(30, 41, 59, .96);
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, .35),
+        0 0 0 1px rgba(255, 255, 255, .06);
+}
+
+html[data-theme="dark"] .nav-item,
+html[data-theme="dark"] .nav-item:hover,
+html[data-theme="dark"] .nav-item:focus,
+html[data-theme="dark"] .nav-item:active,
+html[data-theme="dark"] .nav-icon {
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+}
+
+html[data-theme="dark"] .nav-item::before,
+html[data-theme="dark"] .nav-item::after {
+    background: transparent;
+    box-shadow: none;
+}
+
+html[data-theme="dark"] .nav-item {
+    color: var(--operator-text-soft);
+}
+
+html[data-theme="dark"] .nav-item.active,
+html[data-theme="dark"] .nav-item.active .nav-icon {
+    background: transparent;
+    color: var(--operator-primary);
+}
+
+/* =========================================
+   TARJETAS DE PERFIL — MODO OSCURO
+   Evita texto blanco sobre fondo blanco.
+========================================= */
+
+html[data-theme="dark"] .profile-card-v2,
+html[data-theme="dark"] .profile-action-card {
+    background: var(--operator-card);
+    border: 1px solid rgba(255, 255, 255, .08);
+    color: var(--operator-text-soft);
+}
+
+html[data-theme="dark"] .profile-card-v2 h3,
+html[data-theme="dark"] .profile-action-card h4 {
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .profile-row-v2 {
+    color: var(--operator-text-soft);
 }

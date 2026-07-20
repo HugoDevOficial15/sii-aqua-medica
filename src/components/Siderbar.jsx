@@ -414,26 +414,15 @@ export default function Sidebar({ collapsed }) {
 
 /* =========================
    RESPONSIVE
+   La sidebar de escritorio se oculta por
+   completo en móvil para que el contenido
+   principal use el 100% del ancho.
 ========================= */
 
 @media (max-width: 768px) {
 
     .pro-sidebar {
-        width: 88px;
-        padding: 16px 10px;
-    }
-
-    .logo-info,
-    .sidebar-text {
         display: none;
-    }
-
-    .sidebar-link-inner {
-        justify-content: center;
-    }
-
-    .sidebar-icon {
-        font-size: 20px;
     }
 }
             `}</style>

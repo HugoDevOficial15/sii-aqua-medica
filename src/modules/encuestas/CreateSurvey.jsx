@@ -309,7 +309,7 @@ export default function CreateSurvey() {
                 <div className="card-body">
 
                     {/* tabala */}
-                    <div className="table-responsive">
+                    <div className="table-responsive table-responsive-container">
 
                         <table className="table table-hover">
 

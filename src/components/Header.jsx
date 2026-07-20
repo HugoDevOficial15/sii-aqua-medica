@@ -458,7 +458,9 @@ export default function Header({ toggleSidebar }) {
 
 @media (max-width: 768px) {
 
+    .brand-title,
     .brand-subtitle,
+    .brand-glow,
     .user-info,
     .logout-pro-btn span {
         display: none;
@@ -479,6 +481,16 @@ export default function Header({ toggleSidebar }) {
 
     .pro-right {
         gap: 10px;
+    }
+}
+
+/* Si el ancho sigue siendo insuficiente, reduce ligeramente
+   el bloque derecho sin ocultar ninguna acción crítica. */
+@media (max-width: 400px) {
+
+    .pro-right {
+        transform: scale(.90);
+        transform-origin: right center;
     }
 }
 

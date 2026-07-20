@@ -7,7 +7,8 @@ export default function MaterialesTable({ data, onEdit }) {
     }
 
     return (
-        <table className="table table-hover align-middle">
+        <div className="table-responsive-container">
+            <table className="table table-hover align-middle">
 
             <thead>
                 <tr>
@@ -64,5 +65,6 @@ export default function MaterialesTable({ data, onEdit }) {
             </tbody>
 
         </table>
+        </div>
     );
-} 4
+}

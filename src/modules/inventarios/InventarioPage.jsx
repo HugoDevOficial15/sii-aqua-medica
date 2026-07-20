@@ -162,7 +162,7 @@ export default function InventarioPage() {
             ) : (
                 <div className="card shadow-sm custom-users-card">
 
-                    <div className="card-body">
+                    <div className="card-body table-responsive-container">
 
                         <table className="table custom-table">
 

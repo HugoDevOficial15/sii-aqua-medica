@@ -204,6 +204,52 @@
 }
 
 /* ============================= */
+/* TABLAS RESPONSIVAS (ADMIN)     */
+/* ============================= */
+
+.table-responsive-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive-container table {
+    width: max-content;
+    min-width: 100%;
+}
+
+.table-responsive-container th,
+.table-responsive-container td {
+    white-space: nowrap;
+}
+
+/* ============================= */
+/* RESPONSIVE (MÓVIL)             */
+/* ============================= */
+
+@media (max-width: 768px) {
+
+    .main {
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+    }
+
+    .content {
+        width: 100%;
+        max-width: 100%;
+        padding: 16px;
+        overflow-x: hidden;
+    }
+
+    .dashboard-card {
+        max-width: 100%;
+    }
+}
+
+/* ============================= */
 /* ANIMACIONES */
 /* ============================= */
 

@@ -30,8 +30,9 @@ export default function PuestoTable({ puestos = [], loading, onEdit }) {
 
     return (
 
+        <div className="table-responsive-container">
 
-        <table className="table align-middle custom-table">
+            <table className="table align-middle custom-table">
 
             <thead>
                 <tr>
@@ -102,8 +103,9 @@ export default function PuestoTable({ puestos = [], loading, onEdit }) {
 
             </tbody>
 
-        </table>
+            </table>
 
+        </div>
 
     );
 }

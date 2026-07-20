@@ -16,7 +16,7 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
 
     return (
         <div className="card shadow-sm">
-            <div className="card-body">
+            <div className="card-body table-responsive-container">
 
                 <table className="table custom-table">
                     <thead>

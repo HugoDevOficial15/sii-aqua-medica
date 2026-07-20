@@ -438,7 +438,7 @@ export default function Users() {
             {/* TABLE */}
             <div className="card shadow-sm custom-users-card">
 
-                <div className="card-body">
+                <div className="card-body table-responsive-container">
 
                     <table className="table custom-table">
 
@@ -670,6 +670,27 @@ export default function Users() {
             .custom-table {
                 border-collapse: separate;
                 border-spacing: 0 10px;
+            }
+
+            @media (max-width: 768px) {
+
+                .custom-users-header {
+                    flex-wrap: wrap;
+                    gap: 12px;
+                }
+
+                .custom-users-header .d-flex.gap-3 {
+                    flex-wrap: wrap;
+                    width: 100%;
+                }
+
+                .custom-users-header input {
+                    width: 100% !important;
+                }
+
+                .custom-modal {
+                    width: 100%;
+                }
             }
 
             .custom-table tbody tr:hover {
