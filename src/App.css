@@ -77,3 +77,80 @@ body {
   min-width: 700px; /* Fuerza un tamaño mínimo para que la info se vea bien */
   white-space: nowrap; 
 }
+
+/* ==========================================================================
+   🛠️ REPARACIÓN DE DESBORDAMIENTO POR TABLAS GIGANTES
+   ========================================================================== */
+
+/* 1. Limitamos el contenedor global para que nunca genere scroll horizontal */
+.layout {
+  width: 100vw;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 2. La magia de Flexbox: Evitar que .main sea empujado por su contenido */
+.main {
+  flex-grow: 1;
+  min-width: 0 !important; /* 🛑 ESTA ES LA CLAVE: Le quita la terquedad al contenedor */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 3. Aseguramos que solo el contenido de adentro (la tabla) sea lo que genere scroll */
+.main > div {
+  max-width: 100%;
+}
+/* ==========================================================================
+   📱 MENÚ LATERAL MÓVIL (EFECTO PUSH + FORZADO DE LIBRERÍA)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 1. Forzar a la barra principal Y a sus contenedores internos a mantener su tamaño */
+  aside.pro-sidebar,
+  aside.pro-sidebar .pro-sidebar-inner,
+  aside.pro-sidebar .pro-sidebar-layout {
+    width: 260px !important;
+    min-width: 260px !important;
+    display: flex !important; /* Mantenemos su estructura flex nativa */
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* 2. Fijar el caparazón y preparar animación */
+  aside.pro-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    z-index: 999999 !important;
+    transition: transform 0.3s ease !important;
+  }
+
+  /* 3. ESTADO CERRADO: Menú oculto a la izquierda */
+  .layout.collapsed aside.pro-sidebar {
+    transform: translateX(-100%) !important; 
+  }
+  
+  .layout.collapsed .main {
+    transform: translateX(0) !important;
+  }
+
+  /* 4. ESTADO ABIERTO: El menú entra a la pantalla */
+  .layout:not(.collapsed) aside.pro-sidebar {
+    transform: translateX(0) !important;
+  }
+
+  /* Empujamos el contenido a la derecha */
+  .main {
+    transition: transform 0.3s ease !important;
+  }
+  
+  .layout:not(.collapsed) .main {
+    transform: translateX(260px) !important;
+  }
+
+  /* 5. Evitamos barras de scroll raras */
+  .layout {
+    overflow-x: hidden !important;
+  }
+}
