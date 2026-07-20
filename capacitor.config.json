@@ -2,6 +2,13 @@
   "appId": "com.siiaquamedica.app",
   "appName": "SII AQUA",
   "webDir": "dist",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffff",
+      "fadeOutDuration": 0
+    }
+  }
 }
-
