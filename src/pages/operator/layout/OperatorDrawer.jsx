@@ -21,7 +21,10 @@ import { useLogout } from "../../../hooks/useLogout";
 export default function OperatorDrawer({
     open,
     onClose,
-    onNavigate
+    onNavigate,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd
 }) {
 
     const { user } = useAuth();
@@ -80,7 +83,7 @@ export default function OperatorDrawer({
         {
             id: "preferences",
             icon: <FiSettings />,
-            label: "Preferencias"
+            label: "Configuración"
         },
 
         {
@@ -105,6 +108,9 @@ export default function OperatorDrawer({
 
             <aside
                 className={`drawer-v2 ${open ? "open" : ""}`}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
             >
 
                 <div className="drawer-header-v2">

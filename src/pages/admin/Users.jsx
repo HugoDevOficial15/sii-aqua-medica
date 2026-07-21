@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // Excel
 import * as XLSX from "xlsx";
@@ -7,7 +7,17 @@ import * as XLSX from "xlsx";
 import Loader from "../../components/Loader";
 
 // Servicio Users
-import { getUsers, createUser, updateUser, migrateNomina } from "../../services/usersService";
+import {
+    getUsers,
+    createUser,
+    updateUser,
+    migrateNomina,
+    nominaExists,
+    findDuplicateNominas
+} from "../../services/usersService";
+
+// CSV (curp/rfc/nss pendientes)
+import { parseEmployeeCSV, importEmployeeCSV } from "../../services/csvImportService";
 
 // Notify
 import { notifySuccess, notifyError } from "../../utils/notify";
@@ -24,7 +34,7 @@ import { userSchema } from "../../schemas/userSchema";
 // import { resetPasswordByAdmin } from "../../services/adminAuthService";
 
 // Icons
-import { FaUserCheck, FaUserEdit, FaUserPlus, FaUserSlash, FaFileExcel, FaKey, FaCheckCircle } from "react-icons/fa";
+import { FaUserCheck, FaUserEdit, FaUserPlus, FaUserSlash, FaFileExcel, FaKey, FaCheckCircle, FaFileImport, FaSearch } from "react-icons/fa";
 
 // Areas
 import { AREAS } from "../../catalogs/areas";
@@ -59,6 +69,10 @@ export default function Users() {
 
     // Puestos
     const [puestos, setPuestos] = useState();
+
+    // Input oculto para importar CSV
+    const csvInputRef = useRef(null);
+    const [importing, setImporting] = useState(false);
 
     // Form React Hook Form
     const {
@@ -124,6 +138,18 @@ export default function Users() {
         try {
 
             setSaving(true);
+
+            // Nómina única: nunca crear/editar hacia una nómina que ya
+            // pertenece a otro documento (excluyendo el propio al editar).
+            const duplicated = await nominaExists(data.nomina, editing ? currentId : null);
+
+            if (duplicated) {
+                notifyError(
+                    "Nómina duplicada",
+                    "Ya existe un usuario registrado con esa nómina."
+                );
+                return;
+            }
 
             // Loader S
             Swal.fire({
@@ -295,6 +321,125 @@ export default function Users() {
 
     }
 
+    // Buscar nóminas duplicadas (solo diagnóstico, no elimina nada)
+    const handleFindDuplicates = async () => {
+
+        try {
+
+            Swal.fire({
+                title: "Buscando nóminas duplicadas",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            const duplicates = await findDuplicateNominas();
+
+            Swal.close();
+
+            if (duplicates.length === 0) {
+                notifySuccess(
+                    "Sin duplicados",
+                    "No se encontraron nóminas repetidas."
+                );
+                return;
+            }
+
+            const rows = duplicates
+                .map((d) => `
+                    <tr>
+                        <td style="padding:6px 10px;text-align:left;">${d.nomina}</td>
+                        <td style="padding:6px 10px;text-align:left;">${d.count}</td>
+                        <td style="padding:6px 10px;text-align:left;font-size:12px;">${d.ids.join("<br/>")}</td>
+                    </tr>
+                `)
+                .join("");
+
+            Swal.fire({
+                title: "Nóminas duplicadas encontradas",
+                width: 640,
+                html: `
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                        <thead>
+                            <tr>
+                                <th style="padding:6px 10px;text-align:left;">Nómina</th>
+                                <th style="padding:6px 10px;text-align:left;">Documentos</th>
+                                <th style="padding:6px 10px;text-align:left;">IDs</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                `
+            });
+
+        } catch (error) {
+
+            console.log("Error buscando duplicados:", error);
+            Swal.close();
+
+            notifyError("Error", "No se pudo completar el diagnóstico de duplicados.");
+
+        }
+    };
+
+    // Importar CSV (curp/rfc/nss pendientes)
+    const handleImportCSVClick = () => {
+        csvInputRef.current?.click();
+    };
+
+    const handleImportCSVChange = async (e) => {
+
+        const file = e.target.files?.[0];
+
+        e.target.value = "";
+
+        if (!file) return;
+
+        try {
+
+            setImporting(true);
+
+            Swal.fire({
+                title: "Importando CSV",
+                text: "Actualizando curp/rfc/nss por nómina",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            const rows = await parseEmployeeCSV(file);
+            const summary = await importEmployeeCSV(rows);
+
+            Swal.close();
+
+            Swal.fire({
+                title: "Importación completada",
+                html: `
+                    <div style="text-align:left;font-size:14px;">
+                        <p>Usuarios actualizados: <strong>${summary.updated.length}</strong></p>
+                        <p>Usuarios no encontrados: <strong>${summary.notFound.length}</strong></p>
+                        <p>Filas con error: <strong>${summary.errors.length}</strong></p>
+                        <p>Filas omitidas: <strong>${summary.skipped.length}</strong></p>
+                        <p>Tiempo total: <strong>${summary.totalMs} ms</strong></p>
+                    </div>
+                `
+            });
+
+            const usersData = await getUsers();
+            setUsers(usersData);
+
+        } catch (error) {
+
+            console.log("Error importando CSV:", error);
+            Swal.close();
+
+            notifyError("Error", "No se pudo importar el archivo CSV.");
+
+        } finally {
+            setImporting(false);
+        }
+    };
+
     // Cargar Usuarios
     useEffect(() => {
 
@@ -410,6 +555,31 @@ export default function Users() {
                         <FaFileExcel className="me-2" />
                         Exportar Excel
                     </button>
+
+                    <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={handleFindDuplicates}
+                    >
+                        <FaSearch className="me-2" />
+                        Buscar nóminas duplicadas
+                    </button>
+
+                    <button
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={handleImportCSVClick}
+                        disabled={importing}
+                    >
+                        <FaFileImport className="me-2" />
+                        {importing ? "Importando..." : "Importar CSV"}
+                    </button>
+
+                    <input
+                        type="file"
+                        accept=".csv"
+                        ref={csvInputRef}
+                        onChange={handleImportCSVChange}
+                        style={{ display: "none" }}
+                    />
 
                     <button
                         className="btn btn-sm btn-primary"

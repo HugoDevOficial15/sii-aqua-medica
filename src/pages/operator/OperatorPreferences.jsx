@@ -34,7 +34,7 @@ export default function OperatorPreferences({ onBack }) {
                 <div className="preferences-hero-icon">
                     <FiType />
                 </div>
-                <h1>Preferencias</h1>
+                <h1>Configuración</h1>
                 <p>Personaliza la apariencia de la aplicación.</p>
             </div>
 

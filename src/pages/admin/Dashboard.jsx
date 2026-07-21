@@ -34,7 +34,16 @@ import { motion } from "framer-motion";
 
 import CountUp from "react-countup";
 
+import { usePreferences } from "../../hooks/usePreferences";
+
 export default function Dashboard() {
+
+    const { resolvedTheme } = usePreferences();
+    const isDark = resolvedTheme === "dark";
+
+    const chartTextColor = isDark ? "#F1F5F9" : "#0F172A";
+    const chartMutedColor = isDark ? "#94A3B8" : "#64748B";
+    const chartGridColor = isDark ? "#334155" : "#E5E7EB";
 
     const [loading, setLoading] = useState(true);
 
@@ -295,7 +304,7 @@ export default function Dashboard() {
                                     style={{
                                         fontSize: "76px",
                                         fontWeight: 800,
-                                        fill: "#0F172A"
+                                        fill: chartTextColor
                                     }}
                                 >
                                     {porcentajeActivos}%
@@ -308,7 +317,7 @@ export default function Dashboard() {
                                     dominantBaseline="middle"
                                     style={{
                                         fontSize: "28px",
-                                        fill: "#64748B",
+                                        fill: chartMutedColor,
                                         fontWeight: 500
                                     }}
                                 >
@@ -431,18 +440,18 @@ export default function Dashboard() {
 
                         <CartesianGrid
                             strokeDasharray="3 3"
-                            stroke="#E5E7EB"
+                            stroke={chartGridColor}
                         />
 
                         <XAxis
                             type="number"
-                            stroke="#64748B"
+                            stroke={chartMutedColor}
                         />
 
                         <YAxis
                             type="category"
                             dataKey="area"
-                            stroke="#64748B"
+                            stroke={chartMutedColor}
                             width={240}
                         />
 

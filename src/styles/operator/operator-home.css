@@ -735,6 +735,8 @@ DRAWER V2
 
     height: 100vh;
     height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
 
     background: white;
 
@@ -896,6 +898,7 @@ DRAWER V2
     padding: 0 16px;
 
     overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     touch-action: pan-y;
@@ -967,6 +970,53 @@ DRAWER V2
     justify-content: center;
 
     gap: 10px;
+}
+
+/* =====================================
+DRAWER V2 — LANDSCAPE (pantalla corta)
+Compacta el encabezado, la tarjeta de
+puntos y el botón de cerrar sesión para
+que la lista de opciones conserve una
+zona de scroll real y "Cerrar sesión"
+nunca quede fuera de la pantalla.
+===================================== */
+
+@media (orientation: landscape) and (max-height: 500px) {
+
+    .drawer-header-v2 {
+        padding: 14px 24px;
+        padding-top: calc(14px + var(--safe-top));
+    }
+
+    .drawer-avatar-v2 {
+        width: 52px;
+        height: 52px;
+        margin: auto auto 8px;
+    }
+
+    .drawer-header-v2 h3 {
+        font-size: 15px;
+    }
+
+    .drawer-header-v2 p {
+        margin-top: 2px;
+        font-size: 12px;
+    }
+
+    .drawer-points-card {
+        margin: 10px 20px;
+        padding: 10px 18px;
+    }
+
+    .drawer-item-v2 {
+        padding: 10px 16px;
+        margin-bottom: 6px;
+    }
+
+    .drawer-logout-v2 {
+        height: 44px;
+        margin: 12px 20px calc(12px + var(--safe-bottom));
+    }
 }
 
 

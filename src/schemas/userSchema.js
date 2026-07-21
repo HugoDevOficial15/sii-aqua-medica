@@ -1,15 +1,20 @@
 import { z } from "zod";
 
+import { normalizeName } from "../utils/textFormat";
+
 export const userSchema = z.object({
 
 
     nomina: z
         .string()
-        .min(1, "La nómina es obligatoria"),
+        .min(1, "La nómina es obligatoria")
+        .regex(/^\d+$/, "La nómina debe contener solo números"),
 
     nombre: z
         .string()
-        .min(1, "El nómbre es obligatori"),
+        .min(1, "El nómbre es obligatori")
+        .transform(normalizeName)
+        .refine((val) => val.length > 0, "El nombre es obligatorio"),
 
     area: z
         .string()

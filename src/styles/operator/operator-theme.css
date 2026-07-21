@@ -139,3 +139,243 @@ html[data-theme="dark"] .profile-action-card h4 {
 html[data-theme="dark"] .profile-row-v2 {
     color: var(--operator-text-soft);
 }
+
+/* =========================================
+   TARJETAS CON FONDO BLANCO — MODO OSCURO
+   Estas tarjetas fijan "background: white"
+   en su regla base y no definían su propio
+   color de texto: heredaban el color claro
+   de <body> en modo oscuro (ver index.css),
+   dejando texto claro sobre fondo blanco.
+   Cada tarjeta debe fijar su propio fondo Y
+   color explícitamente: nunca heredar desde
+   un selector global (nunca "* { color }").
+========================================= */
+
+html[data-theme="dark"] .metric-box,
+html[data-theme="dark"] .task-premium-card,
+html[data-theme="dark"] .news-mini-card,
+html[data-theme="dark"] .news-search,
+html[data-theme="dark"] .welcome-card,
+html[data-theme="dark"] .survey-tabs button,
+html[data-theme="dark"] .timeline-item,
+html[data-theme="dark"] .survey-stat-card,
+html[data-theme="dark"] .survey-card-v2,
+html[data-theme="dark"] .suggestion-stat-card,
+html[data-theme="dark"] .suggestion-card-v2,
+html[data-theme="dark"] .mobile-back-btn,
+html[data-theme="dark"] .news-card,
+html[data-theme="dark"] .news-detail-content,
+html[data-theme="dark"] .metric-card,
+html[data-theme="dark"] .action-card,
+html[data-theme="dark"] .back-circle-btn,
+html[data-theme="dark"] .badge-card,
+html[data-theme="dark"] .certificate-card,
+html[data-theme="dark"] .certificate-stat-card,
+html[data-theme="dark"] .course-card,
+html[data-theme="dark"] .create-card,
+html[data-theme="dark"] .detail-card,
+html[data-theme="dark"] .featured-recognition,
+html[data-theme="dark"] .feed-card,
+html[data-theme="dark"] .feed-recognition-card,
+html[data-theme="dark"] .hero-card-v2,
+html[data-theme="dark"] .notification-card,
+html[data-theme="dark"] .op-result-card,
+html[data-theme="dark"] .op-survey-header-card,
+html[data-theme="dark"] .op-survey-option-btn,
+html[data-theme="dark"] .op-survey-question-card,
+html[data-theme="dark"] .operator-loader-card,
+html[data-theme="dark"] .points-card,
+html[data-theme="dark"] .points-progress-card,
+html[data-theme="dark"] .points-stat-card,
+html[data-theme="dark"] .premium-feed-card,
+html[data-theme="dark"] .profile-card,
+html[data-theme="dark"] .question-card,
+html[data-theme="dark"] .question-progress,
+html[data-theme="dark"] .quick-stat-card,
+html[data-theme="dark"] .recognition-card,
+html[data-theme="dark"] .suggestion-card,
+html[data-theme="dark"] .suggestion-card-premium,
+html[data-theme="dark"] .suggestion-form-card,
+html[data-theme="dark"] .survey-card,
+html[data-theme="dark"] .training-stat-card,
+html[data-theme="dark"] .upload-card,
+html[data-theme="dark"] .upload-option {
+    background: var(--operator-card);
+    color: var(--operator-text);
+}
+
+/* Elementos con color de texto propio (más específico que la regla de
+   arriba) que quedarían igualmente invisibles si no se remapean aquí. */
+html[data-theme="dark"] .suggestion-title {
+    color: var(--operator-text);
+}
+
+/* La pestaña activa debe conservar su fondo azul de acento; la regla
+   general de arriba (misma especificidad de clases + más elementos)
+   la ganaría y la dejaría con el fondo neutro de tarjeta. */
+html[data-theme="dark"] .survey-tabs .active {
+    background: var(--operator-primary);
+    color: #fff;
+}
+
+/* Misma colisión de especificidad para la opción seleccionada de una
+   pregunta de encuesta: debe conservar su resalte azul, no el fondo
+   neutro de tarjeta de la regla general. */
+html[data-theme="dark"] .op-survey-option-btn.selected {
+    background: rgba(59, 130, 246, .12);
+    border-color: var(--operator-primary);
+    color: var(--operator-primary-light);
+}
+
+/* Los estados del timeline (hecho/en curso) tienen su propio color de
+   estatus (verde/naranja); la regla general los aplanaría a un solo color. */
+html[data-theme="dark"] .timeline-item.done {
+    color: #34d399;
+}
+
+html[data-theme="dark"] .timeline-item.active {
+    color: #fbbf24;
+}
+
+/* =========================================
+   PANEL ADMINISTRADOR — MODO OSCURO
+   Extiende el mismo mecanismo de tema
+   (html[data-theme="dark"] + variables
+   --operator-*) al panel de administración:
+   Sidebar, Header, Dashboard, tarjetas,
+   tablas, modales, formularios y alertas.
+========================================= */
+
+html[data-theme="dark"] .layout {
+    background: var(--operator-background);
+}
+
+/* --- SIDEBAR --- */
+
+html[data-theme="dark"] .pro-sidebar {
+    background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
+    border-right: 1px solid rgba(255, 255, 255, .06);
+}
+
+html[data-theme="dark"] .logo-wrapper {
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .1);
+}
+
+html[data-theme="dark"] .logo-info h3 {
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .logo-info span,
+html[data-theme="dark"] .sidebar-icon,
+html[data-theme="dark"] .sidebar-text {
+    color: var(--operator-text-soft);
+}
+
+html[data-theme="dark"] .sidebar-link:hover {
+    background: rgba(255, 255, 255, .06);
+}
+
+html[data-theme="dark"] .sidebar-link:hover .sidebar-icon,
+html[data-theme="dark"] .sidebar-link:hover .sidebar-text {
+    color: var(--operator-primary-light);
+}
+
+/* --- HEADER --- */
+
+html[data-theme="dark"] .pro-header {
+    background: rgba(15, 23, 42, .85);
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+}
+
+html[data-theme="dark"] .menu-btn,
+html[data-theme="dark"] .notification-btn,
+html[data-theme="dark"] .user-card {
+    background: rgba(255, 255, 255, .06);
+    border-color: rgba(255, 255, 255, .1);
+    color: var(--operator-primary-light);
+}
+
+html[data-theme="dark"] .brand-title,
+html[data-theme="dark"] .user-name {
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .brand-subtitle,
+html[data-theme="dark"] .user-role {
+    color: var(--operator-text-soft);
+}
+
+/* --- CARDS / TABLAS / FORMULARIOS (genérico admin) --- */
+
+html[data-theme="dark"] .layout .card,
+html[data-theme="dark"] .layout .metric-card,
+html[data-theme="dark"] .layout .chart-main-card,
+html[data-theme="dark"] .layout .bottom-chart,
+html[data-theme="dark"] .layout .dashboard-container {
+    background: var(--operator-card);
+    border-color: var(--operator-border);
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .layout .dashboard-container {
+    background: var(--operator-background);
+}
+
+html[data-theme="dark"] .layout .metric-card h2,
+html[data-theme="dark"] .layout .chart-title h3 {
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .layout .metric-card span,
+html[data-theme="dark"] .layout .chart-footer {
+    color: var(--operator-text-soft);
+}
+
+html[data-theme="dark"] .layout .table {
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .layout .table tbody tr,
+html[data-theme="dark"] .layout .custom-table tbody tr {
+    background: var(--operator-card);
+}
+
+html[data-theme="dark"] .layout .form-control,
+html[data-theme="dark"] .layout .form-select {
+    background: var(--operator-background);
+    border-color: var(--operator-border);
+    color: var(--operator-text);
+}
+
+/* --- MODALES --- */
+
+html[data-theme="dark"] .modal-card,
+html[data-theme="dark"] .custom-modal {
+    background: var(--operator-card);
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .modal-header,
+html[data-theme="dark"] .custom-modal-header,
+html[data-theme="dark"] .modal-footer {
+    background: var(--operator-card);
+    border-color: var(--operator-border);
+}
+
+html[data-theme="dark"] .custom-modal-header h5 {
+    color: var(--operator-text);
+}
+
+/* --- ALERTAS (SweetAlert2) --- */
+
+html[data-theme="dark"] .swal2-popup {
+    background: var(--operator-card);
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .swal2-title,
+html[data-theme="dark"] .swal2-html-container {
+    color: var(--operator-text);
+}

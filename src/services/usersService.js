@@ -64,8 +64,9 @@ export const updateUser = async (id, data) => {
 
 
 // Solicitar cambio de datos (Perfil operador): nombre, curp, rfc, nss
-// Localiza el documento por número de nómina y aplica una actualización
-// parcial (update()) que crea los campos si no existen y los actualiza si ya existen.
+// Localiza el documento por número de nómina (nunca por uid) y aplica una
+// actualización parcial (updateDoc, jamás addDoc/setDoc) que crea los campos
+// si no existen y los actualiza si ya existen, sin tocar el resto del documento.
 export const requestProfileChange = async (nomina, changes) => {
 
     const q = query(userCollection, where("nomina", "==", Number(nomina)));
@@ -76,7 +77,20 @@ export const requestProfileChange = async (nomina, changes) => {
         return { success: false, error: "NOMINA_NOT_FOUND" };
     }
 
+    if (snapshot.size > 1) {
+        return { success: false, error: "DUPLICATE_NOMINA" };
+    }
+
     const userDoc = snapshot.docs[0];
+    const existingData = userDoc.data();
+
+    // Se registra ANTES del update para saber si hay que generar el CSV
+    // de campos pendientes (curp/rfc/nss que no existían previamente).
+    const missingBefore = {
+        curp: !existingData.curp,
+        rfc: !existingData.rfc,
+        nss: !existingData.nss
+    };
 
     const updates = {};
 
@@ -89,8 +103,50 @@ export const requestProfileChange = async (nomina, changes) => {
 
     return {
         success: true,
-        data: { id: userDoc.id, ...userDoc.data(), ...updates }
+        data: { id: userDoc.id, ...existingData, ...updates },
+        hadMissingFields: missingBefore.curp || missingBefore.rfc || missingBefore.nss
     };
+};
+
+// Verifica si una nómina ya existe (usado antes de crear/editar en el
+// panel de administración para impedir nóminas duplicadas). excludeId
+// permite ignorar el propio documento cuando se está editando.
+export const nominaExists = async (nomina, excludeId = null) => {
+
+    const q = query(userCollection, where("nomina", "==", Number(nomina)));
+
+    const snapshot = await getDocs(q);
+
+    return snapshot.docs.some((d) => d.id !== excludeId);
+};
+
+// Herramienta de diagnóstico (solo lectura): recorre toda la colección y
+// reporta nóminas repetidas, sin eliminar ni modificar nada.
+export const findDuplicateNominas = async () => {
+
+    const snapshot = await getDocs(userCollection);
+
+    const byNomina = new Map();
+
+    snapshot.docs.forEach((d) => {
+        const nomina = d.data().nomina;
+
+        if (nomina === undefined || nomina === null || nomina === "") return;
+
+        if (!byNomina.has(nomina)) byNomina.set(nomina, []);
+
+        byNomina.get(nomina).push(d.id);
+    });
+
+    const duplicates = [];
+
+    byNomina.forEach((ids, nomina) => {
+        if (ids.length > 1) {
+            duplicates.push({ nomina, ids, count: ids.length });
+        }
+    });
+
+    return duplicates.sort((a, b) => a.nomina - b.nomina);
 };
 
 export const migrateNomina = async () => {

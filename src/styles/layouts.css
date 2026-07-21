@@ -204,6 +204,17 @@
 }
 
 /* ============================= */
+/* PANTALLAS REUTILIZADAS DEL     */
+/* OPERADOR (Configuración/       */
+/* Soporte) DENTRO DEL ADMIN      */
+/* ============================= */
+
+.admin-mobile-screen {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+/* ============================= */
 /* TABLAS RESPONSIVAS (ADMIN)     */
 /* ============================= */
 

@@ -1,10 +1,11 @@
 import { z } from "zod";
 
+import { normalizeName } from "../utils/textFormat";
+
 const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/;
 const RFC_REGEX = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/;
 const NSS_REGEX = /^\d{11}$/;
 
-const normalizeName = (value) => value.trim().replace(/\s+/g, " ").toUpperCase();
 const normalizeUpper = (value) => value.trim().replace(/\s+/g, "").toUpperCase();
 const normalizeDigits = (value) => value.trim().replace(/[\s-]/g, "");
 

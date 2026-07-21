@@ -23,6 +23,8 @@ import ProtectedRoute from "../components/ProtectedRouter";
 
 import Users from "../pages/admin/Users";
 import PuestosPage from "../modules/puestos/page/PuestosPage";
+import Configuracion from "../pages/admin/Configuracion";
+import Soporte from "../pages/admin/Soporte";
 
 import MaintenancePage from "../components/MaintenancePage";
 
@@ -221,11 +223,17 @@ export default function AppRouter() {
                         path="/configuracion"
                         element={
                             <ProtectedRoute permiso="config.ver">
-                                <MaintenancePage
-                                    title="Configuración"
-                                    subtitle="Módulo temporalmente deshabilitado"
-                                    message="Estamos trabajando en nuevas funciones para configuración."
-                                />
+                                <Configuracion />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* SOPORTE */}
+                    <Route
+                        path="/soporte"
+                        element={
+                            <ProtectedRoute>
+                                <Soporte />
                             </ProtectedRoute>
                         }
                     />

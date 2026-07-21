@@ -15,7 +15,8 @@ import {
     FaListAlt,
     FaLastfm,
     FaAmbulance,
-    FaSyringe
+    FaSyringe,
+    FaLifeRing
 } from "react-icons/fa";
 
 import { FaMattressPillow } from "react-icons/fa6";
@@ -43,6 +44,7 @@ export default function Sidebar({ collapsed }) {
         { to: "/notas", icon: <FaStickyNote />, label: "Notas", permiso: "notas.ver" },
         { to: "/herramientas", icon: <FaTools />, label: "Herramientas", permiso: "herramientas.ver" },
         { to: "/configuracion", icon: <FaCog />, label: "Configuración", permiso: "config.ver" },
+        { to: "/soporte", icon: <FaLifeRing />, label: "Soporte" },
     ];
 
     return (

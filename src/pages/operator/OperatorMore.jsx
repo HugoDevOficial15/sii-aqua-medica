@@ -61,7 +61,7 @@ export default function OperatorMore({
         {
             id: "preferences",
             icon: <FiSettings />,
-            title: "Preferencias",
+            title: "Configuración",
             subtitle: "Tema y tamaño de texto"
         },
 

@@ -5,6 +5,7 @@ import Swal from "sweetalert2";
 
 import { profileChangeSchema } from "../../schemas/profileChangeSchema";
 import { requestProfileChange } from "../../services/usersService";
+import { generateEmployeeCSV } from "../../utils/csvGenerator";
 import { notifySuccess, notifyError } from "../../utils/notify";
 
 export default function RequestChangeModal({ user, onClose, onSuccess }) {
@@ -56,16 +57,29 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
                         "Nómina no encontrada",
                         "No pudimos localizar tu usuario en el sistema."
                     );
+                } else if (result.error === "DUPLICATE_NOMINA") {
+                    notifyError(
+                        "Nómina duplicada",
+                        "Existen usuarios duplicados con esta nómina. Contacte al administrador. No se realizaron cambios."
+                    );
                 } else {
                     notifyError("Error", "No se pudo actualizar la información.");
                 }
                 return;
             }
 
-            notifySuccess(
-                "Datos actualizados",
-                "Tu información se actualizó correctamente."
-            );
+            if (result.hadMissingFields) {
+                const filename = generateEmployeeCSV([result.data]);
+                notifySuccess(
+                    "Datos actualizados",
+                    `Tu información se actualizó correctamente. Como aún faltaban datos (CURP/RFC/NSS), se generó el archivo "${filename}" en la carpeta de descargas para completarlos posteriormente.`
+                );
+            } else {
+                notifySuccess(
+                    "Datos actualizados",
+                    "Tu información se actualizó correctamente."
+                );
+            }
 
             onSuccess?.(result.data);
             onClose();
