@@ -13,7 +13,7 @@ export default function Loader({ text }) {
                         <img
                             src="/logo.png"
                             alt="AQUA Médica"
-                            className="loader-logo col-12" style={{ width: "24rem", height: "16rem" }}
+                            className="loader-logo"
                         />
                     </div>
 

@@ -32,6 +32,9 @@
 
 .loader-logo {
     width: 150px;
+    max-width: 150px;
+    height: auto;
+    object-fit: contain;
     margin-bottom: 20px;
 }
 
@@ -86,6 +89,9 @@
 
 .loader-logo {
     width: 150px;
+    max-width: 150px;
+    height: auto;
+    object-fit: contain;
     margin-bottom: 20px;
 }
 
