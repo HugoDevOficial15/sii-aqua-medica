@@ -461,7 +461,7 @@ export default function Header({ toggleSidebar }) {
     .brand-title,
     .brand-subtitle,
     .brand-glow,
-    .user-info,
+    .user-card,
     .logout-pro-btn span {
         display: none;
     }

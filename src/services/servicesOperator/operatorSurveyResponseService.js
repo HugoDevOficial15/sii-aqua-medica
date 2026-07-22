@@ -29,6 +29,35 @@ export const saveSurveyResponse =
     };
 
 // ======================
+// RESPUESTAS DEL USUARIO (por nómina)
+// ======================
+// Descarga, en una sola consulta, todas las respuestas del usuario
+// autenticado. Se usa para cruzar en memoria contra las encuestas
+// asignadas, en vez de consultar una vez por cada encuesta.
+
+export const getMyResponses =
+    async (nominaUsuario) => {
+
+        const q = query(
+            responseCollection,
+            where(
+                "nominaUsuario",
+                "==",
+                nominaUsuario
+            )
+        );
+
+        const snapshot =
+            await getDocs(q);
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+    };
+
+// ======================
 // YA RESPONDIÓ
 // ======================
 

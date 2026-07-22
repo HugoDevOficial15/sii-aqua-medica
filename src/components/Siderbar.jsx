@@ -21,7 +21,7 @@ import {
 
 import { FaMattressPillow } from "react-icons/fa6";
 
-export default function Sidebar({ collapsed }) {
+export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMenu }) {
 
     const { can } = useAuth();
 
@@ -50,7 +50,14 @@ export default function Sidebar({ collapsed }) {
     return (
 
         <>
-            <aside className={`pro-sidebar ${collapsed ? "collapsed" : ""}`}>
+            {mobileOpen && (
+                <div
+                    className="sidebar-overlay-backdrop"
+                    onClick={onCloseMobileMenu}
+                />
+            )}
+
+            <aside className={`pro-sidebar ${collapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
 
                 {/* BACKGROUND EFFECTS */}
                 <div className="sidebar-blur blur-1"></div>
@@ -96,6 +103,7 @@ export default function Sidebar({ collapsed }) {
                                 className={({ isActive }) =>
                                     `sidebar-link ${isActive ? "active" : ""}`
                                 }
+                                onClick={onCloseMobileMenu}
                             >
 
                                 <div className="sidebar-link-inner">
@@ -416,16 +424,75 @@ export default function Sidebar({ collapsed }) {
 
 /* =========================
    RESPONSIVE
-   La sidebar de escritorio se oculta por
-   completo en móvil para que el contenido
-   principal use el 100% del ancho.
+   En móvil el Sidebar deja de ocupar espacio
+   en el layout (el contenido usa el 100% del
+   ancho) y pasa a vivir como overlay deslizante,
+   oculto fuera de pantalla hasta que el botón de
+   hamburguesa lo abre. ".collapsed" (rail de
+   escritorio) se anula aquí para que el overlay
+   siempre se muestre a ancho completo con texto,
+   sin importar la preferencia de escritorio.
 ========================= */
 
 @media (max-width: 768px) {
 
-    .pro-sidebar {
-        display: none;
+    .pro-sidebar,
+    .pro-sidebar.collapsed {
+        position: fixed;
+        top: 0;
+        left: 0;
+
+        z-index: 2000;
+
+        width: 280px;
+        max-width: 85vw;
+
+        height: 100vh;
+        height: 100dvh;
+
+        transform: translateX(-100%);
+
+        transition: transform 0.3s ease;
+
+        box-shadow: 0 20px 60px rgba(15, 23, 42, .25);
     }
+
+    .pro-sidebar.mobile-open {
+        transform: translateX(0);
+    }
+}
+
+.sidebar-overlay-backdrop {
+    display: none;
+}
+
+@media (max-width: 768px) {
+
+    .sidebar-overlay-backdrop {
+        display: block;
+
+        position: fixed;
+        inset: 0;
+
+        background: rgba(15, 23, 42, .45);
+
+        z-index: 1999;
+
+        animation: sidebarBackdropFade .2s ease;
+    }
+
+}
+
+@keyframes sidebarBackdropFade {
+
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+
 }
             `}</style>
         </>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
     FiCheckCircle,
@@ -6,114 +6,59 @@ import {
     FiAlertCircle
 } from "react-icons/fi";
 
-import {
-    getOperatorSurveys
-} from "../../services/servicesOperator/operatorSurveyService";
-
 import AppLoader from "../operator/components/AppLoader";
 
+const ESTADO_LABEL = {
+    pendiente: "Pendiente",
+    vencida: "Fuera de tiempo",
+    completada: "Completada"
+};
 
-import { useAuth } from "../../hooks/useAuth";
-
-import {
-    hasAnsweredSurvey,
-    getSurveyMetrics
-} from "../../services/servicesOperator/operatorSurveyResponseService";
+const ESTADO_BADGE_CLASS = {
+    pendiente: "badge pending",
+    vencida: "badge expired",
+    completada: "badge approved"
+};
 
 export default function OperatorSurveys({
     onNavigate,
-    onSelectSurvey
+    onSelectSurvey,
+    surveys = [],
+    metrics = { disponibles: 0, respondidas: 0, reprobadas: 0 },
+    loading = false,
+    error = null
 }) {
 
-    const [surveys, setSurveys] = useState([]);
+    // Transición local (mismo efecto visual/tiempo que antes) al entrar
+    // a una encuesta; independiente del "loading" de la carga de datos.
+    const [transitioning, setTransitioning] = useState(false);
 
-    const { user } = useAuth();
+    const handleStartSurvey = (survey) => {
 
-    const [metrics, setMetrics] =
-        useState({
+        setTransitioning(true);
 
-            respondidas: 0,
+        onSelectSurvey(survey);
 
-            reprobadas: 0
+        setTimeout(() => {
 
-        });
+            setTransitioning(false);
 
-    const [loading, setLoading] =
-        useState(false);
+            onNavigate("survey-detail");
 
-    useEffect(() => {
-        if (user?.id) {
+        }, 800);
 
-            loadSurveys();
-
-        }
-    }, [user]);
-
-
-    const loadSurveys = async () => {
-
-        setLoading(true);
-
-        const data =
-            await getOperatorSurveys();
-
-        const surveysWithStatus =
-            await Promise.all(
-
-                data.map(
-                    async survey => ({
-
-                        ...survey,
-
-                        respondida:
-                            await hasAnsweredSurvey(
-                                survey.id,
-                                user.id
-                            )
-
-                    })
-                )
-
-            );
-
-        setSurveys(
-            surveysWithStatus
-        );
-
-        const metricsData =
-            await getSurveyMetrics(
-                user.id
-            );
-
-        setMetrics(
-            metricsData
-        );
-
-        setLoading(false);
-        console.log(surveysWithStatus);
     };
-
-
-    // {
-    //     loading &&
-    //         <AppLoader
-    //             text="Cargando encuestas..."
-    //         />
-    // }
-
-
 
     return (
 
         <>
 
             {
-                loading &&
+                (loading || transitioning) &&
                 <AppLoader
                     text="Cargando encuesta..."
                 />
             }
-
 
             <div className="surveys-v2">
 
@@ -140,7 +85,7 @@ export default function OperatorSurveys({
                         <FiClock />
 
                         <h3>
-                            {surveys.length}
+                            {metrics.disponibles}
                         </h3>
 
                         <span>
@@ -180,6 +125,22 @@ export default function OperatorSurveys({
 
                 <div className="survey-list">
 
+                    {error && (
+
+                        <div className="survey-card-v2">
+                            <p>{error}</p>
+                        </div>
+
+                    )}
+
+                    {!loading && !error && surveys.length === 0 && (
+
+                        <div className="survey-card-v2">
+                            <p>No tienes encuestas asignadas actualmente.</p>
+                        </div>
+
+                    )}
+
                     {surveys.map(survey => (
 
                         <div
@@ -189,9 +150,9 @@ export default function OperatorSurveys({
 
                             <div className="survey-card-top">
 
-                                <span className="badge pending">
+                                <span className={ESTADO_BADGE_CLASS[survey.estadoActual]}>
 
-                                    Pendiente
+                                    {ESTADO_LABEL[survey.estadoActual]}
 
                                 </span>
 
@@ -205,46 +166,48 @@ export default function OperatorSurveys({
                                 {survey.descripcion}
                             </p>
 
-                            {
-                                survey.respondida ? (
+                            <p><strong>Instructor:</strong> {survey.instructor}</p>
 
-                                    <button
-                                        disabled
-                                        className="op-survey-btn-disabled"
-                                    >
+                            <p><strong>Modalidad:</strong> {survey.modalidad}</p>
 
-                                        ✓ Respondida
+                            <p><strong>Tipo de curso:</strong> {survey.tipoCurso}</p>
 
-                                    </button>
+                            <p><strong>Forma de evaluación:</strong> {survey.formaEvaluacion}</p>
 
-                                ) : (
+                            <p><strong>Fecha del curso:</strong> {survey.fechaCurso}</p>
 
-                                    <button
-                                        onClick={() => {
+                            <p><strong>Horario:</strong> {survey.horaInicio} - {survey.horaFin}</p>
 
-                                            setLoading(true);
+                            <p><strong>Duración:</strong> {survey.duracion}</p>
 
-                                            onSelectSurvey(survey);
+                            {survey.estadoActual === "completada" && (
 
-                                            setTimeout(() => {
+                                <p><strong>Puntaje obtenido:</strong> {survey.miPuntaje}/100</p>
 
-                                                setLoading(false);
+                            )}
 
-                                                onNavigate(
-                                                    "survey-detail"
-                                                );
+                            {survey.estadoActual === "pendiente" && (
 
-                                            }, 800);
+                                <button
+                                    onClick={() => handleStartSurvey(survey)}
+                                >
 
-                                        }}
-                                    >
+                                    Comenzar
 
-                                        Responder
+                                </button>
 
-                                    </button>
+                            )}
 
-                                )
-                            }
+                            {survey.estadoActual === "vencida" && (
+
+                                <button disabled>
+
+                                    Fuera de tiempo
+
+                                </button>
+
+                            )}
+
                         </div>
 
                     ))}
@@ -255,7 +218,5 @@ export default function OperatorSurveys({
 
         </>
     );
-
-
 
 }

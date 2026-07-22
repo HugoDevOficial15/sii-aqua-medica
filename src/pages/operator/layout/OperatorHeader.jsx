@@ -4,7 +4,8 @@ import {
 } from "react-icons/fi";
 
 export default function OperatorHeader({
-    onMenu
+    onMenu,
+    notificationCount = 0
 }) {
     return (
         <header className="header-premium">
@@ -32,9 +33,11 @@ export default function OperatorHeader({
                 >
                     <FiBell />
 
-                    <span className="notification-badge">
-                        3
-                    </span>
+                    {notificationCount > 0 && (
+                        <span className="notification-badge">
+                            {notificationCount}
+                        </span>
+                    )}
 
                 </button>
 

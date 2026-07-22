@@ -342,11 +342,28 @@ html[data-theme="dark"] .layout .custom-table tbody tr {
     background: var(--operator-card);
 }
 
+/* El encabezado (thead) de las tablas admin no quedaba cubierto por la
+   regla de "tbody tr" de arriba y seguía mostrando su fondo claro. */
+html[data-theme="dark"] .layout .table thead,
+html[data-theme="dark"] .layout .table thead th,
+html[data-theme="dark"] .layout .custom-table thead,
+html[data-theme="dark"] .layout .custom-table thead th {
+    background: var(--operator-card);
+    color: var(--operator-text-soft);
+}
+
 html[data-theme="dark"] .layout .form-control,
 html[data-theme="dark"] .layout .form-select {
     background: var(--operator-background);
     border-color: var(--operator-border);
     color: var(--operator-text);
+}
+
+/* El texto de placeholder usa un color propio (no hereda "color") y
+   quedaba ilegible sobre el nuevo fondo oscuro del input. */
+html[data-theme="dark"] .layout .form-control::placeholder {
+    color: var(--operator-text-soft);
+    opacity: 1;
 }
 
 /* --- MODALES --- */

@@ -12,11 +12,14 @@ import {
 import { useAuth }
     from "../../hooks/useAuth";
 
+import { MIN_APROBATORIO } from "../../constants/surveyConstants";
+
 export default function OperatorSurveyDetail({
     survey,
     onBack,
     onNavigate,
-    onSurveyResult
+    onSurveyResult,
+    onFinished
 }) {
 
     if (!survey) {
@@ -102,6 +105,13 @@ export default function OperatorSurveyDetail({
 
                 await saveSurveyResponse({
 
+                    // Campos canónicos: idEncuesta + nominaUsuario son la
+                    // clave usada para cruzar respuestas con encuestas.
+                    idEncuesta: survey.id,
+                    nominaUsuario: user.nomina,
+                    puntuacionObtenida: result.calificacion,
+
+                    // Campos heredados (se conservan por compatibilidad).
                     encuestaId: survey.id,
 
                     userId: user.id,
@@ -122,9 +132,13 @@ export default function OperatorSurveyDetail({
                         result.calificacion,
 
                     aprobada:
-                        result.calificacion >= 80
+                        result.calificacion >= MIN_APROBATORIO
 
                 });
+
+                if (onFinished) {
+                    onFinished();
+                }
 
                 onSurveyResult({
 

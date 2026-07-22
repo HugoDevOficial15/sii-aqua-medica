@@ -64,6 +64,17 @@ body {
   transition: background-color .2s ease, color .2s ease;
 }
 
+/* Vista web de escritorio: fondo gris de "ventana" detrás de la columna
+   del Usuario (.operator-shell), estilo WhatsApp Web/Telegram Web. No
+   afecta a Admin ni a Login porque ambos ya cubren todo el body con su
+   propio fondo opaco (.layout y .login-page), así que este color nunca
+   llega a verse detrás de ellos. */
+@media (min-width: 769px) {
+  body {
+    background: #e2e8f0;
+  }
+}
+
 /* =========================================
    TEMA (Preferencias > Tema)
    data-theme se aplica en <html> desde

@@ -619,6 +619,11 @@ BOTTOM NAV V2
 
     left: 50%;
 
+    /* En Android, la barra de gestos no siempre reporta su altura vía
+       env(safe-area-inset-bottom) (soporte más consistente en iOS), así
+       que en móvil se suma un margen extra fijo para no quedar pegados
+       ni solapar el texto con la barra nativa. No afecta escritorio. */
+
     transform: translateX(-50%);
 
     width: calc(100% - 32px - (var(--safe-left) + var(--safe-right)));
@@ -644,6 +649,14 @@ BOTTOM NAV V2
         0 0 0 1px rgba(0, 0, 0, .05);
 
     z-index: 6000;
+}
+
+@media (max-width: 768px) {
+
+    .operator-nav-premium {
+        bottom: calc(32px + var(--safe-bottom));
+    }
+
 }
 
 
@@ -1152,6 +1165,13 @@ SURVEYS V2
     color: #16a34a;
 }
 
+.badge.expired {
+
+    background: #f1f5f9;
+
+    color: #64748B;
+}
+
 .survey-card-v2 button {
 
     width: 100%;
@@ -1169,6 +1189,15 @@ SURVEYS V2
     font-weight: 700;
 
     margin-top: 14px;
+}
+
+.survey-card-v2 button:disabled {
+
+    background: #e2e8f0;
+
+    color: #94a3b8;
+
+    cursor: not-allowed;
 }
 
 
@@ -1936,6 +1965,22 @@ HEADER PREMIUM
     box-sizing: border-box;
 }
 
+/* Vista web de escritorio: el Header pasa a compartir exactamente el
+   mismo ancho máximo que la columna central (.operator-shell), en vez
+   de quedar de borde a borde. left/right + margin:auto lo centran sin
+   depender de transform, evitando que un cambio de "left" en cascada
+   lo desplace fuera de pantalla. Solo aplica a esta vista (Usuario). */
+/* Corrección de Header para Desktop */
+@media (min-width: 769px) {
+  .header-premium,
+  .header-premium-inner {
+    left: 0;
+    right: 0;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
 /* =====================================
 CENTER
 ===================================== */
@@ -2462,3 +2507,4 @@ ACERCA DE / TÉRMINOS
 .legal-text h4:first-child {
     margin-top: 0;
 }
+

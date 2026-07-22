@@ -13,6 +13,7 @@ export default function OperatorShell({
     children,
     activeTab,
     onTabChange,
+    notificationCount = 0,
 }) {
     const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -151,6 +152,7 @@ export default function OperatorShell({
 
                 <OperatorHeader
                     onMenu={() => setDrawerOpen(true)}
+                    notificationCount={notificationCount}
                 />
 
                 <div className="operator-content">

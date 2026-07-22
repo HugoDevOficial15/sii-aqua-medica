@@ -4,6 +4,22 @@
     position: relative;
 }
 
+/* Vista web de escritorio: la columna del Usuario se convierte en una
+   "aplicación" independiente centrada (estilo WhatsApp Web/Telegram Web),
+   con fondo, sombra y esquinas inferiores redondeadas propias en vez de
+   fundirse con el fondo gris de la ventana. Reutiliza --operator-card,
+   por lo que ya respeta el tema oscuro sin reglas adicionales. */
+@media (min-width: 769px) {
+
+    .operator-shell {
+        max-width: 600px;
+        min-height: 100vh;
+        background: var(--operator-card);
+        box-shadow: 0 0 40px rgba(0, 0, 0, .05);
+        border-radius: 0 0 20px 20px;
+    }
+}
+
 /* Mientras el Drawer está abierto, la pantalla de fondo (header, contenido
    y bottom nav viven dentro de .operator-shell) deja de recibir eventos
    táctiles; el overlay/drawer están fuera de .operator-shell como hermanos
@@ -18,9 +34,16 @@
    Reorganiza el shell y las tarjetas en
    dos columnas cuando hay ancho suficiente,
    sin afectar el modo vertical.
+   (hover:none)+(pointer:coarse) limita esto
+   a dispositivos táctiles reales (teléfono/
+   tablet en horizontal); un navegador de
+   escritorio también cae en "landscape" y
+   min-width:480px, pero usa mouse (hover:hover,
+   pointer:fine), así que queda excluido y el
+   header ya no se estira separando sus iconos.
 ===================================== */
 
-@media (orientation: landscape) and (min-width: 480px) {
+@media (orientation: landscape) and (min-width: 480px) and (hover: none) and (pointer: coarse) {
 
     .operator-shell {
         max-width: 900px;
@@ -90,6 +113,16 @@
     padding-top: calc(100px + var(--safe-top) + 6px);
 
     padding-bottom: calc(50px + var(--safe-bottom));
+}
+
+/* Compensa el margen extra que el bottom nav gana en móvil (ver
+   .operator-nav-premium), para que el contenido no quede oculto detrás. */
+@media (max-width: 768px) {
+
+    .operator-content {
+        padding-bottom: calc(64px + var(--safe-bottom));
+    }
+
 }
 
 

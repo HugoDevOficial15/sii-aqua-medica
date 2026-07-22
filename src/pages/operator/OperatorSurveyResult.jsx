@@ -1,10 +1,12 @@
+import { MIN_APROBATORIO } from "../../constants/surveyConstants";
+
 export default function OperatorSurveyResult({
     result,
     onBack
 }) {
 
     const approved =
-        result?.calificacion >= 80;
+        result?.calificacion >= MIN_APROBATORIO;
 
     return (
 

@@ -32,6 +32,8 @@ import OperatorReportProblem from "./OperatorReportProblem";
 import OperatorLegal from "./OperatorLegal";
 import OperatorAbout from "./OperatorAbout";
 
+import { useOperatorSurveys } from "../../hooks/hooksOperator/useOperatorSurveys";
+
 export default function AppOperator() {
 
     const [screen, setScreen] =
@@ -45,6 +47,17 @@ export default function AppOperator() {
         setSurveyResult] =
         useState(null);
 
+    // Única fuente de datos de encuestas para toda la app del operador:
+    // la pantalla "Encuestas" y el badge de la campana del Header
+    // consumen el mismo resultado, sin duplicar consultas a Firestore.
+    const {
+        surveys,
+        metrics,
+        loading: surveysLoading,
+        error: surveysError,
+        refetch: refetchSurveys
+    } = useOperatorSurveys();
+
     const renderScreen = () => {
 
         // console.log("renderScreen", screen);
@@ -57,6 +70,10 @@ export default function AppOperator() {
                     <OperatorSurveys
                         onNavigate={setScreen}
                         onSelectSurvey={setSelectedSurvey}
+                        surveys={surveys}
+                        metrics={metrics}
+                        loading={surveysLoading}
+                        error={surveysError}
                     />
                 );
 
@@ -175,6 +192,8 @@ export default function AppOperator() {
                             setSurveyResult
                         }
 
+                        onFinished={refetchSurveys}
+
                     />
 
                 );
@@ -206,6 +225,7 @@ export default function AppOperator() {
         <OperatorShell
             activeTab={screen}
             onTabChange={setScreen}
+            notificationCount={metrics.pendientesCount}
         >
 
             {renderScreen()}

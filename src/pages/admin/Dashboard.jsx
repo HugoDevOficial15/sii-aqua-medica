@@ -45,6 +45,21 @@ export default function Dashboard() {
     const chartMutedColor = isDark ? "#94A3B8" : "#64748B";
     const chartGridColor = isDark ? "#334155" : "#E5E7EB";
 
+    // El radio del donut y el tamaño de sus textos están en px fijos
+    // (Recharts no los infiere del ancho disponible), así que en móvil
+    // se desbordaban de la tarjeta. Se detecta el ancho real de pantalla
+    // para escalarlos, igual que ya se hace con el tema oscuro.
+    const [isMobile, setIsMobile] = useState(
+        () => typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches
+    );
+
+    useEffect(() => {
+        const mql = window.matchMedia("(max-width: 768px)");
+        const handleChange = (e) => setIsMobile(e.matches);
+        mql.addEventListener("change", handleChange);
+        return () => mql.removeEventListener("change", handleChange);
+    }, []);
+
     const [loading, setLoading] = useState(true);
 
     const [users, setUsers] = useState([]);
@@ -240,7 +255,7 @@ export default function Dashboard() {
                         <h3>Estado Operadores</h3>
                     </div>
 
-                    <div style={{ width: "100%", height: 520 }}>
+                    <div style={{ width: "100%", height: isMobile ? 260 : 520 }}>
 
                         <ResponsiveContainer width="100%" height="100%">
 
@@ -273,8 +288,8 @@ export default function Dashboard() {
                                     data={operadoresChart}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={140}
-                                    outerRadius={185}
+                                    innerRadius={isMobile ? 62 : 140}
+                                    outerRadius={isMobile ? 90 : 185}
                                     paddingAngle={5}
                                     dataKey="value"
                                     animationDuration={1400}
@@ -302,7 +317,7 @@ export default function Dashboard() {
                                     textAnchor="middle"
                                     dominantBaseline="middle"
                                     style={{
-                                        fontSize: "76px",
+                                        fontSize: isMobile ? "34px" : "76px",
                                         fontWeight: 800,
                                         fill: chartTextColor
                                     }}
@@ -316,7 +331,7 @@ export default function Dashboard() {
                                     textAnchor="middle"
                                     dominantBaseline="middle"
                                     style={{
-                                        fontSize: "28px",
+                                        fontSize: isMobile ? "13px" : "28px",
                                         fill: chartMutedColor,
                                         fontWeight: 500
                                     }}
@@ -330,7 +345,7 @@ export default function Dashboard() {
                                     textAnchor="middle"
                                     dominantBaseline="middle"
                                     style={{
-                                        fontSize: "22px",
+                                        fontSize: isMobile ? "12px" : "22px",
                                         fill: "#DC2626",
                                         fontWeight: 700
                                     }}
@@ -780,6 +795,27 @@ export default function Dashboard() {
                     .right-column{
 
                         grid-template-columns:1fr;
+                    }
+
+                    /* La tarjeta de la gráfica y las tarjetas de métricas
+                       viven en columnas de grid/flex que, por defecto,
+                       no se encogen por debajo del contenido intrínseco
+                       (min-width:auto). Se fuerza min-width:0 para que
+                       sí respeten el ancho real de la pantalla. */
+                    .chart-main-card,
+                    .metric-card{
+
+                        width:100%;
+                        max-width:100%;
+                        min-width:0;
+
+                        box-sizing:border-box;
+
+                        overflow:hidden;
+                    }
+
+                    .chart-main-card{
+                        padding:18px;
                     }
 
                 }
