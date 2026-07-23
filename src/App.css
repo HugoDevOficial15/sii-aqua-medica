@@ -154,3 +154,29 @@ body {
     overflow-x: hidden !important;
   }
 }
+
+/* =========================================
+   AJUSTES PARA MÓVILES (SIDEBAR Y MENÚ)
+   ========================================= */
+@media (max-width: 992px) {
+  /* 1. Esconder el Sidebar por defecto lanzándolo fuera de la pantalla */
+  .pro-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: -100% !important; /* Lo esconde a la izquierda */
+    height: 100vh;
+    z-index: 1040 !important; /* Asegura que esté por encima de todo */
+    transition: left 0.3s ease-in-out !important; /* Animación suave al abrir */
+  }
+
+  /* 2. Mostrar el Sidebar cuando le das clic a la hamburguesa */
+  .pro-sidebar.mobile-open {
+    left: 0 !important; /* Lo regresa a la pantalla */
+  }
+
+  /* 3. Evitar que el contenido principal se aplaste */
+  .main {
+    width: 100% !important;
+    margin-left: 0 !important; /* Quita el margen que dejaba el sidebar en PC */
+  }
+}

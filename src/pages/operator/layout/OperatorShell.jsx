@@ -152,6 +152,10 @@ export default function OperatorShell({
 
                 <OperatorHeader
                     onMenu={() => setDrawerOpen(true)}
+                    onNotifications={() => {
+                        setDrawerOpen(false);
+                        onTabChange("notifications");
+                    }}
                     notificationCount={notificationCount}
                 />
 

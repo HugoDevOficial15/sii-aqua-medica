@@ -58,6 +58,37 @@ export const getMyResponses =
     };
 
 // ======================
+// RESPUESTAS DE UNA ENCUESTA (panel de Administrador)
+// ======================
+// Una sola consulta trae todas las respuestas de esa encuesta; el cruce
+// con el perfil del usuario (área, género, puesto) se hace en memoria en
+// el componente, contra los datos de "users" ya cargados (getUsers()),
+// para no depender de que la respuesta guarde una copia embebida del
+// perfil (que quedaría desactualizada si el usuario cambia de área/puesto).
+
+export const getResponsesForSurvey =
+    async (idEncuesta) => {
+
+        const q = query(
+            responseCollection,
+            where(
+                "idEncuesta",
+                "==",
+                idEncuesta
+            )
+        );
+
+        const snapshot =
+            await getDocs(q);
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+    };
+
+// ======================
 // YA RESPONDIÓ
 // ======================
 

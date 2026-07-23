@@ -6,6 +6,10 @@ import AppOperator from "../pages/operator/AppOperator";
 import ChangePassword from "../modules/auth/ChangePassword";
 import CreateSurvey from "../modules/encuestas/CreateSurvey";
 import InventarioPage from "../modules/inventarios/InventarioPage";
+
+// 🔥 IMPORTACIÓN CORREGIDA: Se importa News por defecto
+import News from "../pages/admin/News"; 
+
 import AgendaPage from "../modules/agenda/AgendaPage";
 import AgendaMesPage from "../modules/agendabymes/AgendaMesPage";
 import AniversariosPage from "../modules/aniversarios/AniversarioPage";
@@ -88,6 +92,17 @@ export default function AppRouter() {
                         }
                     />
 
+                    {/* NOTICIAS */}
+                    <Route
+                        path="/noticias"
+                        element={
+                            <ProtectedRoute permiso="noticias.ver">
+                                {/* 🔥 AHORA SÍ LLAMAMOS A News */}
+                                <News />
+                            </ProtectedRoute>
+                        }
+                    />
+
                     {/* INVENTARIO */}
                     <Route
                         path="/inventario"
@@ -156,7 +171,6 @@ export default function AppRouter() {
                         }
                     />
 
-
                     {/* CITA MEdica */}
                     <Route
                         path="/citas-medicas"
@@ -167,8 +181,7 @@ export default function AppRouter() {
                         }
                     />
 
-
-                    {/* CITA MEdica */}
+                    {/* NOTAS */}
                     <Route
                         path="/notas"
                         element={

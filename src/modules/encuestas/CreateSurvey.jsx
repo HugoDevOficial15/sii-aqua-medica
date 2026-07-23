@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 // Iconos
-import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash } from "react-icons/fa";
+import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar } from "react-icons/fa";
 // Service
 import { createSurvey, getSurveys, updateSurvey } from "../../services/surveyService";
+
+// Resultados/respuestas
+import EncuestaResultados from "./EncuestaResultados";
 
 // Notifcicaciones
 import { notifySuccess, notifyError } from "../../utils/notify";
@@ -47,6 +50,8 @@ export default function CreateSurvey() {
     const [currentId, setCurrentId] = useState(null);
 
     const [currentStep, setCurrentStep] = useState(1);
+
+    const [viewingResults, setViewingResults] = useState(null);
 
 
     const {
@@ -261,11 +266,20 @@ export default function CreateSurvey() {
         return <Loader text="Caragando encuestas..." />
     }
 
+    if (viewingResults) {
+        return (
+            <EncuestaResultados
+                survey={viewingResults}
+                onBack={() => setViewingResults(null)}
+            />
+        );
+    }
+
     return (
 
 
 
-        <div className="page-transition">
+        <div id="encuestas-fix" className="page-transition">
 
             {/* Header */}
             <div className="d-flex justify-content-between mb-4">
@@ -354,6 +368,14 @@ export default function CreateSurvey() {
                                             >
                                                 <FaEdit className="me-1" />
                                                 Editar
+                                            </button>
+
+                                            <button
+                                                className="btn btn-sm btn-outline-dark me-2"
+                                                onClick={() => setViewingResults(survey)}
+                                            >
+                                                <FaChartBar className="me-1" />
+                                                Ver respuestas
                                             </button>
 
                                             {/* ancla */}

@@ -160,3 +160,103 @@ img {
     1px solid rgba(37, 99, 235, 0.08);
 }
 
+/* ==========================================================================
+   🛠️ CORRECCIÓN DE CONTRASTE: TEXTOS EN FONDOS BLANCOS (LOGIN, FORMS, CARDS)
+   ========================================================================== */
+
+/* 1. Forzar texto oscuro y legible en TODOS los campos de texto.
+      Escapado a modo claro (":not([data-theme=dark])"): en modo oscuro
+      ya existe un estilo propio para inputs (fondo oscuro/texto claro,
+      ver operator-theme.css) y este !important lo anulaba por completo
+      en toda la app, dejándolos siempre claros aunque el tema fuera oscuro. */
+html:not([data-theme="dark"]) input,
+html:not([data-theme="dark"]) textarea,
+html:not([data-theme="dark"]) select {
+  color: #0f172a !important; /* Azul medianoche / Casi negro */
+  background-color: #ffffff !important;
+}
+
+/* 2. Arreglar los Placeholders (Ej. "Ingresa tu usuario") para que no se pierdan */
+html:not([data-theme="dark"]) input::placeholder,
+html:not([data-theme="dark"]) textarea::placeholder {
+  color: #94a3b8 !important; /* Gris neutro */
+  opacity: 1 !important;
+}
+
+/* 3. Etiquetas de los formularios (Labels) */
+html:not([data-theme="dark"]) label {
+  color: #334155 !important; /* Gris oscuro elegante */
+  font-weight: 500 !important;
+}
+
+/* 4. Textos dentro de la vista de Login */
+/* Escapado a ".login-panel" (el panel del formulario) en vez de
+   ".login-page" (que envuelve TAMBIÉN el panel de la foto de la derecha):
+   ".login-page p"/".login-page span" son selectores descendientes, así
+   que alcanzaban el título/subtítulo de ".login-company-info" sobre la
+   foto -ya blancos a propósito en login-premium.css- y los forzaban a
+   este mismo azul oscuro, volviéndolos casi ilegibles sobre la imagen. */
+.login,
+.login-panel,
+.login-container {
+  color: #1e293b !important;
+}
+
+.login h1, .login h2, .login h3, .login p, .login span,
+.login-panel h1, .login-panel p, .login-panel span {
+  color: #1e293b !important;
+}
+
+/* 5. Textos dentro de las Tarjetas Blancas (Historial, Encuestas, etc.) */
+/* Aplica a los contenedores principales de fondo blanco. Escapado a modo
+   claro: en modo oscuro estas tarjetas ya cambian de fondo (oscuro) vía
+   ".layout .card" en operator-theme.css, y este !important forzaba el
+   mismo texto oscuro fijo sobre ese fondo oscuro (texto invisible). */
+html:not([data-theme="dark"]) .card,
+html:not([data-theme="dark"]) .form-container,
+html:not([data-theme="dark"]) .create-card,
+html:not([data-theme="dark"]) .evidence-section {
+  color: #1e293b !important;
+}
+
+html:not([data-theme="dark"]) .card h1, html:not([data-theme="dark"]) .card h2,
+html:not([data-theme="dark"]) .card h3, html:not([data-theme="dark"]) .card h4,
+html:not([data-theme="dark"]) .card p, html:not([data-theme="dark"]) .card span,
+html:not([data-theme="dark"]) .card small,
+html:not([data-theme="dark"]) .create-card h1, html:not([data-theme="dark"]) .create-card p,
+html:not([data-theme="dark"]) .create-card span,
+html:not([data-theme="dark"]) .history-card p, html:not([data-theme="dark"]) .history-card span,
+html:not([data-theme="dark"]) .history-card small {
+  color: #334155 !important;
+}
+
+/* Excepción: Si tienes algún botón azul oscuro con texto, asegúrate de que siga siendo blanco */
+button.btn-primario,
+button[type="submit"],
+.premium-submit-btn {
+  color: #ffffff !important; 
+}
+
+/* ==========================================================================
+   FIX: FORZAR TEXTO OSCURO EN FORMULARIO DE ENCUESTAS (BYPASS MODO OSCURO)
+   ========================================================================== */
+#encuestas-fix input,
+#encuestas-fix textarea,
+#encuestas-fix select {
+    color: #1e293b !important;
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important; /* Mantiene el borde visible */
+}
+
+/* Para que los textos de "dd/mm/aaaa" o "Tema 1" también se vean bien */
+#encuestas-fix input::placeholder,
+#encuestas-fix textarea::placeholder {
+    color: #64748b !important;
+}
+
+/* Protegemos las etiquetas principales (Título, Descripción, etc.) por si acaso */
+#encuestas-fix label,
+#encuestas-fix h6,
+#encuestas-fix .form-label {
+    color: #334155 !important;
+}

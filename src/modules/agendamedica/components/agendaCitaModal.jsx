@@ -102,7 +102,7 @@ export default function AgendaMedicaModal({ onClose, onSuccess }) {
                         {dias.map(d => (
                             <div key={d.id} style={{ marginTop: "10px" }}>
 
-                                <strong>{d.label}</strong>
+                                <strong style={styles.dayLabel}>{d.label}</strong>
 
                                 {(form.horarios[d.id] || []).map((r, i) => (
                                     <div key={i} style={{ display: "flex", gap: "5px" }}>
@@ -133,7 +133,7 @@ export default function AgendaMedicaModal({ onClose, onSuccess }) {
                             onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                         />
 
-                        <label>Bloquear días</label>
+                        <label style={styles.fieldLabel}>Bloquear días</label>
 
                         <input
                             type="date"
@@ -206,9 +206,26 @@ const styles = {
         display: "flex",
         justifyContent: "space-between"
     },
+    title: { margin: 0, color: "#0f172a", fontSize: "1.1rem", fontWeight: 700 },
+    closeButton: {
+        border: "none",
+        background: "transparent",
+        color: "#64748b",
+        fontSize: "1.4rem",
+        lineHeight: 1,
+        cursor: "pointer"
+    },
     body: { padding: "15px" },
     form: { display: "flex", flexDirection: "column", gap: "10px" },
-    input: { padding: "8px", borderRadius: "8px", border: "1px solid #ccc" },
+    input: {
+        padding: "8px",
+        borderRadius: "8px",
+        border: "1px solid #ccc",
+        color: "#0f172a",
+        background: "#ffffff"
+    },
+    dayLabel: { color: "#0f172a" },
+    fieldLabel: { color: "#334155", fontWeight: 500 },
     footer: { marginTop: "10px", textAlign: "right" },
     saveButton: {
         background: "#2563eb",

@@ -5,6 +5,7 @@ import {
 
 export default function OperatorHeader({
     onMenu,
+    onNotifications,
     notificationCount = 0
 }) {
     return (
@@ -29,7 +30,9 @@ export default function OperatorHeader({
                 </div>
 
                 <button
+                    type="button"
                     className="header-icon-btn notification-btn"
+                    onClick={onNotifications}
                 >
                     <FiBell />
 
