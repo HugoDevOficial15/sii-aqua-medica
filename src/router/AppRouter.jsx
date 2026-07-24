@@ -50,13 +50,12 @@ export default function AppRouter() {
                         </ProtectedRoute>
                     }
                 >
-<Routes>
-   {/* ... otras rutas que ya tienes ... */}
-   
-   {/* 🔥 NUEVA RUTA PARA CITAS (Vista Usuario) */}
-   <Route path="/citas-medicas" element={<AgendarCitaUsuario />} />
-   
-</Routes>
+                    {/* 🔥 NUEVA RUTA PARA CITAS (Vista Usuario) */}
+                    <Route
+                        path="/agendar-cita"
+                        element={<OperadorCitasMedicas />}
+                    />
+
                     {/* DASH */}
                     <Route
                         path="/dashboard"

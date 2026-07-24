@@ -59,7 +59,7 @@ export default function OperatorDrawer({
 
         {
             id: "medical-appointments",
-            href: "/citas-medicas",
+            href: "/agendar-cita",
             icon: <FiActivity />,
             label: "Citas Médicas"
         },

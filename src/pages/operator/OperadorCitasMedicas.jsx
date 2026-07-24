@@ -1,165 +1,231 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+// 👇 AQUI PON TU RUTA EXACTA DE FIREBASE
+import { db } from "../../config/firebase"; 
 
 export default function OperadorCitasMedicas() {
-  const [vista, setVista] = useState("lista");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [procesando, setProcesando] = useState(false);
   
-  // Estados para el formulario del usuario
+  // Datos de la base de datos
+  const [agendaActiva, setAgendaActiva] = useState(null);
+  const [citasOcupadas, setCitasOcupadas] = useState([]);
+  const [horariosDisponibles, setHorariosDisponibles] = useState([]);
+
+  // Selecciones del usuario
   const [fechaElegida, setFechaElegida] = useState("");
   const [horaElegida, setHoraElegida] = useState("");
 
-  // Datos simulados (Estos vendrán de tu colección 'agendas_medicas' en Firebase)
-  const agendaActiva = {
-    id: "QB5EXh0XZbbeUHrbhLgi",
-    nombre: "Citas médicas 2026",
-    fechaInicio: "2026-04-01",
-    fechaFin: "2026-04-30",
-    duracionMin: 20,
-    // Horarios simulados para el ejemplo visual
-    horariosDisponibles: ["09:00", "09:20", "09:40", "10:00", "10:20"] 
+  // 1. CARGAR LA AGENDA ACTIVA AL INICIAR
+  useEffect(() => {
+    const fetchAgenda = async () => {
+      try {
+        // Buscamos la agenda que esté activa
+        const q = query(collection(db, "agendas_medicas"), where("estado", "==", "activa"));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          // Tomamos la primera agenda activa que encuentre
+          const docAgenda = querySnapshot.docs[0];
+          setAgendaActiva({ id: docAgenda.id, ...docAgenda.data() });
+        }
+      } catch (error) {
+        console.error("Error al cargar la agenda:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAgenda();
+  }, []);
+
+  // 2. FUNCIÓN PARA GENERAR LOS BLOQUES DE TIEMPO (EJ: cada 10 min)
+  const generarBloquesTiempo = (horaInicio, horaFin, duracion) => {
+    let slots = [];
+    let horaActual = new Date(`2000-01-01T${horaInicio}:00`);
+    let horaFinal = new Date(`2000-01-01T${horaFin}:00`);
+
+    while (horaActual < horaFinal) {
+      let hh = horaActual.getHours().toString().padStart(2, '0');
+      let mm = horaActual.getMinutes().toString().padStart(2, '0');
+      slots.push(`${hh}:${mm}`);
+      horaActual.setMinutes(horaActual.getMinutes() + duracion);
+    }
+    return slots;
   };
 
-  const handleAgendar = async (e) => {
-    e.preventDefault();
-    if (!fechaElegida || !horaElegida) {
-      alert("Por favor selecciona una fecha y una hora.");
+  // 3. CUANDO EL USUARIO SELECCIONA UNA FECHA
+  const handleFechaChange = async (e) => {
+    const fecha = e.target.value;
+    setFechaElegida(fecha);
+    setHoraElegida(""); // Reiniciamos la hora si cambia de día
+    setHorariosDisponibles([]);
+
+    if (!fecha || !agendaActiva) return;
+
+    // A) Validar si el día está en "diasBloqueados"
+    if (agendaActiva.diasBloqueados && agendaActiva.diasBloqueados.includes(fecha)) {
+      alert("Este día no está disponible o está bloqueado por el administrador.");
+      setFechaElegida("");
       return;
     }
 
-    setLoading(true);
-    try {
-      // Simulación de envío a Firebase (Colección citas_programadas)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log("Cita guardada en BD:", {
-        agendaId: agendaActiva.id,
-        fechaSeleccionada: fechaElegida,
-        horaSeleccionada: horaElegida,
-        estado: "pendiente"
-      });
-      
-      alert("¡Cita agendada con éxito! El administrador ha sido notificado.");
-      setVista("lista");
+    // B) Obtener el día de la semana (1 = Lunes, 2 = Martes... 0 = Domingo)
+    // Ajustamos porque getDay() da 0 para Domingo
+    const dateObj = new Date(fecha + "T00:00:00"); 
+    let diaSemana = dateObj.getDay(); 
+    if (diaSemana === 0) diaSemana = 7; // Si usas 7 para domingo en tu DB
+
+    // C) Extraer los horarios configurados para este día específico
+    const horarioDia = agendaActiva.horarios ? agendaActiva.horarios[diaSemana] : null;
+
+    if (!horarioDia || horarioDia.length === 0) {
+      alert("No hay servicio médico configurado para este día de la semana.");
       setFechaElegida("");
-      setHoraElegida("");
+      return;
+    }
+
+    // D) Generar todos los bloques posibles
+    let bloquesDelDia = [];
+    horarioDia.forEach(rango => {
+      const bloques = generarBloquesTiempo(rango.inicio, rango.fin, agendaActiva.duracionMin);
+      bloquesDelDia = [...bloquesDelDia, ...bloques];
+    });
+
+    // E) Consultar Firebase para ver qué horas YA ESTÁN OCUPADAS en esa fecha
+    try {
+      const qCitas = query(
+        collection(db, "citas_medicas"), 
+        where("fecha", "==", fecha)
+      );
+      const citasSnapshot = await getDocs(qCitas);
+      const horasOcupadas = citasSnapshot.docs.map(doc => doc.data().hora);
+      
+      setCitasOcupadas(horasOcupadas);
+      setHorariosDisponibles(bloquesDelDia);
     } catch (error) {
-      alert("Error al agendar la cita.");
-    } finally {
-      setLoading(false);
+      console.error("Error al verificar disponibilidad:", error);
     }
   };
 
+  // 4. GUARDAR LA CITA EN FIREBASE
+  const handleAgendar = async (e) => {
+    e.preventDefault();
+    if (!fechaElegida || !horaElegida) return;
+
+    setProcesando(true);
+    try {
+      // Guardamos en la colección que lee el Admin
+      await addDoc(collection(db, "citas_medicas"), {
+        agendaId: agendaActiva.id,
+        fecha: fechaElegida,
+        hora: horaElegida,
+        // 👇 AQUÍ REEMPLAZA CON EL NOMBRE O ID DE TU USUARIO LOGUEADO DESDE TU CONTEXTO
+        usuario: "Hugo Armando (Operador)", 
+        estado: "pendiente",
+        createdAt: serverTimestamp()
+      });
+      
+      alert("¡Cita agendada con éxito!");
+      // Limpiamos el formulario
+      setFechaElegida("");
+      setHoraElegida("");
+      setHorariosDisponibles([]);
+    } catch (error) {
+      console.error("Error al guardar cita:", error);
+      alert("Hubo un error al agendar la cita.");
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-5 text-center text-light">Cargando disponibilidad...</div>;
+  }
+
   return (
-    <div className="container-fluid p-4">
+    <div className="container-fluid p-4 text-light">
       <div className="mb-4">
         <h2 className="fw-bold mb-1">Servicio Médico</h2>
-        <p className="text-muted">Agenda tu consulta de manera rápida y sencilla.</p>
+        <p className="text-secondary">Agenda tu consulta de manera rápida y sencilla.</p>
       </div>
 
-      {/* VISTA 1: TARJETAS DE AGENDAS DISPONIBLES */}
-      {vista === "lista" && (
-        <div className="row">
-          <div className="col-12 col-md-6 col-lg-4">
-            <div className="card shadow-sm border-0 h-100" style={{ borderRadius: '16px' }}>
-              <div className="card-body p-4 d-flex flex-column">
-                <div className="d-flex justify-content-between align-items-start mb-3">
-                  <div 
-                    className="d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" 
-                    style={{ width: '50px', height: '50px', borderRadius: '12px' }}
-                  >
-                    <i className="bi bi-heart-pulse fs-4"></i>
-                  </div>
-                  <span className="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
-                    Disponible
-                  </span>
-                </div>
-                
-                <h5 className="fw-bold">{agendaActiva.nombre}</h5>
-                <p className="text-muted small mb-4">
-                  Campaña vigente del {agendaActiva.fechaInicio} al {agendaActiva.fechaFin}. 
-                  Duración aproximada: {agendaActiva.duracionMin} min.
-                </p>
-
-                <button 
-                  className="btn btn-primary w-100 mt-auto fw-medium"
-                  style={{ borderRadius: '10px' }}
-                  onClick={() => setVista("agendar")}
-                >
-                  Agendar mi cita
-                </button>
-              </div>
+      <div className="card border-0" style={{ backgroundColor: '#1e293b', borderRadius: '16px', maxWidth: '600px' }}>
+        <div className="card-body p-4">
+          
+          {!agendaActiva ? (
+            <div className="alert alert-warning">
+              Actualmente no hay ninguna campaña de citas médicas activa.
             </div>
-          </div>
-        </div>
-      )}
+          ) : (
+            <>
+              <h4 className="fw-bold mb-4 text-white">Selecciona tu horario</h4>
 
-      {/* VISTA 2: FORMULARIO DE SELECCIÓN */}
-      {vista === "agendar" && (
-        <div className="card shadow-sm border-0" style={{ borderRadius: '16px', maxWidth: '600px' }}>
-          <div className="card-body p-4">
-            
-            <button 
-              className="btn btn-link text-decoration-none p-0 mb-4 text-muted" 
-              onClick={() => setVista("lista")}
-            >
-              <i className="bi bi-arrow-left me-2"></i> Volver
-            </button>
-
-            <h4 className="fw-bold mb-4">Selecciona tu horario</h4>
-
-            <form onSubmit={handleAgendar}>
-              
-              {/* SELECCIÓN DE FECHA */}
-              <div className="mb-4">
-                <label className="form-label fw-medium">1. Elige el día</label>
-                <input 
-                  type="date" 
-                  className="form-control form-control-lg" 
-                  min={agendaActiva.fechaInicio}
-                  max={agendaActiva.fechaFin}
-                  value={fechaElegida}
-                  onChange={(e) => setFechaElegida(e.target.value)}
-                  required
-                />
-                <small className="text-muted mt-1 d-block">
-                  Solo puedes seleccionar fechas dentro del rango de la campaña.
-                </small>
-              </div>
-
-              {/* SELECCIÓN DE HORA (Aparece solo si ya eligió fecha) */}
-              {fechaElegida && (
-                <div className="mb-4 fade-in">
-                  <label className="form-label fw-medium">2. Horarios disponibles para este día</label>
-                  <div className="d-flex flex-wrap gap-2">
-                    {agendaActiva.horariosDisponibles.map((hora) => (
-                      <button
-                        key={hora}
-                        type="button"
-                        className={`btn ${horaElegida === hora ? 'btn-primary' : 'btn-outline-secondary'}`}
-                        style={{ borderRadius: '8px', minWidth: '80px' }}
-                        onClick={() => setHoraElegida(hora)}
-                      >
-                        {hora}
-                      </button>
-                    ))}
-                  </div>
+              <form onSubmit={handleAgendar}>
+                
+                {/* 1. SELECCIÓN DE FECHA */}
+                <div className="mb-4">
+                  <label className="form-label fw-medium text-light">1. Elige el día</label>
+                  <input 
+                    type="date" 
+                    className="form-control form-control-lg bg-dark text-light border-secondary" 
+                    min={agendaActiva.fechaInicio}
+                    max={agendaActiva.fechaFin}
+                    value={fechaElegida}
+                    onChange={handleFechaChange}
+                    required
+                  />
+                  <small className="text-secondary mt-1 d-block">
+                    Solo puedes seleccionar fechas dentro del rango ({agendaActiva.fechaInicio} a {agendaActiva.fechaFin}).
+                  </small>
                 </div>
-              )}
 
-              {/* BOTÓN DE CONFIRMACIÓN */}
-              <button 
-                type="submit" 
-                className="btn btn-success w-100 btn-lg fw-bold mt-3"
-                style={{ borderRadius: '10px' }}
-                disabled={!fechaElegida || !horaElegida || loading}
-              >
-                {loading ? "Confirmando cita..." : "Confirmar Cita"}
-              </button>
+                {/* 2. SELECCIÓN DE HORA (Aparece solo si la fecha es válida) */}
+                {fechaElegida && horariosDisponibles.length > 0 && (
+                  <div className="mb-4 fade-in">
+                    <label className="form-label fw-medium text-light">2. Horarios disponibles</label>
+                    <div className="d-flex flex-wrap gap-2">
+                      {horariosDisponibles.map((hora) => {
+                        // Verificamos si alguien más ya tomó esta hora
+                        const ocupada = citasOcupadas.includes(hora);
+                        
+                        return (
+                          <button
+                            key={hora}
+                            type="button"
+                            disabled={ocupada}
+                            className={`btn ${
+                              horaElegida === hora 
+                                ? 'btn-success' 
+                                : ocupada 
+                                  ? 'btn-outline-danger opacity-50' 
+                                  : 'btn-outline-secondary text-light'
+                            }`}
+                            style={{ borderRadius: '8px', minWidth: '80px' }}
+                            onClick={() => setHoraElegida(hora)}
+                          >
+                            {hora} {ocupada && " (Ocupado)"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-            </form>
-          </div>
+                {/* BOTÓN DE CONFIRMAR */}
+                <button 
+                  type="submit" 
+                  className="btn btn-success w-100 btn-lg fw-bold mt-3"
+                  style={{ borderRadius: '10px' }}
+                  disabled={!fechaElegida || !horaElegida || procesando}
+                >
+                  {procesando ? "Procesando..." : "Confirmar Cita"}
+                </button>
+
+              </form>
+            </>
+          )}
         </div>
-      )}
-
+      </div>
     </div>
   );
 }
