@@ -6,10 +6,9 @@ import AppOperator from "../pages/operator/AppOperator";
 import ChangePassword from "../modules/auth/ChangePassword";
 import CreateSurvey from "../modules/encuestas/CreateSurvey";
 import InventarioPage from "../modules/inventarios/InventarioPage";
-
-// 🔥 IMPORTACIÓN CORREGIDA: Se importa News por defecto
 import News from "../pages/admin/News"; 
 
+import OperadorCitasMedicas from '../pages/operator/OperadorCitasMedicas';
 import AgendaPage from "../modules/agenda/AgendaPage";
 import AgendaMesPage from "../modules/agendabymes/AgendaMesPage";
 import AniversariosPage from "../modules/aniversarios/AniversarioPage";
@@ -51,7 +50,13 @@ export default function AppRouter() {
                         </ProtectedRoute>
                     }
                 >
-
+<Routes>
+   {/* ... otras rutas que ya tienes ... */}
+   
+   {/* 🔥 NUEVA RUTA PARA CITAS (Vista Usuario) */}
+   <Route path="/citas-medicas" element={<AgendarCitaUsuario />} />
+   
+</Routes>
                     {/* DASH */}
                     <Route
                         path="/dashboard"

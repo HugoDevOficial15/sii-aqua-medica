@@ -2,6 +2,7 @@ import {
     FiHome,
     FiClipboard,
     FiTrendingUp,
+    FiActivity,
     FiAward,
     FiBookOpen,
     FiUser,
@@ -54,6 +55,13 @@ export default function OperatorDrawer({
             id: "suggestions",
             icon: <FiTrendingUp />,
             label: "Sugerencias"
+        },
+
+        {
+            id: "medical-appointments",
+            href: "/citas-medicas",
+            icon: <FiActivity />,
+            label: "Citas Médicas"
         },
 
         {
@@ -174,35 +182,49 @@ export default function OperatorDrawer({
 
                 <div className="drawer-menu-v2">
 
-                    {items.map((item, index) => (
+                    {items.map((item, index) => {
 
-                        <button
-                            key={index}
-                            className="drawer-item-v2"
-                            onClick={() => {
+                        const content = (
+                            <>
+                                <div className="drawer-item-left">
 
-                                onNavigate(item.id);
+                                    {item.icon}
 
-                                onClose();
+                                    <span>
+                                        {item.label}
+                                    </span>
 
-                            }}
-                        >
+                                </div>
 
-                            <div className="drawer-item-left">
+                                <FiChevronRight />
+                            </>
+                        );
 
-                                {item.icon}
+                        return item.href ? (
+                            <a
+                                key={index}
+                                href={item.href}
+                                className="drawer-item-v2"
+                                onClick={onClose}
+                            >
+                                {content}
+                            </a>
+                        ) : (
+                            <button
+                                key={index}
+                                className="drawer-item-v2"
+                                onClick={() => {
 
-                                <span>
-                                    {item.label}
-                                </span>
+                                    onNavigate(item.id);
 
-                            </div>
+                                    onClose();
 
-                            <FiChevronRight />
-
-                        </button>
-
-                    ))}
+                                }}
+                            >
+                                {content}
+                            </button>
+                        );
+                    })}
 
                 </div>
 

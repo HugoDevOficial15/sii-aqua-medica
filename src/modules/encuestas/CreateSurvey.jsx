@@ -1969,5 +1969,3 @@ export default function CreateSurvey() {
     }
 
 }
-
-
