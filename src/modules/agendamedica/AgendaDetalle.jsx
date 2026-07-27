@@ -49,12 +49,16 @@ export default function AgendaDetalle({ agenda, onBack }) {
         fetchData();
     };
 
-    //  Filtro por fecha
+    // 🛡️ Filtro por fecha con ESCUDO anti-crasheos
     const citasFiltradas = citas
         .filter(c => !fecha || c.fecha === fecha)
         .sort((a, b) => {
-            const [h1, m1] = a.horaInicio.split(":").map(Number);
-            const [h2, m2] = b.horaInicio.split(":").map(Number);
+            // Si la cita no tiene horaInicio, busca 'hora', si tampoco tiene, usa "00:00" para no crashear
+            const horaA = a.horaInicio || a.hora || "00:00";
+            const horaB = b.horaInicio || b.hora || "00:00";
+
+            const [h1, m1] = horaA.split(":").map(Number);
+            const [h2, m2] = horaB.split(":").map(Number);
 
             return h1 !== h2 ? h1 - h2 : m1 - m2;
         });
@@ -114,27 +118,31 @@ export default function AgendaDetalle({ agenda, onBack }) {
                                         <td>{c.fecha}</td>
 
                                         <td>
-                                            <strong>{c.horaInicio}</strong> - {c.horaFin}
+                                            {/* Adaptado para leer 'horaInicio' (viejo) u 'hora' (nuevo) */}
+                                            <strong>{c.horaInicio || c.hora || "-"}</strong> {c.horaFin ? `- ${c.horaFin}` : ""}
                                         </td>
 
-                                        <td>{c.usuarioNombre || "-"}</td>
+                                        {/* Adaptado para leer 'usuarioNombre' (viejo) o 'usuario' (nuevo) */}
+                                        <td>{c.usuarioNombre || c.usuario || c.nombre || "-"}</td>
 
                                         <td>
-                                            {c.estado === "libre" && (
-                                                <span className="badge-warning">Libre</span>
+                                            {/* Ajustamos para minúsculas y mayúsculas por si acaso */}
+                                            {(c.estado?.toLowerCase() === "libre" || c.estado?.toLowerCase() === "pendiente") && (
+                                                <span className="badge-warning">Pendiente / Libre</span>
                                             )}
 
-                                            {c.estado === "reservado" && (
+                                            {c.estado?.toLowerCase() === "reservado" && (
                                                 <span className="badge-primary">Reservado</span>
                                             )}
 
-                                            {c.estado === "atendido" && (
+                                            {c.estado?.toLowerCase() === "atendido" && (
                                                 <span className="badge-success">Atendido</span>
                                             )}
                                         </td>
 
                                         <td>
-                                            {c.estado === "reservado" && (
+                                            {/* Se muestran las acciones si está reservado o pendiente */}
+                                            {(c.estado?.toLowerCase() === "reservado" || c.estado?.toLowerCase() === "pendiente") && (
                                                 <>
                                                     <button
                                                         className="btn btn-sm btn-outline-success me-2 custom-btn"
@@ -158,19 +166,14 @@ export default function AgendaDetalle({ agenda, onBack }) {
                             ) : (
                                 <tr>
                                     <td colSpan="5">
-
                                         <div className="text-center p-4">
-
                                             <p className="text-muted mb-2">
                                                 No hay citas para este día
                                             </p>
-
                                             <small className="text-muted">
                                                 Selecciona otra fecha para ver disponibilidad
                                             </small>
-
                                         </div>
-
                                     </td>
                                 </tr>
                             )}
@@ -183,8 +186,8 @@ export default function AgendaDetalle({ agenda, onBack }) {
 
             </div>
 
-            {/* 🎨 ESTILOS PRO */}
-            <style jsx>{`
+            {/* 🎨 ESTILOS PRO (Con la corrección de JSX) */}
+            <style jsx="true">{`
 
             .custom-users-header input {
                 border-radius: 10px;

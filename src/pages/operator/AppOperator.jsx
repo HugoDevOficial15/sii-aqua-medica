@@ -23,14 +23,14 @@ import OperatorNewsDetail from "./OperatorNewsDetail";
 
 import OperatorSurveyDetail from "./OperatorSurveyDetail";
 
-import OperatorSurveyResult
-    from "./OperatorSurveyResult";
+import OperatorSurveyResult from "./OperatorSurveyResult";
 
 import OperatorPreferences from "./OperatorPreferences";
 import OperatorSupport from "./OperatorSupport";
 import OperatorReportProblem from "./OperatorReportProblem";
 import OperatorLegal from "./OperatorLegal";
 import OperatorAbout from "./OperatorAbout";
+import OperadorCitasMedicas from "./OperadorCitasMedicas";
 
 import { useOperatorSurveys } from "../../hooks/hooksOperator/useOperatorSurveys";
 
@@ -60,7 +60,7 @@ export default function AppOperator() {
 
     const renderScreen = () => {
 
-        // console.log("renderScreen", screen);
+         console.log("renderScreen", screen);
 
         switch (screen) {
 
@@ -148,6 +148,12 @@ export default function AppOperator() {
                     />
                 );
 
+            case "citas-medicas":
+                return (
+                    <OperadorCitasMedicas
+                        onBack={() => setScreen("home")}
+                    />
+                );
 
             case "suggestion-create":
                 return (

@@ -1,242 +1,312 @@
-import { useEffect, useState } from "react";
-import { FaPlus, FaEye } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { db } from "../../config/firebase";
+import { FiEye, FiEdit2, FiTrash2, FiArrowLeft, FiSave, FiPlus } from "react-icons/fi";
+import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
 
-import Loader from "../../components/Loader";
-import { notifyError } from "../../utils/notify";
-
-import { getAgendasMedicas } from "../../services/agendaMedicaService";
-
-import AgendaMedicaModal from "./components/agendaCitaModal";
 import AgendaDetalle from "./AgendaDetalle";
-
-import { toggleAgendaEstado } from "../../services/agendaMedicaService";
-import { notifySuccess } from "../../utils/notify";
+import AgendaForm from "./AgendaForm";
 
 export default function AgendaMedicaPage() {
-
     const [agendas, setAgendas] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    
+    // Control de vistas interno ('lista', 'detalle', 'editar', 'crear')
+    const [vista, setVista] = useState("lista");
+    const [agendaSeleccionada, setAgendaSeleccionada] = useState(null);
 
-    const [showModal, setShowModal] = useState(false);
-    const [agendaSelected, setAgendaSelected] = useState(null);
+    // Estado para el formulario de edición
+    const [formEdicion, setFormEdicion] = useState({
+        nombre: "",
+        fechaInicio: "",
+        fechaFin: "",
+        duracionMin: 30
+    });
 
-
-
-    const handleToggle = async (agenda) => {
-        await toggleAgendaEstado(agenda.id, agenda.estado);
-        notifySuccess("Estado actualizado");
-        fetchData();
-    };
-
-    const fetchData = async () => {
+    const cargarAgendas = async () => {
         setLoading(true);
         try {
-            const data = await getAgendasMedicas();
-            setAgendas(data);
-        } catch {
-            notifyError("Error al cargar agendas");
+            const querySnapshot = await getDocs(collection(db, "agendas_medicas"));
+            const lista = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setAgendas(lista);
+        } catch (error) {
+            console.error("Error al cargar agendas:", error);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
+        cargarAgendas();
     }, []);
 
-    if (loading) return <Loader text="Cargando agendas..." />;
+    // 🗑️ ELIMINAR AGENDA Y SUS NOTIFICACIONES EN CADENA
+    const handleEliminar = async (id, nombre) => {
+        if (window.confirm(`¿Estás seguro de eliminar la campaña "${nombre}"?`)) {
+            try {
+                // 1. Borramos la agenda de su colección
+                await deleteDoc(doc(db, "agendas_medicas", id));
 
+                // 2. Buscamos todas las notificaciones que se llamen igual (NomAgenda)
+                const qNotif = query(collection(db, "notificaciones"), where("NomAgenda", "==", nombre));
+                const snapshotNotif = await getDocs(qNotif);
+                
+                // 3. Las borramos una por una (por si el admin le dio varias veces a guardar por error)
+                const deletePromises = snapshotNotif.docs.map(docNotif => 
+                    deleteDoc(doc(db, "notificaciones", docNotif.id))
+                );
+                await Promise.all(deletePromises);
 
+                alert("Agenda y notificaciones eliminadas del sistema.");
+                cargarAgendas(); // Recargar tabla
+            } catch (error) {
+                console.error("Error al eliminar:", error);
+                alert("Hubo un error al eliminar.");
+            }
+        }
+    };
 
-    // 👉 DETALLE
-    if (agendaSelected) {
+    // 🔄 CAMBIAR ESTATUS (Activa / Inactiva)
+    const handleCambiarEstatus = async (id, estatusActual) => {
+        try {
+            const nuevoEstatus = estatusActual === "activa" ? "inactiva" : "activa";
+            await updateDoc(doc(db, "agendas_medicas", id), {
+                estado: nuevoEstatus
+            });
+            cargarAgendas();
+        } catch (error) {
+            console.error("Error al cambiar estatus:", error);
+        }
+    };
+
+    // ✏️ GUARDAR EDICIÓN
+    const handleGuardarEdicion = async (e) => {
+        e.preventDefault();
+        try {
+            await updateDoc(doc(db, "agendas_medicas", agendaSeleccionada.id), {
+                nombre: formEdicion.nombre,
+                fechaInicio: formEdicion.fechaInicio,
+                fechaFin: formEdicion.fechaFin,
+                duracionMin: Number(formEdicion.duracionMin)
+            });
+            alert("¡Agenda actualizada con éxito!");
+            setVista("lista");
+            cargarAgendas();
+        } catch (error) {
+            console.error("Error al actualizar:", error);
+            alert("Hubo un error al guardar los cambios.");
+        }
+    };
+
+    if (loading) return <div className="p-4 text-white text-center">Cargando agendas médicas...</div>;
+
+    // VISTA: DETALLE DE LA AGENDA
+    if (vista === "detalle") {
         return (
-            <AgendaDetalle
-                agenda={agendaSelected}
-                onBack={() => setAgendaSelected(null)}
+            <AgendaDetalle 
+                agenda={agendaSeleccionada} 
+                onBack={() => setVista("lista")} 
             />
         );
     }
 
+    // VISTA: CREAR NUEVA AGENDA
+    if (vista === "crear") {
+        return (
+            <div className="container-fluid p-4 text-light" style={{ maxWidth: '800px' }}>
+                <button 
+                    className="btn btn-link text-secondary p-0 mb-4 d-flex align-items-center gap-2 text-decoration-none"
+                    onClick={() => {
+                        setVista("lista");
+                        cargarAgendas();
+                    }}
+                >
+                    <FiArrowLeft /> Volver a la lista
+                </button>
+                
+                {/* 👇 AGREGAMOS LA FUNCIÓN ONSAVED AQUÍ 👇 */}
+                <AgendaForm onSaved={() => {
+                    setVista("lista");
+                    cargarAgendas();
+                }} />
+
+            </div>
+        );
+    }
+
+    // VISTA: EDITAR AGENDA
+    if (vista === "editar") {
+        return (
+            <div className="container-fluid p-4 text-light" style={{ maxWidth: '600px' }}>
+                <button 
+                    className="btn btn-link text-secondary p-0 mb-4 d-flex align-items-center gap-2 text-decoration-none"
+                    onClick={() => setVista("lista")}
+                >
+                    <FiArrowLeft /> Volver a la lista
+                </button>
+
+                <div className="card border-0 p-4 shadow-sm" style={{ backgroundColor: '#1e293b', borderRadius: '16px' }}>
+                    <h4 className="fw-bold mb-4 text-white">Editar Campaña Médica</h4>
+                    
+                    <form onSubmit={handleGuardarEdicion}>
+                        <div className="mb-3">
+                            <label className="form-label text-secondary">Nombre de la agenda</label>
+                            <input 
+                                type="text"
+                                className="form-control bg-dark text-light border-secondary"
+                                value={formEdicion.nombre}
+                                onChange={(e) => setFormEdicion({ ...formEdicion, nombre: e.target.value })}
+                                required
+                            />
+                        </div>
+
+                        <div className="row mb-3">
+                            <div className="col">
+                                <label className="form-label text-secondary">Fecha inicio</label>
+                                <input 
+                                    type="date"
+                                    className="form-control bg-dark text-light border-secondary"
+                                    value={formEdicion.fechaInicio}
+                                    onChange={(e) => setFormEdicion({ ...formEdicion, fechaInicio: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="col">
+                                <label className="form-label text-secondary">Fecha fin</label>
+                                <input 
+                                    type="date"
+                                    className="form-control bg-dark text-light border-secondary"
+                                    value={formEdicion.fechaFin}
+                                    onChange={(e) => setFormEdicion({ ...formEdicion, fechaFin: e.target.value })}
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="form-label text-secondary">Duración por cita (min)</label>
+                            <input 
+                                type="number"
+                                className="form-control bg-dark text-light border-secondary"
+                                value={formEdicion.duracionMin}
+                                onChange={(e) => setFormEdicion({ ...formEdicion, duracionMin: e.target.value })}
+                                required
+                            />
+                        </div>
+
+                        <button type="submit" className="btn btn-success w-100 btn-lg fw-bold d-flex align-items-center justify-content-center gap-2">
+                            <FiSave /> Guardar Cambios
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    // VISTA 1: TABLA PRINCIPAL (Lista + Botón Nuevo)
     return (
-        <div className="page-transition">
-
-            {/* HEADER */}
-            <div className="d-flex justify-content-between mb-4 custom-users-header">
-
-                <div className="page mb-3">
-                    <h6 >
-                        <strong>Servicio Médico</strong>
-                    </h6>
-
-                    <span className="badge-title">
-                        AQUA Médica
-                    </span>
-                </div>
-
-
-                <div className="d-flex gap-3">
-                    <button
-                        className="btn btn-sm btn-primary"
-                        onClick={() => setShowModal(true)}
-                    >
-                        <FaPlus className="me-2" />
-                        Nueva Agenda
-                    </button>
-
-                </div>
-
+        <div className="container-fluid p-4 text-light">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2 className="fw-bold mb-0">Servicio Médico - Administrador</h2>
+                
+                {/* ➕ BOTÓN PARA CREAR NUEVA AGENDA */}
+                <button 
+                    className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm"
+                    style={{ borderRadius: '10px' }}
+                    onClick={() => setVista("crear")}
+                >
+                    <FiPlus size={18} /> Nueva Agenda
+                </button>
             </div>
 
-            {/* TABLE */}
-            <div className="card custom-users-card">
-
-                <div className="card-body table-responsive-container">
-
-                    <table className="table">
-
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Rango</th>
-                                <th>Duración</th>
-                                <th>Estatus</th>
-                                <th>Cambiar</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {agendas.map(a => (
-                                <tr key={a.id}>
-                                    <td>{a.nombre}</td>
-                                    <td>{a.fechaInicio} → {a.fechaFin}</td>
-                                    <td>{a.duracionMin} min</td>
-
-                                    <td>
-                                        <span className={a.estado === "activa" ? "badge-success" : "badge-warning"}>
-                                            {a.estado}
-                                        </span>
-                                    </td>
-
-                                    <td>
-                                        <button
-                                            className="btn btn-sm btn-outline-secondary custom-btn"
-                                            onClick={() => handleToggle(a)}
-                                        >
-                                            {a.estado === "activa" ? "Desactivar" : "Activar"}
-                                        </button>
-                                    </td>
-
-                                    <td>
-                                        <button
-                                            className="btn btn-sm btn-outline-primary"
-                                            onClick={() => setAgendaSelected(a)}
-                                        >
-                                            <FaEye className="me-1" />
-                                            Ver
-                                        </button>
-                                    </td>
+            <div className="card border-0 shadow-sm" style={{ backgroundColor: '#1e293b', borderRadius: '12px' }}>
+                <div className="card-body p-0">
+                    <div className="table-responsive">
+                        <table className="table table-borderless table-hover mb-0" style={{ color: '#e2e8f0' }}>
+                            <thead style={{ borderBottom: '1px solid #334155' }}>
+                                <tr>
+                                    <th className="px-4 py-3 text-secondary">Nombre</th>
+                                    <th className="px-4 py-3 text-secondary">Rango</th>
+                                    <th className="px-4 py-3 text-secondary">Duración</th>
+                                    <th className="px-4 py-3 text-secondary">Estatus</th>
+                                    <th className="px-4 py-3 text-secondary">Cambiar</th>
+                                    <th className="px-4 py-3 text-secondary">Acciones</th>
                                 </tr>
-                            ))}
-                        </tbody>
+                            </thead>
+                            <tbody>
+                                {agendas.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="6" className="text-center p-4 text-secondary">No hay agendas registradas.</td>
+                                    </tr>
+                                ) : (
+                                    agendas.map((agenda) => (
+                                        <tr key={agenda.id} style={{ borderBottom: '1px solid #334155' }}>
+                                            <td className="px-4 py-3 align-middle">{agenda.nombre || "Sin nombre"}</td>
+                                            <td className="px-4 py-3 align-middle">{agenda.fechaInicio} → {agenda.fechaFin}</td>
+                                            <td className="px-4 py-3 align-middle">{agenda.duracionMin} min</td>
+                                            <td className="px-4 py-3 align-middle">
+                                                <span className={`badge ${agenda.estado === 'activa' ? 'bg-success' : 'bg-warning text-dark'} px-2 py-1`} style={{ borderRadius: '6px' }}>
+                                                    {agenda.estado || "inactiva"}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 align-middle">
+                                                <button 
+                                                    className="btn btn-sm btn-outline-dark bg-light fw-semibold px-3"
+                                                    style={{ borderRadius: '6px' }}
+                                                    onClick={() => handleCambiarEstatus(agenda.id, agenda.estado)}
+                                                >
+                                                    {agenda.estado === 'activa' ? 'Desactivar' : 'Activar'}
+                                                </button>
+                                            </td>
+                                            <td className="px-4 py-3 align-middle">
+                                                <div className="d-flex gap-2">
+                                                    {/* BOTÓN VER */}
+                                                    <button 
+                                                        className="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                                                        onClick={() => {
+                                                            setAgendaSeleccionada(agenda);
+                                                            setVista("detalle");
+                                                        }}
+                                                    >
+                                                        <FiEye /> Ver
+                                                    </button>
 
-                    </table>
+                                                    {/* BOTÓN EDITAR */}
+                                                    <button 
+                                                        className="btn btn-sm btn-warning d-flex align-items-center gap-1 text-dark"
+                                                        onClick={() => {
+                                                            setAgendaSeleccionada(agenda);
+                                                            setFormEdicion({
+                                                                nombre: agenda.nombre || "",
+                                                                fechaInicio: agenda.fechaInicio || "",
+                                                                fechaFin: agenda.fechaFin || "",
+                                                                duracionMin: agenda.duracionMin || 30
+                                                            });
+                                                            setVista("editar");
+                                                        }}
+                                                    >
+                                                        <FiEdit2 /> Editar
+                                                    </button>
 
+                                                    {/* BOTÓN BORRAR */}
+                                                    <button 
+                                                        className="btn btn-sm btn-danger d-flex align-items-center gap-1"
+                                                        onClick={() => handleEliminar(agenda.id, agenda.nombre)}
+                                                    >
+                                                        <FiTrash2 /> Borrar
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-
-            {/* MODAL */}
-            {showModal && (
-                <AgendaMedicaModal
-                    onClose={() => setShowModal(false)}
-                    onSuccess={fetchData}
-                />
-            )}
-
-
-            <style jsx>{`
-
-/* HEADER */
-.custom-users-header input {
-    border-radius: 10px;
-}
-
-/* CARD */
-.custom-users-card {
-    border-radius: 16px;
-    border: none;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.05);
-}
-
-/* TABLE */
-.custom-table {
-    border-collapse: separate;
-    border-spacing: 0 10px;
-}
-
-.custom-table thead th {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: #6b7280;
-    border: none;
-}
-
-/* ROW */
-.custom-table tbody tr {
-    background: #fff;
-    transition: all 0.2s ease;
-}
-
-.custom-table tbody tr:hover {
-    transform: scale(1.01);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-}
-
-/* CELL */
-.custom-table td {
-    vertical-align: middle;
-    border-top: none;
-    padding: 12px;
-}
-
-/* BADGES */
-.badge-success {
-    background: #dcfce7;
-    color: #15803d;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 0.8rem;
-}
-
-.badge-warning {
-    background: #fef9c3;
-    color: #854d0e;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 0.8rem;
-}
-
-.badge-primary {
-    background: #dbeafe;
-    color: #1d4ed8;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 0.8rem;
-}
-
-/* BUTTONS */
-.custom-btn {
-    border-radius: 8px;
-    transition: all 0.2s ease;
-}
-
-.custom-btn:hover {
-    transform: translateY(-1px);
-}
-
-`}</style>
-
         </div>
     );
 }
