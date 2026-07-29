@@ -7,6 +7,10 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import {
+    notifyError
+} from "../../../utils/notify";
+
+import {
     obtenerMovimientosPorFecha
 } from "../../../services/movimientosService";
 
@@ -24,6 +28,9 @@ export default function RackPdfModal({
     const [loading, setLoading] =
         useState(false);
 
+    const today = new Date().toISOString().split("T")[0];
+
+
     /*
     |--------------------------------------------------------------------------
     | Generar PDF
@@ -33,6 +40,30 @@ export default function RackPdfModal({
     const generarPDF = async () => {
 
         try {
+
+            if (fechaFin < fechaInicio) {
+                notifyError(
+                    "Error",
+                    "La fecha fin no puede ser menor a la fecha inicio"
+                );
+                return;
+            }
+
+            if (!fechaInicio || !fechaFin) {
+                notifyError(
+                    "Error",
+                    "Selecciona fecha inicio y fecha fin"
+                );
+                return;
+            }
+
+            if (fechaInicio > today || fechaFin > today) {
+                notifyError(
+                    "Error",
+                    "Las fechas no pueden ser mayores al día de hoy"
+                );
+                return;
+            }
 
             setLoading(true);
 
@@ -219,6 +250,8 @@ export default function RackPdfModal({
                         <input
                             type="date"
 
+                            max={today}
+
                             value={fechaInicio}
 
                             onChange={(e) =>
@@ -238,6 +271,8 @@ export default function RackPdfModal({
 
                         <input
                             type="date"
+
+                            max={today}
 
                             value={fechaFin}
 
@@ -295,11 +330,12 @@ export default function RackPdfModal({
                     </button>
 
                     <button
+
                         className="pdf-button-primary"
 
                         onClick={generarPDF}
 
-                        disabled={loading}
+                        disabled={loading || !fechaInicio || !fechaFin}
                     >
 
                         {

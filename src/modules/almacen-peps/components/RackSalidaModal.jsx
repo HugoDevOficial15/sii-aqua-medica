@@ -148,6 +148,8 @@ export default function RackSalidaModal({
             p => p.itemId === itemId
         );
 
+
+
     /*
     |--------------------------------------------------------------------------
     | Submit
@@ -159,6 +161,36 @@ export default function RackSalidaModal({
     ) => {
 
         try {
+
+            if (!form.itemId) {
+                notifyError(
+                    "Error",
+                    "Selecciona un producto"
+                );
+                return;
+            }
+
+            const cantidad = Number(form.cantidad);
+
+            if (
+                !form.cantidad ||
+                Number.isNaN(cantidad) ||
+                cantidad <= 0
+            ) {
+                notifyError(
+                    "Error",
+                    "Selecciona una cantidad"
+                );
+                return;
+            }
+
+            if (!producto || cantidad > producto.total) {
+                notifyError(
+                    "Error",
+                    "Stock insuficiente"
+                );
+                return;
+            }
 
             setLoading(true);
 
@@ -177,9 +209,7 @@ export default function RackSalidaModal({
                         form.itemId,
 
                     cantidadSalida:
-                        Number(
-                            form.cantidad
-                        )
+                        cantidad
                 });
 
             /*

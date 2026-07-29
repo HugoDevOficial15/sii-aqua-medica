@@ -14,7 +14,8 @@ import {
 
 import {
     suscribirStockPorRack,
-    trasladarStockPEPS
+    trasladarStockPEPS,
+    obtenerStockPorRack
 } from "../../../services/rackStockService";
 
 import {
@@ -60,6 +61,8 @@ export default function RackTransferModal({
     const [racks, setRacks] =
         useState([]);
 
+    const MAX_LOTES = 10;
+
     const [loading, setLoading] =
         useState(false);
 
@@ -78,15 +81,56 @@ export default function RackTransferModal({
             const racksData =
                 await obtenerRacks();
 
-            setRacks(
+            const racksWithStock = await Promise.all(
+                racksData
+                    .filter(r => r.id !== rack.id)
+                    .map(async (r) => {
+                        const rackStock =
+                            await obtenerStockPorRack(
+                                r.id
+                            );
 
-                racksData.filter(
-
-                    r => r.id !== rack.id
-
-                )
-
+                        return {
+                            ...r,
+                            stock: rackStock
+                        };
+                    })
             );
+
+            const filtered = racksWithStock.filter(r =>
+                (r.stock || []).length < MAX_LOTES &&
+                r.estatus !== "mantenimiento" &&
+                r.estatus !== "baja" &&
+                r.estatus !== "inactivo"
+            );
+
+            const plantaOrder = { I: 1, II: 2, III: 3, IV: 4, V: 5 };
+
+            filtered.sort((a, b) => {
+                const pa = plantaOrder[a.planta] || 99;
+                const pb = plantaOrder[b.planta] || 99;
+
+                if (pa !== pb) return pa - pb;
+
+                const na = String(a.numeroRack || "").toUpperCase();
+                const nb = String(b.numeroRack || "").toUpperCase();
+
+                const da = Number(na);
+                const db = Number(nb);
+
+                const isNaNumber = !Number.isNaN(da) && /^\d+$/.test(na);
+                const isNbNumber = !Number.isNaN(db) && /^\d+$/.test(nb);
+
+                if (isNaNumber && isNbNumber) return da - db;
+
+                // If one is number, put numbers before letters
+                if (isNaNumber && !isNbNumber) return -1;
+                if (!isNaNumber && isNbNumber) return 1;
+
+                return na.localeCompare(nb);
+            });
+
+            setRacks(filtered);
 
         };
 
@@ -189,6 +233,15 @@ export default function RackTransferModal({
 
         try {
 
+            if (!form.itemId) {
+
+                notifyError(
+                    "Error",
+                    "Debe seleccionar un producto"
+                );
+                return; 
+            }
+
             setLoading(true);
 
             const rackDestino =
@@ -197,6 +250,15 @@ export default function RackTransferModal({
                         r.id ===
                         form.rackDestino
                 );
+
+                if (!rackDestino) {
+
+                    notifyError(
+                        "Error",
+                        "Debe seleccionar un rack de destino"
+                    );
+                    return;
+                }
 
             /*
             |--------------------------------------------------------------------------
@@ -221,6 +283,14 @@ export default function RackTransferModal({
 
                     usuario: user
                 });
+
+                if (!form.cantidad) {
+                    notifyError(
+                        "Error",
+                        "Debe ingresar una cantidad"
+                    );
+                    return;
+                }
 
             /*
             |--------------------------------------------------------------------------
@@ -456,6 +526,7 @@ export default function RackTransferModal({
                             {...register(
                                 "rackDestino"
                             )}
+
                         >
 
                             <option value="">

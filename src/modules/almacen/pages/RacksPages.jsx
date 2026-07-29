@@ -1,17 +1,35 @@
 import { useRacks } from "../hooks/useRacks";
 import { actualizarRack } from "../../../services/rackService";
+import { obtenerStockPorRack } from "../../../services/rackStockService";
 import { useState } from "react";
 import RackModal from "../components/RackModal";
 
+import { notifyError } from "../../../utils/notify";
 import { FaPlus, FaEdit, FaTools } from "react-icons/fa";
 
 export default function RacksPages() {
     const { racks, load } = useRacks();
     const [show, setShow] = useState(false);
     const [selected, setSelected] = useState(null);
+    const [filters, setFilters] = useState({
+        search: "",
+        planta: "",
+        estado: ""
+    });
 
     const cambiarEstatus = async (rack, nuevoEstatus) => {
         try {
+            if (nuevoEstatus === "mantenimiento") {
+                const stock = await obtenerStockPorRack(rack.id);
+
+                if ((stock || []).length > 0) {
+                    notifyError(
+                        "Rack no vacío",
+                        "El rack debe estar vacío antes de pasarlo a mantenimiento"
+                    );
+                    return;
+                }
+            }
 
             await actualizarRack(rack.id, {
                 ...rack,
@@ -44,12 +62,55 @@ export default function RacksPages() {
 
                 <button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShow(true)}>
                     <FaPlus />
-                    Nuevo Rack
+                    Nuevo
                 </button>
             </div>
 
             <div className="card shadow-sm">
                 <div className="card-body table-responsive-container">
+                    <div className="rack-search-container mb-3">
+                        <div className="d-flex gap-2 flex-wrap">
+                            <div className="form-group" style={{ minWidth: 400 }}>
+                                <label className="form-label">Buscar número</label>
+                                <input
+                                    className="form-control"
+                                    type="text"
+                                    placeholder="Número de rack..."
+                                    value={filters.search}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                                />
+                            </div>
+                            <div className="form-group" style={{ minWidth: 400 }}>
+                                <label className="form-label">Planta</label>
+                                <select
+                                    className="form-select"
+                                    value={filters.planta}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, planta: e.target.value }))}
+                                >
+                                    <option value="">Todas</option>
+                                    { ["I", "II", "III", "IV", "V"].map(p => (
+                                        <option key={p} value={p}>
+                                            Planta {p}
+                                        </option>
+                                    )) }
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ minWidth: 400 }}>
+                                <label className="form-label">Estado</label>
+                                <select
+                                    className="form-select"
+                                    value={filters.estado}
+                                    onChange={(e) => setFilters(prev => ({ ...prev, estado: e.target.value }))}
+                                >
+                                    <option value="">Todos</option>
+                                    <option value="activo">Activo</option>
+                                    <option value="mantenimiento">Mantenimiento</option>
+                                    <option value="baja">Baja</option>
+                                    <option value="inactivo">Inactivo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <table className="table custom-table">
                         <thead>
                             <tr>
@@ -63,7 +124,15 @@ export default function RacksPages() {
                             </tr>
                         </thead>
                         <tbody>
-                            {racks.map(r => (
+                            {racks
+                                .filter(r => {
+                                    const searchValue = filters.search.trim().toLowerCase();
+                                    const matchSearch = !searchValue || String(r.numeroRack || "").toLowerCase().includes(searchValue);
+                                    const matchPlanta = !filters.planta || r.planta === filters.planta;
+                                    const matchEstado = !filters.estado || r.estatus === filters.estado;
+                                    return matchSearch && matchPlanta && matchEstado;
+                                })
+                                .map(r => (
                                 <tr key={r.id}>
                                     <td># {r.numeroRack}</td>
                                     <td>{r.planta}</td>
@@ -245,6 +314,25 @@ export default function RacksPages() {
                 .table tbody tr:hover {
                     transform: scale(1.01);
                     box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+                }
+
+                .rack-search-container {
+                    padding: 18px;
+                    border-radius: 16px;
+                    background: #f8f9fa;
+                    border: 1px solid #e9ecef;
+                }
+
+                .rack-search-container .form-label {
+                    margin-bottom: 0.5rem;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                }
+
+                .rack-search-container .form-control,
+                .rack-search-container .form-select {
+                    border-radius: 12px;
+                    height: 49px;
                 }
 
                 .table td {

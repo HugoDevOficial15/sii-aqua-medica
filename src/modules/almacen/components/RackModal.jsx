@@ -8,6 +8,7 @@ import { validateRack } from "../../../schemas/rackSchema";
 
 import { db } from "../../../config/firebase";
 import { collection, getDocs } from "firebase/firestore";
+import { obtenerRacks } from "../../../services/rackService";
 
 export default function RackModal({ onClose, onSuccess, data }) {
 
@@ -20,8 +21,26 @@ export default function RackModal({ onClose, onSuccess, data }) {
     const {
         register,
         handleSubmit,
-        setValue
-    } = useForm();
+        setValue,
+        watch
+    } = useForm({
+        defaultValues: {
+            ubicacionTipo: "rack"
+        }
+    });
+
+    const ubicacionTipo = watch("ubicacionTipo");
+    const numeroRackValue = watch("numeroRack") || "";
+
+    const numeroLabel =
+        ubicacionTipo === "zona"
+            ? "Zona"
+            : "Número";
+
+    const numeroPlaceholder =
+        ubicacionTipo === "zona"
+            ? "A - Z"
+            : "Número";
 
     useEffect(() => {
 
@@ -30,9 +49,23 @@ export default function RackModal({ onClose, onSuccess, data }) {
             Object.keys(data).forEach(k => {
                 setValue(k, data[k]);
             });
+
+            if (data.ubicacionTipo) {
+                setValue("ubicacionTipo", data.ubicacionTipo); 
+            }
+
+        } else {
+            setValue("ubicacionTipo", "rack");
         }
 
-    }, [data]);
+    }, [data, setValue]);
+
+    const cambio = (e) => {
+
+        setSeleccionado(e.target.checked);
+    };
+
+
 
     const loadItems = async (tipo) => {
 
@@ -63,6 +96,29 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
     const onSubmit = async (form) => {
 
+        if (!form.numeroRack) {
+            if (form.ubicacionTipo === "rack") {
+                return notifyError(
+                    "Error",
+                    "Número de rack requerido"
+                );
+            }
+
+            if (form.ubicacionTipo === "mezzanine") {
+                return notifyError(
+                    "Error",
+                    "Número de mezzanine requerido"
+                );
+            }
+
+            if (form.ubicacionTipo === "zona") {
+                return notifyError(
+                    "Error",
+                    "Letra de la zona requerida"
+                );
+            }
+        }
+
         const result = validateRack(form);
 
         if (!result.isValid) {
@@ -71,6 +127,47 @@ export default function RackModal({ onClose, onSuccess, data }) {
                 "Error",
                 Object.values(result.errors)[0]
             );
+        }
+
+        if (form.ubicacionTipo === "zona" && !/^[A-Z]$/.test(form.numeroRack)) {
+            return notifyError(
+                "Error",
+                "El campo Zona debe ser una letra mayúscula entre A y Z"
+            );
+        }
+
+        if (
+            (form.ubicacionTipo === "rack" || form.ubicacionTipo === "mezzanine") &&
+            !/^\d+$/.test(form.numeroRack)
+        ) {
+            return notifyError(
+                "Error",
+                "El valor debe contener solo dígitos"
+            );
+        }
+
+        if (!form.planta) {
+            return notifyError("Error", "Planta requerida");
+        }
+
+        try {
+            const existingRacks = await obtenerRacks();
+
+            const planta = form.planta || "";
+            const valorNormalizado = String(form.numeroRack).toUpperCase();
+
+            const duplicate = existingRacks.find(r => (r.planta || "") === planta && String(r.numeroRack).toUpperCase() === valorNormalizado && r.id !== (data?.id || null));
+
+            if (duplicate) {
+                return notifyError(
+                    "Error",
+                    `No es posible completar: ya existe un ${duplicate.ubicacionTipo || 'rack'} con ese número/letra en la planta ${planta}`
+                );
+            }
+
+        } catch (e) {
+            console.error(e);
+
         }
 
         try {
@@ -146,13 +243,13 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
                     <h5 style={styles.title}>
                         {data
-                            ? "Editar Rack"
-                            : "Nuevo Rack"}
+                            ? "Editar"
+                            : "Nuevo"}
                     </h5>
 
                     <button
                         style={styles.closeButton}
-                        onClick={onClose}
+                        onClick={onClose}x
                     >
                         ×
                     </button>
@@ -169,9 +266,66 @@ export default function RackModal({ onClose, onSuccess, data }) {
                         style={styles.form}
                     >
 
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 14,
+                                alignItems: "center"
+                            }}
+                        >
+                            {[
+                                { value: "rack", label: "Rack" },
+                                { value: "zona", label: "Zona" },
+                                { value: "mezzanine", label: "Mezzanine" }
+                            ].map(option => (
+                                <label
+                                    key={option.value}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                        fontSize: 14,
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    <input
+                                        type="radio"
+                                        value={option.value}
+                                        {...register("ubicacionTipo")}
+                                        style={{ width: 16, height: 16 }}
+                                    />
+                                    {option.label}
+                                </label>
+                            ))}
+                        </div>
+
+                        <label
+                            style={{
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color: "#374151",
+                                textAlign: "left"
+                            }}
+                        >
+                            {numeroLabel}
+                        </label>
+
                         <input
-                            placeholder="Número de Rack"
-                            {...register("numeroRack")}
+                            placeholder={numeroPlaceholder}
+                            value={numeroRackValue}
+                            {...register("numeroRack", {
+                                onChange: (e) => {
+                                    let value = e.target.value.toUpperCase();
+
+                                    if (ubicacionTipo === "zona") {
+                                        value = value.replace(/[^A-Z]/g, "").slice(0, 1);
+                                    } else {
+                                        value = value.replace(/\D/g, "");
+                                    }
+
+                                    setValue("numeroRack", value);
+                                }
+                            })}
                             style={styles.input}
                         />
 

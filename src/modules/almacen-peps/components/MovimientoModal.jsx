@@ -64,6 +64,7 @@ export default function MovimientoModal({
         useState([]);
 
     const tipo = watch("tipo");
+    const fechaActual = new Date().toISOString().split("T")[0];
 
     /*
     |--------------------------------------------------------------------------
@@ -119,6 +120,52 @@ export default function MovimientoModal({
     ) => {
 
         try {
+
+            if (
+                !form.tipo ||
+                !form.itemId ||
+                !form.fecha ||
+                !form.fechaCaducidad ||
+                !form.lote ||
+                !form.numeroAnalisis ||
+                !form.cantidad
+            ) {
+                notifyError(
+                    "Error",
+                    "Debe llenar todos los campos requeridos"
+                );
+                return;
+            }
+
+            const fechaEntrada = new Date(form.fecha);
+            const fechaCaducidad = new Date(form.fechaCaducidad);
+
+            if (form.fecha < fechaActual) {
+                notifyError(
+                    "Error",
+                    "La fecha de entrada no puede ser anterior al día de hoy"
+                );
+                return;
+            }
+
+            if (fechaCaducidad < fechaEntrada) {
+                notifyError(
+                    "Error",
+                    "La fecha de caducidad no puede ser anterior a la fecha de entrada"
+                );
+                return;
+            }
+
+            const minCaducidad = new Date(fechaEntrada);
+            minCaducidad.setFullYear(minCaducidad.getFullYear() + 3);
+
+            if (fechaCaducidad < minCaducidad) {
+                notifyError(
+                    "Error",
+                    "La fecha de caducidad debe ser al menos 3 años después de la fecha de entrada"
+                );
+                return;
+            }
 
             setLoading(true);
 
@@ -417,6 +464,8 @@ export default function MovimientoModal({
                             <input
                                 type="date"
 
+                                min={fechaActual}
+
                                 {...register(
                                     "fecha"
                                 )}
@@ -432,6 +481,8 @@ export default function MovimientoModal({
 
                             <input
                                 type="date"
+
+                                min={fechaActual}
 
                                 {...register(
                                     "fechaCaducidad"

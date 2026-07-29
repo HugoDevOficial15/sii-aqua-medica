@@ -46,8 +46,14 @@ export default function RackDetail({ rack, refresh }) {
 
     const rackBloqueado =
         rack?.estatus === "mantenimiento" ||
-        rack?.estatus === "baja"||
+        rack?.estatus === "baja" ||
         rack?.estatus === "inactivo";
+
+    const rackSinStock =
+        (rack?.stock || []).length === 0;
+
+    const rackLleno =
+        (rack?.stock || []).length >= 10;
 
     if (!rack) {
         return (
@@ -157,7 +163,7 @@ export default function RackDetail({ rack, refresh }) {
                 <button
                     className="btn btn-warning btn-sm"
 
-                    disabled={rackBloqueado}
+                    disabled={rackBloqueado || rackSinStock}
 
                     onClick={async () => {
 
@@ -194,7 +200,7 @@ export default function RackDetail({ rack, refresh }) {
                 <button
                     className="btn btn-info btn-sm"
 
-                    disabled={rackBloqueado}
+                    disabled={rackBloqueado || rackSinStock}
 
                     onClick={async () => {
 
@@ -238,7 +244,9 @@ export default function RackDetail({ rack, refresh }) {
 
                         rack.estatus === "ocupado" ||
 
-                        rackBloqueado
+                        rackBloqueado ||
+
+                        rackLleno
 
                     }
 
