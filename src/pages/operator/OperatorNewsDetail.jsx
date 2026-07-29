@@ -1,56 +1,84 @@
 import MobileBackButton from "./components/MobileBackButton";
 
-export default function OperatorNewsDetail({
-    onBack
-}) {
+export default function OperatorNewsDetail({ onBack, noticia }) {
+    
+    if (!noticia) {
+        return (
+            <div className="container p-4 text-center" style={{ marginTop: '50px' }}>
+                <MobileBackButton onBack={onBack} />
+                <div className="card border-0 shadow-sm p-5 mt-4" style={{ borderRadius: '16px' }}>
+                    <h3 className="fw-bold mb-3">Comunicado Informativo</h3>
+                    <p className="text-muted mb-4">Selecciona una noticia reciente desde el feed principal para ver todos los detalles.</p>
+                    <button className="btn btn-primary px-4 py-2 mx-auto" onClick={onBack}>
+                        Ver todas las noticias
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
-
         <div className="news-detail">
-
-            <MobileBackButton
-                onBack={onBack}
-            />
+            <MobileBackButton onBack={onBack} />
 
             <img
                 className="news-detail-image"
-                src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200"
-                alt=""
+                src={noticia.imagen || noticia.image || "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200"}
+                alt={noticia.titulo || noticia.title}
             />
 
             <div className="news-detail-content">
-
-                <span>
-                    Hace 2 horas
+                <span className="badge bg-primary text-white mb-2 px-3 py-1">
+                    {noticia.areaDestino || "General"}
                 </span>
 
-                <h1>
-                    Nueva capacitación obligatoria
+                {/* Título adaptativo */}
+                <h1 className="fw-bold mb-3" style={{ color: 'inherit' }}>
+                    {noticia.title || noticia.titulo}
                 </h1>
 
-                <p>
-
-                    A partir del próximo mes todos los
-                    operadores deberán completar la
-                    capacitación PEPS para mantener
-                    actualizadas sus competencias
-                    operativas.
-
+                {/* Fecha / Vigencia con opacidad correcta para ambos modos */}
+                <p className="small mb-4 opacity-75" style={{ color: 'inherit' }}>
+                    {noticia.date || (noticia.fechaLimite ? `Vigente hasta: ${noticia.fechaLimite}` : "Comunicado oficial")}
                 </p>
 
-                <p>
+                {/* Contenido principal adaptativo */}
+                <div style={{ whiteSpace: "pre-wrap", lineHeight: "1.7", fontSize: "1rem", color: 'inherit', opacity: '0.9' }}>
+                    {noticia.contenido || noticia.summary}
+                </div>
 
-                    El curso estará disponible desde
-                    la plataforma interna y deberá
-                    completarse antes de la fecha
-                    límite establecida.
-
-                </p>
-
+                {/* SECCIÓN DE ARCHIVO ADJUNTO 100% ADAPTATIVA */}
+                {noticia.archivo && (
+                    <div 
+                        className="mt-4 p-3 d-flex align-items-center justify-content-between border shadow-sm"
+                        style={{
+                            borderRadius: '12px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.07)', // Fondo traslúcido elegante
+                            borderColor: 'rgba(255, 255, 255, 0.15)',
+                        }}
+                    >
+                        <div className="d-flex align-items-center gap-3">
+                            <div className="d-flex align-items-center justify-content-center" style={{ width: '45px', height: '45px', backgroundColor: 'rgba(2, 132, 199, 0.2)', borderRadius: '8px' }}>
+                                <span style={{ fontSize: '1.5rem', color: '#38bdf8' }}>📄</span>
+                            </div>
+                            <div>
+                                <strong className="d-block" style={{ color: 'inherit' }}>Documento Adjunto</strong>
+                                <small className="opacity-75" style={{ color: 'inherit' }}>{noticia.archivoNombre || "Archivo descargable"}</small>
+                            </div>
+                        </div>
+                        <a
+                            href={noticia.archivo}
+                            download={noticia.archivoNombre || "documento_aqua"}
+                            className="btn btn-primary btn-sm px-3 shadow-sm"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ borderRadius: '8px' }}
+                        >
+                            Ver / Descargar
+                        </a>
+                    </div>
+                )}
             </div>
-
         </div>
-
     );
-
 }

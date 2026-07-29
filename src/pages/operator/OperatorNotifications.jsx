@@ -1,16 +1,28 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, doc, deleteDoc } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { db } from "../../config/firebase"; 
 
-import { FiBell, FiClipboard, FiAward, FiBookOpen, FiUser, FiActivity } from "react-icons/fi";
+import { FiBell, FiClipboard, FiAward, FiBookOpen, FiUser } from "react-icons/fi";
+
+import NotificationCard from "../../components/operator/NotificationCard";
+
+// Ruta a la que navega cada tipo de notificación dinámica al completarla.
+// Los tipos festivos (Cumpleaños/Aniversario) no tienen pantalla propia:
+// simplemente se descartan y regresan a Inicio.
+const RUTA_POR_DESTINO = {
+    "Citas Medicas": "citas-medicas",
+    "Noticias": "news",
+    "Cumpleaños": "home",
+    "Aniversario": "home"
+};
 
 export default function OperatorNotifications({ onNavigate }) {
     
-    const [notificacionesMedicas, setNotificacionesMedicas] = useState([]);
+    // Ahora guardamos TODAS las notificaciones dinámicas juntas
+    const [notificaciones, setNotificaciones] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        
         const fetchNotificaciones = async () => {
             try {
                 const q = query(collection(db, "notificaciones"), orderBy("fechaCreacion", "desc"));
@@ -21,10 +33,9 @@ export default function OperatorNotifications({ onNavigate }) {
                     ...doc.data()
                 }));
 
-                const medicas = notifs.filter(n => n.Destino === "Citas Medicas");
-                setNotificacionesMedicas(medicas);
+                setNotificaciones(notifs);
             } catch (error) {
-                console.error("Error al cargar notificaciones médicas:", error);
+                console.error("Error al cargar notificaciones:", error);
             } finally {
                 setLoading(false);
             }
@@ -33,30 +44,27 @@ export default function OperatorNotifications({ onNavigate }) {
         fetchNotificaciones();
     }, []);
 
-    // 🛡️ FUNCIÓN ESCUDO: Evita que la app se rompa si onNavigate no existe
-    const handleNavigation = (ruta) => {
-        if (typeof onNavigate === 'function') {
-            onNavigate(ruta);
-        } else {
-            console.warn(`Se intentó navegar a "${ruta}", pero onNavigate no está definido en el componente padre.`);
-        }
-
-        const handleCompletarTarea = async (idNotificacion, ruta) => {
+    //  FUNCIÓN PARA BORRAR Y NAVEGAR
+    const handleCompletarTarea = async (idNotificacion, ruta) => {
         try {
-            // A) Borramos la notificación de la base de datos
             await deleteDoc(doc(db, "notificaciones", idNotificacion));
-            
-            // B) Quitamos la tarjeta de la pantalla instantáneamente sin recargar
-            setNotificacionesMedicas(prev => prev.filter(n => n.id !== idNotificacion));
+            setNotificaciones(prev => prev.filter(n => n.id !== idNotificacion));
 
-            // C) Navegamos a la pantalla de citas
             if (typeof onNavigate === 'function') {
                 onNavigate(ruta);
+            } else {
+                console.warn(`Se intentó navegar a "${ruta}", pero onNavigate no está definido.`);
             }
         } catch (error) {
             console.error("Error al borrar la notificación:", error);
         }
     };
+
+    // Función segura para las tarjetas estáticas que aún no son dinámicas
+    const handleNavigation = (ruta) => {
+        if (typeof onNavigate === 'function') {
+            onNavigate(ruta);
+        }
     };
 
     return (
@@ -67,35 +75,30 @@ export default function OperatorNotifications({ onNavigate }) {
                 <p>Mantente informado de todo lo importante.</p>
             </div>
 
-            {/* NOTIFICACIONES MÉDICAS DESDE FIREBASE */}
-            {!loading && notificacionesMedicas.map((notif) => (
-                <div 
-                    key={notif.id}
-                    className="notification-card unread" 
-                    // 👇 AQUÍ CONECTAMOS LA NUEVA FUNCIÓN
-                    onClick={() => handleCompletarTarea(notif.id, 'citas-medicas')} 
-                    style={{ cursor: 'pointer', borderLeft: '4px solid #0d6efd' }}
-                >
-                    <div className="notification-icon" style={{ backgroundColor: '#e0f2fe', color: '#0284c7' }}>
-                        <FiActivity />
-                    </div>
-                    <div className="notification-content">
-                        <strong>{notif.Titulo || "Nuevo Servicio Médico"}</strong>
-                        <p>{notif.Mensaje}</p>
-                        <small>Nuevo</small>
-                    </div>
-                </div>
-            ))}
+            {/* ==========================================
+                NOTIFICACIONES DINÁMICAS (Desde Firebase)
+                ========================================== */}
+            {!loading && notificaciones.map((notif) => {
 
-            {/* TARJETAS ESTÁTICAS */}
-            <div className="notification-card unread" onClick={() => handleNavigation('news')} style={{ cursor: 'pointer' }}>
-                <div className="notification-icon aqua"><FiBell /></div>
-                <div className="notification-content">
-                    <strong>AQUA News</strong>
-                    <p>Nuevo comunicado disponible.</p>
-                    <small>Hace 10 minutos</small>
-                </div>
-            </div>
+                const ruta = RUTA_POR_DESTINO[notif.Destino];
+
+                if (!ruta) return null;
+
+                return (
+                    <NotificationCard
+                        key={notif.id}
+                        notif={notif}
+                        onClick={() => handleCompletarTarea(notif.id, ruta)}
+                    />
+                );
+
+            })}
+
+            {/* ==========================================
+                TARJETAS ESTÁTICAS (Las que aún no conectas)
+                ========================================== */}
+            
+            {/* Borramos la tarjeta estática de AQUA News porque ya será dinámica */}
 
             <div className="notification-card unread" onClick={() => handleNavigation('surveys')} style={{ cursor: 'pointer' }}>
                 <div className="notification-icon survey"><FiClipboard /></div>

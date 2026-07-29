@@ -22,10 +22,10 @@ export const notifyError = (title, text) => {
 
 }
 
-export const notifyWarnig = (title, text) => {
+export const notifyWarning = (title, text) => {
 
     Swal.fire({
-        icon: "warnig",
+        icon: "warning",
         title: title,
         text: text,
         confirmButtonColor: "#f59e0b"

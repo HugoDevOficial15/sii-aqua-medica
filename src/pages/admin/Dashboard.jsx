@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react";
-
 import Loader from "../../components/Loader";
-
 import { getUsers } from "../../services/usersService";
-
 import { AREAS } from "../../catalogs/areas";
-
 import {
     FaUsers,
     FaUserCheck,
@@ -31,11 +27,8 @@ import {
 } from "recharts";
 
 import { motion } from "framer-motion";
-
 import CountUp from "react-countup";
-
 import { usePreferences } from "../../hooks/usePreferences";
-
 export default function Dashboard() {
 
     const { resolvedTheme } = usePreferences();
@@ -61,7 +54,6 @@ export default function Dashboard() {
     }, []);
 
     const [loading, setLoading] = useState(true);
-
     const [users, setUsers] = useState([]);
 
     useEffect(() => {
