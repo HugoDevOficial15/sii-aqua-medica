@@ -38,8 +38,11 @@ export default function PuestosPage() {
         setShowModal(true);
     }
 
-    return (
+    if (loading) {
+        return <Loader text="Cargando puestos..." />;
+    }
 
+    return (
         <div className="page-transition py-4 custom-page">
 
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -169,6 +172,9 @@ export default function PuestosPage() {
             `}</style>
 
         </div>
+
+
+
 
     );
 

@@ -1,13 +1,16 @@
+
 import { useAuth } from "../hooks/useAuth";
+
 import { Navigate, useLocation } from "react-router-dom";
 
 export default function ProtectedRoute({ children, permiso, role }) {
 
     const { user, can, loading } = useAuth();
+
     const location = useLocation();
 
+
     // Esperar carga de permisos
-    // if (loading) return <div>Cargando...</div>;
 
     // ❌ No logueado
     if (!user) {

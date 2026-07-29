@@ -10,12 +10,14 @@ import {
 export const useRacks = () => {
 
     const [racks, setRacks] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
 
         const unsubscribe = suscribirRacks((data) => {
 
             setRacks(data);
+            setLoading(false);
 
         });
 
@@ -24,7 +26,8 @@ export const useRacks = () => {
     }, []);
 
     return {
-        racks
+        racks,
+        loading
     };
 
 };

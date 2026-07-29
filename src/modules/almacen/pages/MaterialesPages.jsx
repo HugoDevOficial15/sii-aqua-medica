@@ -3,7 +3,7 @@ import { useMateriales } from "../hooks/useMateriales";
 import ItemModal from "../components/ItemModal";
 import MaterialesTable from "../components/MaterialesTable";
 import FiltersMateriales from "../components/FiltersMateriales";
-
+import Loader from "../../../components/Loader";
 import { FaPlus } from "react-icons/fa";
 
 export default function MaterialesPage() {
@@ -12,7 +12,8 @@ export default function MaterialesPage() {
     const [selected, setSelected] = useState(null);
     const [filters, setFilters] = useState({});
 
-    const { data, load } = useMateriales();
+    const { data, load, loading } = useMateriales();
+
 
     const filtered = (data || []).filter(item => {
 
@@ -30,6 +31,10 @@ export default function MaterialesPage() {
 
         return true;
     });
+
+    if (loading) {
+        return <Loader text="Cargando materiales..." />;
+    }
 
     return (
         <div className="page-transition">

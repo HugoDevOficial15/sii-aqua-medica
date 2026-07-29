@@ -42,6 +42,10 @@ export default function RackModal({ onClose, onSuccess, data }) {
             ? "A - Z"
             : "Número";
 
+    const numeroselect =
+        ubicacionTipo === "zona"
+
+
     useEffect(() => {
 
         if (data) {
@@ -117,6 +121,20 @@ export default function RackModal({ onClose, onSuccess, data }) {
                     "Letra de la zona requerida"
                 );
             }
+
+            if (form.ubicacionTipo === "rackselectivo") {
+                return notifyError(
+                    "Error",
+                    "Número de rack selectivo requerido"
+                );
+            }
+            if (form.ubicacionTipo === "tanqueacido") {
+                return notifyError(
+                    "Error",
+                    "Número de tanque de ácido requerido"
+                );
+            }
+            
         }
 
         const result = validateRack(form);
@@ -156,12 +174,16 @@ export default function RackModal({ onClose, onSuccess, data }) {
             const planta = form.planta || "";
             const valorNormalizado = String(form.numeroRack).toUpperCase();
 
-            const duplicate = existingRacks.find(r => (r.planta || "") === planta && String(r.numeroRack).toUpperCase() === valorNormalizado && r.id !== (data?.id || null));
+            const duplicate = existingRacks.find(r => {
+                const mismoValor = String(r.numeroRack || "").toUpperCase() === valorNormalizado;
+
+                return mismoValor && r.id !== (data?.id || null);
+            });
 
             if (duplicate) {
                 return notifyError(
                     "Error",
-                    `No es posible completar: ya existe un ${duplicate.ubicacionTipo || 'rack'} con ese número/letra en la planta ${planta}`
+                    `No es posible completar: ya existe otra ubicación con ese número/letra en el sistema`
                 );
             }
 
@@ -276,7 +298,9 @@ export default function RackModal({ onClose, onSuccess, data }) {
                             {[
                                 { value: "rack", label: "Rack" },
                                 { value: "zona", label: "Zona" },
-                                { value: "mezzanine", label: "Mezzanine" }
+                                { value: "mezzanine", label: "Mezzanine" },
+                                { value: "rackselectivo", label:"Rack Selectivo" },
+                                { value: "tanqueacido", label:"Tanque de Ácido" }
                             ].map(option => (
                                 <label
                                     key={option.value}
@@ -319,7 +343,12 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
                                     if (ubicacionTipo === "zona") {
                                         value = value.replace(/[^A-Z]/g, "").slice(0, 1);
-                                    } else {
+                                    }
+
+                                    if (ubicacionTipo === "rackselectivo") {
+                                        value = value.replace(/[^A-Z0-9]/g, "");
+                                    }
+                                    else if (ubicacionTipo === "rack" || ubicacionTipo === "mezzanine" || ubicacionTipo === "tanqueacido") {
                                         value = value.replace(/\D/g, "");
                                     }
 

@@ -37,6 +37,7 @@ import {
 
 import SnapshotManager
     from "../../../services/snapshots/snapshotManager";
+import { getUbicacionLabel, getUbicacionTipoLabel } from "../../../utils/rackLocation";
 
 export default function RackTransferModal({
 
@@ -242,6 +243,17 @@ export default function RackTransferModal({
                 return; 
             }
 
+            if (!form.cantidad || 
+                Number.isNaN(Number(form.cantidad)) ||
+                Number(form.cantidad) <= 0) {
+                notifyError(
+                    "Error",
+                    "La cantidad debe ser un número mayor a 0"
+                );
+                return;
+
+            }
+
             setLoading(true);
 
             const rackDestino =
@@ -313,6 +325,11 @@ export default function RackTransferModal({
 
                     rackDestinoNumero: rackDestino.numeroRack,
 
+                    ubicacionDestino: {
+                        numeroRack: rackDestino.numeroRack,
+                        ubicacionTipo: rackDestino.ubicacionTipo || "rack"
+                    },
+
                     stockId: mov.stockId,
 
                     itemId: form.itemId,
@@ -350,6 +367,11 @@ export default function RackTransferModal({
                     rackOrigenId: rack.id,
 
                     rackOrigenNumero: rack.numeroRack,
+
+                    ubicacionOrigen: {
+                        numeroRack: rack.numeroRack,
+                        ubicacionTipo: rack.ubicacionTipo || "rack"
+                    },
 
                     stockId: mov.stockId,
 
@@ -418,9 +440,9 @@ export default function RackTransferModal({
 
                         <div className="transfer-subtitle">
 
-                            Rack origen
+                            {getUbicacionTipoLabel(rack)} origen
                             {" "}
-                            {rack.numeroRack}
+                            {getUbicacionLabel(rack)}
 
                         </div>
 
@@ -519,7 +541,7 @@ export default function RackTransferModal({
                     <div className="transfer-group">
 
                         <label>
-                            Rack destino
+                            {getUbicacionTipoLabel(rack)} destino
                         </label>
 
                         <select
@@ -542,11 +564,8 @@ export default function RackTransferModal({
                                         value={r.id}
                                     >
 
-                                        Rack
-                                        {" "}
-
                                         {
-                                            r.numeroRack
+                                            getUbicacionLabel(r)
                                         }
 
                                         {" - Planta "}

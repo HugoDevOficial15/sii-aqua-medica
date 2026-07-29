@@ -1,4 +1,5 @@
 import { FaStoreAlt } from "react-icons/fa";
+import { getUbicacionLabel, getUbicacionTipoLabel } from "../../../utils/rackLocation";
 
 export default function RackCard({
     rack,
@@ -142,11 +143,11 @@ export default function RackCard({
             <div className="rack-card-body">
 
                 <div className="rack-title">
-                    Rack #{rack.numeroRack}
+                    {getUbicacionLabel(rack)}
                 </div>
 
                 <div className="rack-subtitle">
-                    Planta {rack.planta}
+                    {getUbicacionTipoLabel(rack)} · Planta {rack.planta}
                 </div>
 
             </div>

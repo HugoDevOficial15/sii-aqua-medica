@@ -6,6 +6,8 @@ import {
 
 export default function RackInventory({ rack }) {
 
+
+
     const [stock, setStock] = useState([]);
 
     const [loading, setLoading] = useState(true);
@@ -144,7 +146,9 @@ export default function RackInventory({ rack }) {
                 Inventario Actual
             </h6>
 
-            <div className="rack-stock-list">
+            <div className="rack-stock-list"
+            
+            >
 
                 {
                     stock.map(item => {
@@ -159,6 +163,10 @@ export default function RackInventory({ rack }) {
                             <div
                                 key={item.id}
                                 className="rack-stock-card"
+                                style={{
+                                    background: "var(--operator-card)",
+                                    borderColor: "var(--operator-border)",
+                                }}
                             >
 
                                 <div className="rack-stock-header">
@@ -184,7 +192,9 @@ export default function RackInventory({ rack }) {
 
                                 </div>
 
-                                <div className="rack-stock-name">
+                                <div className="rack-stock-name"
+                                
+                                >
                                     {item.nombreItem}
                                 </div>
 
@@ -237,6 +247,7 @@ export default function RackInventory({ rack }) {
                     })
                 }
 
+                
             </div>
 
             <style jsx>{`

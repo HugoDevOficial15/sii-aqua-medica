@@ -3,18 +3,12 @@ import { useRacksDashboard } from "../hooks/useRacksDashboard";
 import RacksFilters from "../components/RacksFilters";
 import RackGrid from "../components/RackGrid";
 import RackDetail from "../components/RackDetail";
-
 import Loader from "../../../components/Loader";
 
 
 export default function RacksDashboard() {
 
-
-
-    const [loading, setLoading] = useState(true);
-
-    const { racks, load } = useRacksDashboard();
-
+    const { racks, load, loading } = useRacksDashboard();
 
     const [filters, setFilters] = useState({});
 
@@ -102,6 +96,10 @@ export default function RacksDashboard() {
         r => r.id === selectedId
     );
 
+    if (loading) {
+        return <Loader text="Cargando racks..." /> 
+    }
+
     return (
 
         <div
@@ -109,7 +107,8 @@ export default function RacksDashboard() {
             style={{
                 height: "100vh",
                 overflow: "hidden",
-                background: "#f3f4f6"
+                background: "var(--operator-background)",
+                color: "var(--operator-text)"
             }}
         >
             {/* CONTENIDO */}

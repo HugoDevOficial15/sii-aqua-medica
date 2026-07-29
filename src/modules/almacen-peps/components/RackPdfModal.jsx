@@ -191,7 +191,11 @@ export default function RackPdfModal({
                             Exportar Reporte
                         </div>
 
-                        <div className="pdf-subtitle">
+                        <div className="pdf-subtitle"
+                            style={{
+                                color: "var(--operator-text)",
+                            }}
+                        >
 
                             Rack
                             {" "}
@@ -282,38 +286,6 @@ export default function RackPdfModal({
                                 )
                             }
                         />
-
-                    </div>
-
-                </div>
-
-                <div className="pdf-preview-box">
-
-                    <div className="pdf-preview-title">
-                        Vista previa
-                    </div>
-
-                    <div className="pdf-preview-list">
-
-                        <div className="pdf-preview-item">
-                            Movimientos del rack
-                        </div>
-
-                        <div className="pdf-preview-item">
-                            Entradas y salidas
-                        </div>
-
-                        <div className="pdf-preview-item">
-                            Auditoría de usuario
-                        </div>
-
-                        <div className="pdf-preview-item">
-                            Lotes y cantidades
-                        </div>
-
-                        <div className="pdf-preview-item">
-                            Periodo seleccionado
-                        </div>
 
                     </div>
 

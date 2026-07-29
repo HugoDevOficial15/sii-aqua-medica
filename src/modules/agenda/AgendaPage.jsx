@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { FaCalendarAlt } from "react-icons/fa";
-
+import Loader from "../../components/Loader";
 import {
     notifyError,
     notifySuccess
@@ -9,6 +10,7 @@ import {
 export default function AgendaPage() {
 
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
 
     const hoy = new Date();
     const mesActual = hoy.getMonth();
@@ -101,6 +103,10 @@ export default function AgendaPage() {
 
         navigate(`/agenda/${index + 1}`);
     };
+
+    if (loading) {
+        return <Loader text="Cargando agenda..." />;
+    }
 
     return (
 

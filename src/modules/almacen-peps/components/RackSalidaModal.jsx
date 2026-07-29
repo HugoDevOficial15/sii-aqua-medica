@@ -172,14 +172,13 @@ export default function RackSalidaModal({
 
             const cantidad = Number(form.cantidad);
 
-            if (
-                !form.cantidad ||
+            if (!form.cantidad ||
                 Number.isNaN(cantidad) ||
                 cantidad <= 0
             ) {
                 notifyError(
                     "Error",
-                    "Selecciona una cantidad"
+                    "La cantidad debe ser un número mayor a 0"
                 );
                 return;
             }
@@ -188,6 +187,14 @@ export default function RackSalidaModal({
                 notifyError(
                     "Error",
                     "Stock insuficiente"
+                );
+                return;
+            }
+
+            if (!form.observaciones) {
+                notifyError(
+                    "Error",
+                    "Observaciones requeridas"
                 );
                 return;
             }
@@ -253,6 +260,8 @@ export default function RackSalidaModal({
                     unidad:
                         mov.unidad,
 
+                    observaciones:
+                        form.observaciones,
                     fecha:
                         new Date()
                             .toISOString()
@@ -432,28 +441,21 @@ export default function RackSalidaModal({
 
                     </div>
 
-                    <div className="salida-preview">
+                    <div className="salida-group">
+                        <label>
+                            Observaciones
+                        </label>
 
-                        <div className="salida-preview-title">
-                            El sistema realizará
-                        </div>
+                        <input
+                            type="text"
 
-                        <div className="salida-preview-item">
-                            Aplicación automática PEPS
-                        </div>
+                            step="0.01"
 
-                        <div className="salida-preview-item">
-                            Consumo de lotes antiguos
-                        </div>
-
-                        <div className="salida-preview-item">
-                            Auditoría completa
-                        </div>
-
-                        <div className="salida-preview-item">
-                            Trazabilidad farmacéutica
-                        </div>
-
+                            placeholder="Observaciones"
+                            {...register(
+                                "observaciones"
+                            )}
+                        />
                     </div>
 
                     <div className="salida-actions">
@@ -631,6 +633,16 @@ export default function RackSalidaModal({
                 border:
                     1px solid #dbeafe;
             }
+
+            .observaciones-stock-value {
+
+                front-size: 13px;
+
+                color: #6b7280;
+
+                margin-bottom: 8px;
+            }
+
 
             .salida-stock-title {
 

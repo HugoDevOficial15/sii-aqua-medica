@@ -47,7 +47,10 @@ exports.lockRack = onCall(async (request) => {
                 if (expires > Date.now()) {
 
                     throw new Error(
-                        "LOCK_EXISTS"
+                        JSON.stringify({
+                            code: "LOCK_EXISTS",
+                            message: `Este rack ya está siendo utilizado por ${data.userName || "otro usuario"}.`
+                        })
                     );
 
                 }
@@ -81,15 +84,25 @@ exports.lockRack = onCall(async (request) => {
     } catch (e) {
 
         if (
-            e.message === "LOCK_EXISTS"
+            e.message?.includes("LOCK_EXISTS")
         ) {
+
+            let lockMessage = "Otro usuario ya está utilizando este rack.";
+
+            try {
+                const parsed = JSON.parse(e.message);
+                if (parsed?.message) {
+                    lockMessage = parsed.message;
+                }
+            } catch {
+                // No hacer nada, se conserva el mensaje por defecto.
+            }
 
             return {
 
                 ok: false,
 
-                message:
-                    "Otro usuario ya está utilizando este rack."
+                message: lockMessage
 
             };
 

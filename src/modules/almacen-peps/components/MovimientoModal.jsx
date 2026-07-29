@@ -128,11 +128,21 @@ export default function MovimientoModal({
                 !form.fechaCaducidad ||
                 !form.lote ||
                 !form.numeroAnalisis ||
-                !form.cantidad
+                !form.cantidad  
             ) {
                 notifyError(
                     "Error",
                     "Debe llenar todos los campos requeridos"
+                );
+                return;
+            }
+
+            if (!form.cantidad ||
+                Number.isNaN(Number(form.cantidad)) ||
+                Number(form.cantidad) <= 0) {
+                notifyError(
+                    "Error",
+                    "La cantidad debe ser un número mayor a 0"
                 );
                 return;
             }
@@ -260,6 +270,11 @@ export default function MovimientoModal({
 
                 rackNumero:
                     rack.numeroRack,
+
+                ubicacionOrigen: {
+                    numeroRack: rack.numeroRack,
+                    ubicacionTipo: rack.ubicacionTipo || "rack"
+                },
 
                 tipoMovimiento:
                     "entrada",

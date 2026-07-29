@@ -3,12 +3,13 @@ import { actualizarRack } from "../../../services/rackService";
 import { obtenerStockPorRack } from "../../../services/rackStockService";
 import { useState } from "react";
 import RackModal from "../components/RackModal";
+import Loader from "../../../components/Loader";
 
 import { notifyError } from "../../../utils/notify";
 import { FaPlus, FaEdit, FaTools } from "react-icons/fa";
 
 export default function RacksPages() {
-    const { racks, load } = useRacks();
+    const { racks, load, loading } = useRacks();
     const [show, setShow] = useState(false);
     const [selected, setSelected] = useState(null);
     const [filters, setFilters] = useState({
@@ -42,6 +43,10 @@ export default function RacksPages() {
             console.error(error);
         }
     };
+
+    if (loading) {
+        return <Loader text="Cargando racks..." />;
+    }
 
     return (
         <div className="page-transition">

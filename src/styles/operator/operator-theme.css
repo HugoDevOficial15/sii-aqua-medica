@@ -211,6 +211,208 @@ html[data-theme="dark"] .suggestion-title {
     color: var(--operator-text);
 }
 
+/* =========================================
+   PEPS / ALMACÉN — MODO OSCURO
+   Corrige filtros, tarjetas, formularios y
+   textos que estaban usando fondos blancos
+   o colores claros en el modo oscuro.
+========================================= */
+
+html[data-theme="dark"] .rack-filters-container {
+    background: rgba(30, 41, 59, .96) !important;
+    border-color: rgba(255, 255, 255, .08) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .25) !important;
+}
+
+html[data-theme="dark"] .filter-label,
+html[data-theme="dark"] .rack-filters-container .filter-label {
+    color: var(--operator-text) !important;
+}
+
+html[data-theme="dark"] .custom-input,
+html[data-theme="dark"] .custom-select,
+html[data-theme="dark"] .rack-filters-container input,
+html[data-theme="dark"] .rack-filters-container select {
+    background: rgba(15, 23, 42, .85) !important;
+    border-color: var(--operator-border) !important;
+    color: var(--operator-text) !important;
+}
+
+html [data-theme="dark"] .rack-stock-card,
+html [data-theme="dark"] .rack-stock-header{
+    background: rgba(30, 41, 59, .96) !important;
+    border-color: rgba(255, 255, 255, .08) !important;
+    color: var(--operator-text) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .25) !important;
+
+}
+
+html[data-theme="dark"] .rack-stock-name,
+html[data-theme="dark"] .rack-stock-lote,
+html[data-theme="dark"] .rack-stock-qty,
+html[data-theme="dark"] .rack-stock-footer{
+    color: var(--operator-text) !important;
+}
+
+html[data-theme="dark"] .custom-input::placeholder,
+html[data-theme="dark"] .custom-select::placeholder,
+html[data-theme="dark"] .rack-filters-container input::placeholder {
+    color: var(--operator-text-soft) !important;
+    opacity: 1 !important;
+}
+
+html[data-theme="dark"] .custom-input:focus,
+html[data-theme="dark"] .custom-select:focus,
+html[data-theme="dark"] .rack-filters-container input:focus,
+html[data-theme="dark"] .rack-filters-container select:focus {
+    background: rgba(15, 23, 42, .98) !important;
+    border-color: var(--operator-primary-light) !important;
+    box-shadow: 0 0 0 4px rgba(96, 165, 250, .18) !important;
+}
+
+html[data-theme="dark"] .rack-card,
+html[data-theme="dark"] .rack-history-card,
+html[data-theme="dark"] .rack-modal-card {
+    background: rgba(30, 41, 59, .96) !important;
+    border-color: rgba(255, 255, 255, .08) !important;
+    color: var(--operator-text) !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .25) !important;
+}
+
+html[data-theme="dark"] .rack-title,
+html[data-theme="dark"] .rack-metric-value,
+html[data-theme="dark"] .rack-subtitle,
+html[data-theme="dark"] .rack-metric-label,
+html[data-theme="dark"] .rack-occupancy-header,
+html[data-theme="dark"] .rack-history-name,
+html[data-theme="dark"] .rack-history-date,
+html[data-theme="dark"] .rack-history-row span,
+html[data-theme="dark"] .rack-history-user {
+    color: var(--operator-text) !important;
+}
+
+html[data-theme="dark"] .rack-subtitle,
+html[data-theme="dark"] .rack-metric-label,
+html[data-theme="dark"] .rack-occupancy-header,
+html[data-theme="dark"] .rack-history-row span,
+html[data-theme="dark"] .rack-history-date {
+    color: var(--operator-text-soft) !important;
+}
+
+html[data-theme="dark"] .rack-icon {
+    background: rgba(255, 255, 255, .08) !important;
+    color: var(--operator-primary-light) !important;
+}
+
+html[data-theme="dark"] .rack-metric {
+    background: rgba(15, 23, 42, .72) !important;
+    border-color: rgba(255, 255, 255, .08) !important;
+}
+
+html[data-theme="dark"] .rack-progress {
+    background: rgba(255, 255, 255, .12) !important;
+}
+
+html[data-theme="dark"] .rack-card-warning {
+    background: rgba(245, 158, 11, .16) !important;
+    border-color: rgba(245, 158, 11, .45) !important;
+}
+
+html[data-theme="dark"] .rack-card-danger {
+    background: rgba(220, 38, 38, .16) !important;
+    border-color: rgba(239, 68, 68, .45) !important;
+}
+
+
+
+
+html[data-theme="dark"] .rack-history-button {
+    color: var(--operator-text) !important;
+}
+
+html[data-theme="dark"] .rack-history-button {
+    background: rgba(255, 255, 255, .08) !important;
+    border-color: rgba(255, 255, 255, .12) !important;
+}
+
+html[data-theme="dark"] .transfer-backdrop,
+html[data-theme="dark"] .salida-backdrop,
+html[data-theme="dark"] .movement-backdrop,
+html[data-theme="dark"] .pdf-backdrop {
+    background: rgba(2, 6, 23, .72) !important;
+}
+
+html[data-theme="dark"] .transfer-modal,
+html[data-theme="dark"] .salida-modal,
+html[data-theme="dark"] .movement-modal,
+html[data-theme="dark"] .pdf-modal {
+    background: rgba(15, 23, 42, .96) !important;
+    border-color: rgba(255, 255, 255, .08) !important;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, .35) !important;
+}
+
+html[data-theme="dark"] .transfer-title,
+html[data-theme="dark"] .salida-title,
+html[data-theme="dark"] .movement-title,
+html[data-theme="dark"] .pdf-title {
+    color: var(--operator-text) !important;
+}
+
+html[data-theme="dark"] .transfer-subtitle,
+html[data-theme="dark"] .salida-subtitle,
+html[data-theme="dark"] .movement-subtitle,
+html[data-theme="dark"] .pdf-subtitle {
+    color: var(--operator-text-soft) !important;
+}
+
+html[data-theme="dark"] .transfer-group label,
+html[data-theme="dark"] .salida-group label,
+html[data-theme="dark"] .movement-group label,
+html[data-theme="dark"] .pdf-group label {
+    color: var(--operator-text) !important;
+}
+
+html[data-theme="dark"] .transfer-group input,
+html[data-theme="dark"] .transfer-group select,
+html[data-theme="dark"] .salida-group input,
+html[data-theme="dark"] .salida-group select,
+html[data-theme="dark"] .movement-group input,
+html[data-theme="dark"] .movement-group select,
+html[data-theme="dark"] .pdf-group input,
+html[data-theme="dark"] .pdf-group select {
+    background: rgba(15, 23, 42, .85) !important;
+    border-color: var(--operator-border) !important;
+    color: var(--operator-text) !important;
+}
+
+html[data-theme="dark"] .transfer-group input::placeholder,
+html[data-theme="dark"] .salida-group input::placeholder,
+html[data-theme="dark"] .movement-group input::placeholder,
+html[data-theme="dark"] .pdf-group input::placeholder {
+    color: var(--operator-text-soft) !important;
+    opacity: 1 !important;
+}
+
+html[data-theme="dark"] .transfer-close,
+html[data-theme="dark"] .salida-close,
+html[data-theme="dark"] .movement-close {
+    background: rgba(255, 255, 255, .08) !important;
+    color: var(--operator-text) !important;
+}
+
+html[data-theme="dark"] .pdf-summary-card,
+html[data-theme="dark"] .pdf-close {
+    background: var(--operator-card) !important;
+    border-color: var(--operator-border) !important;
+    color: var(--operator-text) !important;
+
+}
+
+html[data-theme="dark"] .pdf-summary-label,
+html[data-theme="dark"] .pdf-summary-value {
+    color: var(--operator-text) !important;
+}
+
 /* La pestaña activa debe conservar su fondo azul de acento; la regla
    general de arriba (misma especificidad de clases + más elementos)
    la ganaría y la dejaría con el fondo neutro de tarjeta. */

@@ -20,6 +20,7 @@ import {
 import {
     FaArrowRightArrowLeft
 } from "react-icons/fa6";
+import { getUbicacionLabel } from "../../../utils/rackLocation";
 
 //Salida.
 
@@ -128,7 +129,7 @@ export default function RackDetail({ rack, refresh }) {
     return (
         <div className="p-3 text-center">
 
-            <h6>Número de Rack: {rack.numeroRack}</h6>
+            <h6>{getUbicacionLabel(rack)}</h6>
             <p><b>Planta:</b> {rack.planta}</p>
 
             <hr />

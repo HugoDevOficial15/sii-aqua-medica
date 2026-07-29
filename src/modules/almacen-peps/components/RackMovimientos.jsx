@@ -72,7 +72,10 @@ export default function RackMovimientos({
 
     const getTypeConfig = (log) => {
 
+
+
         if (log.tipoMovimiento === "entrada") {
+
 
             return {
                 label: log.rackOrigenNumero
@@ -155,8 +158,8 @@ export default function RackMovimientos({
                                     <div
                                         className="rack-history-badge"
                                         style={{
-                                            background: type.bg,
-                                            color: type.color
+                                            color: type.color,
+                                            background: type.bg
                                         }}
                                     >
                                         {

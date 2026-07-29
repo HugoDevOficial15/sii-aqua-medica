@@ -101,7 +101,7 @@ export default function InventarioPage() {
 
     // Loading
     if (loading) {
-        return <Loader text="Cargando Usuarios..." />;
+        return <Loader text="Cargando inventarios..." />;
     }
 
     return (
