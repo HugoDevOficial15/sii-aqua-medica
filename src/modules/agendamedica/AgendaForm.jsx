@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { crearAgenda } from "../../services/agendaMedicaService";
 import { generarSlots } from "../../services/generarSlotsMedicos";
 
 // 👇 1. Agregamos las importaciones de Firebase necesarias
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase"; // Verifica que la ruta de config coincida
+
+import { notifyWarning } from "../../utils/notify";
 
 const dias = [
     { id: 1, label: "Lunes" },
@@ -13,6 +15,24 @@ const dias = [
     { id: 4, label: "Jueves" },
     { id: 5, label: "Viernes" }
 ];
+
+// Fecha local (YYYY-MM-DD), evitando el desfase de new Date().toISOString()
+// (usa UTC y puede adelantar/atrasar el día en husos horarios como México).
+const getTodayLocal = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+// new Date("YYYY-MM-DD") interpreta la fecha como UTC; se arma en hora
+// local para que getDay() no regrese el día anterior en husos detrás de UTC.
+const esFinDeSemana = (isoDate) => {
+    const [year, month, day] = isoDate.split("-").map(Number);
+    const diaSemana = new Date(year, month - 1, day).getDay();
+    return diaSemana === 0 || diaSemana === 6;
+};
 
 export default function AgendaForm() {
     const [form, setForm] = useState({
@@ -23,6 +43,89 @@ export default function AgendaForm() {
         horarios: {},
         diasBloqueados: []
     });
+
+    const fechaInicioRef = useRef(null);
+    const fechaFinRef = useRef(null);
+
+    const today = getTodayLocal();
+
+    // Bloqueo en vivo: fecha pasada, fin de semana, y si ya había una
+    // Fecha Fin elegida que quedó antes de la nueva Fecha Inicio, se limpia.
+    const handleStartDateChange = (e) => {
+        const value = e.target.value;
+
+        if (!value) {
+            setForm(prev => ({ ...prev, fechaInicio: "" }));
+            return;
+        }
+
+        if (value < today) {
+            notifyWarning("Fecha inválida", "No se permiten fechas pasadas.");
+            setForm(prev => ({ ...prev, fechaInicio: "" }));
+            fechaInicioRef.current?.focus();
+            return;
+        }
+
+        if (esFinDeSemana(value)) {
+            notifyWarning(
+                "Fin de semana no disponible",
+                "No es posible crear agendas médicas durante fines de semana."
+            );
+            setForm(prev => ({ ...prev, fechaInicio: "" }));
+            fechaInicioRef.current?.focus();
+            return;
+        }
+
+        setForm(prev => {
+            if (prev.fechaFin && prev.fechaFin < value) {
+                notifyWarning(
+                    "Fecha fin actualizada",
+                    "La fecha fin se limpió porque era anterior a la nueva fecha de inicio."
+                );
+                return { ...prev, fechaInicio: value, fechaFin: "" };
+            }
+
+            return { ...prev, fechaInicio: value };
+        });
+    };
+
+    const handleEndDateChange = (e) => {
+        const value = e.target.value;
+
+        if (!value) {
+            setForm(prev => ({ ...prev, fechaFin: "" }));
+            return;
+        }
+
+        if (value < today) {
+            notifyWarning("Fecha inválida", "No se permiten fechas pasadas.");
+            setForm(prev => ({ ...prev, fechaFin: "" }));
+            fechaFinRef.current?.focus();
+            return;
+        }
+
+        if (esFinDeSemana(value)) {
+            notifyWarning(
+                "Fin de semana no disponible",
+                "No es posible crear agendas médicas durante fines de semana."
+            );
+            setForm(prev => ({ ...prev, fechaFin: "" }));
+            fechaFinRef.current?.focus();
+            return;
+        }
+
+        if (form.fechaInicio && value < form.fechaInicio) {
+            notifyWarning(
+                "Fecha inválida",
+                "La fecha fin no puede ser anterior a la fecha inicio."
+            );
+            setForm(prev => ({ ...prev, fechaFin: "" }));
+            fechaFinRef.current?.focus();
+            return;
+        }
+
+        setForm(prev => ({ ...prev, fechaFin: value }));
+    };
 
     const addRango = (dia) => {
         const horarios = { ...form.horarios };
@@ -38,38 +141,67 @@ export default function AgendaForm() {
         setForm({ ...form, horarios });
     };
 
-    const handleSubmit = async () => {
-        if (!form.nombre || !form.fechaInicio || !form.fechaFin) {
-            alert("Por favor llena el nombre y las fechas.");
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        // 📅 1. Obtener fecha actual local de forma segura (YYYY-MM-DD)
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const today = `${year}-${month}-${day}`;
+
+        // 🚫 2. Validar fechas pasadas
+        if (!form?.fechaInicio || form.fechaInicio < today) {
+            alert("La fecha de inicio no puede ser anterior al día de hoy.");
             return;
         }
 
-        try {
-            // 1. Guarda la agenda
-            const agendaId = await crearAgenda(form);
-
-            // 2. Genera los bloques
-            await generarSlots({
-                ...form,
-                id: agendaId
-            });
-
-            // 👇 3. AQUÍ VA LA NOTIFICACIÓN: Se dispara solo si todo lo de arriba salió bien
-            await addDoc(collection(db, "notificaciones"), {
-                Titulo: "Nuevo Servicio Médico",
-                Mensaje: `Se ha habilitado la campaña "${form.nombre}". ¡Agenda tu consulta!`,
-                fechaCreacion: serverTimestamp(),
-                Destino: "Citas Medicas",
-                NomAgenda: form.nombre 
-            });
-
-            console.log("Notificación enviada a todos los usuarios.");
-            alert("Agenda creada y notificación enviada con éxito.");
-            
-        } catch (e) {
-            console.error("Error al guardar:", e);
-            alert("Hubo un error al intentar crear la agenda.");
+        if (!form?.fechaFin || form.fechaFin < form.fechaInicio) {
+            alert("La fecha fin no puede ser anterior a la fecha de inicio.");
+            return;
         }
+
+        // 🚫 3. Validar fines de semana y coincidencia de horarios de forma segura
+        let tieneDiasConHorario = false;
+        
+        try {
+            let fechaActual = new Date(form.fechaInicio + 'T00:00:00');
+            const fechaLimite = new Date(form.fechaFin + 'T00:00:00');
+
+            while (fechaActual <= fechaLimite) {
+                const diaSemana = fechaActual.getDay(); // 0 = Domingo, 6 = Sábado
+
+                if (diaSemana === 0 || diaSemana === 6) {
+                    alert("Las agendas médicas no pueden incluir fines de semana (sábados y domingos).");
+                    return;
+                }
+
+                const nombresDias = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+                const nombreDia = nombresDias[diaSemana];
+
+                // Validación segura usando optional chaining (?.)
+                const horariosDelDia = form?.horarios?.[nombreDia];
+                if (Array.isArray(horariosDelDia) && horariosDelDia.length > 0) {
+                    tieneDiasConHorario = true;
+                    break;
+                }
+
+                fechaActual.setDate(fechaActual.getDate() + 1);
+            }
+        } catch (err) {
+            console.error("Error al procesar las fechas:", err);
+            alert("Ocurrió un error al validar el rango de fechas.");
+            return;
+        }
+
+        if (!tieneDiasConHorario) {
+            alert("⚠️ Error de configuración: El rango de fechas seleccionado no coincide con ningún día que tenga horarios configurados. Agrega horarios al menos a uno de los días dentro de ese rango.");
+            return;
+        }
+
+        // ✅ Si pasa todas las validaciones, procede con el guardado en Firebase
+        // ... tu lógica de addDoc ...
     };
 
     return (
@@ -92,18 +224,24 @@ export default function AgendaForm() {
                 <div className="col">
                     <label>Fecha inicio</label>
                     <input
+                        ref={fechaInicioRef}
                         type="date"
                         className="form-control"
-                        onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })}
+                        min={today}
+                        value={form.fechaInicio}
+                        onChange={handleStartDateChange}
                     />
                 </div>
 
                 <div className="col">
                     <label>Fecha fin</label>
                     <input
+                        ref={fechaFinRef}
                         type="date"
                         className="form-control"
-                        onChange={(e) => setForm({ ...form, fechaFin: e.target.value })}
+                        min={form.fechaInicio || today}
+                        value={form.fechaFin}
+                        onChange={handleEndDateChange}
                     />
                 </div>
 

@@ -22,6 +22,26 @@ export default function AgendaMedicaPage() {
         duracionMin: 30
     });
 
+    // 📅 Obtener fecha actual en formato local YYYY-MM-DD (evitando desfases de zona horaria)
+    const getTodayLocal = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const today = getTodayLocal();
+
+    // 🚫 Función para validar si una fecha es fin de semana (Sábado = 6, Domingo = 0)
+    const esFinDeSemana = (fechaStr) => {
+        if (!fechaStr) return false;
+        const [year, month, day] = fechaStr.split('-').map(Number);
+        const fecha = new Date(year, month - 1, day);
+        const diaSemana = fecha.getDay();
+        return diaSemana === 0 || diaSemana === 6;
+    };
+
     const cargarAgendas = async () => {
         setLoading(true);
         try {
@@ -46,21 +66,18 @@ export default function AgendaMedicaPage() {
     const handleEliminar = async (id, nombre) => {
         if (window.confirm(`¿Estás seguro de eliminar la campaña "${nombre}"?`)) {
             try {
-                // 1. Borramos la agenda de su colección
                 await deleteDoc(doc(db, "agendas_medicas", id));
 
-                // 2. Buscamos todas las notificaciones que se llamen igual (NomAgenda)
                 const qNotif = query(collection(db, "notificaciones"), where("NomAgenda", "==", nombre));
                 const snapshotNotif = await getDocs(qNotif);
                 
-                // 3. Las borramos una por una (por si el admin le dio varias veces a guardar por error)
                 const deletePromises = snapshotNotif.docs.map(docNotif => 
                     deleteDoc(doc(db, "notificaciones", docNotif.id))
                 );
                 await Promise.all(deletePromises);
 
                 alert("Agenda y notificaciones eliminadas del sistema.");
-                cargarAgendas(); // Recargar tabla
+                cargarAgendas();
             } catch (error) {
                 console.error("Error al eliminar:", error);
                 alert("Hubo un error al eliminar.");
@@ -81,9 +98,28 @@ export default function AgendaMedicaPage() {
         }
     };
 
-    // ✏️ GUARDAR EDICIÓN
+    // ✏️ GUARDAR EDICIÓN CON VALIDACIONES ESTRICTAS DE FECHA
     const handleGuardarEdicion = async (e) => {
         e.preventDefault();
+
+        // 1. Validar que la fecha de inicio no sea anterior a hoy
+        if (formEdicion.fechaInicio < today) {
+            alert("La fecha de inicio no puede ser anterior al día de hoy.");
+            return;
+        }
+
+        // 2. Validar que la fecha fin no sea anterior a la fecha inicio
+        if (formEdicion.fechaFin < formEdicion.fechaInicio) {
+            alert("La fecha fin no puede ser anterior a la fecha de inicio.");
+            return;
+        }
+
+        // 3. Validar bloqueos de fines de semana
+        if (esFinDeSemana(formEdicion.fechaInicio) || esFinDeSemana(formEdicion.fechaFin)) {
+            alert("Los fines de semana (sábados y domingos) están estrictamente bloqueados para las agendas médicas.");
+            return;
+        }
+
         try {
             await updateDoc(doc(db, "agendas_medicas", agendaSeleccionada.id), {
                 nombre: formEdicion.nombre,
@@ -98,6 +134,15 @@ export default function AgendaMedicaPage() {
             console.error("Error al actualizar:", error);
             alert("Hubo un error al guardar los cambios.");
         }
+    };
+
+    // Manejador seguro para cambios de fecha con validación instantánea de fin de semana
+    const handleFechaChange = (campo, valor) => {
+        if (valor && esFinDeSemana(valor)) {
+            alert("Los fines de semana (sábados y domingos) no están permitidos.");
+            return;
+        }
+        setFormEdicion({ ...formEdicion, [campo]: valor });
     };
 
     if (loading) return <div className="p-4 text-white text-center">Cargando agendas médicas...</div>;
@@ -126,7 +171,6 @@ export default function AgendaMedicaPage() {
                     <FiArrowLeft /> Volver a la lista
                 </button>
                 
-                {/* 👇 AGREGAMOS LA FUNCIÓN ONSAVED AQUÍ 👇 */}
                 <AgendaForm onSaved={() => {
                     setVista("lista");
                     cargarAgendas();
@@ -136,6 +180,7 @@ export default function AgendaMedicaPage() {
         );
     }
 
+    // VISTA: EDITAR AGENDA
     // VISTA: EDITAR AGENDA
     if (vista === "editar") {
         return (
@@ -162,14 +207,16 @@ export default function AgendaMedicaPage() {
                             />
                         </div>
 
+                        {/* 👇 AQUÍ ES SU LUGAR CORRECTO: Dentro del form de editar 👇 */}
                         <div className="row mb-3">
                             <div className="col">
                                 <label className="form-label text-secondary">Fecha inicio</label>
                                 <input 
                                     type="date"
                                     className="form-control bg-dark text-light border-secondary"
+                                    min={today} // Bloquea fechas pasadas
                                     value={formEdicion.fechaInicio}
-                                    onChange={(e) => setFormEdicion({ ...formEdicion, fechaInicio: e.target.value })}
+                                    onChange={(e) => handleFechaChange("fechaInicio", e.target.value)}
                                     required
                                 />
                             </div>
@@ -178,12 +225,14 @@ export default function AgendaMedicaPage() {
                                 <input 
                                     type="date"
                                     className="form-control bg-dark text-light border-secondary"
+                                    min={formEdicion.fechaInicio || today} // Bloquea antes de inicio
                                     value={formEdicion.fechaFin}
-                                    onChange={(e) => setFormEdicion({ ...formEdicion, fechaFin: e.target.value })}
+                                    onChange={(e) => handleFechaChange("fechaFin", e.target.value)}
                                     required
                                 />
                             </div>
                         </div>
+                        {/* 👆 FIN DE LOS CAMPOS DE FECHA 👆 */}
 
                         <div className="mb-4">
                             <label className="form-label text-secondary">Duración por cita (min)</label>
@@ -206,12 +255,11 @@ export default function AgendaMedicaPage() {
     }
 
     // VISTA 1: TABLA PRINCIPAL (Lista + Botón Nuevo)
-    return (
+  return (
         <div className="container-fluid p-4 text-light">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 className="fw-bold mb-0">Servicio Médico - Administrador</h2>
                 
-                {/* ➕ BOTÓN PARA CREAR NUEVA AGENDA */}
                 <button 
                     className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm"
                     style={{ borderRadius: '10px' }}
@@ -262,7 +310,6 @@ export default function AgendaMedicaPage() {
                                             </td>
                                             <td className="px-4 py-3 align-middle">
                                                 <div className="d-flex gap-2">
-                                                    {/* BOTÓN VER */}
                                                     <button 
                                                         className="btn btn-sm btn-primary d-flex align-items-center gap-1"
                                                         onClick={() => {
@@ -273,7 +320,6 @@ export default function AgendaMedicaPage() {
                                                         <FiEye /> Ver
                                                     </button>
 
-                                                    {/* BOTÓN EDITAR */}
                                                     <button 
                                                         className="btn btn-sm btn-warning d-flex align-items-center gap-1 text-dark"
                                                         onClick={() => {
@@ -290,7 +336,6 @@ export default function AgendaMedicaPage() {
                                                         <FiEdit2 /> Editar
                                                     </button>
 
-                                                    {/* BOTÓN BORRAR */}
                                                     <button 
                                                         className="btn btn-sm btn-danger d-flex align-items-center gap-1"
                                                         onClick={() => handleEliminar(agenda.id, agenda.nombre)}
