@@ -46,6 +46,8 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
         { to: "/almacen/peps", icon: <FaMattressPillow />, label: "PEPS", permiso: "peps.ver" },
         { to: "/almacen/racks", icon: <FaLastfm />, label: "Almacén Racks", permiso: "peps.ver" },
         { to: "/almacen/materiales", icon: <FaBoxes />, label: "Materiales", permiso: "peps.ver" },
+        { to: "/almacen/materiales-stock", icon: <FaBoxes />, label: "Almacén Materiales", permiso: "peps.ver" },
+        
 
         { to: "/citas-medicas", icon: <FaAmbulance />, label: "Citas Médicas", permiso: "citas.ver" },
         { to: "/notas", icon: <FaStickyNote />, label: "Notas", permiso: "notas.ver" },

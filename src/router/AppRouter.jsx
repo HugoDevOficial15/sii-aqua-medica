@@ -19,6 +19,7 @@ import AgendaMedicaPage from "../modules/agendamedica/AgendaMedicaPage";
 import NotasPage from "../modules/notas/notasPage";
 import RacksPage from "../modules/almacen/pages/RacksPages";
 import MaterialesPage from "../modules/almacen/pages/MaterialesPages";
+import AlmacenMaterialesPage from "../modules/almacen/pages/AlmacenMaterialesPage";
 import RacksDashboard from "../modules/almacen-peps/pages/RacksDashboard";
 
 import MainLayout from "../layouts/MainLayout";
@@ -215,6 +216,15 @@ export default function AppRouter() {
                         element={
                             <ProtectedRoute permiso="peps.ver">
                                 <MaterialesPage />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    <Route
+                        path="/almacen/materiales-stock"
+                        element={
+                            <ProtectedRoute permiso="peps.ver">
+                                <AlmacenMaterialesPage />
                             </ProtectedRoute>
                         }
                     />

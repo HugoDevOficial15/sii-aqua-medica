@@ -4,6 +4,8 @@ export const getUbicacionTipoLabel = (rack = {}) => {
     switch (tipo) {
         case "zona":
             return "Zona";
+        case "rack":
+            return "Rack";
         case "mezzanine":
             return "Mezzanine";
         case "rackselectivo":
@@ -23,6 +25,10 @@ export const getUbicacionLabel = (rack = {}) => {
 
     if (tipo === "zona") {
         return `Zona ${valor.toUpperCase()}`;
+    }
+
+    if (tipo === "rack") {
+        return `Rack #${valor}`;
     }
 
     if (tipo === "mezzanine") {

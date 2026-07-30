@@ -73,7 +73,14 @@ export default function RacksPages() {
 
             <div className="card shadow-sm">
                 <div className="card-body table-responsive-container">
-                    <div className="rack-search-container mb-3">
+                    <div className="rack-search-container mb-3"
+                        style={{
+                            background: "var(--operator-background)",
+                            border: "var(--operator-border)",
+                            boxShadow: "var(--operator-box-shadow)",
+                            
+                        }}
+                    >
                         <div className="d-flex gap-2 flex-wrap">
                             <div className="form-group" style={{ minWidth: 400 }}>
                                 <label className="form-label">Buscar número</label>
@@ -140,6 +147,7 @@ export default function RacksPages() {
                                 .map(r => (
                                 <tr key={r.id}>
                                     <td># {r.numeroRack}</td>
+                                    
                                     <td>{r.planta}</td>
                                     <td>
 
@@ -318,7 +326,7 @@ export default function RacksPages() {
 
                 .table tbody tr:hover {
                     transform: scale(1.01);
-                    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+                    box-shadow: var(--operator-text);
                 }
 
                 .rack-search-container {
@@ -336,14 +344,25 @@ export default function RacksPages() {
 
                 .rack-search-container .form-control,
                 .rack-search-container .form-select {
-                    border-radius: 12px;
+                    border-radius: 12xpx;
                     height: 49px;
                 }
 
                 .table td {
+                    background: var(--operator-card);
+                    color: var(--operator-text);
+                    border-color: var(--operator-border);
                     vertical-align: middle;
                     border-top: none !important;
                     padding: 12px;
+                }
+
+                .d-flex.gap-2.flex-wrap {
+                    background: var(--operator-card);
+                    border: var(--operator-border);
+                    border-radius: 16px;
+                    padding: 10px;
+                    box-shadow: var(--operator-box-shadow);
                 }
 
 

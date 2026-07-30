@@ -327,7 +327,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                             style={{
                                 fontSize: 13,
                                 fontWeight: 700,
-                                color: "#374151",
+                                color: "var(--operator-text)",
                                 textAlign: "left"
                             }}
                         >
@@ -552,7 +552,7 @@ const styles = {
         maxWidth: "95%",
 
         background:
-            "rgba(255,255,255,0.94)",
+            "var(--operator-card)",
 
         backdropFilter:
             "blur(10px)",
@@ -560,10 +560,10 @@ const styles = {
         borderRadius: "30px",
 
         border:
-            "1px solid rgba(255,255,255,0.4)",
+            "1px solid var(--operator-border)",
 
         boxShadow:
-            "0 24px 48px rgba(0,0,0,0.18)",
+            "var(--operator-box-shadow)",
 
         overflow: "hidden",
 
@@ -584,10 +584,11 @@ const styles = {
         padding: "24px 30px",
 
         borderBottom:
-            "1px solid #f3f4f6",
+            "1px solid var(--operator-border)",
 
         background:
-            "linear-gradient(135deg,#f9fafb,#ffffff)"
+            "linear-gradient(135deg,var(--operator-card),var(--operator-card))",
+
     },
 
     title: {
@@ -598,7 +599,7 @@ const styles = {
 
         fontWeight: "800",
 
-        color: "#111827"
+        color: "var(--operator-text)"
     },
 
     closeButton: {
@@ -607,22 +608,26 @@ const styles = {
 
         height: "42px",
 
-        border: "none",
-
         borderRadius: "14px",
 
-        background: "#f3f4f6",
+        background: "var(--operator-card)",
+
+        color: "var(--operator-text)",
+
+        border: "1px solid var(--operator-border)",
 
         fontSize: "20px",
 
-        cursor: "pointer"
+        cursor: "pointer",
+        
     },
 
     body: {
 
         padding: "30px",
 
-        background: "#ffffff"
+        background: "var(--operator-card)",
+        
     },
 
     form: {
@@ -634,6 +639,13 @@ const styles = {
         gap: "20px"
     },
 
+    label: {
+
+        color: "var(--operator-text)",
+        fontSize: "14px",
+        
+    },
+
     input: {
 
         height: "50px",
@@ -641,13 +653,15 @@ const styles = {
         borderRadius: "14px",
 
         border:
-            "1px solid #d1d5db",
+            "1px solid var(--operator-border)",
 
         padding: "0 14px",
 
-        background: "#fff",
+        background: "var(--operator-card)",
 
         fontSize: "14px",
+
+        color: "var(--operator-text)",
 
         outline: "none"
     },
