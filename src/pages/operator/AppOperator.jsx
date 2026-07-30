@@ -2,8 +2,10 @@
 import { useState, useEffect } from "react";
 
 // 👇 2. Importamos las herramientas de Firebase en tiempo real
-import { collection, onSnapshot } from "firebase/firestore";
-import { db } from "../../config/firebase"; 
+import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
+import { db } from "../../config/firebase";
+
+import { useAuth } from "../../hooks/useAuth";
 
 import OperatorShell from "./layout/OperatorShell";
 
@@ -39,6 +41,8 @@ import { useOperatorSurveys } from "../../hooks/hooksOperator/useOperatorSurveys
 
 export default function AppOperator() {
 
+    const { user, updateUserProfile } = useAuth();
+
     const [screen, setScreen] = useState("home");
     const [selectedSurvey, setSelectedSurvey] = useState(null);
     const [surveyResult, setSurveyResult] = useState(null);
@@ -55,19 +59,36 @@ export default function AppOperator() {
         refetch: refetchSurveys
     } = useOperatorSurveys();
 
-    // 👇 4. EL VIGILANTE EN TIEMPO REAL
-    // Se conecta a Firebase al abrir la app y actualiza el número al instante
+    //  4. EL VIGILANTE EN TIEMPO REAL
     useEffect(() => {
         const unsubscribe = onSnapshot(collection(db, "notificaciones"), (snapshot) => {
-            // Cuenta cuántos documentos (noticias/citas) hay sin leer
             setNotificacionesCount(snapshot.size);
         }, (error) => {
             console.error("Error escuchando notificaciones:", error);
         });
 
-        // Limpieza de seguridad cuando el componente se cierra
         return () => unsubscribe();
     }, []);
+
+    // Sincronización en tiempo real del perfil propio (CORREGIDO)
+    useEffect(() => {
+        const uidABuscar = user?.uid || user?.id;
+        if (!uidABuscar) return;
+
+        // Buscamos el documento correcto usando el uid (Igual que hicimos al guardar la foto)
+        const q = query(collection(db, "users"), where("uid", "==", uidABuscar));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                // ¡Lo encontró! Actualiza la sesión con los datos reales, incluyendo la foto
+                updateUserProfile(snapshot.docs[0].data());
+            }
+        }, (error) => {
+            console.error("Error escuchando el perfil del usuario:", error);
+        });
+
+        return () => unsubscribe();
+    }, [user?.uid, user?.id]);
 
     const handleNavigate = (view, data = null) => {
         setScreen(view);
@@ -92,8 +113,11 @@ export default function AppOperator() {
                 );
             case "suggestions":
                 return <OperatorSuggestions onNavigate={setScreen} />;
+            
+            // 👇 AQUÍ ESTÁ EL PERFIL YA CORREGIDO
             case "profile":
-                return <OperatorProfile />;
+                return <OperatorProfile usuarioActual={user} />;
+            
             case "more":
                 return <OperatorMore onNavigate={setScreen} />;
             case "points":
@@ -111,7 +135,7 @@ export default function AppOperator() {
             case "news-detail":
                 return <OperatorNewsDetail onBack={() => setScreen("news")} noticia={selectedNews} />;
             case "preferences":
-                return <OperatorPreferences onBack={() => setScreen("more")} />;
+                return <OperatorPreferences onBack={() => setScreen("more")} usuarioActual={user} />;
             case "support":
                 return <OperatorSupport onNavigate={setScreen} onBack={() => setScreen("more")} />;
             case "report-problem":
@@ -143,14 +167,15 @@ export default function AppOperator() {
         }
     };
 
-    // 👇 5. Sumamos las notificaciones de Firebase + las Encuestas que tengas pendientes
+    //  5. Sumamos las notificaciones de Firebase + las Encuestas que tengas pendientes
     const totalNotificaciones = (metrics?.pendientesCount || 0) + notificacionesCount;
 
     return (
         <OperatorShell
             activeTab={screen}
             onTabChange={setScreen}
-            notificationCount={totalNotificaciones} // 👈 Conectado a la suma total
+            notificationCount={totalNotificaciones} //  Conectado a la suma total
+            usuarioActual={user} // 👇 LE PASAMOS EL USUARIO AL MENÚ LATERAL
         >
             {renderScreen()}
         </OperatorShell>

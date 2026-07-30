@@ -1,16 +1,31 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Swal from "sweetalert2";
 
 import { profileChangeSchema } from "../../schemas/profileChangeSchema";
-import { requestProfileChange } from "../../services/usersService";
-import { generateEmployeeCSV } from "../../utils/csvGenerator";
+import { requestProfileChange } from "../../services/solicitudesCambiosService";
+import { getPuestos } from "../../services/puestos-service";
+import { AREAS } from "../../catalogs/areas";
 import { notifySuccess, notifyError } from "../../utils/notify";
 
 export default function RequestChangeModal({ user, onClose, onSuccess }) {
 
     const [saving, setSaving] = useState(false);
+    const [puestos, setPuestos] = useState([]);
+
+    useEffect(() => {
+
+        const loadPuestos = async () => {
+            const data = await getPuestos();
+            setPuestos(
+                [...data].sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }))
+            );
+        };
+
+        loadPuestos();
+
+    }, []);
 
     const {
         register,
@@ -20,6 +35,13 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
         resolver: zodResolver(profileChangeSchema),
         defaultValues: {
             nombre: user?.nombre || "",
+            Genero: user?.Genero || "",
+            area: user?.area || "",
+            cumpleanos: user?.cumpleanos || "",
+            email: user?.email || "",
+            fechaIngreso: user?.fechaIngreso || "",
+            nomina: String(user?.nomina || ""),
+            puesto: user?.puesto || "",
             curp: user?.curp || "",
             rfc: user?.rfc || "",
             nss: user?.nss || "",
@@ -38,7 +60,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
             setSaving(true);
 
             Swal.fire({
-                title: "Guardando cambios",
+                title: "Enviando solicitud",
                 text: "Esperando respuesta del servidor",
                 allowOutsideClick: false,
                 allowEscapeKey: false,
@@ -47,41 +69,21 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
                 }
             });
 
-            const result = await requestProfileChange(user.nomina, data);
+            const result = await requestProfileChange(user, data);
 
             Swal.close();
 
             if (!result.success) {
-                if (result.error === "NOMINA_NOT_FOUND") {
-                    notifyError(
-                        "Nómina no encontrada",
-                        "No pudimos localizar tu usuario en el sistema."
-                    );
-                } else if (result.error === "DUPLICATE_NOMINA") {
-                    notifyError(
-                        "Nómina duplicada",
-                        "Existen usuarios duplicados con esta nómina. Contacte al administrador. No se realizaron cambios."
-                    );
-                } else {
-                    notifyError("Error", "No se pudo actualizar la información.");
-                }
+                notifyError("Error", "No se pudo enviar tu solicitud. Intenta de nuevo.");
                 return;
             }
 
-            if (result.hadMissingFields) {
-                const filename = generateEmployeeCSV([result.data]);
-                notifySuccess(
-                    "Datos actualizados",
-                    `Tu información se actualizó correctamente. Como aún faltaban datos (CURP/RFC/NSS), se generó el archivo "${filename}" en la carpeta de descargas para completarlos posteriormente.`
-                );
-            } else {
-                notifySuccess(
-                    "Datos actualizados",
-                    "Tu información se actualizó correctamente."
-                );
-            }
+            notifySuccess(
+                "Solicitud enviada",
+                "Tu solicitud de cambio fue enviada al administrador. Te notificaremos cuando sea revisada."
+            );
 
-            onSuccess?.(result.data);
+            onSuccess?.();
             onClose();
 
         } catch (error) {
@@ -95,7 +97,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
                     "No se pudo conectar con el servidor. Intenta de nuevo."
                 );
             } else {
-                notifyError("Error", "No se pudo actualizar la información.");
+                notifyError("Error", "No se pudo enviar la solicitud.");
             }
 
         } finally {
@@ -120,6 +122,11 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
 
                     <div style={styles.body}>
 
+                        <p style={styles.hint}>
+                            Estos cambios se enviarán como una solicitud. Un administrador
+                            deberá revisarla y aprobarla antes de que se reflejen en tu perfil.
+                        </p>
+
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Nombre completo</label>
                             <input
@@ -127,6 +134,94 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
                                 {...register("nombre")}
                             />
                             {errors.nombre && <div style={styles.errorText}>{errors.nombre.message}</div>}
+                        </div>
+
+                        <div style={styles.row}>
+
+                            <div style={{ ...styles.inputGroup, flex: 1 }}>
+                                <label style={styles.label}>Género</label>
+                                <select
+                                    style={{ ...styles.input, ...(errors.Genero ? styles.inputError : {}) }}
+                                    {...register("Genero")}
+                                >
+                                    <option value="">Seleccionar...</option>
+                                    <option value="H">Masculino</option>
+                                    <option value="M">Femenino</option>
+                                </select>
+                                {errors.Genero && <div style={styles.errorText}>{errors.Genero.message}</div>}
+                            </div>
+
+                            <div style={{ ...styles.inputGroup, flex: 1 }}>
+                                <label style={styles.label}>Área</label>
+                                <select
+                                    style={{ ...styles.input, ...(errors.area ? styles.inputError : {}) }}
+                                    {...register("area")}
+                                >
+                                    <option value="">Seleccionar...</option>
+                                    {AREAS.map(area => (
+                                        <option key={area.id} value={area.nombre}>{area.nombre}</option>
+                                    ))}
+                                </select>
+                                {errors.area && <div style={styles.errorText}>{errors.area.message}</div>}
+                            </div>
+
+                        </div>
+
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Puesto</label>
+                            <select
+                                style={{ ...styles.input, ...(errors.puesto ? styles.inputError : {}) }}
+                                {...register("puesto")}
+                            >
+                                <option value="">Seleccionar...</option>
+                                {puestos.map(p => (
+                                    <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                                ))}
+                            </select>
+                            {errors.puesto && <div style={styles.errorText}>{errors.puesto.message}</div>}
+                        </div>
+
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Correo electrónico</label>
+                            <input
+                                type="email"
+                                style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
+                                {...register("email")}
+                            />
+                            {errors.email && <div style={styles.errorText}>{errors.email.message}</div>}
+                        </div>
+
+                        <div style={styles.row}>
+
+                            <div style={{ ...styles.inputGroup, flex: 1 }}>
+                                <label style={styles.label}>Fecha de ingreso</label>
+                                <input
+                                    type="date"
+                                    style={{ ...styles.input, ...(errors.fechaIngreso ? styles.inputError : {}) }}
+                                    {...register("fechaIngreso")}
+                                />
+                                {errors.fechaIngreso && <div style={styles.errorText}>{errors.fechaIngreso.message}</div>}
+                            </div>
+
+                            <div style={{ ...styles.inputGroup, flex: 1 }}>
+                                <label style={styles.label}>Cumpleaños</label>
+                                <input
+                                    type="date"
+                                    style={{ ...styles.input, ...(errors.cumpleanos ? styles.inputError : {}) }}
+                                    {...register("cumpleanos")}
+                                />
+                                {errors.cumpleanos && <div style={styles.errorText}>{errors.cumpleanos.message}</div>}
+                            </div>
+
+                        </div>
+
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Número de nómina</label>
+                            <input
+                                style={{ ...styles.input, ...(errors.nomina ? styles.inputError : {}) }}
+                                {...register("nomina")}
+                            />
+                            {errors.nomina && <div style={styles.errorText}>{errors.nomina.message}</div>}
                         </div>
 
                         <div style={styles.inputGroup}>
@@ -168,7 +263,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
                         </button>
 
                         <button type="submit" style={styles.saveButton} disabled={saving}>
-                            {saving ? "Guardando..." : "Guardar cambios"}
+                            {saving ? "Enviando..." : "Enviar solicitud"}
                         </button>
 
                     </div>
@@ -199,7 +294,7 @@ const styles = {
     modalCard: {
         background: "#ffffff",
         borderRadius: "24px",
-        width: "440px",
+        width: "480px",
         maxWidth: "95%",
         boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
         overflow: "hidden"
@@ -236,6 +331,19 @@ const styles = {
         gap: "16px",
         maxHeight: "60vh",
         overflowY: "auto"
+    },
+    hint: {
+        margin: 0,
+        fontSize: "13px",
+        color: "#64748b",
+        background: "#eff6ff",
+        border: "1px solid #dbeafe",
+        borderRadius: "12px",
+        padding: "10px 14px"
+    },
+    row: {
+        display: "flex",
+        gap: "12px"
     },
     inputGroup: {
         display: "flex",

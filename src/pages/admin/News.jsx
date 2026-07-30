@@ -2,6 +2,15 @@ import React, { useState, useEffect } from "react";
 import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../../config/firebase";
 
+// 👇 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
+const getHoy = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function News() {
   const [vistaActual, setVistaActual] = useState("lista"); 
   const [noticiaEditando, setNoticiaEditando] = useState(null);
@@ -79,13 +88,11 @@ export default function News() {
 
     setLoading(true);
     try {
-      // 1. Convertir imagen a Base64 si se seleccionó una nueva
       let imagenUrl = noticiaEditando?.imagen || "";
       if (imagen) {
         imagenUrl = await convertirABase64(imagen);
       }
 
-      // 2. Convertir archivo adjunto (PDF, Word, etc.) a Base64
       let archivoUrl = noticiaEditando?.archivo || "";
       let archivoNombre = noticiaEditando?.archivoNombre || "";
       if (archivoSeleccionado) {
@@ -101,8 +108,8 @@ export default function News() {
           fechaLimite, 
           areaDestino: areaDestino || "Todas",
           imagen: imagenUrl,
-          archivo: archivoUrl,       // 👈 Guardamos el archivo en Base64
-          archivoNombre: archivoNombre, // 👈 Guardamos el nombre original
+          archivo: archivoUrl, 
+          archivoNombre: archivoNombre,
           estado: "Activa" 
         });
       } else {
@@ -112,8 +119,8 @@ export default function News() {
           fechaLimite, 
           areaDestino: areaDestino || "Todas",
           imagen: imagenUrl,
-          archivo: archivoUrl,       // 👈 Guardamos el archivo en Base64
-          archivoNombre: archivoNombre, // 👈 Guardamos el nombre original
+          archivo: archivoUrl, 
+          archivoNombre: archivoNombre, 
           fechaCreacion: serverTimestamp(), 
           estado: "Activa"
         });
@@ -137,6 +144,13 @@ export default function News() {
       setLoading(false);
     }
   };
+
+  // 👇 2. Filtramos la lista justo antes de renderizar (Solo noticias Vigentes)
+  const fechaHoy = getHoy();
+  const noticiasVigentes = noticias.filter((noticia) => {
+    if (!noticia.fechaLimite) return true;
+    return noticia.fechaLimite >= fechaHoy;
+  });
 
   return (
     <div className="container-fluid p-4">
@@ -169,7 +183,8 @@ export default function News() {
                   </tr>
                 </thead>
                 <tbody>
-                  {noticias.map((noticia) => (
+                  {/* 👇 3. Iteramos sobre noticiasVigentes en lugar de noticias */}
+                  {noticiasVigentes.map((noticia) => (
                     <tr key={noticia.id}>
                       <td className="py-3 border-0"><span className="fw-medium">{noticia.titulo}</span></td>
                       <td className="border-0">
@@ -192,7 +207,8 @@ export default function News() {
                   ))}
                 </tbody>
               </table>
-              {noticias.length === 0 && <div className="text-center text-muted py-5">No hay noticias publicadas en la base de datos.</div>}
+              {/* 👇 4. Mensaje ajustado para la lista filtrada */}
+              {noticiasVigentes.length === 0 && <div className="text-center text-muted py-5">No hay noticias activas en este momento.</div>}
             </div>
           </div>
         </div>
@@ -200,6 +216,7 @@ export default function News() {
 
       {vistaActual === "formulario" && (
         <div className="card shadow-sm border-0">
+          {/* ... Todo tu código del formulario se mantiene intacto ... */}
           <div className="card-body p-4">
             <form onSubmit={handleSubmit}>
               <div className="row">

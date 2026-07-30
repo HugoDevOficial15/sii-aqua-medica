@@ -28,6 +28,7 @@ import Users from "../pages/admin/Users";
 import PuestosPage from "../modules/puestos/page/PuestosPage";
 import Configuracion from "../pages/admin/Configuracion";
 import Soporte from "../pages/admin/Soporte";
+import Solicitudes from "../pages/admin/Solicitudes";
 
 import MaintenancePage from "../components/MaintenancePage";
 
@@ -87,6 +88,16 @@ export default function AppRouter() {
                         element={
                             <ProtectedRoute permiso="encuestas.ver">
                                 <CreateSurvey />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* SOLICITUDES DE CAMBIOS */}
+                    <Route
+                        path="/solicitudes"
+                        element={
+                            <ProtectedRoute permiso="solicitudes.ver">
+                                <Solicitudes />
                             </ProtectedRoute>
                         }
                     />

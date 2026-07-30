@@ -33,6 +33,23 @@ export default function OperatorNews({ onNavigate }) {
             setLoading(false);
         });
 
+        // 1. Obtener fecha actual
+  const getHoy = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const fechaHoy = getHoy();
+
+  // 2. Filtrar para desaparecer las caducadas
+  const noticiasVigentes = noticias.filter((noticia) => {
+    if (!noticia.fechaLimite) return true;
+    return noticia.fechaLimite >= fechaHoy; 
+  });
+
         return () => unsubscribe();
     }, []);
 

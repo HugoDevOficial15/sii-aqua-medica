@@ -25,7 +25,8 @@ export default function OperatorDrawer({
     onNavigate,
     onTouchStart,
     onTouchMove,
-    onTouchEnd
+    onTouchEnd,
+    usuarioActual
 }) {
 
     const { user } = useAuth();

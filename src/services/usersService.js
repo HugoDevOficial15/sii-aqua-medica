@@ -63,11 +63,14 @@ export const updateUser = async (id, data) => {
 }
 
 
-// Solicitar cambio de datos (Perfil operador): nombre, curp, rfc, nss
+// Aplica cambios ya aprobados por un administrador a un usuario existente.
 // Localiza el documento por número de nómina (nunca por uid) y aplica una
-// actualización parcial (updateDoc, jamás addDoc/setDoc) que crea los campos
-// si no existen y los actualiza si ya existen, sin tocar el resto del documento.
-export const requestProfileChange = async (nomina, changes) => {
+// actualización parcial (updateDoc, jamás addDoc/setDoc): esta es la ÚNICA
+// función que debe escribir cambios de perfil sobre la colección "users".
+// La usa solicitudesCambiosService.approveRequest(); nunca se llama directo
+// desde el formulario de "Solicitar cambio" (eso ahora solo crea una
+// solicitud pendiente, ver solicitudesCambiosService.requestProfileChange).
+export const updateUserFields = async (nomina, updates) => {
 
     const q = query(userCollection, where("nomina", "==", Number(nomina)));
 
@@ -84,27 +87,11 @@ export const requestProfileChange = async (nomina, changes) => {
     const userDoc = snapshot.docs[0];
     const existingData = userDoc.data();
 
-    // Se registra ANTES del update para saber si hay que generar el CSV
-    // de campos pendientes (curp/rfc/nss que no existían previamente).
-    const missingBefore = {
-        curp: !existingData.curp,
-        rfc: !existingData.rfc,
-        nss: !existingData.nss
-    };
-
-    const updates = {};
-
-    if (changes.nombre) updates.nombre = changes.nombre;
-    if (changes.curp) updates.curp = changes.curp;
-    if (changes.rfc) updates.rfc = changes.rfc;
-    if (changes.nss) updates.nss = changes.nss;
-
     await updateDoc(doc(db, "users", userDoc.id), updates);
 
     return {
         success: true,
-        data: { id: userDoc.id, ...existingData, ...updates },
-        hadMissingFields: missingBefore.curp || missingBefore.rfc || missingBefore.nss
+        data: { id: userDoc.id, ...existingData, ...updates }
     };
 };
 

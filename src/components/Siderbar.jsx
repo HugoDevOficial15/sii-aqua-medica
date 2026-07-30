@@ -17,7 +17,8 @@ import {
     FaAmbulance,
     FaSyringe,
     FaLifeRing,
-    FaNewspaper // <-- NUEVO ÍCONO IMPORTADO AQUÍ
+    FaNewspaper, // <-- NUEVO ÍCONO IMPORTADO AQUÍ
+    FaClipboardCheck
 } from "react-icons/fa";
 
 import { FaMattressPillow } from "react-icons/fa6";
@@ -31,7 +32,8 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
         { to: "/usuarios", icon: <FaUsers />, label: "Usuarios", permiso: "usuarios.ver" },
         { to: "/puestos", icon: <FaUserTie />, label: "Puestos", permiso: "puestos.ver" },
         { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
-        
+        { to: "/solicitudes", icon: <FaClipboardCheck />, label: "Solicitudes", permiso: "solicitudes.ver" },
+
         // <-- NUEVA OPCIÓN DE NOTICIAS AGREGADA AQUÍ -->
         { to: "/noticias", icon: <FaNewspaper />, label: "Noticias", permiso: "noticias.ver" },
         

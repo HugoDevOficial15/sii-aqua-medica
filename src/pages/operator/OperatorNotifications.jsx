@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, doc, deleteDoc } from "firebase/firestore";
 import { db } from "../../config/firebase"; 
 
-import { FiBell, FiClipboard, FiAward, FiBookOpen, FiUser } from "react-icons/fi";
+import { FiClipboard, FiAward, FiBookOpen } from "react-icons/fi";
 
+import { useAuth } from "../../hooks/useAuth";
 import NotificationCard from "../../components/operator/NotificationCard";
 
 // Ruta a la que navega cada tipo de notificación dinámica al completarla.
@@ -13,11 +14,15 @@ const RUTA_POR_DESTINO = {
     "Citas Medicas": "citas-medicas",
     "Noticias": "news",
     "Cumpleaños": "home",
-    "Aniversario": "home"
+    "Aniversario": "home",
+    "SolicitudAprobada": "profile",
+    "SolicitudRechazada": "profile"
 };
 
 export default function OperatorNotifications({ onNavigate }) {
-    
+
+    const { user } = useAuth();
+
     // Ahora guardamos TODAS las notificaciones dinámicas juntas
     const [notificaciones, setNotificaciones] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -27,11 +32,18 @@ export default function OperatorNotifications({ onNavigate }) {
             try {
                 const q = query(collection(db, "notificaciones"), orderBy("fechaCreacion", "desc"));
                 const querySnapshot = await getDocs(q);
-                
-                const notifs = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
+
+                const notifs = querySnapshot.docs
+                    .map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }))
+                    // Las notificaciones dirigidas a un usuario específico
+                    // (IdUsuario) -como aprobación/rechazo de solicitudes o
+                    // cumpleaños- solo deben mostrarse a ese usuario. Las
+                    // que no declaran IdUsuario siguen siendo broadcast
+                    // (Noticias, Citas Medicas) como ya funcionaban.
+                    .filter(n => !n.IdUsuario || n.IdUsuario === user?.id);
 
                 setNotificaciones(notifs);
             } catch (error) {
@@ -42,7 +54,7 @@ export default function OperatorNotifications({ onNavigate }) {
         };
 
         fetchNotificaciones();
-    }, []);
+    }, [user?.id]);
 
     //  FUNCIÓN PARA BORRAR Y NAVEGAR
     const handleCompletarTarea = async (idNotificacion, ruta) => {
@@ -124,15 +136,6 @@ export default function OperatorNotifications({ onNavigate }) {
                     <strong>Capacitación disponible</strong>
                     <p>Nueva capacitación asignada.</p>
                     <small>Hace 2 días</small>
-                </div>
-            </div>
-
-            <div className="notification-card" onClick={() => handleNavigation('profile')} style={{ cursor: 'pointer' }}>
-                <div className="notification-icon profile"><FiUser /></div>
-                <div className="notification-content">
-                    <strong>Solicitud actualizada</strong>
-                    <p>Tu solicitud de cambio fue revisada.</p>
-                    <small>Hace 4 días</small>
                 </div>
             </div>
         </div>

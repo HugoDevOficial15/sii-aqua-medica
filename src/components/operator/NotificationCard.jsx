@@ -1,4 +1,4 @@
-import { FiBell, FiActivity } from "react-icons/fi";
+import { FiBell, FiActivity, FiCheckCircle, FiXCircle } from "react-icons/fi";
 
 // Config visual (icono/colores) por tipo de notificación. "icono" puede
 // ser un componente de react-icons o un emoji (string) directamente.
@@ -40,6 +40,24 @@ export function getConfigEstilo(destino) {
                 color: "#a855f7",
                 borderColor: "#a855f7",
                 tituloDefault: "Aniversario laboral"
+            };
+
+        case "SolicitudAprobada":
+            return {
+                icono: FiCheckCircle,
+                bg: "#dcfce7",
+                color: "#16a34a",
+                borderColor: "#16a34a",
+                tituloDefault: "Solicitud aprobada"
+            };
+
+        case "SolicitudRechazada":
+            return {
+                icono: FiXCircle,
+                bg: "#fee2e2",
+                color: "#dc2626",
+                borderColor: "#dc2626",
+                tituloDefault: "Solicitud rechazada"
             };
 
         default:
