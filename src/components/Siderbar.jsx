@@ -18,7 +18,9 @@ import {
     FaSyringe,
     FaLifeRing,
     FaNewspaper, // <-- NUEVO ÍCONO IMPORTADO AQUÍ
-    FaClipboardCheck
+    FaClipboardCheck,
+    FaBuffer,
+    FaExchangeAlt
 } from "react-icons/fa";
 
 import { FaMattressPillow } from "react-icons/fa6";
@@ -36,18 +38,18 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
 
         // <-- NUEVA OPCIÓN DE NOTICIAS AGREGADA AQUÍ -->
         { to: "/noticias", icon: <FaNewspaper />, label: "Noticias", permiso: "noticias.ver" },
-        
+
         { to: "/inventario", icon: <FaBoxes />, label: "Inventario", permiso: "inventario.ver" },
         { to: "/agenda", icon: <FaLaptopCode />, label: "Agenda Servicios", permiso: "servicios.agendar" },
         { to: "/servicioshoy", icon: <FaListAlt />, label: "Lista Servicios", permiso: "servicios.ver_global" },
         { to: "/aniversarios", icon: <FaBirthdayCake />, label: "Aniversarios", permiso: "aniversarios.ver" },
         { to: "/medicamento", icon: <FaSyringe />, label: "Medicamentos", permiso: "medicamentos.ver" },
 
-        { to: "/almacen/peps", icon: <FaMattressPillow />, label: "PEPS", permiso: "peps.ver" },
-        { to: "/almacen/racks", icon: <FaLastfm />, label: "Almacén Racks", permiso: "peps.ver" },
-        { to: "/almacen/materiales", icon: <FaBoxes />, label: "Materiales", permiso: "peps.ver" },
-        { to: "/almacen/materiales-stock", icon: <FaBoxes />, label: "Almacén Materiales", permiso: "peps.ver" },
-        
+        { to: "/almacen/peps", icon: <FaExchangeAlt />, label: "PEPS", permiso: "peps.ver" },
+        { to: "/almacen/materiales-stock", icon: <FaClipboardCheck />, label: "Inventario", permiso: "peps.ver" },
+        { to: "/almacen/racks", icon: <FaBuffer />, label: "Agregar Rack", permiso: "peps.ver" },
+        { to: "/almacen/materiales", icon: <FaBoxes />, label: "Agregar Material", permiso: "peps.ver" },
+
 
         { to: "/citas-medicas", icon: <FaAmbulance />, label: "Citas Médicas", permiso: "citas.ver" },
         { to: "/notas", icon: <FaStickyNote />, label: "Notas", permiso: "notas.ver" },
