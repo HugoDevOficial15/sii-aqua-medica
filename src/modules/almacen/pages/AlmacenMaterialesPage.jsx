@@ -3,6 +3,7 @@ import { FaSearch, FaBoxes } from "react-icons/fa";
 import Loader from "../../../components/Loader";
 import { obtenerRacks } from "../../../services/rackService";
 import { suscribirStock } from "../../../services/rackStockService";
+import { getUbicacionLabel, getUbicacionTipoLabel } from "../../../utils/rackLocation";
 
 const parseDate = (value) => {
     if (!value) return null;
@@ -65,14 +66,22 @@ const getTipoLabel = (tipo) => {
     }
 };
 
-const buildMaterialGroups = (stock = [], racks = []) => {
+const buildMaterialGroups = (stock = [], racks = [], planta = "") => {
     const rackMap = Object.fromEntries(
         racks.map((rack) => [rack.id, rack])
     );
 
     const groups = new Map();
+    const plantaSeleccionada = planta?.trim() || "";
 
     stock.forEach((item) => {
+        const rack = rackMap[item.rackId];
+        const rackPlanta = rack?.planta?.toString().trim() || "";
+
+        if (plantaSeleccionada && rackPlanta !== plantaSeleccionada) {
+            return;
+        }
+
         const key = `${item.itemId || ""}-${item.nombreItem || ""}-${item.tipoItem || ""}`;
 
         if (!groups.has(key)) {
@@ -88,7 +97,6 @@ const buildMaterialGroups = (stock = [], racks = []) => {
         }
 
         const group = groups.get(key);
-        const rack = rackMap[item.rackId];
         const cantidad = Number(item.cantidadActual || 0);
 
         group.totalCantidad += cantidad;
@@ -96,12 +104,16 @@ const buildMaterialGroups = (stock = [], racks = []) => {
             ? (item.fechaEntrada || item.createdAt)
             : group.lastEntry;
 
+        const rackInfo = rack || {};
+
         group.racks.push({
             rackId: item.rackId,
-            rackNumero: item.rackNumero || rack?.numeroRack || "Sin rack",
-            planta: rack?.planta || "Sin planta",
+            rackNumero: item.rackNumero || rackInfo.numeroRack || "Sin rack",
+            planta: rackInfo.planta || "Sin planta",
             cantidad,
-            ultimaEntrada: item.fechaEntrada || item.createdAt
+            ultimaEntrada: item.fechaEntrada || item.createdAt,
+            ubicacionLabel: getUbicacionLabel(rackInfo),
+            ubicacionTipoLabel: getUbicacionTipoLabel(rackInfo)
         });
     });
 
@@ -162,8 +174,8 @@ export default function AlmacenMaterialesPage() {
     }, []);
 
     const materiales = useMemo(
-        () => buildMaterialGroups(stock, racks),
-        [stock, racks]
+        () => buildMaterialGroups(stock, racks, filters.planta),
+        [stock, racks, filters.planta]
     );
 
     const plantasDisponibles = useMemo(
@@ -187,17 +199,16 @@ export default function AlmacenMaterialesPage() {
     }, [materiales, filters.tipo]);
 
     const filteredMateriales = useMemo(() => {
-        const search = filters.search?.toLowerCase() || "";
+        const search = filters.search?.trim().toLowerCase() || "";
 
         return materiales.filter((item) => {
             const matchesSearch = !search || item.nombreItem.toLowerCase().includes(search);
-            const matchesPlanta = !filters.planta || item.racks.some((rack) => rack.planta === filters.planta);
             const matchesTipo = !filters.tipo || item.tipoItem === filters.tipo;
             const matchesMaterial = !filters.material || item.nombreItem === filters.material;
 
-            return matchesSearch && matchesPlanta && matchesTipo && matchesMaterial;
+            return matchesSearch && matchesTipo && matchesMaterial;
         });
-    }, [materiales, filters]);
+    }, [materiales, filters.tipo, filters.material, filters.search]);
 
     const handleTipoChange = (value) => {
         setFilters((prev) => ({
@@ -312,7 +323,13 @@ export default function AlmacenMaterialesPage() {
                                                 </div>
                                             </td>
                                             <td>
-                                                <span className="badge bg-info-subtle text-info-emphasis">
+                                                <span className={`badge ${item.tipoItem === "materia_prima"
+                                                    ? "bg-info"
+                                                    : item.tipoItem === "producto_terminado"
+                                                        ? "bg-danger"
+                                                        : "bg-secondary"
+                                                    }`}
+                                                >
                                                     {getTipoLabel(item.tipoItem)}
                                                 </span>
                                             </td>
@@ -323,12 +340,12 @@ export default function AlmacenMaterialesPage() {
                                         {expandedId === item.id && (
                                             <tr>
                                                 <td colSpan="5">
-                                                    <div className="p-3 rounded bg-light">
-                                                        <div className="fw-semibold mb-2">Racks donde se almacena</div>
+                                                    <div className="p-3-rounded-bg-light">
+                                                        <div className="fw-semibold mb-2">Lugares de almacenaje</div>
                                                         <ul className="mb-0">
                                                             {item.racks.map((rack) => (
                                                                 <li key={`${item.id}-${rack.rackId}`}>
-                                                                    Rack {rack.rackNumero} · Planta {rack.planta} · Cantidad {rack.cantidad} · Última entrada {formatDate(rack.ultimaEntrada)}
+                                                                    {rack.ubicacionLabel} · Planta: {rack.planta} · Cantidad: {rack.cantidad} · Última entrada: {formatDate(rack.ultimaEntrada)}
                                                                 </li>
                                                             ))}
                                                         </ul>
@@ -343,6 +360,19 @@ export default function AlmacenMaterialesPage() {
                     </table>
                 </div>
             </div>
+            <style jsx>{`
+            .p-3-rounded-bg-light {
+                background-color: var(--operator-card);
+                border-color: var(--operator-border);
+                color: var(--operator-text);
+            }
+
+            .mb-0{
+                margin-bottom: 0.5rem !important;
+                background-color: var(--operator-card);
+                bordercolor: var(--operator-border);
+            }
+            `}</style>
         </div>
     );
 }

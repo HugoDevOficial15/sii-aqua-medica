@@ -122,11 +122,11 @@ const styles = {
         zIndex: 1000
     },
     modalCard: {
-        background: "#ffffff",
+        background: "var(--operator-card)",
         borderRadius: "16px",
         width: "400px",
         maxWidth: "90%",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+        boxShadow: "0 10px 30px var(--operator-shadow)",
         overflow: "hidden",
         animation: "fadeIn 0.2s ease-in-out"
     },
@@ -135,21 +135,21 @@ const styles = {
         justifyContent: "space-between",
         alignItems: "center",
         padding: "16px 20px",
-        borderBottom: "1px solid #eee",
-        background: "#f9fafb"
+        borderBottom: "1px solid var(--operator-border)",
+        background: "var(--operator-background)"
     },
     title: {
         margin: 0,
         fontSize: "18px",
         fontWeight: "600",
-        color: "#111"
+        color: "var(--operator-text)"
     },
     closeButton: {
         border: "none",
         background: "transparent",
         fontSize: "20px",
         cursor: "pointer",
-        color: "#666"
+        color: "var(--operator-text)"
     },
     body: {
         padding: "20px"
@@ -162,15 +162,17 @@ const styles = {
     label: {
         fontSize: "14px",
         fontWeight: "500",
-        color: "#333"
+        color: "var(--operator-text)"
     },
     input: {
         padding: "10px 12px",
         borderRadius: "8px",
-        border: "1px solid #ccc",
+        background: "var(--operator-input-bg)",
+        border: "2px solid var(--operator-border)",
         fontSize: "14px",
         outline: "none",
-        transition: "all 0.2s ease"
+        transition: "all 0.2s ease",
+        color: "var(--operator-text)"
     },
     inputError: {
         border: "1px solid #e74c3c"
@@ -184,8 +186,8 @@ const styles = {
         justifyContent: "flex-end",
         gap: "10px",
         padding: "16px 20px",
-        borderTop: "1px solid #eee",
-        background: "#fafafa"
+        borderTop: "1px solid var(--operator-border)",
+        background: "var(--operator-card-bg)"
     },
     cancelButton: {
         padding: "8px 14px",

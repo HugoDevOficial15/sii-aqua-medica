@@ -65,6 +65,38 @@ export default function MaterialesTable({ data, onEdit }) {
             </tbody>
 
         </table>
+
+        <style jsx>{`
+            tbody tr td:first-child {
+                background-color: var(--operator-card);
+                bordercolor: var(--operator-card);
+                color: var(--operator-text);
+            }
+
+            tbody tr td:nth-child(2) {
+                background-color: var(--operator-card);
+
+            }
+            
+            tbody tr td:nth-child(3) {
+                background-color: var(--operator-card);
+                bordercolor: var(--operator-card);
+                color: var(--operator-text);
+            }
+
+            tbody tr td:nth-child(4) {
+                background-color: var(--operator-card);
+                bordercolor: var(--operator-card);
+                color: var(--operator-text);
+            }
+
+            tbody tr td:nth-child(5) {
+                background-color: var(--operator-card);
+                bordercolor: var(--operator-card);
+                color: var(--operator-text);
+            }
+            
+        `}</style>
         </div>
     );
 }

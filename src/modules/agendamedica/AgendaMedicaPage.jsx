@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { db } from "../../config/firebase";
 import { FiEye, FiEdit2, FiTrash2, FiArrowLeft, FiSave, FiPlus } from "react-icons/fi";
 import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
+import Loader from "../../components/Loader";
 
 import AgendaDetalle from "./AgendaDetalle";
 import AgendaForm from "./AgendaForm";
@@ -145,10 +146,11 @@ export default function AgendaMedicaPage() {
         setFormEdicion({ ...formEdicion, [campo]: valor });
     };
 
-    if (loading) return <div className="p-4 text-white text-center">Cargando agendas médicas...</div>;
+    if (loading) return <Loader message="Cargando agendas médicas..." />;
 
     // VISTA: DETALLE DE LA AGENDA
     if (vista === "detalle") {
+
         return (
             <AgendaDetalle 
                 agenda={agendaSeleccionada} 
@@ -269,7 +271,7 @@ export default function AgendaMedicaPage() {
                 </button>
             </div>
 
-            <div className="card border-0 shadow-sm" style={{ backgroundColor: '#1e293b', borderRadius: '12px' }}>
+            <div className="card border-0 shadow-sm" style={{ backgroundColor: "var(--operator-card)", borderRadius: '12px' }}>
                 <div className="card-body p-0">
                     <div className="table-responsive">
                         <table className="table table-borderless table-hover mb-0" style={{ color: '#e2e8f0' }}>

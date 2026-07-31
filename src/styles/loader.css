@@ -8,7 +8,7 @@
     width: 100%;
     height: 100%;
 
-    background: rgba(255, 255, 255, 0.92);
+    background: var(--operator-background);
     backdrop-filter: blur(500px);
 
     display: flex;
@@ -31,11 +31,11 @@
 /* LOGO */
 
 .loader-logo {
-    width: 150px;
-    max-width: 150px;
+    width: 200px;
+    max-width: 200px;
     height: auto;
     object-fit: contain;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
 }
 
 /* SPINNER */
@@ -58,66 +58,8 @@
 
 .loader-text {
     font-size: 16px;
-    color: #555;
+    color: var(--operator-text);
     font-weight: 500;
-}
-
-/* ANIMACION */
-
-@keyframes spin {
-
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-
-}
-
-/* LOADER GLOBAL */
-
-
-/* CONTENEDOR */
-
-.loader-container {
-    text-align: center;
-}
-
-/* LOGO */
-
-.loader-logo {
-    width: 150px;
-    max-width: 150px;
-    height: auto;
-    object-fit: contain;
-    margin-bottom: 20px;
-}
-
-/* SPINNER */
-
-.loader-spinner {
-    width: 50px;
-    height: 50px;
-
-    border: 5px solid #e0e0e0;
-    border-top: 5px solid #0d6efd;
-
-    border-radius: 50%;
-
-    animation: spin 1s linear infinite;
-
-    margin: 0 auto 15px auto;
-}
-
-/* TEXTO */
-
-.loader-text {
-    font-size: 16px;
-    color: #555;
-    font-weight: 500;
-    text-align: center;
 }
 
 /* ANIMACION */

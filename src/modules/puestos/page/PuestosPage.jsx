@@ -165,8 +165,10 @@ export default function PuestosPage() {
 .table td {
     vertical-align: middle;
     border-top: none !important;
-    padding: 12px;
+    position: relative;
 }
+
+
 
 
             `}</style>

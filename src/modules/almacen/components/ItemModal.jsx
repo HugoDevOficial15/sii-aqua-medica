@@ -300,18 +300,21 @@ const styles = {
         maxWidth: "95%",
 
         background:
-            "rgba(255,255,255,0.94)",
+            "var(--operator-card)",
 
         backdropFilter:
             "blur(10px)",
 
         borderRadius: "30px",
 
+        borderColor:
+            "var(--operator-card)",
+
         border:
-            "1px solid rgba(255,255,255,0.4)",
+            "1px solid var(--operator-card)",
 
         boxShadow:
-            "0 24px 48px rgba(0,0,0,0.18)",
+            "0 24px 48px var(--operator-card)",
 
         overflow: "hidden",
 
@@ -331,11 +334,10 @@ const styles = {
 
         padding: "24px 30px",
 
-        borderBottom:
-            "1px solid #f3f4f6",
-
+        borderColor: "1px solid var(--operator-card)",
+        
         background:
-            "linear-gradient(135deg,#f9fafb,#ffffff)"
+            "linear-gradient(var(--operator-background), var(--operator-background))",
     },
 
     title: {
@@ -346,7 +348,7 @@ const styles = {
 
         fontWeight: "800",
 
-        color: "#111827"
+        color: "var(--operator-text)"
     },
 
     closeButton: {
@@ -355,13 +357,17 @@ const styles = {
 
         height: "42px",
 
-        border: "none",
-
         borderRadius: "14px",
 
-        background: "#f3f4f6",
+        borderColor: "var(--operator-text)",
+
+        border: "1px solid var(--operator-text)",
+
+        background: "var(--operator-background)",
 
         fontSize: "20px",
+
+        color: "var(--operator-text)",
 
         cursor: "pointer"
     },
@@ -370,7 +376,10 @@ const styles = {
 
         padding: "30px",
 
-        background: "#ffffff"
+        background: "var(--operator-card)",
+
+        borderColor: "var(--operator-text)",
+        
     },
 
     form: {
@@ -379,7 +388,8 @@ const styles = {
 
         flexDirection: "column",
 
-        gap: "20px"
+        gap: "20px",
+
     },
 
     input: {
@@ -389,15 +399,21 @@ const styles = {
         borderRadius: "14px",
 
         border:
-            "1px solid #d1d5db",
+            "1px solid var(--operator-border)",
 
         padding: "0 14px",
 
-        background: "#fff",
+        background: "var(--operator-card)",
+
+        borderColor: "var(--operator-border)",
+
+        border: "3px solid var(--operator-border)",
 
         fontSize: "14px",
 
-        outline: "none"
+        outline: "none",
+
+        color: "var(--operator-text)"
     },
 
     footer: {

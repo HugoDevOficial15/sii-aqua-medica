@@ -92,7 +92,7 @@ export default function Users() {
 
     // Filtro de busqueda
     const filteredUsers = users.filter(user =>
-        // user.nomina.toLowerCase().includes(search.toLowerCase()) ||
+        user.nomina.toString().toLowerCase().includes(search.toLowerCase()) ||
         user.nombre.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -916,7 +916,7 @@ export default function Users() {
                 max-width: 95%;
 
                 background:
-                    rgba(255,255,255,0.94);
+                    var(--operator-background);
 
                 backdrop-filter: blur(12px);
 
@@ -944,7 +944,7 @@ export default function Users() {
                 padding: 24px 30px;
 
                 border-bottom:
-                    1px solid #f3f4f6;
+                    1px solid var(--operator-border);
             }
 
             .custom-modal-header h5 {
@@ -971,12 +971,11 @@ export default function Users() {
                 border-top:
                     1px solid #f3f4f6;
 
-                background:
-                    linear-gradient(
-                        135deg,
-                        #f9fafb,
-                        #ffffff
-                    );
+                background: var(--operator-card);
+            }
+
+            .modal-body {
+                background: var(--operator-card);
             }
 
             .modal-body label {
@@ -985,7 +984,7 @@ export default function Users() {
                         
                 font-weight: 700;
                         
-                color: #374151;
+                color: #514a37;
                         
                 margin-bottom: 8px;
                         
@@ -1060,6 +1059,17 @@ export default function Users() {
                     0 12px 24px rgba(37,99,235,0.22);
             }
 
+            .col-md-4 label,
+            .col-md-6 label,
+            .col-md-12 label {
+                background: var(--operator-card);
+                font-size: 13px;
+                font-weight: 700;
+                color: var(--operator-text);
+                margin-bottom: 8px;
+                display: block;
+            }
+
 
             .btn-close {
 
@@ -1106,6 +1116,7 @@ export default function Users() {
             }
 
             .table thead th {
+                
                 font-size: 12px;
                 text-transform: uppercase;
                 color: #6b7280;
@@ -1115,6 +1126,7 @@ export default function Users() {
             .table tbody tr {
                 background: #ffffff;
                 transition: all 0.2s ease;
+                position: relative;
             }
 
             .table tbody tr:hover {
@@ -1125,12 +1137,8 @@ export default function Users() {
             .table td {
                 vertical-align: middle;
                 border-top: none !important;
-                padding: 12px;
+                
             }
-
-
-           
-
         `}</style>
 
         </div>

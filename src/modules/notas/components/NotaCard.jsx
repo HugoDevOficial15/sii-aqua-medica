@@ -41,7 +41,7 @@ export default function NotaCard({
                     </span>
                 </div>
 
-                <p className="text-muted small mb-2">
+                <p className="text-muted-small-mb-2">
                     {nota.contenido?.slice(0, 100)}
                 </p>
 
@@ -52,7 +52,7 @@ export default function NotaCard({
                 )}
 
                 {nota.fechaLimite && (
-                    <div className="small text-muted mt-1">
+                    <div className="small-text-muted-mt-1">
                         📅 {new Date(nota.fechaLimite).toLocaleDateString()}
                     </div>
                 )}
@@ -85,6 +85,21 @@ export default function NotaCard({
                 </div>
 
             </div>
+            <style>{`
+                .card {
+                    color: var(--operator-text);
+                }
+
+                .small-text-muted-mb-2 {
+                    color: var(--operator-text-soft);
+                }
+
+                .small-text-muted-mt-1 {
+                    color: var(--operator-text-soft);
+                }
+
+
+            `}</style>
         </div>
     );
 }

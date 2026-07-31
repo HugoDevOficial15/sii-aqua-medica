@@ -587,7 +587,7 @@ const styles = {
             "1px solid var(--operator-border)",
 
         background:
-            "linear-gradient(135deg,var(--operator-card),var(--operator-card))",
+            "linear-gradient(135deg,var(--operator-background),var(--operator-background))",
 
     },
 

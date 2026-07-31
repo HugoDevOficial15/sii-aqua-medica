@@ -67,12 +67,7 @@ export default function MaintenancePage({
 
                     padding:40px;
 
-                    background:
-                    linear-gradient(
-                        180deg,
-                        #f8fbff 0%,
-                        #eef4ff 100%
-                    );
+                    background: var(--operator-background);
 
                     overflow:hidden;
                 }
@@ -90,21 +85,14 @@ export default function MaintenancePage({
 
                     text-align:center;
 
-                    background:
-                    linear-gradient(
-                        145deg,
-                        rgba(255,255,255,.95),
-                        rgba(248,250,252,.92)
-                    );
+                    background: var(--operator-card);
 
                     border:
-                    1px solid rgba(255,255,255,.7);
+                    3px solid var(--operator-border);
 
                     backdrop-filter: blur(18px);
 
-                    box-shadow:
-                    0 20px 60px rgba(15,23,42,.08),
-                    inset 0 1px 0 rgba(255,255,255,.7);
+                    box-shadow: var(--operator-shadow);
                 }
 
                 .loader-container{
@@ -206,7 +194,7 @@ export default function MaintenancePage({
 
                     letter-spacing:-2px;
 
-                    color:#0f172a;
+                    color:var(--operator-text);
                 }
 
                 .maintenance-card h2{
@@ -231,7 +219,7 @@ export default function MaintenancePage({
 
                     font-size:18px;
 
-                    color:#64748b;
+                    color:var(--operator-text-soft);
                 }
 
                 @keyframes spin{
