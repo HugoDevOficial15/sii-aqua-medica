@@ -119,34 +119,47 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                 }
 
                 .custom-modal {
-                    background: #fff;
+                    background: var(--operator-card);
+                    color: var(--operator-text);
                     width: 600px;
                     max-width: 95%;
                     border-radius: 12px;
                     overflow: hidden;
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+                    border: 1px solid var(--operator-border);
                 }
 
                 .custom-modal-header {
                     padding: 15px 20px;
-                    border-bottom: 1px solid #eee;
+                    border-bottom: 1px solid var(--operator-border);
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    background: #f8f9fa;
+                    background: var(--operator-card);
                 }
 
                 .custom-modal-body {
                     padding: 20px;
+                    background: var(--operator-card);
                 }
 
                 .custom-modal-footer {
                     padding: 15px 20px;
-                    border-top: 1px solid #eee;
+                    border-top: 1px solid var(--operator-border);
                     display: flex;
                     justify-content: flex-end;
                     gap: 10px;
-                    background: #f8f9fa;
+                    background: var(--operator-card);
+                }
+
+                .custom-modal-footer .btn-secondary {
+                    height: 48px;
+                    padding: 0 18px;
+                    border-radius: 12px;
+                    background: var(--operator-card);
+                    color: var(--operator-text);
+                    border: 1px solid var(--operator-border);
+                    font-weight: 700;
                 }
             `}</style>
         </div>

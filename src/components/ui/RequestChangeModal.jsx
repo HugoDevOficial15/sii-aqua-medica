@@ -292,7 +292,7 @@ const styles = {
         padding: "20px"
     },
     modalCard: {
-        background: "#ffffff",
+        background: "var(--operator-card)",
         borderRadius: "24px",
         width: "480px",
         maxWidth: "95%",
@@ -330,14 +330,15 @@ const styles = {
         flexDirection: "column",
         gap: "16px",
         maxHeight: "60vh",
-        overflowY: "auto"
+        overflowY: "auto",
+        color: "var(--operator-text)"
     },
     hint: {
         margin: 0,
         fontSize: "13px",
-        color: "#64748b",
-        background: "#eff6ff",
-        border: "1px solid #dbeafe",
+        color: "var(--operator-text-soft)",
+        background: "rgba(59,130,246,0.12)",
+        border: "1px solid rgba(59,130,246,0.25)",
         borderRadius: "12px",
         padding: "10px 14px"
     },
@@ -353,14 +354,16 @@ const styles = {
     label: {
         fontSize: "13px",
         fontWeight: "600",
-        color: "#374151"
+        color: "var(--operator-text-soft)"
     },
     input: {
         padding: "12px 14px",
         borderRadius: "12px",
-        border: "1px solid #d1d5db",
+        border: "1px solid var(--operator-border)",
         fontSize: "14px",
-        outline: "none"
+        outline: "none",
+        background: "var(--operator-background)",
+        color: "var(--operator-text)"
     },
     upperInput: {
         textTransform: "uppercase"
@@ -377,14 +380,15 @@ const styles = {
         justifyContent: "flex-end",
         gap: "10px",
         padding: "18px 24px",
-        borderTop: "1px solid #eef2f6",
-        background: "#fafafa"
+        borderTop: "1px solid var(--operator-border)",
+        background: "var(--operator-background)"
     },
     cancelButton: {
         padding: "10px 16px",
         borderRadius: "12px",
-        border: "1px solid #d1d5db",
-        background: "#fff",
+        border: "1px solid var(--operator-border)",
+        background: "var(--operator-card)",
+        color: "var(--operator-text)",
         cursor: "pointer",
         fontWeight: "500"
     },

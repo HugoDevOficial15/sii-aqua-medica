@@ -288,23 +288,19 @@ const styles = {
 
         maxWidth: "95vh",
 
-        background:
-            "rgba(255,255,255,0.94)",
+        background: "var(--operator-card)",
 
         backdropFilter: "blur(10px)",
 
         borderRadius: "30px",
 
-        border:
-            "1px solid rgba(255,255,255,0.4)",
+        border: "1px solid var(--operator-border)",
 
-        boxShadow:
-            "0 24px 48px rgba(0,0,0,0.18)",
+        boxShadow: "0 24px 48px rgba(0,0,0,0.12)",
 
         overflow: "hidden",
 
-        animation:
-            "modalFade .18s ease"
+        animation: "modalFade .18s ease"
     },
 
     header: {
@@ -317,8 +313,7 @@ const styles = {
 
         padding: "24px 30px",
 
-        borderBottom:
-            "1px solid #f3f4f6"
+        borderBottom: "1px solid var(--operator-border)"
     },
 
     title: {
@@ -329,7 +324,7 @@ const styles = {
 
         fontWeight: "800",
 
-        color: "#111827"
+        color: "var(--operator-text)"
     },
 
     closeButton: {
@@ -342,11 +337,13 @@ const styles = {
 
         borderRadius: "14px",
 
-        background: "#f3f4f6",
+        background: "var(--operator-card)",
 
         fontSize: "20px",
 
-        cursor: "pointer"
+        cursor: "pointer",
+
+        border: "1px solid var(--operator-border)"
     },
     body: {
 
@@ -354,7 +351,9 @@ const styles = {
 
         overflowY: "auto",
 
-        maxHeight: "calc(97vh - 90px)"
+        maxHeight: "calc(97vh - 90px)",
+
+        background: "var(--operator-card)"
     },
 
     form: {
@@ -372,7 +371,7 @@ const styles = {
 
         fontWeight: "700",
 
-        color: "#374151",
+        color: "var(--operator-text)",
 
         marginBottom: "-10px"
     },
@@ -383,12 +382,13 @@ const styles = {
 
         borderRadius: "14px",
 
-        border:
-            "1px solid #d1d5db",
+        border: "1px solid var(--operator-border)",
 
         padding: "0 14px",
 
-        background: "#fff",
+        background: "var(--operator-background)",
+
+        color: "var(--operator-text)",
 
         fontSize: "14px",
 
@@ -401,8 +401,11 @@ const styles = {
 
         borderRadius: "14px",
 
-        border:
-            "1px solid #d1d5db",
+        border: "1px solid var(--operator-border)",
+
+        background: "var(--operator-background)",
+
+        color: "var(--operator-text)",
 
         fontSize: "14px",
 
@@ -443,8 +446,7 @@ const styles = {
 
         border: "none",
 
-        background:
-            "linear-gradient(135deg,#2563eb,#1d4ed8)",
+        background: "linear-gradient(135deg,var(--btn-start,#2563eb),var(--btn-end,#1d4ed8))",
 
         color: "#fff",
 
@@ -458,7 +460,6 @@ const styles = {
 
         justifyContent: "center",
 
-        boxShadow:
-            "0 12px 24px rgba(37,99,235,0.22)"
+        boxShadow: "0 12px 24px rgba(37,99,235,0.14)"
     }
 }
