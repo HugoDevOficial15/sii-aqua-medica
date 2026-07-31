@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Turquesa corporativo AQUA MEDICA, extraído del logotipo oficial. -->
+    <color name="notification_color">#007F8B</color>
+</resources>

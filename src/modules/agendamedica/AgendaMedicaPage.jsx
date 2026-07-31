@@ -99,7 +99,7 @@ export default function AgendaMedicaPage() {
         }
     };
 
-    // ✏️ GUARDAR EDICIÓN CON VALIDACIONES ESTRICTAS DE FECHA
+    // ✏️ GUARDAR EDICIÓN CON VALIDACIONES ESTRICTAS DE FECHA Y FINES DE SEMANA
     const handleGuardarEdicion = async (e) => {
         e.preventDefault();
 
@@ -150,7 +150,6 @@ export default function AgendaMedicaPage() {
 
     // VISTA: DETALLE DE LA AGENDA
     if (vista === "detalle") {
-
         return (
             <AgendaDetalle 
                 agenda={agendaSeleccionada} 
@@ -177,12 +176,10 @@ export default function AgendaMedicaPage() {
                     setVista("lista");
                     cargarAgendas();
                 }} />
-
             </div>
         );
     }
 
-    // VISTA: EDITAR AGENDA
     // VISTA: EDITAR AGENDA
     if (vista === "editar") {
         return (
@@ -209,14 +206,13 @@ export default function AgendaMedicaPage() {
                             />
                         </div>
 
-                        {/* 👇 AQUÍ ES SU LUGAR CORRECTO: Dentro del form de editar 👇 */}
                         <div className="row mb-3">
                             <div className="col">
                                 <label className="form-label text-secondary">Fecha inicio</label>
                                 <input 
                                     type="date"
                                     className="form-control bg-dark text-light border-secondary"
-                                    min={today} // Bloquea fechas pasadas
+                                    min={today}
                                     value={formEdicion.fechaInicio}
                                     onChange={(e) => handleFechaChange("fechaInicio", e.target.value)}
                                     required
@@ -227,14 +223,13 @@ export default function AgendaMedicaPage() {
                                 <input 
                                     type="date"
                                     className="form-control bg-dark text-light border-secondary"
-                                    min={formEdicion.fechaInicio || today} // Bloquea antes de inicio
+                                    min={formEdicion.fechaInicio || today}
                                     value={formEdicion.fechaFin}
                                     onChange={(e) => handleFechaChange("fechaFin", e.target.value)}
                                     required
                                 />
                             </div>
                         </div>
-                        {/* 👆 FIN DE LOS CAMPOS DE FECHA 👆 */}
 
                         <div className="mb-4">
                             <label className="form-label text-secondary">Duración por cita (min)</label>
@@ -257,11 +252,14 @@ export default function AgendaMedicaPage() {
     }
 
     // VISTA 1: TABLA PRINCIPAL (Lista + Botón Nuevo)
-  return (
+    return (
         <div className="container-fluid p-4 text-light">
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="fw-bold mb-0">Servicio Médico - Administrador</h2>
-                
+                <div className="page mb-3">
+                    <h6><strong>Servicio Médico</strong></h6>
+                    <span className="badge-title">AQUA Médica</span>
+                </div>
+
                 <button 
                     className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm"
                     style={{ borderRadius: '10px' }}
@@ -271,7 +269,7 @@ export default function AgendaMedicaPage() {
                 </button>
             </div>
 
-            <div className="card border-0 shadow-sm" style={{ backgroundColor: "var(--operator-card)", borderRadius: '12px' }}>
+            <div className="card border-0 shadow-sm" style={{ backgroundColor: '#1e293b', borderRadius: '12px' }}>
                 <div className="card-body p-0">
                     <div className="table-responsive">
                         <table className="table table-borderless table-hover mb-0" style={{ color: '#e2e8f0' }}>

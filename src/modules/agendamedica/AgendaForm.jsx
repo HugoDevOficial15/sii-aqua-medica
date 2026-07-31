@@ -2,11 +2,7 @@ import { useRef, useState } from "react";
 import { crearAgenda } from "../../services/agendaMedicaService";
 import { generarSlots } from "../../services/generarSlotsMedicos";
 
-// 👇 1. Agregamos las importaciones de Firebase necesarias
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../config/firebase"; // Verifica que la ruta de config coincida
-
-import { notifyWarning } from "../../utils/notify";
+import { notifyWarning, notifySuccess, notifyError } from "../../utils/notify";
 
 const dias = [
     { id: 1, label: "Lunes" },
@@ -26,15 +22,7 @@ const getTodayLocal = () => {
     return `${year}-${month}-${day}`;
 };
 
-// new Date("YYYY-MM-DD") interpreta la fecha como UTC; se arma en hora
-// local para que getDay() no regrese el día anterior en husos detrás de UTC.
-const esFinDeSemana = (isoDate) => {
-    const [year, month, day] = isoDate.split("-").map(Number);
-    const diaSemana = new Date(year, month - 1, day).getDay();
-    return diaSemana === 0 || diaSemana === 6;
-};
-
-export default function AgendaForm() {
+export default function AgendaForm({ onSaved }) {
     const [form, setForm] = useState({
         nombre: "", // 👇 2. Agregamos el campo para el nombre
         fechaInicio: "",
@@ -43,14 +31,15 @@ export default function AgendaForm() {
         horarios: {},
         diasBloqueados: []
     });
+    const [guardando, setGuardando] = useState(false);
 
     const fechaInicioRef = useRef(null);
     const fechaFinRef = useRef(null);
 
     const today = getTodayLocal();
 
-    // Bloqueo en vivo: fecha pasada, fin de semana, y si ya había una
-    // Fecha Fin elegida que quedó antes de la nueva Fecha Inicio, se limpia.
+    // Bloqueo en vivo: fecha pasada, y si ya había una Fecha Fin elegida que
+    // quedó antes de la nueva Fecha Inicio, se limpia.
     const handleStartDateChange = (e) => {
         const value = e.target.value;
 
@@ -61,16 +50,6 @@ export default function AgendaForm() {
 
         if (value < today) {
             notifyWarning("Fecha inválida", "No se permiten fechas pasadas.");
-            setForm(prev => ({ ...prev, fechaInicio: "" }));
-            fechaInicioRef.current?.focus();
-            return;
-        }
-
-        if (esFinDeSemana(value)) {
-            notifyWarning(
-                "Fin de semana no disponible",
-                "No es posible crear agendas médicas durante fines de semana."
-            );
             setForm(prev => ({ ...prev, fechaInicio: "" }));
             fechaInicioRef.current?.focus();
             return;
@@ -99,16 +78,6 @@ export default function AgendaForm() {
 
         if (value < today) {
             notifyWarning("Fecha inválida", "No se permiten fechas pasadas.");
-            setForm(prev => ({ ...prev, fechaFin: "" }));
-            fechaFinRef.current?.focus();
-            return;
-        }
-
-        if (esFinDeSemana(value)) {
-            notifyWarning(
-                "Fin de semana no disponible",
-                "No es posible crear agendas médicas durante fines de semana."
-            );
             setForm(prev => ({ ...prev, fechaFin: "" }));
             fechaFinRef.current?.focus();
             return;
@@ -162,9 +131,9 @@ export default function AgendaForm() {
             return;
         }
 
-        // 🚫 3. Validar fines de semana y coincidencia de horarios de forma segura
+        // 🚫 3. Validar coincidencia de horarios de forma segura
         let tieneDiasConHorario = false;
-        
+
         try {
             let fechaActual = new Date(form.fechaInicio + 'T00:00:00');
             const fechaLimite = new Date(form.fechaFin + 'T00:00:00');
@@ -172,16 +141,10 @@ export default function AgendaForm() {
             while (fechaActual <= fechaLimite) {
                 const diaSemana = fechaActual.getDay(); // 0 = Domingo, 6 = Sábado
 
-                if (diaSemana === 0 || diaSemana === 6) {
-                    alert("Las agendas médicas no pueden incluir fines de semana (sábados y domingos).");
-                    return;
-                }
-
-                const nombresDias = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-                const nombreDia = nombresDias[diaSemana];
-
+                // Los horarios se guardan con el id numérico del día (1=Lunes..5=Viernes,
+                // ver el arreglo "dias"), que coincide con Date.getDay() para esos días.
                 // Validación segura usando optional chaining (?.)
-                const horariosDelDia = form?.horarios?.[nombreDia];
+                const horariosDelDia = form?.horarios?.[diaSemana];
                 if (Array.isArray(horariosDelDia) && horariosDelDia.length > 0) {
                     tieneDiasConHorario = true;
                     break;
@@ -200,8 +163,29 @@ export default function AgendaForm() {
             return;
         }
 
-        // ✅ Si pasa todas las validaciones, procede con el guardado en Firebase
-        // ... tu lógica de addDoc ...
+        // ✅ Si pasa todas las validaciones, guarda la agenda y genera sus citas
+        setGuardando(true);
+        try {
+            const datosAgenda = {
+                nombre: form.nombre,
+                fechaInicio: form.fechaInicio,
+                fechaFin: form.fechaFin,
+                duracionMin: form.duracionMin,
+                horarios: form.horarios,
+                diasBloqueados: form.diasBloqueados
+            };
+
+            const agendaId = await crearAgenda(datosAgenda);
+            await generarSlots({ id: agendaId, ...datosAgenda });
+
+            notifySuccess("Agenda creada", "La agenda médica y sus citas se generaron correctamente.");
+            onSaved?.();
+        } catch (err) {
+            console.error("Error al guardar la agenda:", err);
+            notifyError("Error al guardar", "No se pudo guardar la agenda médica. Intenta nuevamente.");
+        } finally {
+            setGuardando(false);
+        }
     };
 
     return (
@@ -286,8 +270,8 @@ export default function AgendaForm() {
                 </div>
             ))}
 
-            <button className="btn btn-success mt-3" onClick={handleSubmit}>
-                Guardar Agenda
+            <button className="btn btn-success mt-3" onClick={handleSubmit} disabled={guardando}>
+                {guardando ? "Guardando..." : "Guardar Agenda"}
             </button>
         </div>
     );

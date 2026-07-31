@@ -15,11 +15,9 @@ export default function AniversarioMesesPage() {
             {/* Se reemplazó .agenda-page por las clases globales para mantener consistencia con otras pantallas */}
             <div className="container-fluid p-4">
                 
-                <div className="mb-4">
-                    <h2 className="fw-bold mb-2">Celebraciones</h2>
-                    <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2" style={{ fontSize: '0.9rem' }}>
-                        AQUA Médica
-                    </span>
+                <div className="page mb-3">
+                    <h6><strong>Celebraciones</strong></h6>
+                    <span className="badge-title">AQUA Médica</span>
                 </div>
 
                 <div className="agenda-grid">

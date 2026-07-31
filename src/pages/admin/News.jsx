@@ -155,10 +155,13 @@ export default function News() {
   return (
     <div className="container-fluid p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="m-0">
-          {vistaActual === "lista" && "Noticias"}
-          {vistaActual === "formulario" && (noticiaEditando ? "Editar Noticia" : "Crear Nueva Noticia")}
-        </h2>
+        <div className="page mb-3">
+          <h6><strong>
+            {vistaActual === "lista" && "Noticias"}
+            {vistaActual === "formulario" && (noticiaEditando ? "Editar Noticia" : "Crear Nueva Noticia")}
+          </strong></h6>
+          <span className="badge-title">AQUA Médica</span>
+        </div>
         {vistaActual === "lista" ? (
           <button className="btn btn-primary px-4 py-2 shadow-sm" style={{ borderRadius: '8px', fontWeight: 'bold' }} onClick={abrirFormularioCrear}>
             + Crear Noticia

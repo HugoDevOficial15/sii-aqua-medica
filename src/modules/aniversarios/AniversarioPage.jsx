@@ -28,12 +28,11 @@ export default function AniversarioPage() {
 
     return (
         <>
-            <div className="page">
+            <div className="page mb-3">
                 {/*  header*/}
 
-
                 <h6>
-                    Celebraciones del Mes
+                    <strong>Celebraciones del Mes</strong>
                 </h6>
 
                 <span className="badge-title">

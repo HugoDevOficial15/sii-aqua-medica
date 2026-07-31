@@ -4,7 +4,7 @@ import { db } from "../../config/firebase";
 import NewsCard from "./news/NewsCard";
 
 export default function OperatorNews({ onNavigate }) {
-    const [news, setNews] = useState([]);
+    const [news, setNews] = useState([]); 
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -12,12 +12,22 @@ export default function OperatorNews({ onNavigate }) {
         // Consultamos la colección "noticias" de Firebase ordenadas de la más nueva a la más vieja
         const q = query(collection(db, "noticias"), orderBy("fechaCreacion", "desc"));
 
+        // 1. Obtener fecha actual (la movemos arriba para que esté lista para usarse)
+        const getHoy = () => {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        const fechaHoy = getHoy();
+
         const unsubscribe = onSnapshot(q, (snapshot) => {
+            // Mapeamos los datos de Firebase
             const fetchedNews = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
                     id: doc.id,
-                    // Mapeamos los campos reales de Firebase
                     title: data.titulo || "Sin título",
                     summary: data.contenido || "",
                     date: data.fechaLimite ? `Vigente hasta: ${data.fechaLimite}` : "Reciente",
@@ -26,29 +36,20 @@ export default function OperatorNews({ onNavigate }) {
                 };
             });
             
-            setNews(fetchedNews);
+            // 2. Filtrar para desaparecer las caducadas (Usamos fetchedNews, que es lo que acabamos de descargar)
+            const noticiasVigentes = fetchedNews.filter((noticia) => {
+                if (!noticia.fechaLimite) return true;
+                return noticia.fechaLimite >= fechaHoy; 
+            });
+            
+            // 3. Guardamos ÚNICAMENTE las noticias vigentes en el estado
+            setNews(noticiasVigentes);
             setLoading(false);
+            
         }, (error) => {
             console.error("Error al escuchar las noticias en tiempo real:", error);
             setLoading(false);
         });
-
-        // 1. Obtener fecha actual
-  const getHoy = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const fechaHoy = getHoy();
-
-  // 2. Filtrar para desaparecer las caducadas
-  const noticiasVigentes = noticias.filter((noticia) => {
-    if (!noticia.fechaLimite) return true;
-    return noticia.fechaLimite >= fechaHoy; 
-  });
 
         return () => unsubscribe();
     }, []);

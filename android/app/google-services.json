@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "69960014207",
+    "project_id": "sii-aqua-medica-465a9",
+    "storage_bucket": "sii-aqua-medica-465a9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:69960014207:android:2b3e42657e46fd08d6e24a",
+        "android_client_info": {
+          "package_name": "sii_aqua.medica98"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACAravxgmJn8SXYoZGenlYcYhC9u4AFXA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

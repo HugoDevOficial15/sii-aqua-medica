@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">SII AQUA</string>
     <string name="title_activity_main">SII AQUA</string>
-    <string name="package_name">com.siiaquamedica.app</string>
-    <string name="custom_url_scheme">com.siiaquamedica.app</string>
+    <string name="package_name">sii_aqua.medica98</string>
+    <string name="custom_url_scheme">sii_aqua.medica98</string>
 </resources>
