@@ -53,7 +53,11 @@ export default function RackSalidaModal({
     const [loading, setLoading] =
         useState(false);
 
+    const [observacionError, setObservacionError] =
+        useState("");
+
     const itemId = watch("itemId");
+    const observaciones = watch("observaciones") || "";
 
     /*
     |--------------------------------------------------------------------------
@@ -62,6 +66,14 @@ export default function RackSalidaModal({
     */
 
     useEffect(() => {
+
+        if (observaciones.length > 35) {
+            setObservacionError(
+                "La observación no puede superar los 35 caracteres"
+            );
+        } else {
+            setObservacionError("");
+        }
 
         const unsubscribe =
             suscribirStockPorRack(
@@ -94,7 +106,7 @@ export default function RackSalidaModal({
 
         };
 
-    }, [rack.id]);
+    }, [rack.id, observaciones]);
 
     /*
     |--------------------------------------------------------------------------
@@ -191,7 +203,17 @@ export default function RackSalidaModal({
                 return;
             }
 
-            if (!form.observaciones) {
+            const observacionTexto = (form.observaciones || "").trim();
+
+            if (observacionTexto.length > 35) {
+                notifyError(
+                    "Error",
+                    "La observación no puede superar los 35 caracteres"
+                );
+                return;
+            }
+
+            if (!observacionTexto) {
                 notifyError(
                     "Error",
                     "Observaciones requeridas"
@@ -261,7 +283,7 @@ export default function RackSalidaModal({
                         mov.unidad,
 
                     observaciones:
-                        form.observaciones,
+                        observacionTexto,
                     fecha:
                         new Date()
                             .toISOString()
@@ -449,13 +471,30 @@ export default function RackSalidaModal({
                         <input
                             type="text"
 
+                            maxLength={30}
+
                             step="0.01"
 
                             placeholder="Observaciones"
                             {...register(
                                 "observaciones"
                             )}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (value.length > 35) {
+                                    notifyError(
+                                        "Error",
+                                        "La observación no puede superar los 30 caracteres"
+                                    );
+                                }
+                            }}
                         />
+
+                        {observacionError && (
+                            <span className="salida-observacion-error">
+                                {observacionError}
+                            </span>
+                        )}
                     </div>
 
                     <div className="salida-actions">
@@ -615,6 +654,15 @@ export default function RackSalidaModal({
                 padding: 0 14px;
 
                 background: #fff;
+            }
+
+            .salida-observacion-error {
+
+                font-size: 12px;
+
+                color: #dc2626;
+
+                font-weight: 600;
             }
 
             .salida-stock-box {

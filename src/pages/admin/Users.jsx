@@ -833,13 +833,13 @@ export default function Users() {
 
             .custom-users-card {
                 border-radius: 16px;
-                border: none;
+                border: none; 
                 box-shadow: 0 8px 25px rgba(0,0,0,0.05);
             }
 
-            .custom-table {
-                border-collapse: separate;
-                border-spacing: 0 10px;
+            .table.custom-table {
+                table-layout: flex;
+                width: 100%;
             }
 
             @media (max-width: 768px) {
@@ -1127,6 +1127,7 @@ export default function Users() {
                 background: #ffffff;
                 transition: all 0.2s ease;
                 position: relative;
+                height: auto;
             }
 
             .table tbody tr:hover {
@@ -1134,10 +1135,18 @@ export default function Users() {
                 box-shadow: 0 8px 20px rgba(0,0,0,0.06);
             }
 
-            .table td {
+            .table thead th,
+            .table tbody td{
+                padding: 5px 5px;
                 vertical-align: middle;
                 border-top: none !important;
-                
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
+
             }
         `}</style>
 

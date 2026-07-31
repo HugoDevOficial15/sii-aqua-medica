@@ -53,7 +53,7 @@ export default function RackCard({
         if (rack.estatus === "mantenimiento") {
             return {
                 color: "#f59e0b",
-                bg: "#fef3c7",
+                bg: "#fef3c741",
                 text: "Mantenimiento"
             };
         }
@@ -106,8 +106,8 @@ export default function RackCard({
 
         if (totalLotes === 0) { 
             return {
-                bg: "rgb(255, 255, 255)",
-                color: "#979797",
+                bg: "rgba(247, 244, 244, 0.17)",
+                color: "#b6b6b6",
                 text: "Normal"
             };
         }
