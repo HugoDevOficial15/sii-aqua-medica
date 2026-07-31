@@ -10,9 +10,16 @@ import {
     notifyError
 } from "../../../utils/notify";
 
+import logo2Image from "../../../utils/img/logo2.jpg";
+
 import {
     obtenerMovimientosPorFecha
 } from "../../../services/movimientosService";
+
+import {
+    getUbicacionLabel,
+    getUbicacionTipoLabel
+} from "../../../utils/rackLocation";
 
 export default function RackPdfModal({
     rack,
@@ -29,6 +36,9 @@ export default function RackPdfModal({
         useState(false);
 
     const today = new Date().toISOString().split("T")[0];
+    const ubicacionTipoLabel = getUbicacionTipoLabel(rack);
+    const ubicacionValor = String(rack?.numeroRack ?? "").trim();
+    const ubicacionLabel = getUbicacionLabel(rack);
 
 
     /*
@@ -84,25 +94,39 @@ export default function RackPdfModal({
             */
 
             const doc = new jsPDF();
-
+            const img = await new Promise((resolve, reject) => {
+                const image = new Image();
+                image.onload = () => resolve(image);
+                image.onerror = () => reject(new Error("No se pudo cargar la imagen del logo"));
+                image.src = logo2Image;
+            });
             /*
             |--------------------------------------------------------------------------
             | Header
             |--------------------------------------------------------------------------
             */
 
-            doc.setFontSize(18);
-
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
             doc.text(
-                "AQUA MEDICA",
+                "AQUA Médica S.A. de C.V.",
                 14,
                 20
+            );
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text(
+                "Reporte de Movimientos",
+                80,
+                33
             );
 
             doc.setFontSize(12);
 
             doc.text(
-                `Rack: ${rack.numeroRack}`,
+                ubicacionValor
+                    ? `${ubicacionTipoLabel}: ${ubicacionValor}`
+                    : ubicacionTipoLabel,
                 14,
                 30
             );
@@ -117,6 +141,24 @@ export default function RackPdfModal({
                 `Periodo: ${fechaInicio} - ${fechaFin}`,
                 14,
                 46
+            );
+
+            doc.addImage(
+                img,
+                'JPEG', 
+                160, 
+                15, 
+                35, 
+                23
+            );
+
+
+
+            doc.line(
+                14,
+                52,
+                196,
+                52
             );
 
             /*
@@ -156,6 +198,22 @@ export default function RackPdfModal({
                 ])
             });
 
+                /*  FOOTER  */ 
+
+            const totalPages = doc.getNumberOfPages();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+
+                const textoFooter = `Página ${i} de ${totalPages}`;
+
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "normal");
+                doc.text(textoFooter, pageWidth - 14, pageHeight - 10, { align: "right" });
+            }
+
             /*
             |--------------------------------------------------------------------------
             | Preview
@@ -177,6 +235,7 @@ export default function RackPdfModal({
         }
     };
 
+
     return (
 
         <div className="pdf-backdrop">
@@ -197,9 +256,7 @@ export default function RackPdfModal({
                             }}
                         >
 
-                            Rack
-                            {" "}
-                            {rack.numeroRack}
+                            {ubicacionLabel}
 
                         </div>
 
@@ -220,11 +277,11 @@ export default function RackPdfModal({
                     <div className="pdf-summary-card">
 
                         <div className="pdf-summary-label">
-                            Rack
+                            {ubicacionTipoLabel}
                         </div>
 
                         <div className="pdf-summary-value">
-                            {rack.numeroRack}
+                            {ubicacionValor || "-"}
                         </div>
 
                     </div>

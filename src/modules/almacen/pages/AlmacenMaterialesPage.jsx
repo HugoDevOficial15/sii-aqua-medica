@@ -16,9 +16,38 @@ const parseDate = (value) => {
         return value;
     }
 
-    if (typeof value === "string") {
-        const parsed = new Date(value);
+    if (typeof value === "object" && typeof value.seconds === "number") {
+        const milliseconds = value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1000000);
+        const parsed = new Date(milliseconds);
         return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+
+        if (!trimmed) return null;
+
+        const isoDateMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (isoDateMatch) {
+            const [, year, month, day] = isoDateMatch;
+            const fallback = new Date(Number(year), Number(month) - 1, Number(day));
+            return Number.isNaN(fallback.getTime()) ? null : fallback;
+        }
+
+        const parsed = new Date(trimmed);
+
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed;
+        }
+
+        const [day, month, year] = trimmed.split("/").map((part) => Number(part));
+
+        if (day && month && year) {
+            const fallback = new Date(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
+            return Number.isNaN(fallback.getTime()) ? null : fallback;
+        }
+
+        return null;
     }
 
     if (typeof value === "number") {
@@ -50,7 +79,7 @@ const compareDates = (a, b) => {
     if (!dateA) return 1;
     if (!dateB) return -1;
 
-    return dateB.getTime() - dateA.getTime();
+    return dateA.getTime() - dateB.getTime();
 };
 
 const getTipoLabel = (tipo) => {
@@ -98,11 +127,12 @@ const buildMaterialGroups = (stock = [], racks = [], planta = "") => {
 
         const group = groups.get(key);
         const cantidad = Number(item.cantidadActual || 0);
+        const entryDate = item.fechaEntrada || item.createdAt;
 
         group.totalCantidad += cantidad;
-        group.lastEntry = compareDates(item.fechaEntrada || item.createdAt, group.lastEntry) > 0
-            ? (item.fechaEntrada || item.createdAt)
-            : group.lastEntry;
+        group.lastEntry = compareDates(entryDate, group.lastEntry) < 0
+            ? entryDate
+            : group.lastEntry || entryDate;
 
         const rackInfo = rack || {};
 
@@ -111,7 +141,7 @@ const buildMaterialGroups = (stock = [], racks = [], planta = "") => {
             rackNumero: item.rackNumero || rackInfo.numeroRack || "Sin rack",
             planta: rackInfo.planta || "Sin planta",
             cantidad,
-            ultimaEntrada: item.fechaEntrada || item.createdAt,
+            ultimaEntrada: entryDate,
             ubicacionLabel: getUbicacionLabel(rackInfo),
             ubicacionTipoLabel: getUbicacionTipoLabel(rackInfo)
         });
@@ -120,9 +150,9 @@ const buildMaterialGroups = (stock = [], racks = [], planta = "") => {
     return Array.from(groups.values())
         .map((group) => ({
             ...group,
-            racks: group.racks.sort((a, b) => compareDates(b.ultimaEntrada, a.ultimaEntrada))
+            racks: group.racks.sort((a, b) => compareDates(a.ultimaEntrada, b.ultimaEntrada))
         }))
-        .sort((a, b) => compareDates(b.lastEntry, a.lastEntry));
+        .sort((a, b) => compareDates(a.lastEntry, b.lastEntry));
 };
 
 export default function AlmacenMaterialesPage() {

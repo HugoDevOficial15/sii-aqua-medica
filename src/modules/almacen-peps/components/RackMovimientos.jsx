@@ -278,12 +278,14 @@ export default function RackMovimientos({
                                     Historial del Rack
                                 </h5>
 
-                                <button className="btn-close"
+                                <button
+                                    type="button"
+                                    className="btn-close"
+                                    aria-label="Cerrar"
                                     onClick={() =>
                                         setShowModal(false)
                                     }
-                                >
-                                </button>
+                                />
 
                             </div>
 
@@ -345,6 +347,8 @@ export default function RackMovimientos({
 
                                                 </div>
 
+
+
                                                 <div className="rack-modal-grid">
 
                                                     <div>
@@ -382,6 +386,22 @@ export default function RackMovimientos({
                                                     </div>
 
                                                 </div>
+
+                                                {
+                                                    log.tipoMovimiento === "salida" && (
+                                                        <div className="rack-observation">
+
+                                                            <small>
+                                                                Observación: {" "}
+                                                            </small>
+
+                                                            <strong>
+                                                                {log.observaciones || log.observacion || "-"}
+                                                            </strong>
+
+                                                        </div>
+                                                    )
+                                                }
 
                                                 <div className="rack-modal-user">
 
@@ -580,7 +600,7 @@ export default function RackMovimientos({
 
                     overflow: hidden;
 
-                    background: #fff;
+                    background: var(--operator-background);
 
                     border-radius: 20px;
 
@@ -596,6 +616,48 @@ export default function RackMovimientos({
                     align-items: center;
 
                     margin-bottom: 20px;
+                }
+
+                .rack-modal-header .btn-close {
+                    background: none;
+                    border: none;
+                    opacity: 1;
+                    padding: 0;
+                    width: 34px;
+                    height: 34px;
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    --rack-close-color: var(--operator-text);
+                }
+
+                .rack-modal-header .btn-close::before,
+                .rack-modal-header .btn-close::after {
+                    content: "";
+                    position: absolute;
+                    width: 18px;
+                    height: 2px;
+                    background: var(--rack-close-color);
+                    border-radius: 2px;
+                }
+
+                .rack-modal-header .btn-close::before {
+                    transform: rotate(45deg);
+                }
+
+                .rack-modal-header .btn-close::after {
+                    transform: rotate(-45deg);
+                }
+
+                .rack-modal-header .btn-close:hover {
+                    opacity: 0.8;
+                }
+
+                .rack-modal-header .btn-close:focus {
+                    outline: none;
+                    box-shadow: none;
                 }
 
                 .rack-modal-list {

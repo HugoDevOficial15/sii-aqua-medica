@@ -102,7 +102,45 @@ export default function RackCard({
         };
     };
 
+    const getStatusConfig2 = () => {
+
+        if (totalLotes === 0) { 
+            return {
+                bg: "rgb(255, 255, 255)",
+                color: "#979797",
+                text: "Normal"
+            };
+        }
+
+        if (!rack.tipoAsignacion) {
+            return {
+                bg: "rgba(252,82,252,0.12)",
+                color: "#fc52fc",
+                text: "Temporal"
+            };
+        }
+
+        const coincideConAsignacion = stock.every(
+            item => item.tipoItem === rack.tipoAsignacion
+        );
+
+        if (coincideConAsignacion) {
+            return {
+                bg: "rgba(0,108,250,0.12)",
+                color: "#006cfa",
+                text: "Uso"
+            };
+        }
+
+        return {
+            bg: "rgba(252,82,252,0.12)",
+            color: "#fc52fc",
+            text: "Temporal"
+        };
+    };
+
     const status = getStatusConfig();
+    const status2 = getStatusConfig2();
 
     return (
 
@@ -113,8 +151,8 @@ export default function RackCard({
                     ? "rack-card-danger"
                     : ""
                 }`}
-            onClick={onClick}
-        >
+            onClick={onClick}>
+
 
             <div className="rack-card-top-line"
                 style={{
@@ -128,14 +166,26 @@ export default function RackCard({
                     <FaStoreAlt />
                 </div>
 
-                <div
-                    className="rack-status"
-                    style={{
-                        background: status.bg,
-                        color: status.color
-                    }}
-                >
-                    {status.text}
+                <div className="rack-status-group">
+                    <div
+                        className="rack-status"
+                        style={{
+                            background: status.bg,
+                            color: status.color
+                        }}
+                    >
+                        {status.text}
+                    </div>
+
+                    <div
+                        className="rack-status"
+                        style={{
+                            background: status2.bg,
+                            color: status2.color
+                        }}
+                    >
+                        {status2.text}
+                    </div>
                 </div>
 
             </div>
@@ -297,6 +347,17 @@ export default function RackCard({
                     font-size: 1rem;
                 }
 
+                .rack-status-group {
+
+                    display: flex;
+
+                    gap: 8px;
+
+                    flex-wrap: wrap;
+
+                    justify-content: flex-end;
+                }
+
                 .rack-status {
 
                     padding: 6px 12px;
@@ -309,6 +370,7 @@ export default function RackCard({
 
                     text-transform: uppercase;
                 }
+
 
                 .rack-card-body {
 
