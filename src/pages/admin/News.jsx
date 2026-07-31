@@ -49,6 +49,62 @@ export default function News() {
     cargarNoticias();
   }, []);
 
+  // 👇 INYECCIÓN DE ESTILOS DINÁMICOS PARA INPUTS Y ARCHIVOS
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.innerHTML = `
+      /* Variables de Modo Claro */
+      :root {
+        --adaptive-bg: #ffffff;
+        --adaptive-text: #212529;
+        --adaptive-border: #dee2e6;
+        --adaptive-file-btn: #f3f4f6; /* Gris muy claro para el botón interno */
+      }
+
+      /* Variables de Modo Oscuro */
+      body.dark, body.dark-mode, [data-theme='dark'], [data-bs-theme='dark'] {
+        --adaptive-bg: #0f172a;
+        --adaptive-text: #f8fafc;
+        --adaptive-border: #475569;
+        --adaptive-file-btn: #1e293b; /* Tono azul oscuro para el botón interno */
+      }
+
+      /* Estilo general para todos los campos (inputs, textarea, selects) */
+      .adaptive-input {
+        background-color: var(--adaptive-bg) !important;
+        color: var(--adaptive-text) !important;
+        border: 1px solid var(--adaptive-border) !important;
+      }
+
+      /* Focus para mantener accesibilidad */
+      .adaptive-input:focus {
+        background-color: var(--adaptive-bg) !important;
+        color: var(--adaptive-text) !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
+      }
+
+      /* 🔥 MAGIA PARA EL INPUT DE SUBIR ARCHIVOS 🔥 */
+      .adaptive-input::file-selector-button {
+        background-color: var(--adaptive-file-btn) !important;
+        color: var(--adaptive-text) !important;
+        border: none;
+        border-right: 1px solid var(--adaptive-border);
+        padding: 0.375rem 0.75rem;
+        margin: -0.375rem -0.75rem;
+        margin-right: 0.75rem;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+
+      .adaptive-input:hover::file-selector-button {
+        opacity: 0.85;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
   const handleArchivoChange = (e) => {
     if (e.target.files && e.target.files[0]) setArchivoSeleccionado(e.target.files[0]);
   };
@@ -145,7 +201,6 @@ export default function News() {
     }
   };
 
-  // 👇 2. Filtramos la lista justo antes de renderizar (Solo noticias Vigentes)
   const fechaHoy = getHoy();
   const noticiasVigentes = noticias.filter((noticia) => {
     if (!noticia.fechaLimite) return true;
@@ -186,7 +241,6 @@ export default function News() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* 👇 3. Iteramos sobre noticiasVigentes en lugar de noticias */}
                   {noticiasVigentes.map((noticia) => (
                     <tr key={noticia.id}>
                       <td className="py-3 border-0"><span className="fw-medium">{noticia.titulo}</span></td>
@@ -210,7 +264,6 @@ export default function News() {
                   ))}
                 </tbody>
               </table>
-              {/* 👇 4. Mensaje ajustado para la lista filtrada */}
               {noticiasVigentes.length === 0 && <div className="text-center text-muted py-5">No hay noticias activas en este momento.</div>}
             </div>
           </div>
@@ -218,38 +271,43 @@ export default function News() {
       )}
 
       {vistaActual === "formulario" && (
-        <div className="card shadow-sm border-0">
-          {/* ... Todo tu código del formulario se mantiene intacto ... */}
+        <div className="card shadow-sm border-0" style={{ backgroundColor: 'transparent' }}>
           <div className="card-body p-4">
             <form onSubmit={handleSubmit}>
               <div className="row">
                 <div className="col-md-8 mb-3">
                   <label className="form-label fw-medium">Título de la Noticia</label>
-                  <input type="text" className="form-control" placeholder="Ej. Nueva capacitación obligatoria" value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
+                  {/* Agregada la clase adaptive-input */}
+                  <input type="text" className="form-control adaptive-input" placeholder="Ej. Nueva capacitación obligatoria" value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
                 </div>
                 <div className="col-md-4 mb-3">
                   <label className="form-label fw-medium">Público Dirigido (Área)</label>
-                  <select className="form-select" value={areaDestino} onChange={(e) => setAreaDestino(e.target.value)}>
+                  {/* Agregada la clase adaptive-input */}
+                  <select className="form-select adaptive-input" value={areaDestino} onChange={(e) => setAreaDestino(e.target.value)}>
                     {listaAreas.map((area) => <option key={area} value={area}>{area === "Todas" ? "Todas las áreas (General)" : area}</option>)}
                   </select>
                 </div>
               </div>
               <div className="mb-3">
                 <label className="form-label fw-medium">Contenido / Descripción</label>
-                <textarea className="form-control" rows="4" placeholder="Escribe el cuerpo de la noticia aquí..." value={contenido} onChange={(e) => setContenido(e.target.value)} required></textarea>
+                {/* Agregada la clase adaptive-input */}
+                <textarea className="form-control adaptive-input" rows="4" placeholder="Escribe el cuerpo de la noticia aquí..." value={contenido} onChange={(e) => setContenido(e.target.value)} required></textarea>
               </div>
               <div className="row">
                 <div className="col-md-6 mb-3">
                   <label className="form-label fw-medium">Fecha Límite de Visibilidad</label>
-                  <input type="date" className="form-control" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)} required />
+                  {/* Agregada la clase adaptive-input */}
+                  <input type="date" className="form-control adaptive-input" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)} required />
                 </div>
                 <div className="col-md-6 mb-4">
                   <label className="form-label fw-medium">{noticiaEditando ? "Actualizar Imagen (Opcional)" : "Subir Imagen de Portada"}</label>
-                  <input type="file" className="form-control" accept="image/*" onChange={handleImagenChange} />
+                  {/* Agregada la clase adaptive-input AQUÍ (Archivo) */}
+                  <input type="file" className="form-control adaptive-input" accept="image/*" onChange={handleImagenChange} />
                 </div>
                 <div className="col-12 mb-3">
                   <label className="form-label fw-medium">{archivoSeleccionado ? "Actualizar Archivo (Opcional)" : "Subir Archivo (Opcional)"}</label>
-                  <input type="file" className="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" onChange={handleArchivoChange} />
+                  {/* Agregada la clase adaptive-input AQUÍ (Archivo) */}
+                  <input type="file" className="form-control adaptive-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" onChange={handleArchivoChange} />
                 </div>
               </div>
               <div className="d-flex justify-content-end gap-3 mt-2">

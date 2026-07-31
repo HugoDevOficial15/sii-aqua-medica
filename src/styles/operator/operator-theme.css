@@ -66,6 +66,22 @@ html[data-theme="dark"] .loader-text {
     color: var(--operator-text);
 }
 
+html[data-theme="dark"] .text-muted {
+    color: var(--operator-text-soft) !important;
+}
+
+html[data-theme="dark"] .btn-outline-dark {
+    color: var(--operator-text);
+    border-color: var(--operator-text-soft);
+}
+
+html[data-theme="dark"] .btn-outline-dark:hover,
+html[data-theme="dark"] .btn-outline-dark:focus {
+    color: var(--operator-text);
+    background: rgba(255, 255, 255, .05);
+    border-color: var(--operator-text);
+}
+
 html[data-theme="dark"] .header-premium,
 html[data-theme="dark"] .operator-nav-premium,
 html[data-theme="dark"] .drawer-v2,

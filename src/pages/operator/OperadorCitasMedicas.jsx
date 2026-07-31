@@ -12,7 +12,7 @@ export default function OperadorCitasMedicas() {
     const [agendas, setAgendas] = useState([]);
     const [agendaActiva, setAgendaActiva] = useState(null);
     
-    // Nuevos estados para controlar los días
+    // Estados para controlar los días
     const [diasValidos, setDiasValidos] = useState([]);
     const [citasOcupadas, setCitasOcupadas] = useState([]);
     const [horariosDisponibles, setHorariosDisponibles] = useState([]);
@@ -39,29 +39,25 @@ export default function OperadorCitasMedicas() {
         fetchAgendas();
     }, []);
 
-    // FUNCIÓN MÁGICA: Calcula exactamente qué días se pueden elegir
     const calcularDiasDisponibles = (agenda) => {
         const disponibles = [];
-        // Usamos T12:00:00 para evitar bugs de zonas horarias al sumar días
         let actual = new Date(agenda.fechaInicio + "T12:00:00");
         const final = new Date(agenda.fechaFin + "T12:00:00");
 
         while (actual <= final) {
-            const fechaStr = actual.toISOString().split("T")[0]; // YYYY-MM-DD
+            const fechaStr = actual.toISOString().split("T")[0]; 
             
-            // 1. Verificar si el admin bloqueó este día específico
             const isBloqueado = agenda.diasBloqueados && agenda.diasBloqueados.includes(fechaStr);
             
-            // 2. Verificar si el día de la semana tiene horarios configurados
             let diaSemana = actual.getDay();
-            if (diaSemana === 0) diaSemana = 7; // Domingo
+            if (diaSemana === 0) diaSemana = 7; 
             
             const tieneHorario = agenda.horarios && agenda.horarios[diaSemana] && agenda.horarios[diaSemana].length > 0;
 
             if (!isBloqueado && tieneHorario) {
                 disponibles.push(fechaStr);
             }
-            actual.setDate(actual.getDate() + 1); // Avanzar al siguiente día
+            actual.setDate(actual.getDate() + 1);
         }
         return disponibles;
     };
@@ -88,7 +84,6 @@ export default function OperadorCitasMedicas() {
 
         if (!fecha || !agendaActiva) return;
 
-        // Como la fecha viene de nuestra lista calculada, ya sabemos que es válida 100%
         const dateObj = new Date(fecha + "T12:00:00"); 
         let diaSemana = dateObj.getDay(); 
         if (diaSemana === 0) diaSemana = 7; 
@@ -104,7 +99,7 @@ export default function OperadorCitasMedicas() {
         try {
             const qCitas = query(collection(db, "citas_medicas"), where("fecha", "==", fecha));
             const citasSnapshot = await getDocs(qCitas);
-            const horasOcupadas = citasSnapshot.docs.map(doc => doc.data().hora); // OJO AQUI: Si en BD se guarda distinto, cambiar esto
+            const horasOcupadas = citasSnapshot.docs.map(doc => doc.data().hora);
             
             setCitasOcupadas(horasOcupadas);
             setHorariosDisponibles(bloquesDelDia);
@@ -118,16 +113,36 @@ export default function OperadorCitasMedicas() {
         if (!fechaElegida || !horaElegida) return;
 
         setProcesando(true);
-        // Tu nombre registrado para asegurar que no se vaya en blanco
         const nombreFinal = user?.nombre || "Ángel Julián Ojeda Ramírez"; 
+        const uidUsuario = user?.uid || user?.id || nombreFinal; // Identificador único del usuario actual
 
         try {
+            // 🛑 NUEVA RESTRICCIÓN: Verificar si el usuario ya tiene una cita este mismo día
+            const qDuplicada = query(
+                collection(db, "citas_medicas"), 
+                where("fecha", "==", fechaElegida)
+            );
+            const snapshotDuplicada = await getDocs(qDuplicada);
+            
+            // Comprobamos si alguna de las citas del día pertenece a este mismo usuario
+            const yaTieneCitaHoy = snapshotDuplicada.docs.some(doc => {
+                const data = doc.data();
+                // Validamos por ID de usuario, o por nombre si no se dispone del UID en el contexto
+                return data.userId === uidUsuario || data.usuario === nombreFinal || data.paciente === nombreFinal;
+            });
+
+            if (yaTieneCitaHoy) {
+                alert("⚠️ Ya tienes una cita programada para este día. No puedes tomar otra.");
+                setProcesando(false);
+                return;
+            }
+
+            // Guardar la cita si pasa la validación
             await addDoc(collection(db, "citas_medicas"), {
                 agendaId: agendaActiva.id,
                 fecha: fechaElegida,
+                userId: uidUsuario,
                 
-                // MULTI-LLAVES: Guardamos las variables con distintos nombres 
-                // para atinarle a la que lee tu vista de Administrador.
                 hora: horaElegida,
                 horario: horaElegida,
                 time: horaElegida,
@@ -153,7 +168,6 @@ export default function OperadorCitasMedicas() {
         }
     };
 
-    // Función estética para que la fecha se lea bonita en el Select
     const formatearFecha = (fechaStr) => {
         const date = new Date(fechaStr + "T12:00:00");
         return new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
@@ -197,7 +211,6 @@ export default function OperadorCitasMedicas() {
                                                         className="btn btn-sm btn-primary d-flex align-items-center gap-2"
                                                         onClick={() => {
                                                             setAgendaActiva(agenda);
-                                                            // Al dar clic en Agendar, calculamos las fechas válidas mágicamente
                                                             setDiasValidos(calcularDiasDisponibles(agenda));
                                                             setVista("agendar");
                                                         }}
@@ -233,7 +246,6 @@ export default function OperadorCitasMedicas() {
                         </h4>
 
                         <form onSubmit={handleAgendar}>
-                            {/* NUEVO SELECT DE FECHAS */}
                             <div className="mb-4">
                                 <label className="form-label fw-medium text-light">1. Elige un día disponible</label>
                                 
@@ -258,7 +270,6 @@ export default function OperadorCitasMedicas() {
                                 )}
                             </div>
 
-                            {/* SELECCIÓN DE HORA */}
                             {fechaElegida && horariosDisponibles.length > 0 && (
                                 <div className="mb-4 fade-in">
                                     <label className="form-label fw-medium text-light">2. Horarios disponibles</label>

@@ -1202,8 +1202,30 @@ export default function CreateSurvey() {
     overflow: hidden;
 }
 
-.card-body {
-    padding: 28px;
+html[data-theme="dark"] .card.shadow-sm {
+    background: rgba(15, 23, 42, 0.94);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35) !important;
+}
+
+html[data-theme="dark"] .card-body {
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .form-control {
+    background: rgba(15, 23, 42, 0.90) !important;
+    border-color: rgba(148, 163, 184, 0.28) !important;
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .form-control::placeholder {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] input[type="file"],
+html[data-theme="dark"] .form-control[type="file"] {
+    background: rgba(15, 23, 42, 0.90) !important;
+    border-color: rgba(148, 163, 184, 0.28) !important;
+    color: #f8fafc !important;
 }
 
 /* ==================================================
@@ -1228,6 +1250,10 @@ export default function CreateSurvey() {
     letter-spacing: 0.8px;
 }
 
+html[data-theme="dark"] .table thead th {
+    color: #cbd5e1;
+}
+
 .table tbody tr {
 
     background: white;
@@ -1238,12 +1264,30 @@ export default function CreateSurvey() {
     transition: all 0.25s ease;
 }
 
+html[data-theme="dark"] .table tbody tr {
+    background: rgba(15, 23, 42, 0.95);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+
+html[data-theme="dark"] .table tbody tr:hover {
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.30);
+}
+
+html[data-theme="dark"] .table td {
+    color: #e2e8f0;
+}
+
 .table tbody tr:hover {
 
     transform: translateY(-2px);
 
     box-shadow:
         0 14px 30px rgba(37,99,235,0.08);
+}
+
+html[data-theme="dark"] .table tbody tr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.30);
 }
 
 .table td {
@@ -1800,7 +1844,59 @@ export default function CreateSurvey() {
                 repeat(1, minmax(0, 1fr));
     }
 }
-                
+
+                /* ==================================================
+                   MODO OSCURO
+                   Este modal tiene sus propios estilos fijos (blanco)
+                   arriba, sin relación con el tema; se sobreescriben
+                   aquí reutilizando las variables --operator-* ya
+                   usadas en el resto del panel de administrador.
+                ================================================== */
+
+                html[data-theme="dark"] .modal-full {
+                    background: var(--operator-card) !important;
+                }
+
+                html[data-theme="dark"] .modal-full input,
+                html[data-theme="dark"] .modal-full select,
+                html[data-theme="dark"] .modal-full textarea {
+                    background: var(--operator-background) !important;
+                    border-color: var(--operator-border) !important;
+                    color: var(--operator-text) !important;
+                }
+
+                html[data-theme="dark"] .modal-full input::placeholder,
+                html[data-theme="dark"] .modal-full textarea::placeholder {
+                    color: var(--operator-text-soft);
+                    opacity: 1;
+                }
+
+                html[data-theme="dark"] .modal-full label {
+                    color: var(--operator-text-soft) !important;
+                }
+
+                html[data-theme="dark"] .step-btn {
+                    background: var(--operator-background);
+                    color: var(--operator-text);
+                }
+
+                html[data-theme="dark"] .area-card {
+                    background: var(--operator-card);
+                    border-color: var(--operator-border);
+                }
+
+                html[data-theme="dark"] .area-card span {
+                    color: var(--operator-text);
+                }
+
+                html[data-theme="dark"] .area-card.selected {
+                    background:
+                        linear-gradient(
+                            135deg,
+                            rgba(37,99,235,0.18),
+                            rgba(59,130,246,0.12)
+                        );
+                }
 
 
 `}</style>
