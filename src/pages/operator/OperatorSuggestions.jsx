@@ -24,7 +24,7 @@ export default function OperatorSuggestions({
                 </h1>
 
                 <p>
-                    Comparte propuestas para mejorar AQUA.
+                    Comparte propuestas para mejorar AQUA Médica.
                 </p>
 
             </div>
