@@ -98,20 +98,58 @@ export default function PuestosPage() {
 
             <style jsx>{`
 
-                .custom-users-header input,
-                .custom-users-header select {
-                    border-radius: 10px;
-                }
+            /* INPUTS DE LA PAGINA */
 
-                .custom-users-card {
-                    border-radius: 16px;
+            .custom-input {
+                height: 50px;
+                border-radius: 12px;
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+                
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
+            }
+
+            .btn-primary {
+                height: 50px;
+                padding: 0 20px;
+                border-radius: 10px;
+                border: none;
+                background: var(--operator-primary);
+                color: #fff;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-primary-light);
+
+            }
+                /* CONTENEDOR DE LA TABLA */
+
+            .custom-users-card {
+                    border-radius: 30px;
                     border: none;
-                    box-shadow: 0 8px 25px rgba(0,0,0,0.05);
-                }
+                    box-shadow: 0 8px 25px var(--operator-shadow);
+            }
 
-                .custom-table {
-                    border-collapse: separate;
-                    border-spacing: 0 10px;
+
+                /* TABLA */
+
+                .custom-table thead th {
+                    border-bottom: 3px solid var(--operator-text);
+                    font-size: 20px;
+                    font-weight: 900;
+                    padding: 5px 5px;
+                    vertical-align: middle;
+                    border-top: none !important;
+                    white-space: wrap;
+
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
+                    max-width: 230px;
+                    min-width: 100px;
                 }
 
                 .custom-table tbody tr:hover {

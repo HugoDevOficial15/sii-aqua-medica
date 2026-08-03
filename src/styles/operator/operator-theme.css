@@ -50,6 +50,8 @@ html[data-theme="dark"] {
 
     --operator-shadow:
         0 10px 30px rgba(0, 0, 0, .35);
+
+    --operator-close: #485364;
 }
 
 /* Superficies principales del shell operador que no usan las variables
@@ -250,15 +252,6 @@ html[data-theme="dark"] .rack-filters-container .filter-label {
     color: var(--operator-text) !important;
 }
 
-html[data-theme="dark"] .custom-input,
-html[data-theme="dark"] .custom-select,
-html[data-theme="dark"] .rack-filters-container input,
-html[data-theme="dark"] .rack-filters-container select {
-    background: rgba(15, 23, 42, .85) !important;
-    border-color: var(--operator-border) !important;
-    color: var(--operator-text) !important;
-}
-
 html [data-theme="dark"] .rack-stock-card,
 html [data-theme="dark"] .rack-stock-header{
     background: rgba(30, 41, 59, .96) !important;
@@ -275,21 +268,8 @@ html[data-theme="dark"] .rack-stock-footer{
     color: var(--operator-text) !important;
 }
 
-html[data-theme="dark"] .custom-input::placeholder,
-html[data-theme="dark"] .custom-select::placeholder,
-html[data-theme="dark"] .rack-filters-container input::placeholder {
-    color: var(--operator-text-soft) !important;
-    opacity: 1 !important;
-}
 
-html[data-theme="dark"] .custom-input:focus,
-html[data-theme="dark"] .custom-select:focus,
-html[data-theme="dark"] .rack-filters-container input:focus,
-html[data-theme="dark"] .rack-filters-container select:focus {
-    background: rgba(15, 23, 42, .98) !important;
-    border-color: var(--operator-primary-light) !important;
-    box-shadow: 0 0 0 4px rgba(96, 165, 250, .18) !important;
-}
+
 
 html[data-theme="dark"] .rack-card,
 html[data-theme="dark"] .rack-history-card,
@@ -560,13 +540,36 @@ html[data-theme="dark"] .layout .table {
     color: var(--operator-text);
 }
 
-html[data-theme="dark"] .table-responsive-container,
-html[data-theme="dark"] .table-responsive,
-html[data-theme="dark"] .custom-users-card,
-html[data-theme="dark"] .custom-users-card .card-body {
+html[data-theme="dark"] .table tbody tr,
+html[data-theme="dark"] .table td,
+html[data-theme="dark"] .table th,
+html[data-theme="dark"] .custom-table tbody tr,
+html[data-theme="dark"] .custom-table td,
+html[data-theme="dark"] .custom-table th {
     background: var(--operator-card) !important;
     color: var(--operator-text) !important;
     border-color: var(--operator-border) !important;
+}
+
+html[data-theme="dark"] .table tbody tr:hover,
+html[data-theme="dark"] .custom-table tbody tr:hover {
+    background: rgba(59, 130, 246, .12) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06) !important;
+}
+
+/* El encabezado (thead) de las tablas admin no quedaba cubierto por la
+regla de "tbody tr" de arriba y seguía mostrando su fondo claro. */
+
+        /* TABLA DE INVENTARIO */
+
+
+html[data-theme="dark"] .custom-table thead th {
+    background: var(--operator-card) !important;
+    color: var(--operator-text) !important;
+    border-color: var(--operator-border) !important;
+
+
+
 }
 
 html[data-theme="dark"] .table,
@@ -592,16 +595,9 @@ html[data-theme="dark"] .custom-table tbody tr:hover {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06) !important;
 }
 
-/* El encabezado (thead) de las tablas admin no quedaba cubierto por la
-   regla de "tbody tr" de arriba y seguía mostrando su fondo claro. */
-html[data-theme="dark"] .table thead,
-html[data-theme="dark"] .table thead th,
-html[data-theme="dark"] .custom-table thead,
-html[data-theme="dark"] .custom-table thead th {
-    background: var(--operator-background) !important;
-    color: var(--operator-text-soft) !important;
-    border-color: var(--operator-border) !important;
-}
+
+
+
 
 
 html[data-theme="dark"] .custom-badge-success {
@@ -614,12 +610,6 @@ html[data-theme="dark"] .custom-badge-danger {
     color: #fecaca !important;
 }
 
-html[data-theme="dark"] .layout .form-control,
-html[data-theme="dark"] .layout .form-select {
-    background: var(--operator-card );
-    border-color: var(--operator-border);
-    color: var(--operator-text);
-}
 
 html[data-theme="dark"] .col-md-12,
 html[data-theme="dark"] .col-md-6,
@@ -630,10 +620,7 @@ html[data-theme="dark"] .col-md-4{
 
 /* El texto de placeholder usa un color propio (no hereda "color") y
    quedaba ilegible sobre el nuevo fondo oscuro del input. */
-html[data-theme="dark"] .layout .form-control::placeholder {
-    color: var(--operator-text-soft);
-    opacity: 1;
-}
+
 
 /* --- MODALES --- */
 
@@ -643,38 +630,16 @@ html[data-theme="dark"] .custom-modal {
     color: var(--operator-text);
 }
 
-html[data-theme="dark"] .modal-header,
-html[data-theme="dark"] .custom-modal-header {
-    background: var(--operator-background);
-    border-color: var(--operator-border);
-}
-
-
-html[data-theme="dark"] .modal-footer,
-html[data-theme="dark"] .custom-modal-footer {
-    background: var(--operator-card);
-    border-color: var(--operator-border);
-}
 
 html[data-theme="dark"] .custom-modal-header h5 {
     color: var(--operator-text);
 }
 
 
-html[data-theme="dark"] .modal-body,
-html[data-theme="dark"] .custom-modal-body {
-    background: var(--operator-card);
-    color: var(--operator-text);
-}
 
 
-html[data-theme="dark"] .modal-body input,
-html[data-theme="dark"] .modal-body select,
-html[data-theme="dark"] .custom-modal-body input,
-html[data-theme="dark"] .custom-modal-body select {
-    background: var(--operator-card);
-    color: var(--operator-text-soft);
-}
+
+
 
 /* --- ALERTAS (SweetAlert2) --- */
 
@@ -739,9 +704,4 @@ html[data-theme="dark"] .text-muted-small-mb-2 {
     color: var(--operator-text) !important;
 }
 
-html[data-theme="dark"] .btn-secondary {
-    background: var(--operator-text);
-    color: var(--operator-card);
-    border-color: var(--operator-text);
-}
 

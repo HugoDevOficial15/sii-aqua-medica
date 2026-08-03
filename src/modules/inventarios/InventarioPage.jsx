@@ -145,7 +145,7 @@ export default function InventarioPage() {
                     </select>
 
                     <button
-                        className="btn btn-sm btn-primary"
+                        className="btn btn-sm btn-primary custom-btn"
                         onClick={handleCreate}
                     >
                         <FaPlus className="me-2" />
@@ -293,25 +293,84 @@ export default function InventarioPage() {
             {/* 🎨 ESTILOS */}
             <style jsx>{`
 
-                .custom-users-header input,
-                .custom-users-header select {
-                    border-radius: 10px;
+                .custom-users-header input{
+                height: 50px;
+                border-radius: 12px;
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
+
                 }
 
-                .custom-users-card {
-                    border-radius: 16px;
+                .custom-users-header select{
+                    border-radius: 10px;
+                    color: var(--operator-text);
+                    background: var(--operator-card);
+                }
+                
+                .btn-primary {
+                    height: 50px;
+                    padding: 0 20px;
+                    border-radius: 10px;
                     border: none;
-                    box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+                    background: var(--operator-primary);
+                    color: #fff;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                }
+
+
+
+                .custom-users-card {
+                    border-radius: 30px;
+
+                    border: none;
+                    box-shadow: 0 8px 25px var(--operator-shadow);
+
                 }
 
                 .custom-table {
                     border-collapse: separate;
                     border-spacing: 0 10px;
+                    box-shadow: 0 8px 25px var(--operator-shadow);
+                    empty-cells: hide;
+                    table-layout: fixed;
+                    width: 100%;
+                }
+
+                .custom-table thead th {
+                        border-bottom: 3px solid var(--operator-text);
+                        font-size: 20px;
+                        font-weight: 900;
+                }
+
+                .custom-table tbody td {
+                    border-bottom: 3px solid var(--operator-border);
+                    height: 50px;
+                    font-size: 14px;
+                }
+
+                .form-select, .form-control {
+                    height: 50px;
+                    border-radius: 12px;
+                    border: 1px solid var(--operator-border);
+                    padding: 0 14px;
+
+                    color: var(--operator-text);
+                    font-size: 14px;
+                    outline: none;
                 }
 
                 .custom-table tbody tr:hover {
-                    transform: scale(1.01);
-                    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+                    transform: scale(1.02);
+                    transition: transform 0.2s;
                 }
 
                 .custom-badge-success {
@@ -330,54 +389,25 @@ export default function InventarioPage() {
                 }
 
                 .custom-btn {
-                    border-radius: 8px;
+
+                    border-radius: 10px;
                 }
 
                 .custom-badge-dark {
-    background: #e5e7eb;
-    color: #111827;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 0.8rem;
-}
+                    background: #e5e7eb;
+                    color: #111827;
+                    padding: 6px 12px;
+                    border-radius: 999px;
+                    font-size: 0.8rem;
+                }
 
-.custom-badge-info {
-    background: #dbeafe;
-    color: #1d4ed8;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 0.8rem;
-}
-
-                
-/* 🔥 TABLE */
-.table {
-    border-collapse: separate !important;
-    border-spacing: 0 10px !important;
-}
-
-.table thead th {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: #6b7280;
-    border: none !important;
-}
-
-.table tbody tr {
-    background: #ffffff;
-    transition: all 0.2s ease;
-}
-
-.table tbody tr:hover {
-    transform: scale(1.01);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-}
-
-.table td {
-    vertical-align: middle;
-    border-top: none !important;
-    padding: 12px;
-}
+                .custom-badge-info {
+                    background: #dbeafe;
+                    color: #2646a0;
+                    padding: 6px 12px;
+                    border-radius: 999px;
+                    font-size: 0.8rem;
+                }
 
 
             `}</style>

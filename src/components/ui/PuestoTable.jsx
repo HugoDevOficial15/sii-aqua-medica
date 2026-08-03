@@ -104,6 +104,7 @@ export default function PuestoTable({ puestos = [], loading, onEdit }) {
             </tbody>
 
             </table>
+            
 
         </div>
 

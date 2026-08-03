@@ -15,6 +15,7 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
     const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [users, setUsers] = useState([]);
+    const [isCloseHovered, setIsCloseHovered] = useState(false);
 
     const {
         register,
@@ -184,7 +185,14 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
                     <h5 style={styles.title}>
                         {data ? "Editar Equipo" : "Nuevo Equipo"}
                     </h5>
-                    <button style={styles.closeButton} onClick={onClose}>×</button>
+                    <button
+                        style={{ ...styles.closeButton, ...(isCloseHovered ? styles.closeButtonHover : {}) }}
+                        onClick={onClose}
+                        onMouseEnter={() => setIsCloseHovered(true)}
+                        onMouseLeave={() => setIsCloseHovered(false)}
+                    >
+                        ×
+                    </button>
                 </div>
 
                 {/* BODY */}
@@ -280,40 +288,47 @@ const styles = {
         width: "420px",
         maxWidth: "95%",
         overflow: "hidden",
-        background: "var(--eq-modal-bg)", // Variable CSS
+        background: "var(--operator-card)", // Variable CSS
         backdropFilter: "blur(12px)",
         borderRadius: "20px",
-        border: "1px solid var(--eq-modal-border)", // Variable CSS
-        boxShadow: "0 24px 48px rgba(0,0,0,0.18)",
+        border: "1px solid var(--operator-border)", // Variable CSS
+        boxShadow: "0 24px 48px var(--operator-shadow)", // Variable CSS
     },
     header: {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         padding: "24px 30px",
-        borderBottom: "1px solid var(--eq-modal-border)",
+        background: "var(--operator-card)", // Variable CSS
+
     },
     title: {
         margin: 0,
         fontSize: "1.5rem",
         fontWeight: "800",
-        color: "var(--eq-text-main)", // Variable CSS
+        color: "var(--operator-text", // Variable CSS
     },
     closeButton: {
         width: "36px",
         height: "36px",
-        border: "none",
+        border: "none", // Variable CSS
         borderRadius: "10px",
-        background: "var(--eq-btn-close-bg)", // Variable CSS
-        color: "var(--eq-btn-close-text)", // Variable CSS
-        fontSize: "20px",
+        background: "var(--operator-card)", // Variable CSS
+        color: "var(--operator-text)", // Variable CSS
+        fontSize: "30px",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center"
     },
+
+    closeButtonHover: {
+        background: "var(--operator-border)",
+        color: "var(--operator-primary)",
+    },
     body: {
-        padding: "30px"
+        padding: "30px",
+        background: "var(--operator-card)", // Variable CSS
     },
     form: {
         display: "flex",
@@ -323,19 +338,19 @@ const styles = {
     input: {
         height: "50px",
         borderRadius: "12px",
-        border: "1px solid var(--eq-input-border)", // Variable CSS
+        border: "1px solid var(--operator-border)", // Variable CSS
         padding: "0 14px",
-        background: "var(--eq-input-bg)", // Variable CSS
-        color: "var(--eq-input-text)", // Variable CSS
+        background: "var(--operator-border)", // Variable CSS
+        color: "var(--operator-text)", // Variable CSS
         fontSize: "14px",
         outline: "none"
     },
     textarea: {
         padding: "14px",
         borderRadius: "12px",
-        border: "1px solid var(--eq-input-border)",
-        background: "var(--eq-input-bg)",
-        color: "var(--eq-input-text)",
+        border: "1px solid var(--operator-border)",
+        background: "var(--operator-background)",
+        color: "var(--operator-text)",
         fontSize: "14px",
         minHeight: "100px",
         resize: "vertical",
@@ -345,7 +360,7 @@ const styles = {
         display: "flex",
         alignItems: "center",
         gap: "8px",
-        color: "var(--eq-text-main)" // Cambia dinámicamente según el tema
+        color: "var(--operator-text)" // Cambia dinámicamente según el tema
     },
     inputError: {
         border: "1px solid #ef4444",
@@ -362,15 +377,16 @@ const styles = {
         padding: "0 24px",
         borderRadius: "14px",
         border: "none",
-        background: "linear-gradient(135deg,#2563eb,#1d4ed8)",
+        background: "var(--operator-primary)", // Variable CSS
         color: "#fff",
         fontWeight: "700",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        boxShadow: "0 12px 24px rgba(37,99,235,0.22)"
+        boxShadow: "0 0px 20px var(--operator-primary-light)", // Variable CSS
     }
+    
 };
 
 const modalAnimation = {

@@ -42,7 +42,7 @@ import { AREAS } from "../../catalogs/areas";
 // getPuestos
 import { getPuestos } from "../../services/puestos-service";
 
-export default function Users() {
+export default function Users({onClose}) {
 
     // Loading 
     const [loading, setLoading] = useState(true);
@@ -582,7 +582,7 @@ export default function Users() {
                     />
 
                     <button
-                        className="btn btn-sm btn-primary"
+                        className="btn btn-sm btn-primary custom-btn"
                         onClick={() => {
                             reset({
                                 nomina: "",
@@ -732,9 +732,13 @@ export default function Users() {
                             </h5>
 
                             <button
-                                className="btn-close"
+                                type="button"
+                                className="custom-close-btn"
                                 onClick={() => setShowModal(false)}
-                            ></button>
+                                aria-label="Cerrar"
+                            >
+                                ×
+                            </button>
 
                         </div>
 
@@ -800,7 +804,7 @@ export default function Users() {
 
                                 <button
                                     type="button"
-                                    className="btnbtn-secondary"
+                                    className="btn btn-sm btn-secondary custom-btn"
                                     onClick={() => setShowModal(false)}
                                 >
                                     Cancelar
@@ -828,19 +832,91 @@ export default function Users() {
             <style jsx>{`
 
             .custom-users-header input {
-                border-radius: 10px;
+                height: 50px;
+                border-radius: 12px;
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
+            }
+
+            .btn-primary {
+                    height: 50px;
+                    padding: 0 20px;
+                    border-radius: 10px;
+                    border: none;
+                    background: var(--operator-primary);
+                    color: #fff;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
             }
 
             .custom-users-card {
-                border-radius: 16px;
-                border: none; 
-                box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+                background: var(--operator-card);
+                border-radius: 30px; 
+                box-shadow: 0 8px 25px var(--operator-shadow);
             }
+            /* TABLA */
 
             .table.custom-table {
-                table-layout: flex;
+                
+                table-layout: fixed;
                 width: 100%;
             }
+
+
+            .custom-table tbody tr:hover {
+                transform: scale(1.01);
+                box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+            }
+
+            .table {
+                border-collapse: separate !important;
+                border-spacing: 0 10px !important;
+            }
+
+            .table thead th {
+                border-bottom: 3px solid var(--operator-text);
+                height: 50px;
+                font-size: 20px;
+                font-weight: 900;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
+            }
+
+            .table tbody td {
+                border-bottom: 3px solid var(--operator-border);
+                height: 50px;
+                font-size: 14px;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
+            }
+
+            .table tbody tr:hover {
+                transform: scale(1.02);
+                transition: transform 0.2s;
+            }
+
 
             @media (max-width: 768px) {
 
@@ -863,11 +939,6 @@ export default function Users() {
                 }
             }
 
-            .custom-table tbody tr:hover {
-                transform: scale(1.01);
-                box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-            }
-
             .custom-badge-success {
                 background: #dcfce7;
                 color: #15803d;
@@ -881,32 +952,25 @@ export default function Users() {
                 color: #b91c1c;
                 padding: 6px 12px;
                 border-radius: 999px;
+                font-size: 0.8rem;
             }
 
             .custom-btn {
-                border-radius: 8px;
+                border-radius: 10px;
             }
 
             /* MODAL MEJORADO */
             .custom-modal-backdrop {
 
                 position: fixed;
-
                 inset: 0;
-
                 display: flex;
-
                 align-items: center;
-
                 justify-content: center;
-
                 background:
                     rgba(15,23,42,0.55);
-
                 backdrop-filter: blur(6px);
-
                 z-index: 9999;
-
                 padding: 20px;
             }
 
@@ -914,103 +978,66 @@ export default function Users() {
 
                 width: 640px;
                 max-width: 95%;
-
-                background:
-                    var(--operator-background);
-
-                backdrop-filter: blur(12px);
-
-                border-radius: 30px;
-
-                padding: 0;
-
-                border:
-                    1px solid rgba(255,255,255,0.4);
-
-                box-shadow:
-                    0 24px 48px rgba(0,0,0,0.18);
-
-                overflow: hidden;
+                background: var(--operator-background);
+                border-radius: 20px;
+                border: 1px solid var(--operator-border);
+                box-shadow: 0 24px 48px var(--operator-shadow);
             }
 
            .custom-modal-header {
 
+                background: var(--operator-card);
+                border: none;
                 display: flex;
-
                 justify-content: space-between;
-
                 align-items: center;
-
                 padding: 24px 30px;
-
-                border-bottom:
-                    1px solid var(--operator-border);
             }
 
             .custom-modal-header h5 {
-
                 margin: 0;
-
                 font-size: 1.5rem;
-
                 font-weight: 800;
-
-                color: #111827;
+                color: var(--operator-text);
             }
                 
             .modal-footer {
-
-                display: flex;
-
-                justify-content: flex-end;
-
+                border: none;                
                 gap: 12px;
-
-                padding: 24px 30px;
-
-                border-top:
-                    1px solid #f3f4f6;
-
+                display: flex;
+                justify-content: flex-end;
                 background: var(--operator-card);
             }
-
+                
             .modal-body {
+                padding: 30px;
                 background: var(--operator-card);
             }
 
             .modal-body label {
-
-                font-size: 13px;
-                        
-                font-weight: 700;
-                        
-                color: #514a37;
-                        
-                margin-bottom: 8px;
-                        
-                display: block;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: var(--operator-text);    
             }
             
 
-            .modal-body .form-control,
-            .modal-body .form-select {
-                        
-                height: 54px;
-                        
-                border-radius: 14px;
-                        
-                border:
-                    1px solid #d1d5db;
-                        
-                padding: 0 14px;
-                        
-                background: #fff;
-                        
-                box-shadow: none;
-            }
+                .modal-body .form-control,
+                .modal-body .form-select {
+                    height: 50px;
+                    border-radius: 12px;
+                    border: 1px solid var(--operator-border);
+                    padding: 0 14px;
+                    background: var(--operator-border);
+                    color: var(--operator-text);
+                    font-size: 14px;
+                    outline: none;
+                }
 
             .modal-body .form-control:focus,
             .modal-body .form-select:focus {
+
+            
                         
                 border-color: #2563eb;
                         
@@ -1019,44 +1046,36 @@ export default function Users() {
             }
 
             .modal-footer .btn-secondary {
-
-                height: 48px;
-                        
-                padding: 0 18px;
-                        
+                height: 50px;
+                padding: 0 24px;   
                 border: none;
-                        
                 border-radius: 14px;
-                        
-                background: #e5e7eb;
-                        
+                background: var(--operator-border);
+                color: var(--operator-text);
                 font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-shadow);
+                
             }
 
 
             .modal-footer .btn-primary {
 
                 height: 50px;
-
                 padding: 0 24px;
-
                 border: none;
-
                 border-radius: 14px;
-
-                background:
-                    linear-gradient(
-                        135deg,
-                        #2563eb,
-                        #1d4ed8
-                    );
-
+                background: var(--operator-primary);
                 color: #fff;
-
                 font-weight: 700;
-
-                box-shadow:
-                    0 12px 24px rgba(37,99,235,0.22);
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-primary-light);
             }
 
             .col-md-4 label,
@@ -1071,18 +1090,26 @@ export default function Users() {
             }
 
 
-            .btn-close {
+            .custom-close-btn {
+                width: 36px;
+                height: 36px;
+                border: none;
+                border-radius: 10px;
+                background: var(--operator-card);
+                color: var(--operator-text);
+                font-size: 28px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                line-height: 1;
+                transition: background 0.2s ease, color 0.2s ease;
+            }
 
-    width: 42px;
-
-    height: 42px;
-
-    border-radius: 14px;
-
-    background-color: #f3f4f6;
-
-    opacity: 1;
-}
+            .custom-close-btn:hover {
+                background: var(--operator-border);
+                color: var(--operator-primary);
+            }
 
 .row.g-3 {
 
@@ -1109,45 +1136,7 @@ export default function Users() {
     }
 }
 
-            /*  TABLE */
-            .table {
-                border-collapse: separate !important;
-                border-spacing: 0 10px !important;
-            }
 
-            .table thead th {
-                
-                font-size: 12px;
-                text-transform: uppercase;
-                color: #6b7280;
-                border: none !important;
-            }
-
-            .table tbody tr {
-                background: #ffffff;
-                transition: all 0.2s ease;
-                position: relative;
-                height: auto;
-            }
-
-            .table tbody tr:hover {
-                transform: scale(1.01);
-                box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-            }
-
-            .table thead th,
-            .table tbody td{
-                padding: 5px 5px;
-                vertical-align: middle;
-                border-top: none !important;
-                white-space: wrap;
-
-                word-break: break-word;
-                overflow-wrap: anywhere;
-                max-width: 230px;
-                min-width: 100px;
-
-            }
         `}</style>
 
         </div>
