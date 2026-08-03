@@ -119,7 +119,7 @@ export default function OperatorPreferences({ onBack, usuarioActual }) {
                 <p>Personaliza tu perfil y la apariencia de la aplicación.</p>
             </div>
 
-            {/* 👇 NUEVA SECCIÓN: Tarjeta de Foto de Perfil 👇 */}
+            {/*  NUEVA SECCIÓN: Tarjeta de Foto de Perfil  */}
             <div className="preferences-card">
                 <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FiCamera /> Foto de Perfil
