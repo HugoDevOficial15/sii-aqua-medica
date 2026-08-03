@@ -4,6 +4,7 @@ import Loader from "../../../components/Loader";
 import { obtenerRacks } from "../../../services/rackService";
 import { suscribirStock } from "../../../services/rackStockService";
 import { getUbicacionLabel, getUbicacionTipoLabel } from "../../../utils/rackLocation";
+import { useRacksDashboard } from "../../almacen-peps/hooks/useRacksDashboard";
 
 const parseDate = (value) => {
     if (!value) return null;
@@ -248,6 +249,10 @@ export default function AlmacenMaterialesPage() {
         }));
     };
 
+    const direcciones = useRacksDashboard();
+    const direccion = "";
+    
+
     if (loading) {
         return <Loader text="Cargando almacén de materiales..." />;
     }
@@ -372,13 +377,28 @@ export default function AlmacenMaterialesPage() {
                                                 <td colSpan="5">
                                                     <div className="p-3-rounded-bg-light">
                                                         <div className="fw-semibold mb-2">Lugares de almacenaje</div>
-                                                        <ul className="mb-0">
+                                                        <div className="rack-location-list">
                                                             {item.racks.map((rack) => (
-                                                                <li key={`${item.id}-${rack.rackId}`}>
-                                                                    {rack.ubicacionLabel} · Planta: {rack.planta} · Cantidad: {rack.cantidad} · Última entrada: {formatDate(rack.ultimaEntrada)}
-                                                                </li>
+                                                                <table
+                                                                    key={`${item.id}-${rack.rackId}`}
+                                                                    className="table table-sm mb-0 rack-location-table"
+                                                                >
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th className="rack-location-head">{rack.ubicacionLabel}</th>
+                                                                            <th className="rack-location-head">Planta: {rack.planta}</th>
+                                                                            <th className="rack-location-head">Cantidad: {rack.cantidad}</th>
+                                                                            <th className="rack-location-head">Última entrada: {formatDate(rack.ultimaEntrada)}</th>
+                                                                            <th className="rack-location-head rack-location-action-cell">
+                                                                                <button className="rack-location-button" type="button">
+                                                                                    Ver
+                                                                                </button>
+                                                                            </th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                </table>
                                                             ))}
-                                                        </ul>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -397,12 +417,53 @@ export default function AlmacenMaterialesPage() {
                 color: var(--operator-text);
             }
 
-            .mb-0{
-                margin-bottom: 0.5rem !important;
-                background-color: var(--operator-card);
-                bordercolor: var(--operator-border);
+            .rack-location-list {
+                display: flex;
+                flex-direction: column;
             }
+
+            .rack-location-table {
+                border-collapse: separate;
+                border-spacing: 0;
+                background: var(--operator-card);
+                color: var(--operator-text);
+                border-bottom: 1px solid var(--operator-border);
+                overflow: hidden;
+            }
+
+            .rack-location-table thead th {
+                background: var(--operator-card);
+                color: var(--operator-text);
+                border-bottom: 1px solid var(--operator-border);
+                padding: 10px 12px;
+                font-weight: 600;
+            }
+
+            .rack-location-action-cell {
+                text-align: right;
+                width: 100 px;
+                max-width: 70px;
+                min-width: 70px;
+            }
+
+            .rack-location-button {
+                background: var(--operator-primary);
+                color: #fff;
+                border-radius: 8px;
+                padding: 0.35rem 0.7rem;
+                font-size: 0.8rem;
+                font-weight: 600;
+                transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+            }
+
+            .rack-location-button:hover {
+                background: var(--operator-background);
+
+                transform: translateY(-1px);
+            }
+
             `}</style>
         </div>
     );
 }
+

@@ -702,12 +702,41 @@ html[data-theme="dark"] .p-3-rounded-bg-light {
     color: var(--operator-text);
 }
 
-/* NOTAS */
-html[data-theme="dark"] .small-text-muted-mt-1,
-html[data-theme="dark"] .text-muted-small-mb-2 {
+html[data-theme="dark"] .table-middle thead th {
     background: var(--operator-card);
     border-color: var(--operator-border);
     color: var(--operator-text);
+}
+
+html[data-theme="dark"] .rack-location-table {
+    background: var(--operator-card) !important;
+    color: var(--operator-text) !important;
+    border-color: var(--operator-border) !important;
+}
+
+html[data-theme="dark"] .rack-location-table thead th {
+    background: var(--operator-card) !important;
+    color: var(--operator-text) !important;
+    border-color: var(--operator-card) !important;
+}
+
+html[data-theme="dark"] .rack-location-button {
+    background: var(--operator-primary) !important;
+    color: #fff !important;
+}
+
+html[data-theme="dark"] .rack-location-button:hover {
+    background: var(--operator-primary-light) !important;
+    border-color: var(--operator-primary-light) !important;
+}
+
+
+/* NOTAS */
+html[data-theme="dark"] .small-text-muted-mt-1,
+html[data-theme="dark"] .text-muted-small-mb-2 {
+    background: var(--operator-card) !important;
+    border-color: var(--operator-border) !important;
+    color: var(--operator-text) !important;
 }
 
 html[data-theme="dark"] .btn-secondary {
@@ -715,3 +744,4 @@ html[data-theme="dark"] .btn-secondary {
     color: var(--operator-card);
     border-color: var(--operator-text);
 }
+
