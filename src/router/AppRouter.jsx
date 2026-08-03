@@ -6,7 +6,7 @@ import AppOperator from "../pages/operator/AppOperator";
 import ChangePassword from "../modules/auth/ChangePassword";
 import CreateSurvey from "../modules/encuestas/CreateSurvey";
 import InventarioPage from "../modules/inventarios/InventarioPage";
-import News from "../pages/admin/News"; 
+import News from "../pages/admin/News";
 
 import OperadorCitasMedicas from '../pages/operator/OperadorCitasMedicas';
 import AgendaPage from "../modules/agenda/AgendaPage";
@@ -30,6 +30,7 @@ import PuestosPage from "../modules/puestos/page/PuestosPage";
 import Configuracion from "../pages/admin/Configuracion";
 import Soporte from "../pages/admin/Soporte";
 import Solicitudes from "../pages/admin/Solicitudes";
+import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
 
 import MaintenancePage from "../components/MaintenancePage";
 
@@ -52,7 +53,7 @@ export default function AppRouter() {
                         </ProtectedRoute>
                     }
                 >
-                   
+
                     {/* DASH */}
                     <Route
                         path="/dashboard"
@@ -282,6 +283,13 @@ export default function AppRouter() {
                             <AppOperator />
                         </ProtectedRoute>
                     }
+                />
+
+
+
+                <Route
+                    path="/privacy"
+                    element={<PrivacyPolicyPage />}
                 />
 
             </Routes>
