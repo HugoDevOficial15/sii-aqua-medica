@@ -333,8 +333,6 @@ const styles = {
 
         height: "42px",
 
-        border: "none",
-
         borderRadius: "14px",
 
         background: "var(--operator-card)",

@@ -1,21 +1,16 @@
-// Stub listo para conectarse a la API real de soporte.
-// Cuando exista el endpoint, reemplazar el cuerpo de esta función por la
-// petición HTTP correspondiente (fetch/axios) manteniendo la misma firma.
-export async function reportProblem({ asunto, descripcion, pantalla, imagenes = [] }) {
+// La lógica real vive centralizada en supportTicketService.js (usada por
+// operadores y administradores por igual). Este archivo se conserva como
+// una fachada delgada para no romper el import existente en
+// OperatorReportProblem.jsx.
+import { createSupportTicket } from "../supportTicketService";
 
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    console.log("Reporte de problema (pendiente de API real):", {
+export async function reportProblem({ user, asunto, descripcion, pantalla, imagenes = [] }) {
+    return createSupportTicket({
+        user,
+        tipoRemitente: "usuario",
         asunto,
         descripcion,
         pantalla,
-        imagenes: imagenes.map((file) => ({
-            name: file.name,
-            type: file.type,
-            size: file.size
-        })),
-        fecha: new Date().toISOString()
+        imagenes
     });
-
-    return { success: true };
 }

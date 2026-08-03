@@ -4,13 +4,20 @@ import { FiEye, FiEdit2, FiTrash2, FiArrowLeft, FiSave, FiPlus } from "react-ico
 import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
 import Loader from "../../components/Loader";
 
+import { useAuth } from "../../hooks/useAuth";
+import { notifySuccess, notifyError } from "../../utils/notify";
+import { updateAgendaWithBatch } from "../../services/agendaMedicaService";
+import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
+
 import AgendaDetalle from "./AgendaDetalle";
 import AgendaForm from "./AgendaForm";
 
 export default function AgendaMedicaPage() {
+    const { user } = useAuth();
+
     const [agendas, setAgendas] = useState([]);
     const [loading, setLoading] = useState(true);
-    
+
     // Control de vistas interno ('lista', 'detalle', 'editar', 'crear')
     const [vista, setVista] = useState("lista");
     const [agendaSeleccionada, setAgendaSeleccionada] = useState(null);
@@ -22,6 +29,13 @@ export default function AgendaMedicaPage() {
         fechaFin: "",
         duracionMin: 30
     });
+
+    // Modal obligatorio de confirmación con motivo: se abre cuando el admin
+    // cambia fechaInicio/fechaFin o desactiva una agenda (ver punto 1 del
+    // requerimiento). "confirmAction" describe qué operación ejecutar si
+    // el admin confirma.
+    const [confirmAction, setConfirmAction] = useState(null);
+    const [procesandoConfirm, setProcesandoConfirm] = useState(false);
 
     // 📅 Obtener fecha actual en formato local YYYY-MM-DD (evitando desfases de zona horaria)
     const getTodayLocal = () => {
@@ -87,11 +101,19 @@ export default function AgendaMedicaPage() {
     };
 
     // 🔄 CAMBIAR ESTATUS (Activa / Inactiva)
+    // Desactivar (activa -> inactiva) impacta las citas de la agenda, así
+    // que requiere confirmación con motivo. Reactivar (inactiva -> activa)
+    // no cancela nada, así que se mantiene instantáneo como antes.
     const handleCambiarEstatus = async (id, estatusActual) => {
+
+        if (estatusActual === "activa") {
+            setConfirmAction({ type: "estado", id, nuevoEstado: "inactiva" });
+            return;
+        }
+
         try {
-            const nuevoEstatus = estatusActual === "activa" ? "inactiva" : "activa";
             await updateDoc(doc(db, "agendas_medicas", id), {
-                estado: nuevoEstatus
+                estado: "activa"
             });
             cargarAgendas();
         } catch (error) {
@@ -121,13 +143,26 @@ export default function AgendaMedicaPage() {
             return;
         }
 
+        const updates = {
+            nombre: formEdicion.nombre,
+            fechaInicio: formEdicion.fechaInicio,
+            fechaFin: formEdicion.fechaFin,
+            duracionMin: Number(formEdicion.duracionMin)
+        };
+
+        // Cambiar fechaInicio/fechaFin puede dejar citas ya reservadas fuera
+        // del nuevo rango: requiere confirmación con motivo antes de guardar.
+        const fechasCambiaron =
+            formEdicion.fechaInicio !== agendaSeleccionada.fechaInicio ||
+            formEdicion.fechaFin !== agendaSeleccionada.fechaFin;
+
+        if (fechasCambiaron) {
+            setConfirmAction({ type: "editar", id: agendaSeleccionada.id, updates });
+            return;
+        }
+
         try {
-            await updateDoc(doc(db, "agendas_medicas", agendaSeleccionada.id), {
-                nombre: formEdicion.nombre,
-                fechaInicio: formEdicion.fechaInicio,
-                fechaFin: formEdicion.fechaFin,
-                duracionMin: Number(formEdicion.duracionMin)
-            });
+            await updateDoc(doc(db, "agendas_medicas", agendaSeleccionada.id), updates);
             alert("¡Agenda actualizada con éxito!");
             setVista("lista");
             cargarAgendas();
@@ -135,6 +170,46 @@ export default function AgendaMedicaPage() {
             console.error("Error al actualizar:", error);
             alert("Hubo un error al guardar los cambios.");
         }
+    };
+
+    // ✅ CONFIRMAR (desde el modal de motivo obligatorio): aplica los
+    // cambios y cancela en cascada las citas afectadas de forma atómica.
+    const handleConfirmMotivo = async (motivo) => {
+
+        setProcesandoConfirm(true);
+
+        try {
+
+            const adminUid = user?.uid || user?.id || "Administrador";
+
+            const updates = confirmAction.type === "editar"
+                ? confirmAction.updates
+                : { estado: confirmAction.nuevoEstado };
+
+            const result = await updateAgendaWithBatch(confirmAction.id, updates, motivo, adminUid);
+
+            notifySuccess(
+                "Cambios aplicados",
+                result.citasCanceladas > 0
+                    ? `Se cancelaron ${result.citasCanceladas} cita(s) y se notificó a los usuarios afectados.`
+                    : "La agenda se actualizó correctamente."
+            );
+
+            setConfirmAction(null);
+            setVista("lista");
+            cargarAgendas();
+
+        } catch (error) {
+
+            console.error("Error al confirmar los cambios:", error);
+            notifyError("Error", "No se pudieron aplicar los cambios. Intenta de nuevo.");
+
+        } finally {
+
+            setProcesandoConfirm(false);
+
+        }
+
     };
 
     // Manejador seguro para cambios de fecha con validación instantánea de fin de semana
@@ -161,7 +236,7 @@ export default function AgendaMedicaPage() {
     // VISTA: CREAR NUEVA AGENDA
     if (vista === "crear") {
         return (
-            <div className="container-fluid p-4 text-light" style={{ maxWidth: '800px' }}>
+            <div className="container-fluid p-4 agenda-medica-page" style={{ maxWidth: '800px' }}>
                 <button 
                     className="btn btn-link text-secondary p-0 mb-4 d-flex align-items-center gap-2 text-decoration-none"
                     onClick={() => {
@@ -176,6 +251,7 @@ export default function AgendaMedicaPage() {
                     setVista("lista");
                     cargarAgendas();
                 }} />
+                <style>{`.agenda-medica-page { color: var(--operator-text); }`}</style>
             </div>
         );
     }
@@ -183,7 +259,7 @@ export default function AgendaMedicaPage() {
     // VISTA: EDITAR AGENDA
     if (vista === "editar") {
         return (
-            <div className="container-fluid p-4 text-light" style={{ maxWidth: '600px' }}>
+            <div className="container-fluid p-4 agenda-medica-page" style={{ maxWidth: '600px' }}>
                 <button 
                     className="btn btn-link text-secondary p-0 mb-4 d-flex align-items-center gap-2 text-decoration-none"
                     onClick={() => setVista("lista")}
@@ -191,15 +267,15 @@ export default function AgendaMedicaPage() {
                     <FiArrowLeft /> Volver a la lista
                 </button>
 
-                <div className="card border-0 p-4 shadow-sm" style={{ backgroundColor: '#1e293b', borderRadius: '16px' }}>
-                    <h4 className="fw-bold mb-4 text-white">Editar Campaña Médica</h4>
+                <div className="card border-0 p-4 shadow-sm agenda-medica-card" style={{ borderRadius: '16px' }}>
+                    <h4 className="fw-bold mb-4">Editar Campaña Médica</h4>
                     
                     <form onSubmit={handleGuardarEdicion}>
                         <div className="mb-3">
                             <label className="form-label text-secondary">Nombre de la agenda</label>
                             <input 
                                 type="text"
-                                className="form-control bg-dark text-light border-secondary"
+                                className="form-control agenda-medica-input"
                                 value={formEdicion.nombre}
                                 onChange={(e) => setFormEdicion({ ...formEdicion, nombre: e.target.value })}
                                 required
@@ -211,7 +287,7 @@ export default function AgendaMedicaPage() {
                                 <label className="form-label text-secondary">Fecha inicio</label>
                                 <input 
                                     type="date"
-                                    className="form-control bg-dark text-light border-secondary"
+                                    className="form-control agenda-medica-input"
                                     min={today}
                                     value={formEdicion.fechaInicio}
                                     onChange={(e) => handleFechaChange("fechaInicio", e.target.value)}
@@ -222,7 +298,7 @@ export default function AgendaMedicaPage() {
                                 <label className="form-label text-secondary">Fecha fin</label>
                                 <input 
                                     type="date"
-                                    className="form-control bg-dark text-light border-secondary"
+                                    className="form-control agenda-medica-input"
                                     min={formEdicion.fechaInicio || today}
                                     value={formEdicion.fechaFin}
                                     onChange={(e) => handleFechaChange("fechaFin", e.target.value)}
@@ -235,7 +311,7 @@ export default function AgendaMedicaPage() {
                             <label className="form-label text-secondary">Duración por cita (min)</label>
                             <input 
                                 type="number"
-                                className="form-control bg-dark text-light border-secondary"
+                                className="form-control agenda-medica-input"
                                 value={formEdicion.duracionMin}
                                 onChange={(e) => setFormEdicion({ ...formEdicion, duracionMin: e.target.value })}
                                 required
@@ -247,13 +323,29 @@ export default function AgendaMedicaPage() {
                         </button>
                     </form>
                 </div>
+                <style>{`
+                    .agenda-medica-page { color: var(--operator-text); }
+                    .agenda-medica-card { background: var(--operator-card); color: var(--operator-text); border: 1px solid var(--operator-border) !important; }
+                    .agenda-medica-input { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
+                    .agenda-medica-input:focus { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
+                `}</style>
+
+                {confirmAction && (
+                    <ConfirmMotivoModal
+                        title="Confirmar modificación de agenda"
+                        confirmText="Confirmar"
+                        loading={procesandoConfirm}
+                        onCancel={() => setConfirmAction(null)}
+                        onConfirm={handleConfirmMotivo}
+                    />
+                )}
             </div>
         );
     }
 
     // VISTA 1: TABLA PRINCIPAL (Lista + Botón Nuevo)
     return (
-        <div className="container-fluid p-4 text-light">
+        <div className="container-fluid p-4 agenda-medica-page">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div className="page mb-3">
                     <h6><strong>Servicio Médico</strong></h6>
@@ -269,11 +361,11 @@ export default function AgendaMedicaPage() {
                 </button>
             </div>
 
-            <div className="card border-0 shadow-sm" style={{ backgroundColor: '#1e293b', borderRadius: '12px' }}>
+            <div className="card border-0 shadow-sm agenda-medica-card" style={{ borderRadius: '12px' }}>
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-borderless table-hover mb-0" style={{ color: '#e2e8f0' }}>
-                            <thead style={{ borderBottom: '1px solid #334155' }}>
+                        <table className="table table-borderless table-hover mb-0 agenda-medica-table">
+                            <thead>
                                 <tr>
                                     <th className="px-4 py-3 text-secondary">Nombre</th>
                                     <th className="px-4 py-3 text-secondary">Rango</th>
@@ -290,7 +382,7 @@ export default function AgendaMedicaPage() {
                                     </tr>
                                 ) : (
                                     agendas.map((agenda) => (
-                                        <tr key={agenda.id} style={{ borderBottom: '1px solid #334155' }}>
+                                        <tr key={agenda.id}>
                                             <td className="px-4 py-3 align-middle">{agenda.nombre || "Sin nombre"}</td>
                                             <td className="px-4 py-3 align-middle">{agenda.fechaInicio} → {agenda.fechaFin}</td>
                                             <td className="px-4 py-3 align-middle">{agenda.duracionMin} min</td>
@@ -301,7 +393,7 @@ export default function AgendaMedicaPage() {
                                             </td>
                                             <td className="px-4 py-3 align-middle">
                                                 <button 
-                                                    className="btn btn-sm btn-outline-dark bg-light fw-semibold px-3"
+                                                    className="btn btn-sm btn-outline-secondary fw-semibold px-3"
                                                     style={{ borderRadius: '6px' }}
                                                     onClick={() => handleCambiarEstatus(agenda.id, agenda.estado)}
                                                 >
@@ -321,7 +413,7 @@ export default function AgendaMedicaPage() {
                                                     </button>
 
                                                     <button 
-                                                        className="btn btn-sm btn-warning d-flex align-items-center gap-1 text-dark"
+                                                        className="btn btn-sm btn-warning d-flex align-items-center gap-1"
                                                         onClick={() => {
                                                             setAgendaSeleccionada(agenda);
                                                             setFormEdicion({
@@ -352,6 +444,26 @@ export default function AgendaMedicaPage() {
                     </div>
                 </div>
             </div>
+            <style>{`
+                .agenda-medica-page { color: var(--operator-text); }
+                .agenda-medica-card { background: var(--operator-card); color: var(--operator-text); border: 1px solid var(--operator-border) !important; }
+                .agenda-medica-input { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
+                .agenda-medica-input:focus { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
+                .agenda-medica-table { color: var(--operator-text); }
+                .agenda-medica-table > :not(caption) > * > * { background: var(--operator-card); color: var(--operator-text); border-color: var(--operator-border); }
+                .agenda-medica-table thead { border-bottom: 1px solid var(--operator-border); }
+                .agenda-medica-table tbody tr { border-bottom: 1px solid var(--operator-border); }
+            `}</style>
+
+            {confirmAction && (
+                <ConfirmMotivoModal
+                    title="Confirmar modificación de agenda"
+                    confirmText="Confirmar"
+                    loading={procesandoConfirm}
+                    onCancel={() => setConfirmAction(null)}
+                    onConfirm={handleConfirmMotivo}
+                />
+            )}
         </div>
     );
 }

@@ -300,6 +300,7 @@ export default function AgendaMedicaModal({ onClose, onSuccess }) {
                             type="text"
                             placeholder="Nombre de la agenda"
                             className="form-control"
+                            style={styles.input}
                             onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                         />
 
@@ -308,6 +309,7 @@ export default function AgendaMedicaModal({ onClose, onSuccess }) {
                         <input
                             type="date"
                             className="form-control mb-2"
+                            style={styles.input}
                             onChange={(e) => {
                                 const fecha = e.target.value;
 
@@ -363,7 +365,9 @@ const styles = {
         zIndex: 1000
     },
     modalCard: {
-        background: "#fff",
+        background: "var(--operator-card)",
+        color: "var(--operator-text)",
+        border: "1px solid var(--operator-border)",
         borderRadius: "16px",
         width: "500px",
         maxHeight: "90vh",
@@ -372,15 +376,15 @@ const styles = {
     },
     header: {
         padding: "15px",
-        borderBottom: "1px solid #eee",
+        borderBottom: "1px solid var(--operator-border)",
         display: "flex",
         justifyContent: "space-between"
     },
-    title: { margin: 0, color: "#0f172a", fontSize: "1.1rem", fontWeight: 700 },
+    title: { margin: 0, color: "var(--operator-text)", fontSize: "1.1rem", fontWeight: 700 },
     closeButton: {
         border: "none",
         background: "transparent",
-        color: "#64748b",
+        color: "var(--operator-text)",
         fontSize: "1.4rem",
         lineHeight: 1,
         cursor: "pointer"
@@ -390,12 +394,12 @@ const styles = {
     input: {
         padding: "8px",
         borderRadius: "8px",
-        border: "1px solid #ccc",
-        color: "#0f172a",
-        background: "#ffffff"
+        border: "1px solid var(--operator-border)",
+        color: "var(--operator-text)",
+        background: "var(--operator-background)"
     },
-    dayLabel: { color: "#0f172a" },
-    fieldLabel: { color: "#334155", fontWeight: 500 },
+    dayLabel: { color: "var(--operator-text)" },
+    fieldLabel: { color: "var(--operator-text)", fontWeight: 500 },
     footer: { marginTop: "10px", textAlign: "right" },
     saveButton: {
         background: "#2563eb",

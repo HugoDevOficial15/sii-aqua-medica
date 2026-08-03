@@ -35,27 +35,22 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
         { to: "/puestos", icon: <FaUserTie />, label: "Puestos", permiso: "puestos.ver" },
         { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
         { to: "/solicitudes", icon: <FaClipboardCheck />, label: "Solicitudes", permiso: "solicitudes.ver" },
-
-        // <-- NUEVA OPCIÓN DE NOTICIAS AGREGADA AQUÍ -->
         { to: "/noticias", icon: <FaNewspaper />, label: "Noticias", permiso: "noticias.ver" },
-
         { to: "/inventario", icon: <FaBoxes />, label: "Inventario", permiso: "inventario.ver" },
         { to: "/agenda", icon: <FaLaptopCode />, label: "Agenda Servicios", permiso: "servicios.agendar" },
         { to: "/servicioshoy", icon: <FaListAlt />, label: "Lista Servicios", permiso: "servicios.ver_global" },
         { to: "/aniversarios", icon: <FaBirthdayCake />, label: "Aniversarios", permiso: "aniversarios.ver" },
         { to: "/medicamento", icon: <FaSyringe />, label: "Medicamentos", permiso: "medicamentos.ver" },
-
         { to: "/almacen/peps", icon: <FaExchangeAlt />, label: "PEPS", permiso: "peps.ver" },
         { to: "/almacen/materiales-stock", icon: <FaClipboardCheck />, label: "Inventario", permiso: "peps.ver" },
         { to: "/almacen/racks", icon: <FaBuffer />, label: "Agregar Rack", permiso: "peps.ver" },
         { to: "/almacen/materiales", icon: <FaBoxes />, label: "Agregar Material", permiso: "peps.ver" },
-
-
         { to: "/citas-medicas", icon: <FaAmbulance />, label: "Citas Médicas", permiso: "citas.ver" },
         { to: "/notas", icon: <FaStickyNote />, label: "Notas", permiso: "notas.ver" },
         { to: "/herramientas", icon: <FaTools />, label: "Herramientas", permiso: "herramientas.ver" },
         { to: "/configuracion", icon: <FaCog />, label: "Configuración", permiso: "config.ver" },
         { to: "/soporte", icon: <FaLifeRing />, label: "Soporte" },
+        { to: "/reporte-problemas", icon: <FaLifeRing />, label: "Reporte de Problemas" }
     ];
 
     return (

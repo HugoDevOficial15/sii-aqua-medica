@@ -29,6 +29,7 @@ import Users from "../pages/admin/Users";
 import PuestosPage from "../modules/puestos/page/PuestosPage";
 import Configuracion from "../pages/admin/Configuracion";
 import Soporte from "../pages/admin/Soporte";
+import ReporteProblem from "../pages/admin/ReporteProblem";
 import Solicitudes from "../pages/admin/Solicitudes";
 import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
 
@@ -268,6 +269,16 @@ export default function AppRouter() {
                         element={
                             <ProtectedRoute>
                                 <Soporte />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* REPORTE DE PROBLEMAS */}
+                    <Route
+                        path="/reporte-problemas"
+                        element={
+                            <ProtectedRoute>
+                                <ReporteProblem />
                             </ProtectedRoute>
                         }
                     />

@@ -73,7 +73,7 @@ export default function AgendaDetalle({ agenda, onBack }) {
 
                 <div className="d-flex align-items-center gap-2">
                     <button
-                        className="btn btn-light btn-sm"
+                        className="btn btn-outline-secondary btn-sm"
                         onClick={onBack}
                     >
                         <FaArrowLeft />
@@ -195,8 +195,20 @@ export default function AgendaDetalle({ agenda, onBack }) {
 
             .custom-users-card {
                 border-radius: 16px;
-                border: none;
+                border: 1px solid var(--operator-border);
+                background: var(--operator-card);
+                color: var(--operator-text);
                 box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+            }
+
+            .custom-users-header,
+            .custom-users-header .form-control {
+                color: var(--operator-text);
+            }
+
+            .custom-users-header .form-control {
+                background: var(--operator-background);
+                border-color: var(--operator-border);
             }
 
             .custom-table {
@@ -207,13 +219,20 @@ export default function AgendaDetalle({ agenda, onBack }) {
             .custom-table thead th {
                 font-size: 12px;
                 text-transform: uppercase;
-                color: #6b7280;
-                border: none;
+                color: var(--operator-text);
+                border-color: var(--operator-border);
             }
 
             .custom-table tbody tr {
-                background: #fff;
+                background: var(--operator-card);
+                color: var(--operator-text);
                 transition: all 0.2s ease;
+            }
+
+            .custom-table > :not(caption) > * > * {
+                background: var(--operator-card);
+                color: var(--operator-text);
+                border-color: var(--operator-border);
             }
 
             .custom-table tbody tr:hover {

@@ -1,19 +1,108 @@
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import {
     FaBell,
     FaUserCircle,
     FaBars,
-    FaSignOutAlt
+    FaSignOutAlt,
+    FaClipboardCheck,
+    FaTimes,
+    FaSyringe
 } from "react-icons/fa";
-
-
 
 import { useAuth } from "../hooks/useAuth";
 import { useLogout } from "../hooks/useLogout";
+
+import { getPendingRequests } from "../services/solicitudesCambiosService";
+import { getMedicamentos } from "../services/medicamentosService";
+import { getSemaforo } from "../utils/getSemaforo";
 
 export default function Header({ toggleSidebar }) {
 
     const { user } = useAuth();
     const handleLogout = useLogout();
+    const navigate = useNavigate();
+
+    const [notifications, setNotifications] = useState([]);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const dropdownRef = useRef(null);
+
+    // Reutiliza las funciones ya existentes: getPendingRequests() (misma
+    // que usa el módulo Solicitudes) y getSemaforo() (mismo cálculo que
+    // ya usa la tabla de Medicamentos), solo para armar la lista que se
+    // muestra aquí. No se agrega lógica de negocio nueva.
+    useEffect(() => {
+
+        const cargarNotificaciones = async () => {
+            try {
+
+                const [solicitudes, medicamentos] = await Promise.all([
+                    getPendingRequests(),
+                    getMedicamentos()
+                ]);
+
+                const notifsSolicitudes = solicitudes.map(s => ({
+                    id: `solicitud-${s.id}`,
+                    icon: <FaClipboardCheck />,
+                    title: "Nueva solicitud pendiente",
+                    subtitle: `${s.nombreActual || "Operador"} — Nómina ${s.nominaActual}`,
+                    ruta: "/solicitudes"
+                }));
+
+                const notifsMedicamentos = medicamentos
+                    .filter(m => m.estado !== "inactivo")
+                    .map(m => {
+                        const fecha = m.fechaCaducidad?.toDate?.() || m.fechaCaducidad;
+                        return { ...m, semaforo: getSemaforo(fecha) };
+                    })
+                    .filter(m => m.semaforo.color !== "verde")
+                    .map(m => ({
+                        id: `medicamento-${m.id}`,
+                        icon: <FaSyringe />,
+                        title: m.semaforo.color === "rojo"
+                            ? "Medicamento por vencer / vencido"
+                            : "Medicamento próximo a vencer",
+                        subtitle: `${m.nombreMedicamento} — ${m.semaforo.label}`,
+                        ruta: "/medicamento"
+                    }));
+
+                setNotifications([...notifsSolicitudes, ...notifsMedicamentos]);
+
+            } catch (error) {
+                console.error("Error al cargar notificaciones del administrador:", error);
+            }
+        };
+
+        cargarNotificaciones();
+
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowDropdown(false);
+            }
+        };
+
+        if (showDropdown) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showDropdown]);
+
+    const handleNotificationClick = (ruta) => {
+        setShowDropdown(false);
+        navigate(ruta);
+    };
+
+    const handleDismissNotification = (event, id) => {
+        event.stopPropagation();
+        setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+    };
 
     return (
         <>
@@ -51,15 +140,73 @@ export default function Header({ toggleSidebar }) {
                     <div className="pro-right">
 
                         {/* NOTIFICATIONS */}
-                        <button className="notification-btn">
+                        <div className="notification-wrapper">
 
-                            <FaBell />
+                            <button
+                                className="notification-btn"
+                                onClick={() => setShowDropdown(prev => !prev)}
+                            >
 
-                            <span className="notification-badge">
-                                3
-                            </span>
+                                <FaBell />
 
-                        </button>
+                                {notifications.length > 0 && (
+                                    <span className="notification-badge">
+                                        {notifications.length}
+                                    </span>
+                                )}
+
+                            </button>
+
+                            {showDropdown && (
+                                <>
+                                    <div
+                                        className="notification-dropdown-backdrop"
+                                        onClick={() => setShowDropdown(false)}
+                                    />
+
+                                    <div className="notification-dropdown" ref={dropdownRef}>
+
+                                        <div className="notification-dropdown-header">
+                                            Notificaciones
+                                        </div>
+
+                                        {notifications.length === 0 ? (
+                                            <div className="notification-dropdown-empty">
+                                                No hay notificaciones pendientes.
+                                            </div>
+                                        ) : (
+                                            notifications.map(n => (
+                                                <button
+                                                    key={n.id}
+                                                    className="notification-dropdown-item"
+                                                    onClick={() => handleNotificationClick(n.ruta)}
+                                                >
+                                                    <span className="notification-dropdown-item-icon">
+                                                        {n.icon}
+                                                    </span>
+
+                                                    <span className="notification-dropdown-item-text">
+                                                        <strong>{n.title}</strong>
+                                                        <small>{n.subtitle}</small>
+                                                    </span>
+
+                                                    <button
+                                                        type="button"
+                                                        className="notification-dismiss-btn"
+                                                        onClick={(event) => handleDismissNotification(event, n.id)}
+                                                        aria-label="Descartar notificación"
+                                                    >
+                                                        <FaTimes />
+                                                    </button>
+                                                </button>
+                                            ))
+                                        )}
+
+                                    </div>
+                                </>
+                            )}
+
+                        </div>
 
                         {/* USER CARD */}
                         <div className="user-card">
@@ -296,6 +443,137 @@ export default function Header({ toggleSidebar }) {
 
     box-shadow:
         0 12px 24px rgba(37,99,235,0.2);
+}
+
+.notification-wrapper {
+    position: relative;
+}
+
+.notification-dropdown-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 998;
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+
+    width: 320px;
+    max-width: 90vw;
+
+    max-height: 400px;
+    overflow-y: auto;
+
+    background: var(--operator-card);
+    border: 1px solid var(--operator-border);
+    border-radius: 16px;
+
+    box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+
+    z-index: 999;
+
+    animation: notifDropdownFade .15s ease;
+}
+
+@keyframes notifDropdownFade {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.notification-dropdown-header {
+    padding: 14px 16px;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--operator-text);
+    border-bottom: 1px solid var(--operator-border);
+}
+
+.notification-dropdown-empty {
+    padding: 20px 16px;
+    font-size: 13px;
+    color: var(--operator-text-soft);
+    text-align: center;
+}
+
+.notification-dropdown-item {
+    width: 100%;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+
+    padding: 12px 16px;
+
+    border: none;
+    border-bottom: 1px solid var(--operator-border);
+    background: transparent;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    transition: background .15s ease;
+}
+
+.notification-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.notification-dropdown-item:hover {
+    background: var(--operator-background);
+}
+
+.notification-dropdown-item-icon {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+
+    border-radius: 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(37,99,235,0.12);
+    color: #2563eb;
+
+    font-size: 14px;
+}
+
+.notification-dropdown-item-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    color: var(--operator-text);
+    font-size: 13px;
+}
+
+.notification-dropdown-item-text small {
+    color: var(--operator-text-soft);
+    font-size: 12px;
+}
+
+.notification-dismiss-btn {
+    margin-left: auto;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--operator-text-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+}
+
+.notification-dismiss-btn:hover {
+    background: rgba(37,99,235,0.08);
+    color: #2563eb;
 }
 
 .notification-badge {

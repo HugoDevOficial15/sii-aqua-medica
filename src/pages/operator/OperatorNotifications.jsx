@@ -16,7 +16,10 @@ const RUTA_POR_DESTINO = {
     "Cumpleaños": "home",
     "Aniversario": "home",
     "SolicitudAprobada": "profile",
-    "SolicitudRechazada": "profile"
+    "SolicitudRechazada": "profile",
+    "ProblemaActualizado": "support",
+    "CitaCancelada": "citas-medicas",
+    "CitaCanceladaConfirmacion": "citas-medicas"
 };
 
 export default function OperatorNotifications({ onNavigate }) {

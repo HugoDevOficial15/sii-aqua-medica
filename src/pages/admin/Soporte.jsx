@@ -1,17 +1,23 @@
-import React, { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, doc, updateDoc } from "firebase/firestore";
+import React, { useState, useEffect, useMemo } from "react";
+import { collection, addDoc, getDocs, query, orderBy, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi";
 
+import { useAuth } from "../../hooks/useAuth";
+
 export default function SoporteAdmin() {
+  const { user } = useAuth();
+
   const [problemas, setProblemas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [comentario, setComentario] = useState("");
 
   // Filtros idénticos a la Img 2
   const [busqueda, setBusqueda] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("Todos");
   const [pantallaFilter, setPantallaFilter] = useState("Todas");
   const [fechaFilter, setFechaFilter] = useState("");
+  const [origenFilter, setOrigenFilter] = useState("Todos");
 
   // Control del modal "Ver"
   const [modalOpen, setModalOpen] = useState(false);
@@ -46,10 +52,13 @@ export default function SoporteAdmin() {
   // Abrir el modal con los datos del usuario (Img 3)
   const handleVerProblema = (problema) => {
     setSelectedProblema(problema);
+    setComentario(problema.comentarioAdmin || "");
     setModalOpen(true);
   };
 
-  // Cambiar el estado del problema en Firestore (Ej. Pendiente -> Resuelto)
+  // Cambiar el estado del problema en Firestore (Ej. Pendiente -> Resuelto),
+  // guardar el comentario del administrador y notificar al operador que lo
+  // reportó (misma colección "notificaciones" que usa el resto de la app).
   const cambiarEstado = async (nuevoEstado) => {
     if (!selectedProblema) return;
     setActualizando(true);
@@ -57,14 +66,27 @@ export default function SoporteAdmin() {
       const docRef = doc(db, "Problemas reportados", selectedProblema.id);
       await updateDoc(docRef, {
         estado: nuevoEstado,
+        comentarioAdmin: comentario,
+        fechaRevision: serverTimestamp(),
+        administradorRevision: user?.nombre || "Administrador"
       });
+
+      if (selectedProblema.idUsuario) {
+        await addDoc(collection(db, "notificaciones"), {
+          Titulo: "Actualización de tu reporte",
+          Mensaje: `Tu problema "${selectedProblema.asunto}" cambió a: ${nuevoEstado}.${comentario ? ` Comentario: ${comentario}` : ""}`,
+          Destino: "ProblemaActualizado",
+          IdUsuario: selectedProblema.idUsuario,
+          fechaCreacion: serverTimestamp()
+        });
+      }
 
       // Actualizamos la lista local y el modal
       const problemasActualizados = problemas.map((p) =>
-        p.id === selectedProblema.id ? { ...p, estado: nuevoEstado } : p
+        p.id === selectedProblema.id ? { ...p, estado: nuevoEstado, comentarioAdmin: comentario } : p
       );
       setProblemas(problemasActualizados);
-      setSelectedProblema({ ...selectedProblema, estado: nuevoEstado });
+      setSelectedProblema({ ...selectedProblema, estado: nuevoEstado, comentarioAdmin: comentario });
     } catch (error) {
       console.error("Error al actualizar el estado:", error);
       alert("No se pudo actualizar el estado del problema.");
@@ -90,7 +112,12 @@ export default function SoporteAdmin() {
     const coincideFecha =
       !fechaFilter || item.fecha === fechaFilter;
 
-    return coincideBusqueda && coincideEstado && coincidePantalla && coincideFecha;
+    // Los reportes creados antes de agregar "tipoRemitente" siempre
+    // venían de operadores, así que a falta del campo se asume "usuario".
+    const coincideOrigen =
+      origenFilter === "Todos" || (item.tipoRemitente || "usuario") === origenFilter;
+
+    return coincideBusqueda && coincideEstado && coincidePantalla && coincideFecha && coincideOrigen;
   });
 
   // Estilo visual del badge de estado
@@ -108,23 +135,37 @@ export default function SoporteAdmin() {
     }
   };
 
+  // Opciones del filtro de pantalla: se derivan de los reportes ya
+  // cargados en vez de hardcodear una tercera lista (ahora hay reportes
+  // de operadores y de administradores, cada uno con sus propias
+  // pantallas), así nunca queda desactualizado.
+  const pantallasDisponibles = useMemo(() => {
+    const set = new Set(problemas.map((p) => p.pantalla).filter(Boolean));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [problemas]);
+
+  // Distintivo visual del origen del reporte (Usuario / Administrador)
+  const getOrigenBadge = (tipoRemitente) => {
+    if ((tipoRemitente || "usuario") === "administrador") {
+      return { icon: "🔵", label: "Administrador", bg: "rgba(59, 130, 246, 0.15)", color: "#3b82f6" };
+    }
+    return { icon: "🟢", label: "Usuario", bg: "rgba(16, 185, 129, 0.15)", color: "#10b981" };
+  };
+
   return (
-    <div className="container-fluid p-4 text-light fade-in">
+    <div className="container-fluid p-4 fade-in" style={{ color: "var(--operator-text)" }}>
       {/* HEADER */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h4 className="fw-bold mb-1 text-white">Soporte</h4>
+          <h4 className="fw-bold mb-1" style={{ color: "var(--operator-text)" }}>Soporte</h4>
           <span className="badge bg-primary px-3 py-1" style={{ borderRadius: "20px", fontSize: "0.75rem" }}>
-            AQUA Médica 
+            AQUA Médica
           </span>
         </div>
-        <button className="btn btn-outline-secondary btn-sm" onClick={cargarProblemas}>
-          Refrescar lista
-        </button>
       </div>
 
       {/* BARRA DE FILTROS (Estilo Img 2) */}
-      <div className="card border-0 mb-4" style={{ backgroundColor: "#1e293b", borderRadius: "14px" }}>
+      <div className="card border-0 mb-4" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px" }}>
         <div className="card-body p-3">
           <div className="row g-3">
             <div className="col-12 col-md-4">
@@ -158,12 +199,21 @@ export default function SoporteAdmin() {
                 style={styles.input}
               >
                 <option value="Todas">Todas las pantallas</option>
-                <option value="Inicio">Inicio</option>
-                <option value="Solicitudes">Solicitudes</option>
-                <option value="Citas Médicas">Citas Médicas</option>
-                <option value="Inventario">Inventario</option>
-                <option value="Noticias">Noticias</option>
-                <option value="Otro">Otro</option>
+                {pantallasDisponibles.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-6 col-md-3">
+              <select
+                className="form-select"
+                value={origenFilter}
+                onChange={(e) => setOrigenFilter(e.target.value)}
+                style={styles.input}
+              >
+                <option value="Todos">Todos los orígenes</option>
+                <option value="usuario">Usuarios</option>
+                <option value="administrador">Administradores</option>
               </select>
             </div>
             <div className="col-12 col-md-2">
@@ -180,7 +230,7 @@ export default function SoporteAdmin() {
       </div>
 
       {/* TABLA DE SOLICITUDES (Estilo Img 2) */}
-      <div className="card border-0 shadow-sm" style={{ backgroundColor: "#1e293b", borderRadius: "14px" }}>
+      <div className="card border-0 shadow-sm" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px" }}>
         <div className="card-body p-0">
           {loading ? (
             <div className="p-5 text-center text-secondary">Cargando problemas reportados...</div>
@@ -188,9 +238,10 @@ export default function SoporteAdmin() {
             <div className="p-5 text-center text-secondary">No hay solicitudes que coincidan con los filtros.</div>
           ) : (
             <div className="table-responsive">
-              <table className="table table-borderless table-hover mb-0" style={{ color: "#e2e8f0" }}>
-                <thead style={{ borderBottom: "1px solid #334155" }}>
+              <table className="table table-borderless table-hover mb-0" style={{ color: "var(--operator-text)" }}>
+                <thead style={{ borderBottom: "1px solid var(--operator-border)" }}>
                   <tr>
+                    <th className="px-4 py-3 bg-transparent text-secondary fw-semibold">Origen</th>
                     <th className="px-4 py-3 bg-transparent text-secondary fw-semibold">Solicitante</th>
                     <th className="px-4 py-3 bg-transparent text-secondary fw-semibold">Nómina</th>
                     <th className="px-4 py-3 bg-transparent text-secondary fw-semibold">Asunto</th>
@@ -202,8 +253,23 @@ export default function SoporteAdmin() {
                 <tbody>
                   {problemasFiltrados.map((item) => {
                     const badge = getBadgeStyle(item.estado);
+                    const origen = getOrigenBadge(item.tipoRemitente);
                     return (
-                      <tr key={item.id} style={{ borderBottom: "1px solid #334155" }}>
+                      <tr key={item.id} style={{ borderBottom: "1px solid var(--operator-border)" }}>
+                        <td className="px-4 py-3 align-middle">
+                          <span
+                            className="px-3 py-1 fw-semibold"
+                            style={{
+                              backgroundColor: origen.bg,
+                              color: origen.color,
+                              borderRadius: "20px",
+                              fontSize: "0.8rem",
+                              whiteSpace: "nowrap"
+                            }}
+                          >
+                            {origen.icon} {origen.label}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 align-middle fw-medium">{item.solicitante || "ANÓNIMO"}</td>
                         <td className="px-4 py-3 align-middle">{item.nomina || "N/A"}</td>
                         <td className="px-4 py-3 align-middle text-truncate" style={{ maxWidth: "200px" }}>
@@ -249,9 +315,9 @@ export default function SoporteAdmin() {
             {/* CABECERA DEL MODAL */}
             <div style={styles.header}>
               <div>
-                <h5 className="fw-bold mb-0 text-white">Detalle del Reporte</h5>
+                <h5 className="fw-bold mb-0" style={{ color: "var(--operator-text)" }}>Detalle del Reporte</h5>
                 <small className="text-secondary">
-                  Enviado por {selectedProblema.solicitante} (Nómina: {selectedProblema.nomina})
+                  {getOrigenBadge(selectedProblema.tipoRemitente).icon} {getOrigenBadge(selectedProblema.tipoRemitente).label} — Enviado por {selectedProblema.solicitante} (Nómina: {selectedProblema.nomina})
                 </small>
               </div>
               <button style={styles.closeButton} onClick={() => setModalOpen(false)}>
@@ -261,6 +327,28 @@ export default function SoporteAdmin() {
 
             {/* CUERPO DEL MODAL */}
             <div style={styles.body}>
+              {/* Datos del solicitante */}
+              <div className="row mb-3">
+                <div className="col-md-4">
+                  <label className="text-secondary fw-semibold mb-1" style={{ fontSize: "0.85rem" }}>
+                    ROL
+                  </label>
+                  <div style={styles.fieldBox}>{selectedProblema.rol || "—"}</div>
+                </div>
+                <div className="col-md-4">
+                  <label className="text-secondary fw-semibold mb-1" style={{ fontSize: "0.85rem" }}>
+                    ÁREA
+                  </label>
+                  <div style={styles.fieldBox}>{selectedProblema.area || "—"}</div>
+                </div>
+                <div className="col-md-4">
+                  <label className="text-secondary fw-semibold mb-1" style={{ fontSize: "0.85rem" }}>
+                    CORREO
+                  </label>
+                  <div style={styles.fieldBox}>{selectedProblema.correo || "—"}</div>
+                </div>
+              </div>
+
               {/* Asunto y Pantalla donde ocurrió */}
               <div className="row mb-3">
                 <div className="col-md-7">
@@ -306,7 +394,7 @@ export default function SoporteAdmin() {
                             height: "100px",
                             objectFit: "cover",
                             borderRadius: "10px",
-                            border: "1px solid #475569",
+                            border: "1px solid var(--operator-border)",
                           }}
                         />
                       </a>
@@ -320,29 +408,43 @@ export default function SoporteAdmin() {
               </div>
 
               {/* GESTIÓN RÁPIDA DE ESTADO */}
-              <div className="border-top pt-3" style={{ borderColor: "#334155" }}>
-                <label className="text-secondary fw-semibold mb-2" style={{ fontSize: "0.85rem" }}>
+              <div className="border-top pt-3" style={{ borderColor: "var(--operator-border)" }}>
+                <label className="fw-semibold mb-2 d-block" style={{ fontSize: "0.85rem", color: "var(--operator-text-soft)" }}>
+                  COMENTARIO PARA EL OPERADOR
+                </label>
+                <textarea
+                  className="form-control mb-3"
+                  style={{ ...styles.input, minHeight: "80px" }}
+                  placeholder="Explica el diagnóstico o la solución aplicada..."
+                  value={comentario}
+                  onChange={(e) => setComentario(e.target.value)}
+                />
+
+                <label className="fw-semibold mb-2 d-block" style={{ fontSize: "0.85rem", color: "var(--operator-text-soft)" }}>
                   ACTUALIZAR ESTADO DE LA SOLICITUD
                 </label>
                 <div className="d-flex gap-2">
                   <button
                     className={`btn btn-sm ${selectedProblema.estado === "Pendiente" ? "btn-primary" : "btn-outline-secondary"}`}
-                    disabled={actualizando}
+                    disabled={actualizando || !comentario.trim()}
                     onClick={() => cambiarEstado("Pendiente")}
+                    title={!comentario.trim() ? "Agrega un comentario para cambiar el estado" : ""}
                   >
                     <FiClock className="me-1" /> Pendiente
                   </button>
                   <button
                     className={`btn btn-sm ${selectedProblema.estado === "En revisión" ? "btn-warning" : "btn-outline-secondary"}`}
-                    disabled={actualizando}
+                    disabled={actualizando || !comentario.trim()}
                     onClick={() => cambiarEstado("En revisión")}
+                    title={!comentario.trim() ? "Agrega un comentario para cambiar el estado" : ""}
                   >
                     <FiAlertCircle className="me-1" /> En revisión
                   </button>
                   <button
                     className={`btn btn-sm ${selectedProblema.estado === "Resuelto" ? "btn-success" : "btn-outline-secondary"}`}
-                    disabled={actualizando}
+                    disabled={actualizando || !comentario.trim()}
                     onClick={() => cambiarEstado("Resuelto")}
+                    title={!comentario.trim() ? "Agrega un comentario para cambiar el estado" : ""}
                   >
                     <FiCheckCircle className="me-1" /> Marcar como Resuelto
                   </button>
@@ -363,12 +465,13 @@ export default function SoporteAdmin() {
   );
 }
 
-// ESTILOS ADAPTADOS A TU TEMA OSCURO
+// Estilos adaptados al tema: usan las mismas variables --operator-*
+// definidas en operator-theme.css (light/dark), en vez de hex fijos.
 const styles = {
   input: {
-    backgroundColor: "#0f172a",
-    color: "#f8fafc",
-    border: "1px solid #334155",
+    backgroundColor: "var(--operator-background)",
+    color: "var(--operator-text)",
+    border: "1px solid var(--operator-border)",
     borderRadius: "10px",
   },
   backdrop: {
@@ -386,8 +489,8 @@ const styles = {
     padding: "20px",
   },
   modalCard: {
-    backgroundColor: "#1e293b",
-    border: "1px solid #334155",
+    backgroundColor: "var(--operator-card)",
+    border: "1px solid var(--operator-border)",
     borderRadius: "20px",
     width: "600px",
     maxWidth: "95%",
@@ -396,15 +499,15 @@ const styles = {
   },
   header: {
     padding: "20px 24px",
-    borderBottom: "1px solid #334155",
+    borderBottom: "1px solid var(--operator-border)",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
   },
   closeButton: {
-    background: "#334155",
-    border: "none",
-    color: "#f8fafc",
+    background: "var(--operator-background)",
+    border: "1px solid var(--operator-border)",
+    color: "var(--operator-text)",
     width: "36px",
     height: "36px",
     borderRadius: "10px",
@@ -419,16 +522,16 @@ const styles = {
     overflowY: "auto",
   },
   fieldBox: {
-    backgroundColor: "#0f172a",
-    border: "1px solid #334155",
+    backgroundColor: "var(--operator-background)",
+    border: "1px solid var(--operator-border)",
     borderRadius: "12px",
     padding: "12px 16px",
-    color: "#e2e8f0",
+    color: "var(--operator-text)",
     fontSize: "0.95rem",
   },
   footer: {
     padding: "16px 24px",
-    borderTop: "1px solid #334155",
+    borderTop: "1px solid var(--operator-border)",
     display: "flex",
     justifyContent: "flex-end",
   },

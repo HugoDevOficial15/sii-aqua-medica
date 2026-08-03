@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { FiX } from "react-icons/fi";
 import { crearAgenda } from "../../services/agendaMedicaService";
 import { generarSlots } from "../../services/generarSlotsMedicos";
 
@@ -117,6 +118,15 @@ export default function AgendaForm({ onSaved }) {
         setForm({ ...form, horarios });
     };
 
+    const removeRango = (dia, index) => {
+        const horarios = { ...form.horarios };
+        horarios[dia] = horarios[dia].filter((_, i) => i !== index);
+        if (horarios[dia].length === 0) {
+            delete horarios[dia];
+        }
+        setForm({ ...form, horarios });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -204,7 +214,7 @@ export default function AgendaForm({ onSaved }) {
     };
 
     return (
-        <div className="card p-3">
+        <div className="card p-3 agenda-form-card">
             <h5>Crear Agenda Médica</h5>
 
             <div className="mb-3">
@@ -254,7 +264,7 @@ export default function AgendaForm({ onSaved }) {
                 </div>
             </div>
 
-            <hr />
+            <hr className="agenda-form-divider" />
 
             {dias.map((d) => (
                 <div key={d.id} className="mb-3">
@@ -279,6 +289,15 @@ export default function AgendaForm({ onSaved }) {
                                 className="form-control"
                                 onChange={(e) => updateRango(d.id, i, "fin", e.target.value)}
                             />
+                            <button
+                                type="button"
+                                className="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center"
+                                style={{ borderRadius: '8px', minWidth: '38px', padding: '0.5rem' }}
+                                onClick={() => removeRango(d.id, i)}
+                                aria-label={`Eliminar horario ${d.label} ${i + 1}`}
+                            >
+                                <FiX />
+                            </button>
                         </div>
                     ))}
 
@@ -294,6 +313,12 @@ export default function AgendaForm({ onSaved }) {
             <button className="btn btn-success mt-3" onClick={handleSubmit} disabled={guardando}>
                 {guardando ? "Guardando..." : "Guardar Agenda"}
             </button>
+            <style>{`
+                .agenda-form-card { background: var(--operator-card); color: var(--operator-text); border-color: var(--operator-border); }
+                .agenda-form-card .form-control { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
+                .agenda-form-card .form-control:focus { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
+                .agenda-form-divider { border-color: var(--operator-border); opacity: 1; }
+            `}</style>
         </div>
     );
 }

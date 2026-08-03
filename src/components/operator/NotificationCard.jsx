@@ -1,4 +1,4 @@
-import { FiBell, FiActivity, FiCheckCircle, FiXCircle } from "react-icons/fi";
+import { FiBell, FiActivity, FiCheckCircle, FiXCircle, FiRepeat } from "react-icons/fi";
 
 // Config visual (icono/colores) por tipo de notificación. "icono" puede
 // ser un componente de react-icons o un emoji (string) directamente.
@@ -58,6 +58,33 @@ export function getConfigEstilo(destino) {
                 color: "#dc2626",
                 borderColor: "#dc2626",
                 tituloDefault: "Solicitud rechazada"
+            };
+
+        case "ProblemaActualizado":
+            return {
+                icono: FiRepeat,
+                bg: "#e0f2fe",
+                color: "#0284c7",
+                borderColor: "#0284c7",
+                tituloDefault: "Actualización de tu reporte"
+            };
+
+        case "CitaCancelada":
+            return {
+                icono: FiXCircle,
+                bg: "#fee2e2",
+                color: "#dc2626",
+                borderColor: "#dc2626",
+                tituloDefault: "Cita cancelada"
+            };
+
+        case "CitaCanceladaConfirmacion":
+            return {
+                icono: FiCheckCircle,
+                bg: "#dcfce7",
+                color: "#16a34a",
+                borderColor: "#16a34a",
+                tituloDefault: "Cancelación registrada"
             };
 
         default:

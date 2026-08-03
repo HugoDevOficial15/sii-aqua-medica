@@ -311,8 +311,7 @@ export default function News() {
                 </div>
               </div>
               <div className="d-flex justify-content-end gap-3 mt-2">
-                <button type="button" className="btn btn-outline-secondary" onClick={() => setVistaActual("lista")} disabled={loading}>Cancelar</button>
-                <button type="submit" className="btn btn-primary px-4" disabled={loading}>{loading ? "Guardando..." : (noticiaEditando ? "Guardar Cambios" : "Publicar Noticia")}</button>
+                <button type="button" className="btn btn-outline-secondary" onClick={() => setVistaActual("lista")} disabled={loading}>Cancelar</button>                <button type="submit" className="btn btn-primary px-4" disabled={loading}>{loading ? "Guardando..." : (noticiaEditando ? "Guardar Cambios" : "Publicar Noticia")}</button>
               </div>
             </form>
           </div>
