@@ -238,25 +238,30 @@ button[type="submit"],
 }
 
 /* ==========================================================================
-   FIX: FORZAR TEXTO OSCURO EN FORMULARIO DE ENCUESTAS (BYPASS MODO OSCURO)
+   FIX: APLICAR COLORES DINÁMICOS AL FORMULARIO DE ENCUESTAS
    ========================================================================== */
-#encuestas-fix input,
-#encuestas-fix textarea,
-#encuestas-fix select {
-    color: #1e293b !important;
-    background-color: #ffffff !important;
-    border: 1px solid #cbd5e1 !important; /* Mantiene el borde visible */
+#encuestas-fix {
+    --survey-label-color: var(--operator-text);
+    --survey-field-text: var(--operator-text);
+    --survey-field-bg: var(--operator-card);
+    --survey-field-border: var(--operator-border);
 }
 
-/* Para que los textos de "dd/mm/aaaa" o "Tema 1" también se vean bien */
 #encuestas-fix input::placeholder,
 #encuestas-fix textarea::placeholder {
-    color: #64748b !important;
+    color: var(--operator-text-soft) !important;
 }
 
-/* Protegemos las etiquetas principales (Título, Descripción, etc.) por si acaso */
 #encuestas-fix label,
 #encuestas-fix h6,
-#encuestas-fix .form-label {
-    color: #334155 !important;
+#encuestas-fix .form-label,
+#encuestas-fix .col-span-3 label,
+#encuestas-fix .col-span-4 label,
+#encuestas-fix .col-span-6 label,
+#encuestas-fix .col-span-12 label {
+    color: var(--survey-label-color) !important;
+}
+
+#encuestas-fix .text-primary {
+    color: var(--operator-primary) !important;
 }

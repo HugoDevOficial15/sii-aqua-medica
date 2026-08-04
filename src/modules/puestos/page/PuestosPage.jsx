@@ -129,13 +129,21 @@ export default function PuestosPage() {
                 /* CONTENEDOR DE LA TABLA */
 
             .custom-users-card {
-                    border-radius: 30px;
-                    border: none;
-                    box-shadow: 0 8px 25px var(--operator-shadow);
+        background: var(--operator-card);
+        border-radius: 30px; 
+        box-shadow: 0 8px 25px var(--operator-shadow);
             }
-
-
+                    
                 /* TABLA */
+
+                .custom-table {
+                    table-layout: fixed;
+                    width: 100%;
+                    border-collapse: separate !important;
+                    border-spacing: 0 10px !important;
+                }
+
+
 
                 .custom-table thead th {
                     border-bottom: 3px solid var(--operator-text);
@@ -152,9 +160,24 @@ export default function PuestosPage() {
                     min-width: 100px;
                 }
 
+                .custom-table tbody td {
+                    border-bottom: 3px solid var(--operator-border);
+                    height: 50px;
+                    font-size: 14px;
+                    padding: 5px 5px;
+                    vertical-align: middle;
+                    border-top: none !important;
+                    white-space: wrap;
+
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
+                    max-width: 230px;
+                    min-width: 100px;
+                }
+
                 .custom-table tbody tr:hover {
                     transform: scale(1.01);
-                    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+                    transition: transform 0.2s;
                 }
 
                 .custom-badge-success {
@@ -176,35 +199,12 @@ export default function PuestosPage() {
                     border-radius: 8px;
                 }
 
+                .custom-btn.me-1,
+                .custom-btn.me-2 {
+                    border-radius: 10px;
+                }
+
                 
-/* 🔥 TABLE */
-.table {
-    border-collapse: separate !important;
-    border-spacing: 0 10px !important;
-}
-
-.table thead th {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: #6b7280;
-    border: none !important;
-}
-
-.table tbody tr {
-    background: #ffffff;
-    transition: all 0.2s ease;
-}
-
-.table tbody tr:hover {
-    transform: scale(1.01);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-}
-
-.table td {
-    vertical-align: middle;
-    border-top: none !important;
-    position: relative;
-}
 
 
 

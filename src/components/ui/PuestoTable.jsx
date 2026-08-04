@@ -68,7 +68,7 @@ export default function PuestoTable({ puestos = [], loading, onEdit }) {
                         <td>
 
                             <button
-                                className="btn btn-sm btn-outline-primary me-2"
+                                className="btn btn-sm btn-outline-primary custom-btn me-2"
                                 onClick={() => onEdit(p)}
                             >
                                 <FaEdit className="me-1" />
@@ -77,19 +77,19 @@ export default function PuestoTable({ puestos = [], loading, onEdit }) {
 
                             <button
                                 className={`btn btn-sm ${p.activo
-                                    ? "btn-outline-danger"
-                                    : "btn-outline-success"
+                                    ? "btn-outline-danger custom-btn me-1"
+                                    : "btn-outline-success custom-btn me-2"
                                     }`}
                                 onClick={() => toggleEstado(p)}
                             >
                                 {p.activo ? (
                                     <>
-                                        <FaToggleOff className="me-1" />
+                                        <FaToggleOff className="custom-btn me-1" />
                                         Desactivar
                                     </>
                                 ) : (
                                     <>
-                                        <FaToggleOn className="me-1" />
+                                        <FaToggleOn className="custom-btn me-2" />
                                         Activar
                                     </>
                                 )}

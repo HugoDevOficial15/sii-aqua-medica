@@ -166,15 +166,32 @@ export default function RacksPages() {
                                     </td>
 
                                     <td>
-                                        {r.tipoAlmacenamiento === "lote_en_uso" && (
-                                            <span className="badge bg-primary-subtle text-primary"
-                                            >
-                                                Lote en uso
+                                        {r.tipoAlmacenamiento === "producto_terminado" && (
+                                            <span className="badge bg-primary-subtle text-primary">
+                                                Producto terminado
+                                            </span>
+                                        )}
+
+                                        {r.tipoAlmacenamiento === "materia_prima" && (
+                                            <span className="badge bg-primary-subtle text-primary">
+                                                Materia prima
+                                            </span>
+                                        )}
+
+                                        {r.tipoAlmacenamiento === "material_acondicionamiento" && (
+                                            <span className="badge bg-primary-subtle text-primary">
+                                                Material acondicionamiento
                                             </span>
                                         )}
                                     </td>
 
                                     <td>
+                                        {r.tipoAsignacion === "lote_en_uso" &&
+                                            "Lote en uso"}
+
+                                        {r.tipoAsignacion === "ubicacion_temporal" &&
+                                            "Ubicación temporal"}
+
                                         {r.tipoAsignacion === "producto_terminado" &&
                                             "Producto terminado"}
 

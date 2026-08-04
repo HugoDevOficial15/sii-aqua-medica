@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { FaEdit } from "react-icons/fa";
 
 // 👇 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
@@ -49,61 +50,7 @@ export default function News() {
     cargarNoticias();
   }, []);
 
-  // 👇 INYECCIÓN DE ESTILOS DINÁMICOS PARA INPUTS Y ARCHIVOS
-  useEffect(() => {
-    const style = document.createElement("style");
-    style.innerHTML = `
-      /* Variables de Modo Claro */
-      :root {
-        --adaptive-bg: #ffffff;
-        --adaptive-text: #212529;
-        --adaptive-border: #dee2e6;
-        --adaptive-file-btn: #f3f4f6; /* Gris muy claro para el botón interno */
-      }
 
-      /* Variables de Modo Oscuro */
-      body.dark, body.dark-mode, [data-theme='dark'], [data-bs-theme='dark'] {
-        --adaptive-bg: #0f172a;
-        --adaptive-text: #f8fafc;
-        --adaptive-border: #475569;
-        --adaptive-file-btn: #1e293b; /* Tono azul oscuro para el botón interno */
-      }
-
-      /* Estilo general para todos los campos (inputs, textarea, selects) */
-      .adaptive-input {
-        background-color: var(--adaptive-bg) !important;
-        color: var(--adaptive-text) !important;
-        border: 1px solid var(--adaptive-border) !important;
-      }
-
-      /* Focus para mantener accesibilidad */
-      .adaptive-input:focus {
-        background-color: var(--adaptive-bg) !important;
-        color: var(--adaptive-text) !important;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25) !important;
-      }
-
-      /* 🔥 MAGIA PARA EL INPUT DE SUBIR ARCHIVOS 🔥 */
-      .adaptive-input::file-selector-button {
-        background-color: var(--adaptive-file-btn) !important;
-        color: var(--adaptive-text) !important;
-        border: none;
-        border-right: 1px solid var(--adaptive-border);
-        padding: 0.375rem 0.75rem;
-        margin: -0.375rem -0.75rem;
-        margin-right: 0.75rem;
-        cursor: pointer;
-        transition: opacity 0.2s;
-      }
-
-      .adaptive-input:hover::file-selector-button {
-        opacity: 0.85;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
 
   const handleArchivoChange = (e) => {
     if (e.target.files && e.target.files[0]) setArchivoSeleccionado(e.target.files[0]);
@@ -218,7 +165,8 @@ export default function News() {
           <span className="badge-title">AQUA Médica</span>
         </div>
         {vistaActual === "lista" ? (
-          <button className="btn btn-primary px-4 py-2 shadow-sm" style={{ borderRadius: '8px', fontWeight: 'bold' }} onClick={abrirFormularioCrear}>
+          <button className="btn btn-primary "
+           onClick={abrirFormularioCrear}>
             + Crear Noticia
           </button>
         ) : (
@@ -227,17 +175,17 @@ export default function News() {
       </div>
 
       {vistaActual === "lista" && (
-        <div className="card shadow-sm border-0">
+        <div className="card contenedor">
           <div className="card-body p-4">
             <div className="table-responsive">
-              <table className="table table-hover align-middle" style={{ borderCollapse: 'separate', borderSpacing: '0 8px' }}>
-                <thead className="text-muted" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <table className="table table-news" >
+                <thead className="text-muted" >
                   <tr>
-                    <th className="fw-normal border-0 pb-2">Título</th>
-                    <th className="fw-normal border-0 pb-2">Público (Área)</th>
-                    <th className="fw-normal border-0 pb-2">Vigencia</th>
-                    <th className="fw-normal border-0 pb-2">Estado</th>
-                    <th className="fw-normal border-0 pb-2 text-center">Acciones</th>
+                    <th className="fw-normal ">Título</th>
+                    <th className="fw-normal ">Público (Área)</th>
+                    <th className="fw-normal ">Vigencia</th>
+                    <th className="fw-normal ">Estado</th>
+                    <th className="fw-normal ">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -245,19 +193,19 @@ export default function News() {
                     <tr key={noticia.id}>
                       <td className="py-3 border-0"><span className="fw-medium">{noticia.titulo}</span></td>
                       <td className="border-0">
-                        <span className={`badge ${noticia.areaDestino === 'Todas' ? 'bg-primary' : 'bg-secondary'}`} style={{ fontSize: '0.8rem' }}>
+                        <span className={`badge ${noticia.areaDestino === 'Todas' ? 'bg-primary' : 'bg-secondary'}`}>
                           {noticia.areaDestino === 'Todas' ? 'Toda la empresa' : noticia.areaDestino}
                         </span>
                       </td>
-                      <td className="border-0" style={{ fontSize: '0.9rem' }}>{noticia.fechaLimite}</td>
+                      <td className="border-0" >{noticia.fechaLimite}</td>
                       <td className="border-0">
-                        <span style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#059669', padding: '6px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '600' }}>
+                        <span className={"border-0 badge " + (noticia.estado === "Activa" ? "bg-success" : "bg-danger")}>
                           {noticia.estado || "Activa"}
                         </span>
                       </td>
-                      <td className="border-0 text-center">
-                        <button className="btn btn-outline-primary btn-sm px-3" style={{ borderRadius: '6px', fontWeight: '500' }} onClick={() => abrirFormularioEditar(noticia)}>
-                          <i className="bi bi-pencil-square me-1"></i> Editar
+                      <td className="border-0 ">
+                        <button className="btn btn-outline-primary btn-sm px-3"  onClick={() => abrirFormularioEditar(noticia)}>
+                          <FaEdit className="me-1" /> Editar
                         </button>
                       </td>
                     </tr>
@@ -271,7 +219,7 @@ export default function News() {
       )}
 
       {vistaActual === "formulario" && (
-        <div className="card shadow-sm border-0" style={{ backgroundColor: 'transparent' }}>
+        <div className="card shadow-sm border-0" >
           <div className="card-body p-4">
             <form onSubmit={handleSubmit}>
               <div className="row">
@@ -317,6 +265,95 @@ export default function News() {
           </div>
         </div>
       )}
+
+      <style>{`
+        /* PAGINA */
+
+
+        /*  CONTENEDORES */
+
+        .contenedor {
+          border-radius: 30px;
+        }
+
+        .card-body {
+          padding: 10px;
+        }
+
+        /* BOTONES */
+
+        .btn-primary {
+          height: 50px;
+          padding: 0 24px;
+          border-radius: 14px;
+          border: none;
+          background: var(--operator-primary);
+          color: #fff;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0px 24px var(--operator-primary-light);
+        }
+
+        .px-3 {
+          border-radius: 10px;
+        }
+
+        /* TABLA */
+
+        .table-news {
+          table-layout: fixed;
+          width: 100%;
+          border-collapse: separate !important;
+          border-spacing: 0 10px !important;
+        }
+
+        .table thead th {
+        
+          border-bottom: 3px solid var(--operator-text) !important;
+          font-size: 20px;
+          font-weight: 900 !important;
+          padding: 5px 5px;
+          vertical-align: middle;
+          border-top: none !important;
+          white-space: wrap;
+
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          max-width: 230px;
+          min-width: 100px;
+        }
+
+        .table tbody td {
+
+          border-bottom: 3px solid var(--operator-border) !important;
+          height: 50px;
+          font-size: 14px;
+          padding: 5px 5px;
+          vertical-align: middle;
+          border-top: none !important;
+          white-space: wrap;
+
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          max-width: 230px;
+          min-width: 100px;
+        }
+
+        /* ESTADOS */
+
+        .bg-success {
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-size: 0.8rem;
+        }
+
+        /* MODAL */
+        
+        
+      `}</style>
     </div>
   );
 }

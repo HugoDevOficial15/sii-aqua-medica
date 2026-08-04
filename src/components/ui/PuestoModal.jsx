@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { puestoSchema } from "../../schemas/puesto-schema";
@@ -5,6 +6,7 @@ import { createPuesto, updatePuesto } from "../../services/puestos-service";
 import { notifySuccess, notifyError } from "../../utils/notify";
 
 export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
+    const [isCloseHovered, setIsCloseHovered] = useState(false);
 
     const {
         register,
@@ -47,8 +49,10 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                     </h5>
 
                     <button
-                        style={styles.closeButton}
+                        style={{ ...styles.closeButton, ...(isCloseHovered ? styles.closeButtonHover : {}) }}
                         onClick={onClose}
+                        onMouseEnter={() => setIsCloseHovered(true)}
+                        onMouseLeave={() => setIsCloseHovered(false)}
                     >×</button>
 
                 </div>
@@ -122,37 +126,49 @@ const styles = {
         zIndex: 1000
     },
     modalCard: {
-        background: "var(--operator-card)",
-        borderRadius: "16px",
-        width: "400px",
-        maxWidth: "90%",
-        boxShadow: "0 10px 30px var(--operator-shadow)",
         overflow: "hidden",
-        animation: "fadeIn 0.2s ease-in-out"
+        background: "var(--operator-card)",
+        backdropFilter: "blur(12px)",
+        borderRadius: "20px",
+        border: "1px solid var(--operator-border)",
+        boxShadow: "0 24px 48px var(--operator-shadow)",
     },
     header: {
         display: "flex",
+        border: "none",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "16px 20px",
-        borderBottom: "1px solid var(--operator-border)",
-        background: "var(--operator-background)"
+        padding: "24px 30px",
+        background: "var(--operator-card)"
     },
     title: {
         margin: 0,
-        fontSize: "18px",
-        fontWeight: "600",
+        fontSize: "1.5rem",
+        fontWeight: "800",
         color: "var(--operator-text)"
     },
     closeButton: {
-        border: "none",
-        background: "transparent",
-        fontSize: "20px",
+        width: "36px",
+        height: "36px",
+        border: "none", 
+        borderRadius: "10px",
+        background: "var(--operator-card)", 
+        color: "var(--operator-text)", 
+        fontSize: "30px",
         cursor: "pointer",
-        color: "var(--operator-text)"
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "all 0.2s ease"
+    },
+    closeButtonHover: {
+        background: "var(--operator-border)",
+        color: "var(--operator-primary)",
     },
     body: {
-        padding: "20px"
+        border: "none",
+        padding: "10px",
+        background: "var(--operator-card)",
     },
     inputGroup: {
         display: "flex",
@@ -160,19 +176,20 @@ const styles = {
         gap: "6px"
     },
     label: {
-        fontSize: "14px",
-        fontWeight: "500",
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
         color: "var(--operator-text)"
     },
     input: {
-        padding: "10px 12px",
-        borderRadius: "8px",
-        background: "var(--operator-input-bg)",
-        border: "2px solid var(--operator-border)",
+        height: "50px",
+        borderRadius: "12px",
+        border: "1px solid var(--operator-border)",
+        padding: "0 14px",
+        background: "var(--operator-border)",
+        color: "var(--operator-text)",
         fontSize: "14px",
-        outline: "none",
-        transition: "all 0.2s ease",
-        color: "var(--operator-text)"
+        outline: "none"
     },
     inputError: {
         border: "1px solid #e74c3c"
@@ -186,23 +203,35 @@ const styles = {
         justifyContent: "flex-end",
         gap: "10px",
         padding: "16px 20px",
-        borderTop: "1px solid var(--operator-border)",
+        border: "none",
         background: "var(--operator-card-bg)"
     },
     cancelButton: {
-        padding: "8px 14px",
-        borderRadius: "8px",
-        border: "1px solid #ccc",
-        background: "#fff",
-        cursor: "pointer"
+        height: "50px",
+        padding: "0 24px",
+        border: "none",
+        borderRadius: "14px",
+        background: "var(--operator-border)",
+        color: "var(--operator-text)",
+        fontWeight: "700",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 0px 20px var(--operator-shadow)",
     },
     saveButton: {
-        padding: "8px 14px",
-        borderRadius: "8px",
+        height: "50px",
+        padding: "0 24px",
+        borderRadius: "14px",
         border: "none",
-        background: "#2563eb",
+        background: "var(--operator-primary)",
         color: "#fff",
-        fontWeight: "500",
-        cursor: "pointer"
+        fontWeight: "700",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 0px 20px var(--operator-primary-light)",
     }
 };

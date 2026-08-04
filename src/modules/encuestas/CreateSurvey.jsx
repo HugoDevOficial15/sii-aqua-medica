@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 // Iconos
-import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar } from "react-icons/fa";
+import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar, FaWindowClose, FaEllipsisV } from "react-icons/fa";
 // Service
 import { createSurvey, getSurveys, updateSurvey } from "../../services/surveyService";
 
@@ -52,6 +52,8 @@ export default function CreateSurvey() {
     const [currentStep, setCurrentStep] = useState(1);
 
     const [viewingResults, setViewingResults] = useState(null);
+
+    const [openActionsId, setOpenActionsId] = useState(null);
 
 
     const {
@@ -134,6 +136,18 @@ export default function CreateSurvey() {
 
         load();
 
+    }, []);
+
+    useEffect(() => {
+        const closeMenu = (event) => {
+            if (!event.target.closest(".survey-actions-cell")) {
+                setOpenActionsId(null);
+            }
+        };
+
+        document.addEventListener("mousedown", closeMenu);
+
+        return () => document.removeEventListener("mousedown", closeMenu);
     }, []);
 
     // Guardar encuestas
@@ -329,7 +343,7 @@ export default function CreateSurvey() {
 
                 <div className="d-flex gap-3">
 
-                    <button className="btn btn-sm btn-primary"
+                    <button className="btn btn-sm btn-primary btn-custom "
 
                         onClick={() => {
                             reset();
@@ -357,7 +371,7 @@ export default function CreateSurvey() {
                     {/* tabala */}
                     <div className="table-responsive table-responsive-container">
 
-                        <table className="table table-hover">
+                        <table className="table survey-table">
 
                             <thead>
                                 <tr>
@@ -375,53 +389,81 @@ export default function CreateSurvey() {
 
                             <tbody>
 
-                                {surveys.map((survey) => (
-                                    <tr key={survey.id}>
-                                        <td>{survey.titulo}</td>
-                                        <td>{survey.fechaInicio}</td>
-                                        <td>{survey.fechaFin}</td>
+                                {surveys.map((survey) => {
+                                    const isMenuOpen = openActionsId === survey.id;
 
-                                        <td>
-                                            {survey.activa ? (
-                                                <span className="text-success">
-                                                    <FaCheckCircle /> Activa
-                                                </span>
-                                            ) : (
-                                                <span className="text-danger">
-                                                    <FaTimesCircle /> Inactiva
-                                                </span>
-                                            )}
-                                        </td>
+                                    return (
+                                        <tr key={survey.id} className={isMenuOpen ? "survey-row-menu-open" : ""}>
+                                            <td>{survey.titulo}</td>
+                                            <td>{survey.fechaInicio}</td>
+                                            <td>{survey.fechaFin}</td>
 
-                                        <td>
-                                            <button
-                                                className="btn btn-sm btn-outline-primary me-2"
-                                                onClick={() => handleEdit(survey)}
-                                            >
-                                                <FaEdit className="me-1" />
-                                                Editar
-                                            </button>
+                                            <td>
+                                                {survey.activa ? (
+                                                    <span className="text-success">
+                                                        <FaCheckCircle /> Activa
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-danger">
+                                                        <FaTimesCircle /> Inactiva
+                                                    </span>
+                                                )}
+                                            </td>
 
-                                            <button
-                                                className="btn btn-sm btn-outline-dark me-2"
-                                                onClick={() => setViewingResults(survey)}
-                                            >
-                                                <FaChartBar className="me-1" />
-                                                Ver respuestas
-                                            </button>
+                                            <td>
+                                                <div className="survey-actions-cell">
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm btn-outline-secondary survey-actions-toggle"
+                                                        onClick={() => setOpenActionsId(openActionsId === survey.id ? null : survey.id)}
+                                                    >
+                                                        <FaEllipsisV />
+                                                    </button>
 
-                                            {/* ancla */}
-                                            <button
-                                                className={`btn btn-sm ${survey.activa ? "btn-outline-danger" : "btn-outline-success"}`}
-                                                onClick={() => toggleSurvey(survey)}
-                                            >
-                                                {survey.activa ? <FaTimesCircle className="me-1" /> : <FaCheckCircle className="me-1" />}
-                                                {survey.activa ? "Desactivar" : "Activar"}
+                                                    {openActionsId === survey.id && (
+                                                        <div className="survey-actions-menu">
+                                                            <button
+                                                                type="button"
+                                                                className="survey-action-item"
+                                                                onClick={() => {
+                                                                    handleEdit(survey);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                <FaEdit className="me-2" />
+                                                                Editar
+                                                            </button>
 
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                            <button
+                                                                type="button"
+                                                                className="survey-action-item"
+                                                                onClick={() => {
+                                                                    setViewingResults(survey);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                <FaChartBar className="me-2" />
+                                                                Ver respuestas
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className={`survey-action-item ${survey.activa ? "text-danger" : "text-success"}`}
+                                                                onClick={() => {
+                                                                    toggleSurvey(survey);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                {survey.activa ? <FaTimesCircle className="me-2" /> : <FaCheckCircle className="me-2" />}
+                                                                {survey.activa ? "Desactivar" : "Activar"}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
 
                             </tbody>
 
@@ -446,22 +488,23 @@ export default function CreateSurvey() {
 
                     <div className="modal-full">
 
-                        <div className="modal-header bg-primary text-white">
+                        <div className="modal-header custom-modal-header">
                             <h5>
                                 {editing ? "Editar Encuesta" : "Crear Encuesta"}
                             </h5>
 
                             <button
-                                className="btn btn-sm btn-danger"
+                                type="button"
+                                className="modal-close-btn"
                                 onClick={() => setShowModal(false)}
                             >
-                                <FaDoorClosed />
+                                ×
                             </button>
                         </div>
 
                         <form
                             onSubmit={handleSubmit(hnadleSaveSurvey)}
-                            className="p-4"
+                            className="survey-modal-form"
                         >
 
                             {/* STEPS */}
@@ -674,7 +717,7 @@ export default function CreateSurvey() {
 
                                                 <button
                                                     type="button"
-                                                    className="btn btn-sm btn-primary"
+                                                    className="btn btn-sm btn-custom btn-primary"
                                                     onClick={() => addTema("")}
                                                 >
                                                     Agregar tema
@@ -697,7 +740,7 @@ export default function CreateSurvey() {
 
                                                     <button
                                                         type="button"
-                                                        className="btn btn-danger btn-sm"
+                                                        className="btn btn-sm btn-custom btn-danger"
                                                         onClick={() => removeTema(i)}
                                                     >
                                                         Eliminar
@@ -891,7 +934,7 @@ export default function CreateSurvey() {
 
                                     <div className="mt-4">
 
-                                        <div className="d-flex justify-content-between align-items-center">
+                                        <div className="d-flex-mb-3">
 
                                             <h5 className="m-0">
                                                 Preguntas
@@ -899,7 +942,7 @@ export default function CreateSurvey() {
 
                                             <button
                                                 type="button"
-                                                className="btn btn-primary"
+                                                className="btn btn-custom btn-primary"
                                                 onClick={addPregunta}
                                             >
                                                 <FaPlus className="me-2" />
@@ -927,7 +970,7 @@ export default function CreateSurvey() {
 
                                                         <button
                                                             type="button"
-                                                            className="btn btn-danger btn-sm"
+                                                            className="btn btn-custom btn-danger "
                                                             onClick={() => remove(index)}
                                                         >
                                                             Eliminar
@@ -1025,14 +1068,14 @@ export default function CreateSurvey() {
                     FOOTER
                 ======================================================= */}
 
-                            <div className="d-flex justify-content-between mt-5">
+                            <div className="modal-footer-actions">
 
                                 <div>
 
                                     {currentStep > 1 && (
                                         <button
                                             type="button"
-                                            className="btn btn-secondary"
+                                            className="modal-secondary-btn"
                                             onClick={() =>
                                                 setCurrentStep(currentStep - 1)
                                             }
@@ -1043,12 +1086,12 @@ export default function CreateSurvey() {
 
                                 </div>
 
-                                <div className="d-flex gap-2">
+                                <div className="d-flex gap-2 flex-wrap">
 
                                     {currentStep < 3 && (
                                         <button
                                             type="button"
-                                            className="btn btn-primary"
+                                            className="modal-primary-btn"
                                             onClick={() =>
                                                 setCurrentStep(currentStep + 1)
                                             }
@@ -1060,7 +1103,7 @@ export default function CreateSurvey() {
                                     {currentStep === 3 && (
                                         <button
                                             type="submit"
-                                            className="btn btn-success"
+                                            className="modal-primary-btn modal-primary-btn-success"
                                         >
                                             <FaSave className="me-2" />
                                             Guardar encuesta
@@ -1113,7 +1156,7 @@ export default function CreateSurvey() {
             #eff6ff
         );
 
-    color: #2563eb;
+    color: #123a91;
 
     font-size: 12px;
     font-weight: 600;
@@ -1156,62 +1199,39 @@ export default function CreateSurvey() {
    BOTÓN CREAR ENCUESTA
 ================================================== */
 
-.page-action-btn {
-
-    height: 44px !important;
-
-    padding: 0 18px !important;
-
-    border: none !important;
-
-    border-radius: 14px !important;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #2563eb,
-            #3b82f6
-        );
-
-    color: white;
-
-    font-size: 14px !important;
-    font-weight: 600;
-
-    box-shadow:
-        0 10px 20px rgba(37,99,235,0.16);
-
-    transition: all 0.25s ease;
+.btn-primary.btn-custom {
+        height: 50px;
+        padding: 0 20px;
+        border-radius: 10px;
+        border: none;
+        background: var(--operator-primary);
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0px 20px var(--operator-primary-light);
+}
+.btn-primary.btn-custom:hover {
+    transform: translateY(0px);
+    box-shadow:0 0px 26px rgba(37,99,235,0.22);
 }
 
-.page-action-btn:hover {
 
-    transform: translateY(-2px);
-
-    box-shadow:
-        0 14px 26px rgba(37,99,235,0.22);
-}
 
 /* ==================================================
    BOTONES SMALL
 ================================================== */
 
-.btn-sm {
+.btn-custom.me-2{
 
     height: 34px !important;
-
     padding: 0 12px !important;
-
     font-size: 12px !important;
-
     border-radius: 10px !important;
-
     font-weight: 600 !important;
+
 }
 /* ==================================================
    MAIN CARD
@@ -1219,45 +1239,10 @@ export default function CreateSurvey() {
 
 .card.shadow-sm {
 
-    border: none !important;
-
-    border-radius: 28px !important;
-
-    background:
-        rgba(255,255,255,0.88);
-
-    backdrop-filter: blur(12px);
-
-    box-shadow:
-        0 20px 40px rgba(37,99,235,0.08) !important;
-
-    overflow: hidden;
-}
-
-html[data-theme="dark"] .card.shadow-sm {
-    background: rgba(15, 23, 42, 0.94);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35) !important;
-}
-
-html[data-theme="dark"] .card-body {
-    color: #f8fafc;
-}
-
-html[data-theme="dark"] .form-control {
-    background: rgba(15, 23, 42, 0.90) !important;
-    border-color: rgba(148, 163, 184, 0.28) !important;
-    color: #f8fafc !important;
-}
-
-html[data-theme="dark"] .form-control::placeholder {
-    color: #94a3b8 !important;
-}
-
-html[data-theme="dark"] input[type="file"],
-html[data-theme="dark"] .form-control[type="file"] {
-    background: rgba(15, 23, 42, 0.90) !important;
-    border-color: rgba(148, 163, 184, 0.28) !important;
-    color: #f8fafc !important;
+        background: var(--operator-card);
+        border-radius: 30px; 
+        box-shadow: 0 8px 25px var(--operator-shadow);
+        padding: 10px;
 }
 
 /* ==================================================
@@ -1265,79 +1250,123 @@ html[data-theme="dark"] .form-control[type="file"] {
 ================================================== */
 
 .table {
-    border-collapse: separate !important;
-    border-spacing: 0 14px !important;
+        table-layout: fixed;
+        width: 100%;
+        border-collapse: separate !important;
+        border-spacing: 0 10px !important;
+        padding: 10px;
 }
 
 .table thead th {
 
-    border: none !important;
+        border-bottom: 3px solid var(--operator-text);
+        font-size: 20px;
+        font-weight: 900;
+        padding: 5px 5px;
+        vertical-align: middle;
+        border-top: none !important;
+        white-space: wrap;
 
-    color: #64748b;
-
-    font-size: 12px;
-    font-weight: 700;
-
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 230px;
+        min-width: 100px;
 }
 
-html[data-theme="dark"] .table thead th {
-    color: #cbd5e1;
+.survey-table tbody tr:not(.survey-row-menu-open):hover,
+.survey-table tbody tr:not(.survey-row-menu-open):hover > td,
+.survey-table tbody tr:not(.survey-row-menu-open):hover > th {
+        transform: scale(1.01);
+        transition: transform 0.2s;
+        background: transparent !important;
+        background-color: transparent !important;
+        color: inherit !important;
+        box-shadow: none !important;
 }
 
-.table tbody tr {
-
-    background: white;
-
-    box-shadow:
-        0 6px 20px rgba(15,23,42,0.04);
-
-    transition: all 0.25s ease;
-}
-
-html[data-theme="dark"] .table tbody tr {
-    background: rgba(15, 23, 42, 0.95);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
-}
-
-html[data-theme="dark"] .table tbody tr:hover {
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.30);
-}
-
-html[data-theme="dark"] .table td {
-    color: #e2e8f0;
-}
-
-.table tbody tr:hover {
-
-    transform: translateY(-2px);
-
-    box-shadow:
-        0 14px 30px rgba(37,99,235,0.08);
-}
-
-html[data-theme="dark"] .table tbody tr:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.30);
+.table tbody tr.survey-row-menu-open {
+        transform: none !important;
+        transition: none !important;
 }
 
 .table td {
 
-    vertical-align: middle;
+        border-bottom: 3px solid var(--operator-border);
+        height: 50px;
+        font-size: 14px;
+        padding: 5px 5px;
+        vertical-align: middle;
+        border-top: none !important;
+        white-space: wrap;
 
-    padding: 18px 16px !important;
-
-    border-top: none !important;
-    border-bottom: none !important;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 230px;
+        min-width: 100px;
 }
 
-.table tbody tr td:first-child {
-    border-radius: 16px 0 0 16px;
+/* ==================================================
+   ACTIONS MENU
+================================================== */
+
+.survey-actions-cell {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: visible;
+    isolation: auto;
 }
 
-.table tbody tr td:last-child {
-    border-radius: 0 16px 16px 0;
+.survey-actions-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10;
+    border: 1px solid var(--operator-border);
+    background: var(--operator-card);
+    color: var(--operator-text);
+}
+
+.survey-actions-toggle:hover {
+    background: var(--operator-background);
+    color: var(--operator-primary);
+}
+
+.survey-actions-menu {
+    position: absolute;
+    min-width: 60%;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    z-index: 9999;
+    border: 1px solid var(--operator-border);
+    border-radius: 10px;
+    background: var(--operator-card);
+    box-shadow: 0 12px 24px rgba(2, 6, 23, 0.14);
+}
+
+.survey-action-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 10px;
+    background: var(--operator-card);
+    color: var(--operator-text);
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.survey-action-item:hover {
+    background: var(--operator-background);
 }
 
 /* ==================================================
@@ -1348,588 +1377,401 @@ html[data-theme="dark"] .table tbody tr:hover {
 .text-danger {
 
     width: fit-content;
-
-    padding: 8px 14px;
-
+    padding: 6px 12px;
     border-radius: 999px;
-
     display: flex;
     align-items: center;
     gap: 6px;
+    font-size: 0.8rem;
 
-    font-size: 12px;
-    font-weight: 700;
 }
 
 .text-success {
-
-    background:
-        rgba(16,185,129,0.12);
-
+    background: rgba(16,185,129,0.12);
     color: #059669 !important;
 }
 
 .text-danger {
-
-    background:
-        rgba(239,68,68,0.12);
-
-    color: #dc2626 !important;
+    background: rgba(239,68,68,0.12);
+rgba(8, 6, 6, 0.12) color: #dc2626 !important;
 }
 /* ==================================================
    MODAL BACKDROP
 ================================================== */
 
 .modal-backdrop-custom {
-
     position: fixed;
-
     inset: 0;
-
-    width: 100%;
-    height: 100%;
-
-    background:
-        rgba(15,23,42,0.45);
-
-    backdrop-filter: blur(6px);
-
     z-index: 99999;
-
-    overflow: hidden;
-
-    padding: 0;
-
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px;
+    background: rgba(2, 6, 23, 0.68);
+    backdrop-filter: blur(8px);
 }
 
+/* ==================================================
+   MODAL
+================================================== */
 
-                /* ==================================================
-                   MODAL
-                ================================================== */
-
-                .modal - full {
-
-                    width: 100%;
-                max-width: 1700px;
-
-                max-height: calc(100vh - 40px);
-
-                margin: 20px auto;
-
-                border-radius: 28px;
-
-                background:
-                linear-gradient(
-                180deg,
-                #ffffff,
-                #f8fbff
-                );
-
-                box-shadow:
-                0 30px 80px rgba(15,23,42,0.22);
-
-                animation: modalUp 0.3s ease;
-
-                border:
-                1px solid rgba(255,255,255,0.8);
-
-                overflow: hidden;
-
-                display: flex;
-                flex-direction: column;
+.modal-full {
+    width: min(1120px, 100%);
+    max-height: min(92vh, 980px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--operator-card);
+    border: 1px solid var(--operator-border);
+    border-radius: 24px;
+    box-shadow: 0 24px 48px var(--operator-shadow);
 }
 
+.modal-full .custom-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 30px;
+    border: none;
+    background: var(--operator-card);
+}
 
+.modal-full .modal-header h5 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--operator-text);
+}
+
+.modal-close-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    background: var(--operator-card);
+    color: var(--operator-text);
+    font-size: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.d-flex-mb-3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 16px;
+}
+
+.modal-close-btn:hover {
+    background: var(--operator-border);
+    color: var(--operator-primary);
+}
+
+.survey-modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 24px 28px 28px;
+    overflow: auto;
+}
 
 .modal-body-content {
-
-    width: 100%;
-
-    max-width: 1600px;
-
-    margin: 0 auto;
+    border: none;
+    padding: 0;
+    background: transparent;
 }
-
-/* GRID MÁS AMPLIO */
 
 .form-grid {
-
     display: grid;
-
-    grid-template-columns:
-        repeat(12, minmax(0, 1fr));
-
-    gap: 20px;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
 }
 
-/* COLUMNAS */
+.col-span-12 { grid-column: span 12; }
+.col-span-6 { grid-column: span 6; }
+.col-span-4 { grid-column: span 4; }
+.col-span-3 { grid-column: span 3; }
 
-.col-span-12 {
-    grid-column: span 12;
+.survey-steps {
+
+    width: 70%;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    color: var(--operator-text);
 }
 
-.col-span-6 {
-    grid-column: span 6;
+
+.step-btn {
+    flex: 1 1 180px;
+    border: 1px solid var(--operator-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: var(--operator-background);
+    color: var(--operator-text);
+    font-weight: 700;
+    transition: all 0.2s ease;
 }
 
-.col-span-4 {
-    grid-column: span 4;
+.step-btn.active {
+    color: #fff;
+    background: var(--operator-primary);
+    box-shadow: 0 0 0 1px rgba(10, 77, 157, 0.12), 0 0px 24px var(--operator-primary-light);
 }
 
-.col-span-3 {
-    grid-column: span 3;
+    .modal-full .text-primary {
+        color: var(--operator-primary);
+    }
+
+.modal-full label {x
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--operator-text);
+    font-size: 13px;
+    font-weight: 700;
 }
 
-/* RESPONSIVE */
+
+
+.modal-full input,
+.modal-full select,
+.modal-full textarea {
+    height: 50px;
+    border-radius: 12px !important;
+    border: 1px solid var(--operator-border);
+    background: var(--operator-border);
+    color: var(--operator-text) !important;
+    padding: 0 14px;
+    font-size: 14px;
+    outline: none;
+    box-shadow: none !important;
+    transition: all 0.2s ease;
+}
+
+.modal-full textarea {
+    min-height: 120px;
+    padding: 14px;
+}
+
+.modal-full input:focus,
+.modal-full select:focus,
+.modal-full textarea:focus {
+    background: var(--operator-border);
+    border-color: var(--operator-primary);
+    box-shadow: 0 0 0 4px var(--operator-primary-light);
+}
+
+.modal-full .card {
+    border: none !important;
+    border-radius: 24px !important;
+    background: var(--operator-background);
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.form-check {
+    padding: 10px 14px;
+    border-radius: 14px;
+    transition: all 0.2s ease;
+}
+
+.form-check:hover {
+    background: rgba(10, 77, 157, 0.08);
+}
+
+.areas-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    align-items: stretch;
+}
+
+.area-grid-item {
+    width: 100%;
+}
+
+.area-card {
+    position: relative;
+    border: 1px solid var(--operator-border);
+    border-radius: 18px;
+    padding: 16px 18px;
+    background: var(--operator-background);
+    color: var(--operator-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.area-card:hover {
+    border-color: var(--operator-primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(10, 77, 157, 0.08);
+}
+
+.area-card.selected {
+    border-color: var(--operator-primary);
+    background: linear-gradient(135deg, rgba(10, 77, 157, 0.12), rgba(30, 109, 216, 0.08));
+    box-shadow: 0 10px 24px rgba(10, 77, 157, 0.12);
+}
+
+.area-card input {
+    width: 20px;
+    height: 20px;
+    margin-right: 4px;
+    accent-color: var(--operator-primary);
+    cursor: pointer;
+}
+
+
+
+
+
+.area-card span {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--operator-text);
+}
+
+.modal-footer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 16px;
+}
+
+.modal-primary-btn,
+.modal-secondary-btn {
+    height: 50px;
+    padding: 0 18px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+
+.modal-primary-btn {
+    background: var(--operator-primary);
+    color: #fff;
+    box-shadow: 0 0 20px var(--operator-primary-light);
+}
+
+.modal-primary-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 24px var(--operator-primary-light);
+}
+
+.modal-primary-btn-success {
+    background: #059669;
+    box-shadow: 0 0 20px rgba(5, 150, 105, 0.25);
+}
+
+.modal-secondary-btn {
+    background: var(--operator-background);
+    color: var(--operator-text);
+    border: 1px solid var(--operator-border);
+}
+
+.modal-secondary-btn:hover {
+    background: var(--operator-border);
+}
+
+.modal-full::-webkit-scrollbar {
+    width: 10px;
+}
+
+.modal-full::-webkit-scrollbar-thumb {
+    background: rgba(10, 77, 157, 0.22);
+    border-radius: 999px;
+}
 
 @media (max-width: 992px) {
-
     .col-span-6,
     .col-span-4,
     .col-span-3 {
-
         grid-column: span 12;
     }
 }
 
-
-
-
-
-
-                /* ==================================================
-                   MODAL HEADER
-                ================================================== */
-
-                .modal-full .modal-header {
-
-                    position: sticky;
-                top: 0;
-
-                z-index: 10;
-
-                padding: 20px 28px;
-
-                border: none;
-
-                background:
-                linear-gradient(
-                135deg,
-                #2563eb,
-                #3b82f6
-                ) !important;
-
-                box-shadow:
-                0 10px 25px rgba(37,99,235,0.18);
-}
-
-                .modal-full .modal-header h5 {
-
-                    margin: 0;
-
-                font-size: 1.2rem;
-                font-weight: 700;
-}
-
-                /* ==================================================
-                   STEPS
-                ================================================== */
-
-                .survey-steps {
-
-                    display: flex;
-                gap: 12px;
-
-                margin-bottom: 24px;
-}
-
-                .step-btn {
-
-                    border: none;
-
-                padding: 12px 18px;
-
-                border-radius: 14px;
-
-                background: #e2e8f0;
-
-                color: #334155;
-
-                font-weight: 600;
-
-                transition: all .2s ease;
-}
-
-                .step-btn.active {
-
-                    background: linear-gradient(
-                135deg,
-                #2563eb,
-                #3b82f6
-                );
-
-                color: white;
-
-                box-shadow:
-                0 10px 20px rgba(37,99,235,0.18);
-}
-
-                /* ==================================================
-                   FORM
-                ================================================== */
-
-                .modal-full form {
-                    padding: 30px;
-}
-
-                /* LABELS */
-
-                .modal-full label {
-
-                    margin - bottom: 8px;
-
-                color: #334155;
-
-                font-size: 13px;
-                font-weight: 700;
-}
-
-                /* INPUTS */
-
-                .modal-full input,
-                .modal-full select,
-                .modal-full textarea {
-
-                    min - height: 50px;
-
-                border-radius: 16px !important;
-
-                border:
-                1px solid #dbeafe !important;
-
-                background:
-                rgba(255,255,255,0.9) !important;
-
-                box-shadow:
-                none !important;
-
-                transition: all 0.2s ease;
-}
-
-                .modal-full textarea {
-                    min - height: 120px;
-}
-
-                .modal-full input:focus,
-                .modal-full select:focus,
-                .modal-full textarea:focus {
-
-                    border - color:
-                #3b82f6 !important;
-
-                box-shadow:
-                0 0 0 4px rgba(59,130,246,0.12) !important;
-}
-
-                /* ==================================================
-                   QUESTION CARDS
-                ================================================== */
-
-                .modal-full .card {
-
-                    border: none !important;
-
-                border-radius: 24px !important;
-
-                background:
-                white;
-
-                box-shadow:
-                0 10px 30px rgba(15,23,42,0.05);
-
-                overflow: hidden;
-}
-
-                /* ==================================================
-                   CHECKBOXES
-                ================================================== */
-
-                .form-check {
-
-                    padding: 10px 14px;
-
-                border-radius: 14px;
-
-                transition: all 0.2s ease;
-}
-
-                .form-check:hover {
-
-                    background:
-                rgba(37,99,235,0.05);
-}
-
-
-/* ==================================================
-   CUSTOM CHECKBOX CARDS
-================================================== */
-
-.area-card {
-
-    position: relative;
-
-    border:
-        2px solid #e2e8f0;
-
-    border-radius: 18px;
-
-    padding: 18px;
-
-    background: white;
-
-    cursor: pointer;
-
-    transition: all .2s ease;
-
-    min-height: 72px;
-
-    display: flex;
-    align-items: center;
-}
-
-.area-card:hover {
-
-    border-color: #93c5fd;
-
-    transform: translateY(-2px);
-
-    box-shadow:
-        0 12px 24px rgba(37,99,235,0.08);
-}
-
-.area-card.selected {
-
-    border-color: #2563eb;
-
-    background:
-        linear-gradient(
-            135deg,
-            rgba(37,99,235,0.08),
-            rgba(59,130,246,0.06)
-        );
-
-    box-shadow:
-        0 12px 24px rgba(37,99,235,0.12);
-}
-
-.area-card input {
-
-    width: 20px;
-    height: 20px;
-
-    margin-right: 14px;
-
-    accent-color: #2563eb;
-
-    cursor: pointer;
-}
-
-.area-card span {
-
-    font-size: 14px;
-    font-weight: 600;
-
-    color: #334155;
-}
-
-
-
-                /* ==================================================
-                   SCROLLBAR
-                ================================================== */
-
-                .modal-full::-webkit-scrollbar {
-                    width: 10px;
-}
-
-                .modal-full::-webkit-scrollbar-thumb {
-
-                    background:
-                rgba(37,99,235,0.18);
-
-                border-radius: 999px;
-}
-
-                /* ==================================================
-                   ANIMATIONS
-                ================================================== */
-
-                @keyframes fadePage {
-
-                    from {
-                    opacity: 0;
-                transform: translateY(8px);
+@media (max-width: 768px) {
+    .modal-backdrop-custom {
+        padding: 0;
     }
 
-                to {
-                    opacity: 1;
-                transform: translateY(0);
+    .modal-full {
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .survey-modal-form {
+        padding: 18px;
+    }
+
+    .modal-full .custom-modal-header {
+        padding: 18px;
+    }
+
+    .survey-steps {
+        flex-direction: column;
+    }
+
+    .step-btn {
+        flex: 1 1 auto;
+    }
+
+    .areas-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-footer-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .modal-footer-actions > div {
+        width: 100%;
+    }
+
+
+    .modal-footer-actions .d-flex {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .modal-primary-btn,
+    .modal-secondary-btn {
+        width: 100%;
     }
 }
 
-                @keyframes modalUp {
-
-                    from {
-                    opacity: 0;
-                transform: translateY(20px) scale(.98);
+@media (max-width: 480px) {
+    .modal-full .modal-header h5 {
+        font-size: 1.1rem;
     }
 
-                to {
-                    opacity: 1;
-                transform: translateY(0) scale(1);
+    .survey-modal-form {
+        gap: 14px;
     }
 }
-
-                @keyframes fadeBackdrop {
-
-                    from {
-                    opacity: 0;
-    }
-
-                to {
-                    opacity: 1;
-    }
-}
-
-                /* ==================================================
-                   RESPONSIVE
-                ================================================== */
-
-                @media (max-width: 768px) {
-
-    .card - body {
-                    padding: 18px;
-    }
-
-                .modal-full {
-
-                    width: 100%;
-                height: 100vh;
-
-                border-radius: 0;
-    }
-
-                .modal-full form {
-                    padding: 18px;
-    }
-
-                .table td {
-                    padding: 14px 10px !important;
-    }
-
-     
-}
-
-
-                /* ==================================================
-                   GRID ÁREAS
-                ================================================== */
-
-                .areas-grid {
-
-                    width: 100%;
-
-                display: grid;
-
-                grid-template-columns:
-                repeat(3, minmax(0, 1fr));
-
-                gap: 18px;
-
-                align-items: stretch;
-}
-
-                .area-grid-item {
-
-                    width: 100%;
-}
-
-                /* RESPONSIVE */
-
-                @media (max-width: 1200px) {
-
-    .areas - grid {
-
-                    grid - template - columns:
-                repeat(2, minmax(0, 1fr));
-    }
-}
-
-                @media (max-width: 768px) {
-
-    .areas - grid {
-
-                    grid - template - columns:
-                repeat(1, minmax(0, 1fr));
-    }
-}
-
-                /* ==================================================
-                   MODO OSCURO
-                   Este modal tiene sus propios estilos fijos (blanco)
-                   arriba, sin relación con el tema; se sobreescriben
-                   aquí reutilizando las variables --operator-* ya
-                   usadas en el resto del panel de administrador.
-                ================================================== */
-
-                html[data-theme="dark"] .modal-full {
-                    background: var(--operator-card) !important;
-                }
-
-                html[data-theme="dark"] .modal-full input,
-                html[data-theme="dark"] .modal-full select,
-                html[data-theme="dark"] .modal-full textarea {
-                    background: var(--operator-background) !important;
-                    border-color: var(--operator-border) !important;
-                    color: var(--operator-text) !important;
-                }
-
-                html[data-theme="dark"] .modal-full input::placeholder,
-                html[data-theme="dark"] .modal-full textarea::placeholder {
-                    color: var(--operator-text-soft);
-                    opacity: 1;
-                }
-
-                html[data-theme="dark"] .modal-full label {
-                    color: var(--operator-text-soft) !important;
-                }
-
-                html[data-theme="dark"] .step-btn {
-                    background: var(--operator-background);
-                    color: var(--operator-text);
-                }
-
-                html[data-theme="dark"] .area-card {
-                    background: var(--operator-card);
-                    border-color: var(--operator-border);
-                }
-
-                html[data-theme="dark"] .area-card span {
-                    color: var(--operator-text);
-                }
-
-                html[data-theme="dark"] .area-card.selected {
-                    background:
-                        linear-gradient(
-                            135deg,
-                            rgba(37,99,235,0.18),
-                            rgba(59,130,246,0.12)
-                        );
-                }
-
 
 `}</style>
 

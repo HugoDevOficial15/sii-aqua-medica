@@ -601,22 +601,7 @@ html[data-theme="dark"] .layout .table {
     color: var(--operator-text);
 }
 
-html[data-theme="dark"] .table tbody tr,
-html[data-theme="dark"] .table td,
-html[data-theme="dark"] .table th,
-html[data-theme="dark"] .custom-table tbody tr,
-html[data-theme="dark"] .custom-table td,
-html[data-theme="dark"] .custom-table th {
-    background: var(--operator-card) !important;
-    color: var(--operator-text) !important;
-    border-color: var(--operator-border) !important;
-}
 
-html[data-theme="dark"] .table tbody tr:hover,
-html[data-theme="dark"] .custom-table tbody tr:hover {
-    background: rgba(59, 130, 246, .12) !important;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06) !important;
-}
 
 /* El encabezado (thead) de las tablas admin no quedaba cubierto por la
 regla de "tbody tr" de arriba y seguía mostrando su fondo claro. */
@@ -649,17 +634,6 @@ html[data-theme="dark"] .custom-table th {
     color: var(--operator-text) !important;
     border-color: var(--operator-border) !important;
 }
-
-html[data-theme="dark"] .table tbody tr:hover,
-html[data-theme="dark"] .custom-table tbody tr:hover {
-    background: rgba(59, 130, 246, .12) !important;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06) !important;
-}
-
-
-
-
-
 
 html[data-theme="dark"] .custom-badge-success {
     background: rgba(16, 185, 129, .18) !important;

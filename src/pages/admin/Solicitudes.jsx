@@ -395,7 +395,7 @@ export default function Solicitudes() {
 
                         <input
                             type="date"
-                            className="form-control"
+                            className="form-control-date"
                             value={filtroFecha}
                             onChange={(e) => setFiltroFecha(e.target.value)}
                         />
@@ -410,7 +410,7 @@ export default function Solicitudes() {
 
                 <div className="card-body table-responsive-container">
 
-                    <table className="table table-hover">
+                    <table className="table table-sol">
 
                         <thead>
                             <tr>
@@ -492,6 +492,8 @@ export default function Solicitudes() {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 12px;
+    color: var(--operator-text);
+    background: var(--operator-border);
 }
 
 @media (max-width: 992px) {
@@ -505,6 +507,121 @@ export default function Solicitudes() {
         grid-template-columns: 1fr;
     }
 }
+
+
+                /* CONTENEDORES */
+
+.mb-4 {
+    border-radius: 30px;
+}
+
+.card {
+    border-radius: 30px;
+ }
+
+                /* HEADER */
+
+.solicitudes-filter-grid {
+    background: var(--operator-card);
+}
+
+.form-select, .form-control-date {
+    background: var(--operator-border);
+    color: var(--operator-text) !important;
+    border-color:var(--operator-border);
+    border-radius: 10px;
+}
+
+.form-select:focus, .form-control-date:focus {
+    box-shadow: 0 0 0 0.25rem var(--operator-focus);
+    border-color: var(--operator-primary);
+    background: var(--operator-border);
+}
+
+.form-control {
+    background: var(--operator-text) !important;
+    color: var(--operator-background) !important;
+    border-color:var(--operator-border); ;
+    border-radius: 10px;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 0.25rem var(--operator-focus);
+    border-color: var(--operator-primary);
+    background: transparent;
+    color: var(--operator-text);
+}
+
+
+                /* TABLA */
+
+.table{
+
+        table-layout: fixed;
+        width: 100%;
+        border-collapse: separate !important;
+        border-spacing: 0 10px !important;
+}
+
+.table-sol thead th {
+
+        border-bottom: 3px solid var(--operator-text);
+        font-size: 20px;
+        font-weight: 900;
+        padding: 5px 5px;
+        vertical-align: middle;
+        border-top: none !important;
+        white-space: wrap;
+
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 230px;
+        min-width: 100px;
+}
+
+.table-sol tbody td {
+
+        border-bottom: 3px solid var(--operator-border);
+        height: 50px;
+        font-size: 14px;
+        padding: 5px 5px;
+        vertical-align: middle;
+        border-top: none !important;
+        white-space: wrap;
+
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 230px;
+        min-width: 100px;
+}
+
+.table-sol  tbody tr:hover {
+        
+        transition: transform 0.2s;
+        transform: scale(1.01);
+}
+
+            /* ESTADOS */
+
+.badge {
+
+        border-radius: 999px;
+}
+
+
+                /* BOTONES */
+
+.btn-sm {
+
+        font-size: 14px;
+        padding: 4px 8px;
+        height: 30px;
+        border-radius: 10px;
+}
+
+
+
+
 
             `}</style>
 

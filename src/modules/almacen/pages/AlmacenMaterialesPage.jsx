@@ -6,6 +6,7 @@ import { suscribirStock } from "../../../services/rackStockService";
 import { getUbicacionLabel, getUbicacionTipoLabel } from "../../../utils/rackLocation";
 import { useRacksDashboard } from "../../almacen-peps/hooks/useRacksDashboard";
 
+
 const parseDate = (value) => {
     if (!value) return null;
 
@@ -58,7 +59,9 @@ const parseDate = (value) => {
     return null;
 };
 
-const formatDate = (value) => {
+
+
+    const formatDate = (value) => {
     const parsed = parseDate(value);
 
     if (!parsed) {
