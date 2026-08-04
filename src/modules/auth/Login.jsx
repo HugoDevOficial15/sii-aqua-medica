@@ -1,5 +1,5 @@
 // State
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // AuthService
 import { loginUser } from "../../services/authService";
@@ -20,7 +20,6 @@ import { useAuth } from "../../hooks/useAuth";
 import { useLoader } from "../../hooks/useLoader";
 
 export default function Login() {
-
     // Estados de los formularios
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -30,17 +29,33 @@ export default function Login() {
     const [attempts, setAttempts] = useState(0);
     const [blocked, setBlocked] = useState(false);
 
-    // Sesión
-    const { login } = useAuth();
+    // Sesión (Extraemos user y el loading de Firebase)
+    const { login, user, loading: authLoading } = useAuth();
 
     // Navegación
     const navigate = useNavigate();
 
     // Loader
     const { showLoader, hideLoader } = useLoader();
-    const [loading, setLoading] = useState(false);
-
+    
+    // Cambiamos el nombre de este estado para que no choque con authLoading
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+
+    // 🔥 EFECTO DE PERSISTENCIA: Redirige automáticamente si ya hay sesión viva
+    useEffect(() => {
+        if (user && !authLoading) {
+            if (user.mustChangePassword) {
+                navigate("/change-password", { replace: true });
+            } else if (user.rol === "operador") {
+                navigate("/app", { replace: true });
+            } else if (user.rol && user.rol.startsWith("admin")) {
+                navigate("/dashboard", { replace: true });
+            } else {
+                navigate("/noticias", { replace: true }); // Usuario normal
+            }
+        }
+    }, [user, authLoading, navigate]);
 
     // LOGIN
     const handlelogin = async (e) => {
@@ -58,7 +73,7 @@ export default function Login() {
             return;
         }
 
-        setLoading(true);
+        setIsSubmitting(true);
         showLoader();
 
         try {
@@ -88,7 +103,7 @@ export default function Login() {
             return;
         } finally {
             hideLoader();
-            setLoading(false);
+            setIsSubmitting(false);
         }
 
         // 🔥 TRAER DATOS DE FIRESTORE
@@ -107,22 +122,10 @@ export default function Login() {
         console.table(userData);
 
         // 🔥 GUARDAR SESIÓN
-        // login({
-        //     username: username,
-        //     rol: userData.rol,
-        //     nombre: userData.nombre,
-        //     mustChangePassword: userData.mustChangePassword || false,
-        //     id: userData.id,
-        //     areaId: userData.area
-        // });
-
         login({
             ...userData,
-
             username: username,
-
-            mustChangePassword:
-                userData.mustChangePassword || false
+            mustChangePassword: userData.mustChangePassword || false
         });
 
         console.log("Usuario Guardado en sesión:", userData);
@@ -130,63 +133,52 @@ export default function Login() {
         // 🔐 CAMBIO DE PASSWORD (PRIORIDAD)
         if (userData.mustChangePassword === true) {
             console.log("Redirigiendo a change-password");
-            navigate("/change-password");
+            navigate("/change-password", { replace: true });
             return;
         }
 
         // 🔥 OPERADOR (NO SE TOCA)
         if (userData.rol === "operador") {
             console.log("Redirigiendo a App Operador");
-            navigate("/app");
+            navigate("/app", { replace: true });
             return;
         }
 
-        // 🔥 TODOS LOS ADMINS (AQUÍ ESTABA EL ERROR)
-        if (userData.rol.startsWith("admin")) {
+        // 🔥 TODOS LOS ADMINS
+        if (userData.rol && userData.rol.startsWith("admin")) {
             console.log("Redirigiendo a Dashboard Admin");
-            navigate("/dashboard");
+            navigate("/dashboard", { replace: true });
             return;
         }
 
-        // 🔥 FALLBACK (por si acaso)
-        console.log("Rol no identificado, enviando a dashboard");
-        navigate("/dashboard");
+        // 🔥 FALLBACK (USUARIOS NORMALES)
+        // Corregido: Los enviamos a /noticias para que no entren en bucle en /dashboard
+        console.log("Rol de usuario normal, enviando a noticias");
+        navigate("/noticias", { replace: true });
     };
+
+    // BLOQUEADOR VISO: Si Firebase sigue leyendo la memoria, mostramos pantalla en blanco
+    if (authLoading) {
+        return null; 
+    }
 
     // UI
     return (
         <div className="login-page">
-
             {/* PANEL LOGIN */}
-
             <div className="login-panel">
-
                 <div className="login-card-premium">
-
                     <div className="login-logo-wrapper">
-
                         <img
                             src="/logo.png"
                             alt="AQUA"
                             className="login-logo-premium"
                         />
-
                     </div>
-
                     <div className="login-header">
-
-                        <h1>
-                            SII AQUA
-                        </h1>
-
-                        <p>
-                            Bienvenido nuevamente
-                        </p>
-
-                        <span>
-                            Accede a tu cuenta para continuar
-                        </span>
-
+                        <h1>SII AQUA</h1>
+                        <p>Bienvenido nuevamente</p>
+                        <span>Accede a tu cuenta para continuar</span>
                     </div>
 
                     {error && (
@@ -196,106 +188,63 @@ export default function Login() {
                     )}
 
                     <form onSubmit={handlelogin}>
-
                         <div className="input-group-premium">
-
-                            <label>
-                                Usuario
-                            </label>
-
+                            <label>Usuario</label>
                             <input
                                 type="text"
                                 value={username}
-                                onChange={(e) =>
-                                    setUsername(e.target.value)
-                                }
+                                onChange={(e) => setUsername(e.target.value)}
                                 placeholder="Ingresa tu usuario"
                             />
-
                         </div>
 
                         <div className="input-group-premium">
-
-                            <label>
-                                Contraseña
-                            </label>
-
+                            <label>Contraseña</label>
                             <div className="password-wrapper">
-
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     value={password}
-                                    onChange={(e) =>
-                                        setPassword(e.target.value)
-                                    }
+                                    onChange={(e) => setPassword(e.target.value)}
                                     placeholder="Ingresa tu contraseña"
                                 />
-
                                 <button
                                     type="button"
                                     className="password-toggle"
-                                    onClick={() =>
-                                        setShowPassword(!showPassword)
-                                    }
+                                    onClick={() => setShowPassword(!showPassword)}
                                 >
                                     {showPassword ? "Ocultar" : "Ver"}
                                 </button>
-
                             </div>
-
                         </div>
 
                         <button
                             type="submit"
                             className="login-btn-premium"
+                            disabled={isSubmitting}
                         >
-
-                            {loading
-                                ? "Validando..."
-                                : "Iniciar Sesión"}
-
+                            {isSubmitting ? "Validando..." : "Iniciar Sesión"}
                         </button>
-
                     </form>
 
                     <div className="login-footer">
-
                         AQUA Médica © 2026
-
                     </div>
-
                 </div>
-
             </div>
 
             {/* PANEL IMAGEN */}
-
             <div className="login-image-panel">
-
                 <div className="login-overlay">
-
                     <div className="login-company-info">
-
-                        <h2>
-                            Plataforma Integral
-                        </h2>
-
-                        <p>
-                            Gestión, operación y comunicación
-                            en un solo lugar.
-                        </p>
-
+                        <h2>Plataforma Integral</h2>
+                        <p>Gestión, operación y comunicación en un solo lugar.</p>
                     </div>
-
                 </div>
-
                 <img
                     src="/fachada.jpg"
                     alt="AQUA"
                 />
-
             </div>
-
         </div>
     );
 }

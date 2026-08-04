@@ -33,7 +33,7 @@ export default function OperatorPoints() {
 
                     <FiAward />
 
-                    <h3>850</h3>
+                    <h3>0</h3>
 
                     <span>Puntos</span>
 
@@ -43,7 +43,7 @@ export default function OperatorPoints() {
 
                     <FiTrendingUp />
 
-                    <h3>#12</h3>
+                    <h3>#0</h3>
 
                     <span>Ranking</span>
 

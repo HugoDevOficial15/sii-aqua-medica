@@ -1,7 +1,12 @@
 .operator-shell {
     max-width: 430px;
+    width: 100%;
+    min-height: 100dvh;
     margin: 0 auto;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
 }
 
 /* Vista web de escritorio: la columna del Usuario se convierte en una
@@ -105,24 +110,15 @@
 }
 
 .operator-content {
-
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
     padding: 10px;
     padding-left: calc(10px + var(--safe-left));
     padding-right: calc(10px + var(--safe-right));
-
     padding-top: calc(100px + var(--safe-top) + 6px);
-
-    padding-bottom: calc(50px + var(--safe-bottom));
-}
-
-/* Compensa el margen extra que el bottom nav gana en móvil (ver
-   .operator-nav-premium), para que el contenido no quede oculto detrás. */
-@media (max-width: 768px) {
-
-    .operator-content {
-        padding-bottom: calc(64px + var(--safe-bottom));
-    }
-
+    padding-bottom: calc(var(--operator-bottom-nav-height, 82px) + var(--safe-bottom) + 24px);
+    scroll-padding-bottom: calc(var(--operator-bottom-nav-height, 82px) + var(--safe-bottom) + 24px);
 }
 
 

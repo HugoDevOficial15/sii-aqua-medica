@@ -31,6 +31,7 @@ export default function OperatorDrawer({
 
     const { user } = useAuth();
     const handleLogout = useLogout();
+    const datosUsuario = usuarioActual || user;
 
     const items = [
 
@@ -103,8 +104,17 @@ export default function OperatorDrawer({
     ];
 
 
-    let nameFull =
-        user?.nombre?.split(" ")[0] + " " + user?.nombre?.split(" ")[2];
+    const nombreParts = (datosUsuario?.nombre || "").trim().split(/\s+/);
+    const nombrePrimero = nombreParts[0] || "Usuario";
+    const nombreSegundo = nombreParts[2] || nombreParts[1] || "";
+    const nameFull = [nombrePrimero, nombreSegundo].filter(Boolean).join(" ");
+    const avatarSrc =
+        datosUsuario?.fotoPerfil ||
+        datosUsuario?.photoURL ||
+        datosUsuario?.photoUrl ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            nameFull || "Usuario"
+        )}&background=ffffff&color=0A4D9D&bold=true&size=256`;
 
     return (
         <>
@@ -132,22 +142,17 @@ export default function OperatorDrawer({
 
 
                     <div className="drawer-avatar-v2">
-                        <img
-                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                nameFull || "Usuario"
-                            )}&background=ffffff&color=0A4D9D&bold=true&size=256`}
-                            alt="Avatar"
-                        />
+                        <img src={avatarSrc} alt="Avatar" />
                     </div>
 
                     <h3>
-                        {user?.nombre?.split(" ")[0]}
+                        {nombrePrimero}
                         <br />
-                        {user?.nombre?.split(" ")[2]}
+                        {nombreSegundo}
                     </h3>
 
                     <p>
-                        {user?.puesto}
+                        {datosUsuario?.puesto}
                     </p>
 
                 </div>
@@ -161,7 +166,7 @@ export default function OperatorDrawer({
                         </span>
 
                         <strong>
-                            Oro
+                            Pendiente
                         </strong>
 
                     </div>
@@ -173,7 +178,7 @@ export default function OperatorDrawer({
                         </span>
 
                         <strong>
-                            850
+                            0
                         </strong>
 
                     </div>

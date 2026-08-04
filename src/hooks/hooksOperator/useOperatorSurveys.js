@@ -2,56 +2,15 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 
 import { useAuth } from "../useAuth";
 
-import { getOperatorSurveys } from "../../services/servicesOperator/operatorSurveyService";
-import { getMyResponses } from "../../services/servicesOperator/operatorSurveyResponseService";
+import { getEncuestasDisponibles } from "../../services/encuestasService";
 
 import { MIN_APROBATORIO } from "../../constants/surveyConstants";
-
-// Fecha local (YYYY-MM-DD) para comparar contra fechaFin, que se guarda
-// como string de un <input type="date">. Se evita new Date().toISOString()
-// porque usa UTC y puede adelantar el día en horas de la tarde/noche
-// en husos horarios detrás de UTC (México), marcando encuestas como
-// vencidas antes de tiempo.
-const getTodayLocal = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-};
-
-// Una encuesta es visible para el usuario si su asignación coincide por
-// área o por nómina. Se compara todo como String para evitar errores
-// entre números y texto.
-const isAssignedToUser = (survey, user) => {
-
-    const asignacion = survey?.asignacion;
-
-    if (!asignacion || !asignacion.tipo) {
-        return false;
-    }
-
-    const valores = Array.isArray(asignacion.valores)
-        ? asignacion.valores.map(String)
-        : [];
-
-    if (asignacion.tipo === "area") {
-        return valores.includes(String(user.area));
-    }
-
-    if (asignacion.tipo === "usuarios") {
-        return valores.includes(String(user.nomina));
-    }
-
-    return false;
-};
 
 export function useOperatorSurveys() {
 
     const { user } = useAuth();
 
     const [rawSurveys, setRawSurveys] = useState([]);
-    const [responsesById, setResponsesById] = useState(new Map());
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -65,24 +24,12 @@ export function useOperatorSurveys() {
 
         try {
 
-            // 1 consulta de encuestas + 1 consulta de respuestas del
-            // usuario autenticado (nunca de otros usuarios).
-            const [surveysData, responsesData] = await Promise.all([
-                getOperatorSurveys(),
-                getMyResponses(user.nomina)
-            ]);
+            // Única fuente de verdad: el servicio centralizado ya hace el
+            // filtrado por asignación (global/área/usuarios) y el cruce
+            // con las respuestas del usuario en 2 lecturas a Firestore.
+            const data = await getEncuestasDisponibles(user);
 
-            setRawSurveys(surveysData);
-
-            const map = new Map();
-
-            responsesData.forEach(response => {
-                if (response.idEncuesta) {
-                    map.set(response.idEncuesta, response);
-                }
-            });
-
-            setResponsesById(map);
+            setRawSurveys(data);
 
         } catch (err) {
 
@@ -104,41 +51,17 @@ export function useOperatorSurveys() {
         fetchData();
     }, [fetchData]);
 
-    // Filtrado por asignación + cruce con respuestas (en memoria, vía Map)
-    // + cálculo de estadoActual/miPuntaje para cada encuesta visible.
+    // Adapta la salida del servicio (estado/miPuntaje) al contrato que ya
+    // consumen las pantallas existentes (estadoActual/miPuntaje).
     const surveys = useMemo(() => {
 
-        if (!user) return [];
+        return rawSurveys.map(survey => ({
+            ...survey,
+            estadoActual: survey.respondida ? "completada" : survey.estado,
+            miPuntaje: survey.miPuntaje
+        }));
 
-        const today = getTodayLocal();
-
-        return rawSurveys
-
-            .filter(survey => isAssignedToUser(survey, user))
-
-            .map(survey => {
-
-                const respuesta = responsesById.get(survey.id);
-
-                if (respuesta) {
-                    return {
-                        ...survey,
-                        estadoActual: "completada",
-                        miPuntaje: respuesta.puntuacionObtenida
-                    };
-                }
-
-                const vencida = Boolean(survey.fechaFin) && today > survey.fechaFin;
-
-                return {
-                    ...survey,
-                    estadoActual: vencida ? "vencida" : "pendiente",
-                    miPuntaje: null
-                };
-
-            });
-
-    }, [rawSurveys, responsesById, user]);
+    }, [rawSurveys]);
 
     const metrics = useMemo(() => {
 

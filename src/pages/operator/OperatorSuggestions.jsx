@@ -48,7 +48,7 @@ export default function OperatorSuggestions({
 
                     <FiClock />
 
-                    <h3>3</h3>
+                    <h3>0</h3>
 
                     <span>
                         En revisión
@@ -60,7 +60,7 @@ export default function OperatorSuggestions({
 
                     <FiCheckCircle />
 
-                    <h3>8</h3>
+                    <h3>0</h3>
 
                     <span>
                         Aprobadas
@@ -72,7 +72,7 @@ export default function OperatorSuggestions({
 
                     <FiXCircle />
 
-                    <h3>1</h3>
+                    <h3>0</h3>
 
                     <span>
                         Rechazada

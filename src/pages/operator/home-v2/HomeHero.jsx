@@ -10,8 +10,17 @@ export default function HomeHero() {
 
     const { user } = useAuth();
 
-    let nameFull =
-        user?.nombre?.split(" ")[0] + " " + user?.nombre?.split(" ")[2];
+    const nombreParts = (user?.nombre || "").trim().split(/\s+/);
+    const nombrePrimero = nombreParts[0] || "Usuario";
+    const nombreSegundo = nombreParts[2] || nombreParts[1] || "";
+    const nameFull = [nombrePrimero, nombreSegundo].filter(Boolean).join(" ");
+    const avatarSrc =
+        user?.fotoPerfil ||
+        user?.photoURL ||
+        user?.photoUrl ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            nameFull || "Usuario"
+        )}&background=ffffff&color=0A4D9D&bold=true&size=256`;
 
     return (
 
@@ -28,9 +37,9 @@ export default function HomeHero() {
                     </span>
 
                     <h2>
-                        {user?.nombre?.split(" ")[0]}
+                        {nombrePrimero}
                         <br />
-                        {user?.nombre?.split(" ")[2]}
+                        {nombreSegundo}
                     </h2>
 
                     <p>
@@ -53,12 +62,7 @@ export default function HomeHero() {
                         alt="Avatar"
                     /> */}
 
-                    <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                            nameFull || "Usuario"
-                        )}&background=ffffff&color=0A4D9D&bold=true&size=256`}
-                        alt="Avatar"
-                    />
+                    <img src={avatarSrc} alt="Avatar" />
 
                 </div>
 

@@ -39,38 +39,60 @@ export default function OperatorShell({
         };
     }, [drawerOpen]);
 
-    const handleShellTouchStart = (e) => {
-        if (drawerOpen) return;
-        const touch = e.touches[0];
-        if (touch.clientX > EDGE_ZONE_PX) {
+    useEffect(() => {
+        if (drawerOpen) return undefined;
+
+        const handleShellTouchStart = (e) => {
+            if (e.touches.length !== 1) return;
+            const touch = e.touches[0];
+            if (touch.clientX > EDGE_ZONE_PX) {
+                openSwipe.current.tracking = false;
+                return;
+            }
+            openSwipe.current = {
+                tracking: true,
+                startX: touch.clientX,
+                startY: touch.clientY,
+                axis: null
+            };
+        };
+
+        const handleShellTouchMove = (e) => {
+            const gesture = openSwipe.current;
+            if (!gesture.tracking || e.touches.length !== 1) return;
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - gesture.startX;
+            const deltaY = touch.clientY - gesture.startY;
+            if (gesture.axis === null && (Math.abs(deltaX) > DIRECTION_LOCK_PX || Math.abs(deltaY) > DIRECTION_LOCK_PX)) {
+                gesture.axis = Math.abs(deltaX) > Math.abs(deltaY) ? "horizontal" : "vertical";
+            }
+            if (gesture.axis === "vertical") {
+                gesture.tracking = false;
+                return;
+            }
+            if (gesture.axis === "horizontal" && deltaX > SWIPE_THRESHOLD_PX) {
+                setDrawerOpen(true);
+                gesture.tracking = false;
+                gesture.axis = "horizontal";
+            }
+        };
+
+        const handleShellTouchEnd = () => {
             openSwipe.current.tracking = false;
-            return;
-        }
-        openSwipe.current = { tracking: true, startX: touch.clientX, startY: touch.clientY, axis: null };
-    };
+        };
 
-    const handleShellTouchMove = (e) => {
-        const gesture = openSwipe.current;
-        if (!gesture.tracking) return;
-        const touch = e.touches[0];
-        const deltaX = touch.clientX - gesture.startX;
-        const deltaY = touch.clientY - gesture.startY;
-        if (gesture.axis === null && (Math.abs(deltaX) > DIRECTION_LOCK_PX || Math.abs(deltaY) > DIRECTION_LOCK_PX)) {
-            gesture.axis = Math.abs(deltaX) > Math.abs(deltaY) ? "horizontal" : "vertical";
-        }
-        if (gesture.axis === "vertical") {
-            gesture.tracking = false;
-            return;
-        }
-        if (gesture.axis === "horizontal" && deltaX > SWIPE_THRESHOLD_PX) {
-            setDrawerOpen(true);
-            gesture.tracking = false;
-        }
-    };
+        document.addEventListener("touchstart", handleShellTouchStart, { passive: true });
+        document.addEventListener("touchmove", handleShellTouchMove, { passive: false });
+        document.addEventListener("touchend", handleShellTouchEnd, { passive: true });
+        document.addEventListener("touchcancel", handleShellTouchEnd, { passive: true });
 
-    const handleShellTouchEnd = () => {
-        openSwipe.current.tracking = false;
-    };
+        return () => {
+            document.removeEventListener("touchstart", handleShellTouchStart);
+            document.removeEventListener("touchmove", handleShellTouchMove);
+            document.removeEventListener("touchend", handleShellTouchEnd);
+            document.removeEventListener("touchcancel", handleShellTouchEnd);
+        };
+    }, [drawerOpen]);
 
     const handleDrawerTouchStart = (e) => {
         const touch = e.touches[0];
@@ -104,9 +126,6 @@ export default function OperatorShell({
         <>
             <div
                 className={`operator-shell${drawerOpen ? " shell-locked" : ""}`}
-                onTouchStart={handleShellTouchStart}
-                onTouchMove={handleShellTouchMove}
-                onTouchEnd={handleShellTouchEnd}
             >
                 <OperatorHeader
                     onMenu={() => setDrawerOpen(true)}

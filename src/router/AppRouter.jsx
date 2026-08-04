@@ -35,7 +35,15 @@ import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
 
 import MaintenancePage from "../components/MaintenancePage";
 
+// 🔥 NUEVAS IMPORTACIONES PARA LAS NOTIFICACIONES PUSH
+import { useAuth } from "../hooks/useAuth";
+import { usePushNotifications } from "../hooks/usePushNotifications";
+
 export default function AppRouter() {
+    // 🔥 EXTRAEMOS EL USUARIO ACTUAL Y ENCENDEMOS LAS NOTIFICACIONES
+    const { user } = useAuth();
+    usePushNotifications(user);
+
     return (
         <BrowserRouter>
             <Routes>

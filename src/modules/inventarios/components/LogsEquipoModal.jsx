@@ -6,6 +6,7 @@ import {
 } from "../../../services/logsServices";
 
 import { useAuth } from "../../../hooks/useAuth";
+import { usePreferences } from "../../../hooks/usePreferences";
 
 import {
     FaClipboardList,
@@ -35,6 +36,53 @@ export default function LogsEquipoModal({
     const [loading, setLoading] = useState(false);
 
     const [observacion, setObservacion] = useState("");
+    const { resolvedTheme } = usePreferences();
+    const isDark = resolvedTheme === "dark";
+
+    const dynamicStyles = {
+        modal: {
+            background: isDark ? "#0f172a" : "#fff",
+            boxShadow: isDark
+                ? "0 20px 40px rgba(0,0,0,0.6)"
+                : "0 20px 40px rgba(0,0,0,0.2)"
+        },
+        header: {
+            borderBottom: isDark ? "1px solid #334155" : "1px solid #eee"
+        },
+        subtitle: {
+            color: isDark ? "#94a3b8" : "#6b7280"
+        },
+        closeBtn: {
+            color: isDark ? "#f8fafc" : "#111827"
+        },
+        infoCard: {
+            background: isDark ? "#0f172a" : "#f9fafb",
+            borderBottom: isDark ? "1px solid #334155" : "1px solid #eee",
+            color: isDark ? "#e2e8f0" : "#111827"
+        },
+        textarea: {
+            background: isDark ? "#0f172a" : "#fff",
+            color: isDark ? "#e2e8f0" : "#111827",
+            border: isDark ? "1px solid #334155" : "1px solid #d1d5db"
+        },
+        iconCircle: {
+            background: isDark ? "#334155" : "#f3f4f6"
+        },
+        content: {
+            background: isDark ? "#0f172a" : "#fff",
+            border: isDark ? "1px solid #334155" : "1px solid #eee",
+            color: isDark ? "#e2e8f0" : "#111827"
+        },
+        fecha: {
+            color: isDark ? "#94a3b8" : "#6b7280"
+        },
+        user: {
+            color: isDark ? "#94a3b8" : "#6b7280"
+        },
+        empty: {
+            color: isDark ? "#cbd5e1" : "#6b7280"
+        }
+    };
 
 
     const fetchLogs = async () => {
@@ -130,11 +178,11 @@ export default function LogsEquipoModal({
 
         <div style={styles.backdrop}>
 
-            <div style={styles.modal}>
+            <div style={{ ...styles.modal, ...dynamicStyles.modal }}>
 
                 {/* HEADER */}
 
-                <div style={styles.header}>
+                <div style={{ ...styles.header, ...dynamicStyles.header }}>
 
                     <div>
 
@@ -142,7 +190,7 @@ export default function LogsEquipoModal({
                             Historial del Equipo
                         </h4>
 
-                        <span style={styles.subtitle}>
+<span style={{ ...styles.subtitle, ...dynamicStyles.subtitle }}>
                             {equipo.codigo} • {equipo.tipo}
                         </span>
 
@@ -150,7 +198,7 @@ export default function LogsEquipoModal({
 
                     <button
                         onClick={onClose}
-                        style={styles.closeBtn}
+                        style={{ ...styles.closeBtn, ...dynamicStyles.closeBtn }}
                     >
                         ×
                     </button>
@@ -160,7 +208,7 @@ export default function LogsEquipoModal({
 
                 {/* INFO */}
 
-                <div style={styles.infoCard}>
+                <div style={{ ...styles.infoCard, ...dynamicStyles.infoCard }}>
 
                     <div>
                         <strong>Usuario:</strong>
@@ -193,7 +241,7 @@ export default function LogsEquipoModal({
                             setObservacion(e.target.value)
                         }
                         placeholder="Agregar observación..."
-                        style={styles.textarea}
+                        style={{ ...styles.textarea, ...dynamicStyles.textarea }}
                     />
 
                     <button
@@ -215,7 +263,7 @@ export default function LogsEquipoModal({
                         <Loader />
                     ) : logs.length === 0 ? (
 
-                        <div style={styles.empty}>
+                        <div style={{ ...styles.empty, ...dynamicStyles.empty }}>
                             Sin historial
                         </div>
 
@@ -228,11 +276,11 @@ export default function LogsEquipoModal({
                                 style={styles.timelineItem}
                             >
 
-                                <div style={styles.iconCircle}>
+                                <div style={{ ...styles.iconCircle, ...dynamicStyles.iconCircle }}>
                                     {getIcon(log.tipo)}
                                 </div>
 
-                                <div style={styles.content}>
+                                <div style={{ ...styles.content, ...dynamicStyles.content }}>
 
                                     <div style={styles.topRow}>
 
@@ -240,7 +288,7 @@ export default function LogsEquipoModal({
                                             {log.tipo || "observacion"}
                                         </span>
 
-                                        <span style={styles.fecha}>
+                                        <span style={{ ...styles.fecha, ...dynamicStyles.fecha }}>
                                             {log.fechaServicio || ""}
                                         </span>
 
@@ -250,7 +298,7 @@ export default function LogsEquipoModal({
                                         {log.observacion}
                                     </div>
 
-                                    <div style={styles.user}>
+                                    <div style={{ ...styles.user, ...dynamicStyles.user }}>
                                         {log.realizadoPor}
                                     </div>
 

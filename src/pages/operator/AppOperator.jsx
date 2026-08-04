@@ -163,7 +163,7 @@ export default function AppOperator() {
             case "survey-result":
                 return <OperatorSurveyResult result={surveyResult} onBack={() => setScreen("surveys")} />;
             default:
-                return <OperatorHome />;
+                return <OperatorHome onNavigate={setScreen} />;
         }
     };
 

@@ -128,6 +128,30 @@ METRICS
         0 10px 30px rgba(0, 0, 0, .05);
 }
 
+/* Tarjeta "Pendientes": es un <button>, se resetean los estilos nativos
+   para que se vea idéntica a las demás tarjetas (que son <div>). */
+.metric-box-action {
+
+    border: none;
+
+    width: 100%;
+
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.metric-box-action:hover,
+.metric-box-action:focus-visible {
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 14px 34px rgba(0, 0, 0, .09);
+}
+
 .metric-icon {
 
     width: 52px;
@@ -612,6 +636,7 @@ BOTTOM NAV V2
 } */
 
 .operator-nav-premium {
+    --operator-bottom-nav-height: 82px;
 
     position: fixed;
 
@@ -630,7 +655,7 @@ BOTTOM NAV V2
 
     max-width: 398px;
 
-    height: 82px;
+    height: var(--operator-bottom-nav-height);
 
     background:
         rgba(255, 255, 255, .96);
@@ -2131,21 +2156,35 @@ PREFERENCIAS
     margin-bottom: 20px;
 }
 
-.preferences-hero-icon {
+.preferences-screen.admin-mode {
+    padding: 0;
+}
 
-    width: 90px;
-    height: 90px;
+.preferences-screen.admin-mode .preferences-card {
+    margin-bottom: 22px;
+}
 
-    margin: 0 auto 16px;
+.preferences-hero.admin-mode {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 28px;
+    text-align: left;
+    color: var(--operator-text);
+}
 
-    border-radius: 50%;
+.preferences-hero.admin-mode .preferences-hero-icon {
+    background: rgba(59, 130, 246, .12);
+    color: var(--operator-primary);
+}
 
-    background: rgba(255, 255, 255, .15);
+.preferences-hero.admin-mode h1 {
+    color: var(--operator-text);
+}
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
+.preferences-hero.admin-mode p {
+    opacity: .8;
+    color: var(--operator-text-soft);
+}
     font-size: 40px;
 }
 
@@ -2410,6 +2449,29 @@ REPORTAR PROBLEMA
     font-family: inherit;
     font-size: 14px;
     outline: none;
+}
+
+.report-field input[type="file"] {
+    padding: 10px 14px;
+    background: var(--operator-background);
+    border: 1px solid var(--operator-border);
+    border-radius: 16px;
+    color: var(--operator-text);
+}
+
+.report-field input[type="file"]::file-selector-button {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin-right: 12px;
+    background: #0A4D9D;
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.report-field input[type="file"]::file-selector-button:hover {
+    background: #0E5EB8;
 }
 
 .report-field textarea {

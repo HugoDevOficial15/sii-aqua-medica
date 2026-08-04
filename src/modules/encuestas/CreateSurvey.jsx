@@ -138,6 +138,37 @@ export default function CreateSurvey() {
 
     // Guardar encuestas
 
+    // Estructura estándar del campo "asignacion" que consume la app móvil:
+    //   { tipo: "global",   valores: [] }
+    //   { tipo: "area",     valores: ["Recepción", "Sistemas", ...] }
+    //   { tipo: "usuarios", valores: ["502", "5194", ...] }
+    // El formulario maneja "Todas las áreas" y "Por área" con el mismo
+    // arreglo `areas` (checkboxes) y "Por usuarios" con `asignacion.valores`
+    // (input separado por comas); aquí se normalizan a un único objeto
+    // antes de guardar, sin tocar el resto del formulario.
+    const construirAsignacion = (data) => {
+
+        const areasSeleccionadas = data.areas || [];
+
+        if (areasSeleccionadas.includes("ALL")) {
+            return { tipo: "global", valores: [] };
+        }
+
+        if (data.asignacion?.tipo === "usuarios") {
+            return {
+                tipo: "usuarios",
+                valores: (data.asignacion.valores || [])
+                    .map(v => String(v).trim())
+                    .filter(Boolean)
+            };
+        }
+
+        return {
+            tipo: "area",
+            valores: areasSeleccionadas
+        };
+    };
+
     const hnadleSaveSurvey = async (data) => {
 
         try {
@@ -174,6 +205,7 @@ export default function CreateSurvey() {
 
             const surveyData = {
                 ...cleanData,
+                asignacion: construirAsignacion(data),
                 activa: true,
                 createdAt: new Date(),
                 userId: auth.currentUser.uid

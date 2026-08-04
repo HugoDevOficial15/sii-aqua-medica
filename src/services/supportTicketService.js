@@ -1,33 +1,22 @@
-import { db, storage } from "../config/firebase";
-
+import { db } from "../config/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const reportesCollection = collection(db, "Problemas reportados");
 
-// Único punto de entrada para crear una incidencia de soporte, sin
-// importar si la genera un operador ("Reportar un problema") o un
-// administrador ("Reporte de Problemas"): ambos flujos llaman a esta
-// misma función, que siempre escribe en la colección que ya consume el
-// módulo Soporte, nunca en una colección independiente. "tipoRemitente"
-// ("usuario" | "administrador") es lo único que distingue el origen.
+// Único punto de entrada para crear una incidencia de soporte.
+// ACTUALIZADO: Ya no sube archivos a Firebase Storage.
+// Espera recibir la imagen (si la hay) directamente como un string Base64 en 'capturas'.
 export async function createSupportTicket({
     user,
     tipoRemitente,
     asunto,
     descripcion,
     pantalla,
-    imagenes = []
+    capturas // 🔥 Ahora esperamos un string (Data URL en Base64), no un array de archivos.
 }) {
-
-    const capturas = [];
-
-    for (const file of imagenes) {
-        const imageRef = ref(storage, `reportes-problemas/${Date.now()}_${file.name}`);
-        const uploadResult = await uploadBytes(imageRef, file);
-        const url = await getDownloadURL(uploadResult.ref);
-        capturas.push(url);
-    }
+    
+    // Validamos que 'capturas' sea un string, si es undefined lo mandamos vacío
+    const imagenBase64 = typeof capturas === 'string' ? capturas : "";
 
     const docRef = await addDoc(reportesCollection, {
         idUsuario: user?.id || null,
@@ -41,7 +30,7 @@ export async function createSupportTicket({
         asunto,
         pantalla,
         descripcion,
-        capturas,
+        capturas: imagenBase64, // 🔥 Guardamos el string Base64 directamente (como foto de perfil)
         estado: "Pendiente",
         comentarioAdmin: "",
         fecha: new Date().toLocaleDateString("es-MX"),

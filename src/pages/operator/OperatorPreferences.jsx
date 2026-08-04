@@ -28,7 +28,7 @@ const FONT_SIZE_OPTIONS = [
     { id: "large", label: "Grande" }
 ];
 
-export default function OperatorPreferences({ onBack, usuarioActual }) {
+export default function OperatorPreferences({ onBack, usuarioActual, adminMode = false }) {
     // Hooks de preferencias existentes
     const { theme, setTheme, fontSize, setFontSize } = usePreferences();
 
@@ -107,11 +107,11 @@ export default function OperatorPreferences({ onBack, usuarioActual }) {
     };
 
     return (
-        <div className="preferences-screen">
+        <div className={adminMode ? "preferences-screen admin-mode" : "preferences-screen"}>
 
             <MobileBackButton onBack={onBack} />
 
-            <div className="preferences-hero">
+            <div className={adminMode ? "preferences-hero admin-mode" : "preferences-hero"}>
                 <div className="preferences-hero-icon">
                     <FiType />
                 </div>

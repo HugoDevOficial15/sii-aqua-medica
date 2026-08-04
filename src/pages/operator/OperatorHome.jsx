@@ -5,7 +5,7 @@ import ProgressBanner from "./home-v2/ProgressBanner";
 // import NewsSection from "./home-v2/NewsSection";
 // import ActivityTimeline from "./home-v2/ActivityTimeline";
 
-export default function OperatorHome() {
+export default function OperatorHome({ onNavigate }) {
 
     return (
 
@@ -13,7 +13,7 @@ export default function OperatorHome() {
 
             <HomeHero />
 
-            <MetricsCards />
+            <MetricsCards onNavigate={onNavigate} />
 
             <ProgressBanner />
 

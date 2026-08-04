@@ -5,12 +5,6 @@ import { useAuth } from "../../hooks/useAuth";
 import { createSupportTicket } from "../../services/supportTicketService";
 import MobileBackButton from "../../pages/operator/components/MobileBackButton";
 
-// Formulario único para crear una incidencia de soporte, usado tanto por
-// operadores ("Reportar un problema") como por administradores ("Reporte
-// de Problemas"). Ambos casos llaman a la misma createSupportTicket();
-// solo cambian "tipoRemitente", la lista de pantallas y, opcionalmente,
-// el botón de regreso (los operadores navegan dentro de su shell interno,
-// los administradores llegan aquí por una ruta propia del panel).
 export default function ReportProblemForm({
     tipoRemitente,
     pantallas,
@@ -18,35 +12,39 @@ export default function ReportProblemForm({
     title = "Reportar un problema",
     subtitle = "Ayúdanos a mejorar contándonos qué pasó."
 }) {
-
     const { user } = useAuth();
 
     const [asunto, setAsunto] = useState("");
     const [descripcion, setDescripcion] = useState("");
     const [pantalla, setPantalla] = useState(pantallas[0]);
-    const [imagenes, setImagenes] = useState([]);
-    const [imagenesPreview, setImagenesPreview] = useState([]);
+    
+    // 🔥 NUEVO: Estado único para la imagen en formato Base64
+    const [imagenBase64, setImagenBase64] = useState(""); 
+    
     const [errors, setErrors] = useState({});
     const [status, setStatus] = useState("idle"); // idle | sending | success | error
 
+    // 🔥 NUEVO: Manejador de la imagen (Igual a la foto de perfil)
     const handleImageChange = (e) => {
-        const archivos = Array.from(e.target.files || []);
-        const nuevasImagenes = archivos.filter((file) => file.type.startsWith("image/"));
+        const file = e.target.files[0]; // Tomamos solo el primer archivo
+        
+        if (!file || !file.type.startsWith("image/")) {
+            e.target.value = "";
+            return;
+        }
 
-        if (nuevasImagenes.length === 0) return;
-
-        setImagenes((prev) => [...prev, ...nuevasImagenes]);
-        setImagenesPreview((prev) => [
-            ...prev,
-            ...nuevasImagenes.map((file) => URL.createObjectURL(file))
-        ]);
-
-        e.target.value = "";
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            // El resultado es el string "data:image/...;base64,..."
+            setImagenBase64(reader.result);
+        };
+        reader.readAsDataURL(file);
+        
+        e.target.value = ""; // Limpiamos el input para permitir re-selección
     };
 
-    const removeImage = (indexToRemove) => {
-        setImagenes((prev) => prev.filter((_, index) => index !== indexToRemove));
-        setImagenesPreview((prev) => prev.filter((_, index) => index !== indexToRemove));
+    const removeImage = () => {
+        setImagenBase64(""); // Simplemente vaciamos el string
     };
 
     const validate = () => {
@@ -74,13 +72,21 @@ export default function ReportProblemForm({
         setStatus("sending");
 
         try {
-            await createSupportTicket({ user, tipoRemitente, asunto, descripcion, pantalla, imagenes });
+            // 🔥 NUEVO: Enviamos "capturas" como el string Base64
+            await createSupportTicket({ 
+                user, 
+                tipoRemitente, 
+                asunto, 
+                descripcion, 
+                pantalla, 
+                capturas: imagenBase64 
+            });
+            
             setStatus("success");
             setAsunto("");
             setDescripcion("");
             setPantalla(pantallas[0]);
-            setImagenes([]);
-            setImagenesPreview([]);
+            setImagenBase64(""); // Limpiamos la imagen
         } catch (error) {
             console.error("Error al enviar el reporte:", error);
             setStatus("error");
@@ -157,51 +163,48 @@ export default function ReportProblemForm({
 
                 <div className="report-field">
                     <label htmlFor="report-imagenes">
-                        Capturas de pantalla
+                        Captura de pantalla
                         <span className="report-field-hint">(Opcional)</span>
                     </label>
                     <input
                         id="report-imagenes"
                         type="file"
                         accept="image/*"
-                        multiple
+                        // 🔥 Quitamos el atributo "multiple" para restringir a 1 archivo
                         onChange={handleImageChange}
                     />
-                    {imagenesPreview.length > 0 && (
+                    
+                    {/* 🔥 NUEVO: Renderizado del preview para una sola imagen */}
+                    {imagenBase64 && (
                         <div className="report-image-preview-list">
-                            {imagenesPreview.map((preview, index) => (
-                                <div
-                                    key={`${preview}-${index}`}
-                                    style={{ position: "relative", display: "inline-block", marginRight: "8px", marginTop: "8px" }}
+                            <div style={{ position: "relative", display: "inline-block", marginTop: "8px" }}>
+                                <img
+                                    src={imagenBase64} // El Base64 se puede leer directamente como SRC
+                                    alt="Evidencia adjunta"
+                                    style={{ maxWidth: "150px", maxHeight: "150px", objectFit: "cover", borderRadius: "8px", border: "1px solid #e2e8f0" }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={removeImage}
+                                    aria-label="Eliminar imagen"
+                                    style={{
+                                        position: "absolute",
+                                        top: "4px",
+                                        right: "4px",
+                                        border: "none",
+                                        borderRadius: "50%",
+                                        width: "24px",
+                                        height: "24px",
+                                        cursor: "pointer",
+                                        background: "rgba(0, 0, 0, 0.7)",
+                                        color: "white",
+                                        fontSize: "14px",
+                                        lineHeight: "1"
+                                    }}
                                 >
-                                    <img
-                                        src={preview}
-                                        alt={`Adjunto ${index + 1}`}
-                                        style={{ maxWidth: "100px", maxHeight: "100px", objectFit: "cover", borderRadius: "8px" }}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeImage(index)}
-                                        aria-label={`Eliminar imagen ${index + 1}`}
-                                        style={{
-                                            position: "absolute",
-                                            top: "4px",
-                                            right: "4px",
-                                            border: "none",
-                                            borderRadius: "50%",
-                                            width: "24px",
-                                            height: "24px",
-                                            cursor: "pointer",
-                                            background: "rgba(0, 0, 0, 0.7)",
-                                            color: "white",
-                                            fontSize: "14px",
-                                            lineHeight: "1"
-                                        }}
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            ))}
+                                    ×
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

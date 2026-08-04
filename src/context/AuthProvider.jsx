@@ -1,56 +1,98 @@
 import { useState, useEffect } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+
+import { auth } from "../config/firebase";
 import { AuthContext } from "./AuthContext";
+
+import { getUserData } from "../services/userService";
 import { getPermissionsByRole } from "../services/rolesService";
 
 export function AuthProvider({ children }) {
-
-    const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem("user");
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
-
+    const [user, setUser] = useState(null);
     const [permisos, setPermisos] = useState([]);
+
+    // Permanece en true hasta que Firebase confirma la sesión Y se
+    // terminó de construir el usuario completo (Firestore + permisos).
     const [loading, setLoading] = useState(true);
 
-    // 🔥 Cargar permisos cuando cambia el usuario
+    // ==========================================================
+    // RESTAURACIÓN DE SESIÓN
+    // ==========================================================
     useEffect(() => {
-        if (user?.rol) {
-            loadPermissions(user.rol);
-        } else {
-            setLoading(false);
-        }
-    }, [user]);
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (!firebaseUser) {
+                setUser(null);
+                setPermisos([]);
+                localStorage.removeItem("user");
+                setLoading(false);
+                return;
+            }
 
-    const loadPermissions = async (rol) => {
-        try {
-            setLoading(true);
-            const permisosDB = await getPermissionsByRole(rol);
-            setPermisos(permisosDB);
-        } catch (error) {
-            console.error("Error cargando permisos:", error);
-            setPermisos([]);
-        } finally {
-            setLoading(false);
-        }
-    };
+            try {
+                const username = firebaseUser.email.split("@")[0];
+                const userData = await getUserData(username);
 
+                if (!userData || !userData.activo) {
+                    await signOut(auth);
+                    setUser(null);
+                    setPermisos([]);
+                    localStorage.removeItem("user");
+                    return;
+                }
+
+                const permisosDB = await getPermissionsByRole(userData.rol);
+
+                const usuarioCompleto = {
+                    ...userData,
+                    username,
+                    mustChangePassword: userData.mustChangePassword || false
+                };
+
+                setUser(usuarioCompleto);
+                setPermisos(permisosDB);
+                localStorage.setItem("user", JSON.stringify(usuarioCompleto));
+
+            } catch (error) {
+                console.error("Error al restaurar la sesión:", error);
+                setUser(null);
+                setPermisos([]);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // ==========================================================
     // LOGIN
-    const login = (userData) => {
+    // ==========================================================
+    const login = (userData, userPermisos = []) => {
         setUser(userData);
-
-        console.log("Vemos data:", + userData);
-        
+        setPermisos(userPermisos);
         localStorage.setItem("user", JSON.stringify(userData));
+        setLoading(false); 
     };
 
+    // ==========================================================
     // LOGOUT
-    const logout = () => {
-        setUser(null);
-        setPermisos([]);
-        localStorage.removeItem("user");
+    // ==========================================================
+    const logout = async () => {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Error al cerrar sesión en Firebase:", error);
+        } finally {
+            setUser(null);
+            setPermisos([]);
+            localStorage.clear();
+            sessionStorage.clear();
+        }
     };
 
-    // 🔥 Actualiza parcialmente el usuario en memoria/localStorage sin re-login
+    // ==========================================================
+    // UPDATE PROFILE
+    // ==========================================================
     const updateUserProfile = (partialData) => {
         setUser((prev) => {
             const updated = { ...prev, ...partialData };
@@ -59,9 +101,19 @@ export function AuthProvider({ children }) {
         });
     };
 
-    // 🔥 FUNCIÓN CLAVE
+    // ==========================================================
+    // VALIDACIÓN DE PERMISOS
+    // ==========================================================
     const can = (permiso) => {
-        if (!permisos) return false;
+        if (!user) return false;
+
+        // 🔑 Llave maestra temporal: cualquier rol que empiece con "admin"
+        // (admin, admin_general, admin_rrhh, admin_operaciones, ...) pasa
+        // directo, sin revisar la colección "roles" (todavía incompleta).
+        // Quitar este bypass en cuanto los permisos reales estén cargados.
+        if (user.rol && user.rol.startsWith("admin")) return true;
+
+        if (!Array.isArray(permisos)) return false;
         return permisos.includes("*") || permisos.includes(permiso);
     };
 
