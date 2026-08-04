@@ -425,12 +425,100 @@ export default function EncuestaResultados({ survey, onBack }) {
             </div>
 
             <style>{`
-
 .results-filter-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr) auto;
     gap: 12px;
     align-items: center;
+}
+
+.results-filter-grid .form-control,
+.results-filter-grid .form-select,
+.results-filter-grid .btn
+.results-filter-grid .input {
+    height: 50px;
+    border-radius: 12px;
+    border: 3px solid var(--operator-border);
+    background: var(--operator-border);
+    color: var(--operator-text);
+}
+
+.results-filter-grid .btn {
+    display: flex;
+    border-radius: 10px;
+    align-items: center;
+    color: var(--operator-text);
+    justify-content: center;
+    font-weight: 700;
+}
+
+.results-filter-grid .form-control:focus,
+.results-filter-grid .form-select:focus {
+    border-color: var(--operator-primary);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    outline: none;
+}
+
+.table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: separate !important;
+    border-spacing: 0 10px !important;
+}
+
+.table thead th {
+    border-bottom: 3px solid var(--operator-text);
+    font-size: 20px;
+    font-weight: 900;
+    padding: 5px 5px;
+    vertical-align: middle;
+    border-top: none !important;
+    white-space: wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 230px;
+    min-width: 100px;
+}
+
+.table tbody tr {
+    transition: transform 0.2s ease;
+}
+
+.table tbody tr:hover {
+    transform: scale(1.01);
+}
+
+.table td {
+    border-bottom: 3px solid var(--operator-border);
+    height: 50px;
+    font-size: 14px;
+    padding: 5px 5px;
+    vertical-align: middle;
+    border-top: none !important;
+    white-space: wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 230px;
+    min-width: 100px;
+}
+
+.text-success,
+.text-danger {
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.text-success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+}
+
+.text-danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
 }
 
 @media (max-width: 992px) {
@@ -444,20 +532,6 @@ export default function EncuestaResultados({ survey, onBack }) {
         grid-template-columns: 1fr;
     }
 }
-
-.text-success,
-.text-danger {
-    font-weight: 600;
-}
-
-.text-success {
-    color: #16a34a;
-}
-
-.text-danger {
-    color: #dc2626;
-}
-
             `}</style>
 
         </div>

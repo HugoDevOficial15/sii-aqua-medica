@@ -253,10 +253,29 @@ var(--operator-background)
 
 * En caso de que la ventana contenga un boton de cancelar usar las siguientes reglas:
 
+        height: 50px;
+        padding: 0 24px;   
+        border: none;
+        border-radius: 14px;
+        background: var(--operator-border);
+        color: var(--operator-text);
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0px 20px var(--operator-shadow);
 
 
 
 # TABLAS #
+
+* Todas las tabas llevaran este formato en la misma tabla:
+
+        table-layout: fixed;
+        width: 100%;
+        border-collapse: separate !important;
+        border-spacing: 0 10px !important;
 
 * Todos los heads th deberan seguir las siguientes reglas:
 

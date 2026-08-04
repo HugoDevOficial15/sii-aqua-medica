@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaPlus } from "react-icons/fa";
 
 import Loader from "../../../components/Loader";
@@ -24,8 +24,22 @@ import {
 export default function ItemModal({ data, onClose, onSuccess }) {
 
     const [loading, setLoading] = useState(false);
+    const colorInputRef = useRef(null);
 
-    const { register, handleSubmit, setValue } = useForm();
+    const { register, handleSubmit, setValue, watch } = useForm({
+        defaultValues: {
+            tipo: "",
+            nombre: "",
+            descripcion: "",
+            tipoUnidad: "",
+            estatus: "activo",
+            color1: "#2563eb",
+            color2: "#2563eb",
+        }
+    });
+
+    const selectedColor = watch("color") || "#2563eb";
+    const selectedColor2 = watch("color2") || "#2563eb";
 
     useEffect(() => {
 
@@ -33,9 +47,31 @@ export default function ItemModal({ data, onClose, onSuccess }) {
             Object.keys(data).forEach(k =>
                 setValue(k, data[k])
             );
+
+            if (!data.color) {
+                setValue("color", "#2563eb");
+            }
+        } else {
+            setValue("color", "#2563eb");
         }
 
-    }, [data]);
+    }, [data, setValue]);
+
+    useEffect(() => {
+
+        if (data) {
+            Object.keys(data).forEach(k =>
+                setValue(k, data[k])
+            );
+
+            if (!data.color) {
+                setValue("color2", "#2563eb");
+            }
+        } else {
+            setValue("color2", "#2563eb");
+        }
+
+    }, [data, setValue]);
 
     const getServices = (tipo) => {
 
@@ -232,6 +268,57 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                         </div>
 
+                        <div style={styles.colorRow}>
+
+                            <label style={styles.colorLabel}>
+                                Color del material
+                            </label>
+
+                            <div
+                                style={styles.colorPickerWrapper}
+                                onClick={() => colorInputRef.current?.click()}
+                            >
+                                <input
+                                    ref={colorInputRef}
+                                    type="color"
+                                    {...register("color")}
+                                    style={styles.colorInput}
+                                    title="Selecciona un color"
+                                />
+
+                                <div
+                                    style={{
+                                        ...styles.colorPreview,
+                                        backgroundColor: selectedColor
+                                    }}
+                                />
+                            </div>
+
+                            <label style={styles.colorLabel}>
+                                Color del producto terminado
+                            </label>
+                            <div
+                                style={styles.colorPickerWrapper}
+                                onClick={() => colorInputRef.current?.click()}
+                            >
+                                <input
+                                    ref={colorInputRef}
+                                    type="color"
+                                    {...register("color2")}
+                                    style={styles.colorInput}
+                                    title="Selecciona un color"
+                                />
+
+                                <div
+                                    style={{
+                                        ...styles.colorPreview,
+                                        backgroundColor: selectedColor2
+                                    }}
+                                />
+                            </div>
+
+                        </div>
+
                         {/* FOOTER */}
                         <div style={styles.footer}>
 
@@ -336,8 +423,7 @@ const styles = {
 
         borderColor: "1px solid var(--operator-card)",
         
-        background:
-            "linear-gradient(var(--operator-background), var(--operator-background))",
+        background: "var(--operator-card)",
     },
 
     title: {
@@ -353,23 +439,24 @@ const styles = {
 
     closeButton: {
 
-        width: "42px",
+        width: "36px",
+        height: "36px",
+        border: "none", 
+        borderRadius: "10px",
+        background: "var(--operator-card)", 
+        color: "var(--operator-text)", 
+        fontSize: "30px",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
 
-        height: "42px",
 
-        borderRadius: "14px",
+    },
 
-        borderColor: "var(--operator-text)",
-
-        border: "1px solid var(--operator-text)",
-
-        background: "var(--operator-background)",
-
-        fontSize: "20px",
-
-        color: "var(--operator-text)",
-
-        cursor: "pointer"
+    closeButtonHover: {
+        background: "var(--operator-border)",
+        color: "var(--operator-primary)"
     },
 
     body: {
@@ -390,6 +477,99 @@ const styles = {
 
         gap: "20px",
 
+    },
+
+    colorRow: {
+
+        display: "flex",
+
+        alignItems: "center",
+
+        gap: "15px",
+
+        padding: "20px 20px",
+
+        background: "var(--operator-card)",
+    },
+
+    colorLabel: {
+
+        display: "flex",
+
+        gap: "1px",
+
+        width: "80px",
+
+        alignItems: "center",
+        
+        color: "var(--operator-text)",
+        
+        fontWeight: "900",
+    },
+
+    colorPickerWrapper: {
+
+        position: "relative",
+
+        width: "50px",
+
+        height: "50px",
+
+        borderRadius: "999px",
+
+        overflow: "hidden",
+
+        cursor: "pointer",
+
+        display: "flex",
+
+        alignItems: "center",
+
+        justifyContent: "center",
+
+        border: "2px solid var(--operator-border)",
+
+        background: "var(--operator-card)"
+    },
+
+    colorInput: {
+
+        position: "absolute",
+
+        inset: 0,
+
+        width: "100%",
+
+        height: "100%",
+
+        border: "none",
+
+        padding: 0,
+
+        margin: 0,
+
+        opacity: 0,
+
+        cursor: "pointer",
+
+        appearance: "none",
+
+        WebkitAppearance: "none",
+
+        background: "transparent"
+    },
+
+    colorPreview: {
+
+        width: "100%",
+
+        height: "100%",
+
+        borderRadius: "999px",
+
+        border: "2px solid rgba(255,255,255,0.75)",
+
+        boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.15)"
     },
 
     input: {
@@ -428,29 +608,16 @@ const styles = {
     saveButton: {
 
         height: "50px",
-
         padding: "0 24px",
-
         borderRadius: "14px",
-
         border: "none",
-
-        background:
-            "linear-gradient(135deg,#2563eb,#1d4ed8)",
-
+        background: "var(--operator-primary)",
         color: "#fff",
-
         fontWeight: "700",
-
         cursor: "pointer",
-
         display: "flex",
-
         alignItems: "center",
-
         justifyContent: "center",
-
-        boxShadow:
-            "0 12px 24px rgba(37,99,235,0.22)"
+        boxShadow: "0 0px 20px var(--operator-primary-light)",
     }
 };

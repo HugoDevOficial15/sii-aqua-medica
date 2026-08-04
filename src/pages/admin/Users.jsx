@@ -868,6 +868,8 @@ export default function Users({onClose}) {
                 
                 table-layout: fixed;
                 width: 100%;
+                border-collapse: separate !important;
+                border-spacing: 0 10px !important;
             }
 
 
@@ -876,10 +878,7 @@ export default function Users({onClose}) {
                 box-shadow: 0 8px 20px rgba(0,0,0,0.06);
             }
 
-            .table {
-                border-collapse: separate !important;
-                border-spacing: 0 10px !important;
-            }
+
 
             .table thead th {
                 border-bottom: 3px solid var(--operator-text);
@@ -978,7 +977,7 @@ export default function Users({onClose}) {
 
                 width: 640px;
                 max-width: 95%;
-                background: var(--operator-background);
+                background: var(--operator-card);
                 border-radius: 20px;
                 border: 1px solid var(--operator-border);
                 box-shadow: 0 24px 48px var(--operator-shadow);

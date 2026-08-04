@@ -104,15 +104,7 @@ export default function RackCard({
 
     const getStatusConfig2 = () => {
 
-        if (totalLotes === 0) { 
-            return {
-                bg: "rgba(247, 244, 244, 0.17)",
-                color: "#b6b6b6",
-                text: "Normal"
-            };
-        }
-
-        if (!rack.tipoAsignacion) {
+        if (rack.tipoAsignacion === "ubicacion_temporal") {
             return {
                 bg: "rgba(252,82,252,0.12)",
                 color: "#fc52fc",
@@ -120,15 +112,30 @@ export default function RackCard({
             };
         }
 
-        const coincideConAsignacion = stock.every(
-            item => item.tipoItem === rack.tipoAsignacion
-        );
-
-        if (coincideConAsignacion) {
+        if (rack.tipoAsignacion === "lote_en_uso" && totalLotes > 0) {
             return {
                 bg: "rgba(0,108,250,0.12)",
                 color: "#006cfa",
                 text: "Uso"
+            };
+        }
+
+        if (rack.tipoAsignacion === "materia_prima" && totalLotes <= 0) {
+            return {
+                bg: "rgba(247, 244, 244, 0.17)",
+                color: "#b6b6b6",
+                text: "Normal"
+            };
+        }
+        
+
+        const esMateriaPrima = rack.tipoAlmacenamiento === "materia_prima";
+
+        if (esMateriaPrima || totalLotes === 0) {
+            return {
+                bg: "rgba(247, 244, 244, 0.17)",
+                color: "#b6b6b6",
+                text: "Normal"
             };
         }
 

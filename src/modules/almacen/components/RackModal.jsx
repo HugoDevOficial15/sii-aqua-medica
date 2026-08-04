@@ -9,6 +9,7 @@ import { validateRack } from "../../../schemas/rackSchema";
 import { db } from "../../../config/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { obtenerRacks } from "../../../services/rackService";
+import { obtenerStockPorRack } from "../../../services/rackStockService";
 
 export default function RackModal({ onClose, onSuccess, data }) {
 
@@ -31,6 +32,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
     const ubicacionTipo = watch("ubicacionTipo");
     const numeroRackValue = watch("numeroRack") || "";
+    const tipoAlmacenamiento = watch("tipoAlmacenamiento");
 
     const numeroLabel =
         ubicacionTipo === "zona"
@@ -58,8 +60,11 @@ export default function RackModal({ onClose, onSuccess, data }) {
                 setValue("ubicacionTipo", data.ubicacionTipo); 
             }
 
+            setTipoAsignacion(data.tipoAsignacion || "");
+
         } else {
             setValue("ubicacionTipo", "rack");
+            setTipoAsignacion("");
         }
 
     }, [data, setValue]);
@@ -92,11 +97,49 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
     useEffect(() => {
 
-        if (tipoAsignacion) {
-            loadItems(tipoAsignacion);
+        if (tipoAlmacenamiento) {
+            loadItems(tipoAlmacenamiento);
+        } else {
+            setItems([]);
         }
 
-    }, [tipoAsignacion]);
+    }, [tipoAlmacenamiento]);
+
+    const resolverAsignacion = ({
+        tipoAsignacionSeleccionada,
+        tipoAlmacenamientoSeleccionado,
+        stockRack = []
+    }) => {
+        if (tipoAsignacionSeleccionada === "ubicacion_temporal") {
+            return "ubicacion_temporal";
+        }
+
+        if (tipoAsignacionSeleccionada !== "lote_en_uso") {
+            return tipoAsignacionSeleccionada || "";
+        }
+
+        const lotesActivos = (stockRack || []).filter(
+            item => Number(item.cantidadActual || 0) > 0
+        );
+
+        if (lotesActivos.length === 0) {
+            return "lote_en_uso";
+        }
+
+        const tiposLotes = [
+            ...new Set(
+                lotesActivos.map(item => item.tipoItem)
+            )
+        ];
+
+        const coincideTipo = tiposLotes.every(
+            tipo => tipo === tipoAlmacenamientoSeleccionado
+        );
+
+        return coincideTipo
+            ? "lote_en_uso"
+            : "ubicacion_temporal";
+    };
 
     const onSubmit = async (form) => {
 
@@ -196,11 +239,40 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
             setLoading(true);
 
+            const itemSeleccionado = items.find(
+                i => i.id === form.itemAsignadoId
+            );
+
+            let asignacionFinal = tipoAsignacion;
+            let itemAsignadoFinal = "";
+
+            const stockRack = data
+                ? await obtenerStockPorRack(data.id)
+                : [];
+
+            asignacionFinal = resolverAsignacion({
+                tipoAsignacionSeleccionada: tipoAsignacion,
+                tipoAlmacenamientoSeleccionado: form.tipoAlmacenamiento,
+                stockRack
+            });
+
+            if (asignacionFinal) {
+                itemAsignadoFinal = itemSeleccionado?.nombre || form.itemAsignado || "";
+            }
+
             if (data) {
 
                 await actualizarRack(
                     data.id,
-                    form
+                    {
+                        ...form,
+                        tipoAsignacion: asignacionFinal,
+                        itemAsignado: itemAsignadoFinal,
+                        colorTipoAlmacenamiento:
+                            form.tipoAlmacenamiento === "producto_terminado"
+                                ? "#2563eb"
+                                : ""
+                    }
                 );
 
                 notifySuccess(
@@ -210,21 +282,17 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
             } else {
 
-                const itemSeleccionado = items.find(
-                    i => i.id === form.itemAsignadoId
-                );
-
                 await crearRack({
 
                     ...form,
 
-                    tipoAsignacion,
+                    tipoAsignacion: asignacionFinal,
 
                     itemAsignado:
-                        itemSeleccionado?.nombre || "",
+                        itemAsignadoFinal || "",
 
                     colorTipoAlmacenamiento:
-                        form.tipoAlmacenamiento === "lote_en_uso"
+                        form.tipoAlmacenamiento === "producto_terminado"
                             ? "#2563eb"
                             : "",
 
@@ -414,10 +482,9 @@ export default function RackModal({ onClose, onSuccess, data }) {
                                 Tipo de almacenamiento
                             </option>
 
-                            <option value="lote_en_uso">
-                                Lote en uso
+                            <option value="producto_terminado">
+                                Producto terminado
                             </option>
-
 
                             <option value="materia_prima">
                                 Materia Prima
@@ -443,16 +510,12 @@ export default function RackModal({ onClose, onSuccess, data }) {
                                 Tipo de asignación
                             </option>
 
-                            <option value="producto_terminado">
-                                Producto terminado
+                            <option value="lote_en_uso">
+                                Lote en uso
                             </option>
 
-                            <option value="materia_prima">
-                                Materia prima
-                            </option>
-
-                            <option value="material_acondicionamiento">
-                                Material acondicionamiento
+                            <option value="ubicacion_temporal">
+                                Ubicación temporal
                             </option>
 
                         </select>
