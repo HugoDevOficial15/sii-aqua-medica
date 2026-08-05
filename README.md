@@ -118,7 +118,7 @@ var(--operator-background)
 
 * Toda pagina principal debera contar en su parte izquierda superior su titulo de pagina y en seguida en la parte de abajo el nombre de la empresa "AQUE Médica".
 
-* El color de fondo de la pagina debera ser unicamente "--operator-backhground", haciendolo dinamico con el cambio de tema.
+* El color de fondo de la pagina debera ser unicamente "--operator-background", haciendolo dinamico con el cambio de tema.
 
 * Todos los inputs y selects que apaezcan en las paginas principales deberan llevar el siguiente diseño: 
 
@@ -231,6 +231,7 @@ var(--operator-background)
         justifyContent: "center",
         boxShadow: "0 0px 20px var(--operator-primary-light)",
 
+
 * En los botones de cerrado "closeButton" se usara el siguiente diseño: 
 
         width: "36px",
@@ -265,6 +266,11 @@ var(--operator-background)
         align-items: center;
         justify-content: center;
         box-shadow: 0 0px 20px var(--operator-shadow);
+
+
+* Todo boton de cancelar llevara un hover con las siguientes reglas:
+
+        color: var(--operator-danger)
 
 
 
@@ -306,7 +312,7 @@ var(--operator-background)
         max-width: 230px;
         min-width: 100px;
 
-
+ 
 * Todas las tablas llevaran hover:
         
         transform: scale(1.02);

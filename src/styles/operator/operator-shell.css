@@ -942,16 +942,6 @@ SUGGESTION CREATE
     margin-bottom: 8px;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    padding: 14px;
-    outline: none;
-}
-
 .evidence-section {
     margin-bottom: 20px;
 }

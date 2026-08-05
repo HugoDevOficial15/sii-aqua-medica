@@ -2185,8 +2185,6 @@ PREFERENCIAS
     opacity: .8;
     color: var(--operator-text-soft);
 }
-    font-size: 40px;
-}
 
 .preferences-hero h1 {
     font-size: 28px;

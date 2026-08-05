@@ -33,13 +33,13 @@ export default function ItemModal({ data, onClose, onSuccess }) {
             descripcion: "",
             tipoUnidad: "",
             estatus: "activo",
-            color1: "#2563eb",
             color2: "#2563eb",
         }
     });
 
     const selectedColor = watch("color") || "#2563eb";
     const selectedColor2 = watch("color2") || "#2563eb";
+    const selectedType = watch("tipo");
 
     useEffect(() => {
 
@@ -100,6 +100,24 @@ export default function ItemModal({ data, onClose, onSuccess }) {
         }
     };
 
+    const buildPayload = (form) => {
+        const tipo = form.tipo || selectedType || data?.tipo;
+        const payload = { ...form };
+
+        if (tipo === "materia_prima") {
+            payload.color = form.color ?? "#2563eb";
+            delete payload.color2;
+        } else if (tipo === "producto_terminado") {
+            payload.color2 = form.color2 ?? "#2563eb";
+            delete payload.color;
+        } else {
+            delete payload.color;
+            delete payload.color2;
+        }
+
+        return payload;
+    };
+
     const onSubmit = async (form) => {
 
         const result = validateMaterial(form);
@@ -126,9 +144,11 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                 );
             }
 
+            const payload = buildPayload(form);
+
             if (data) {
 
-                await services.update(data.id, form);
+                await services.update(data.id, payload);
 
                 notifySuccess(
                     "Actualizado",
@@ -138,7 +158,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
             } else {
 
                 await services.create({
-                    ...form,
+                    ...payload,
                     createdAt: new Date()
                 });
 
@@ -268,56 +288,61 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                         </div>
 
-                        <div style={styles.colorRow}>
-
-                            <label style={styles.colorLabel}>
-                                Color del material
-                            </label>
-
-                            <div
-                                style={styles.colorPickerWrapper}
-                                onClick={() => colorInputRef.current?.click()}
-                            >
-                                <input
-                                    ref={colorInputRef}
-                                    type="color"
-                                    {...register("color")}
-                                    style={styles.colorInput}
-                                    title="Selecciona un color"
-                                />
+                        {selectedType === "materia_prima" && (
+                            <div style={styles.colorRow}>
+                                <label style={styles.colorLabel}>
+                                    Color de materia prima
+                                </label>
 
                                 <div
-                                    style={{
-                                        ...styles.colorPreview,
-                                        backgroundColor: selectedColor
-                                    }}
-                                />
-                            </div>
+                                    style={styles.colorPickerWrapper}
+                                    onClick={() => colorInputRef.current?.click()}
+                                >
+                                    <input
+                                        ref={colorInputRef}
+                                        type="color"
+                                        {...register("color")}
+                                        style={styles.colorInput}
+                                        title="Selecciona un color"
+                                    />
 
-                            <label style={styles.colorLabel}>
-                                Color del producto terminado
-                            </label>
-                            <div
-                                style={styles.colorPickerWrapper}
-                                onClick={() => colorInputRef.current?.click()}
-                            >
-                                <input
-                                    ref={colorInputRef}
-                                    type="color"
-                                    {...register("color2")}
-                                    style={styles.colorInput}
-                                    title="Selecciona un color"
-                                />
+                                    <div
+                                        style={{
+                                            ...styles.colorPreview,
+                                            backgroundColor: selectedColor
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedType === "producto_terminado" && (
+                            <div style={styles.colorRow}>
+                                <label style={styles.colorLabel}>
+                                    Color del producto terminado
+                                </label>
 
                                 <div
-                                    style={{
-                                        ...styles.colorPreview,
-                                        backgroundColor: selectedColor2
-                                    }}
-                                />
-                            </div>
+                                    style={styles.colorPickerWrapper}
+                                    onClick={() => colorInputRef.current?.click()}
+                                >
+                                    <input
+                                        ref={colorInputRef}
+                                        type="color"
+                                        {...register("color2")}
+                                        style={styles.colorInput}
+                                        title="Selecciona un color"
+                                    />
 
-                        </div>
+                                    <div
+                                        style={{
+                                            ...styles.colorPreview,
+                                            backgroundColor: selectedColor2
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         {/* FOOTER */}
                         <div style={styles.footer}>
@@ -400,9 +425,6 @@ const styles = {
         border:
             "1px solid var(--operator-card)",
 
-        boxShadow:
-            "0 24px 48px var(--operator-card)",
-
         overflow: "hidden",
 
         animation:
@@ -476,6 +498,8 @@ const styles = {
         flexDirection: "column",
 
         gap: "20px",
+
+        background: "var(--operator-card)"
 
     },
 
@@ -583,7 +607,7 @@ const styles = {
 
         padding: "0 14px",
 
-        background: "var(--operator-card)",
+        background: "var(--operator-border)",
 
         borderColor: "var(--operator-border)",
 

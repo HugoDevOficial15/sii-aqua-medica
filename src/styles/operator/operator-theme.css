@@ -343,76 +343,7 @@ html[data-theme="dark"] .pdf-backdrop {
     background: rgba(2, 6, 23, .72) !important;
 }
 
-html[data-theme="dark"] .transfer-modal,
-html[data-theme="dark"] .salida-modal,
-html[data-theme="dark"] .movement-modal,
-html[data-theme="dark"] .pdf-modal {
-    background: rgba(15, 23, 42, .96) !important;
-    border-color: rgba(255, 255, 255, .08) !important;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, .35) !important;
-}
 
-html[data-theme="dark"] .transfer-title,
-html[data-theme="dark"] .salida-title,
-html[data-theme="dark"] .movement-title,
-html[data-theme="dark"] .pdf-title {
-    color: var(--operator-text) !important;
-}
-
-html[data-theme="dark"] .transfer-subtitle,
-html[data-theme="dark"] .salida-subtitle,
-html[data-theme="dark"] .movement-subtitle,
-html[data-theme="dark"] .pdf-subtitle {
-    color: var(--operator-text-soft) !important;
-}
-
-html[data-theme="dark"] .transfer-group label,
-html[data-theme="dark"] .salida-group label,
-html[data-theme="dark"] .movement-group label,
-html[data-theme="dark"] .pdf-group label {
-    color: var(--operator-text) !important;
-}
-
-html[data-theme="dark"] .transfer-group input,
-html[data-theme="dark"] .transfer-group select,
-html[data-theme="dark"] .salida-group input,
-html[data-theme="dark"] .salida-group select,
-html[data-theme="dark"] .movement-group input,
-html[data-theme="dark"] .movement-group select,
-html[data-theme="dark"] .pdf-group input,
-html[data-theme="dark"] .pdf-group select {
-    background: rgba(15, 23, 42, .85) !important;
-    border-color: var(--operator-border) !important;
-    color: var(--operator-text) !important;
-}
-
-html[data-theme="dark"] .transfer-group input::placeholder,
-html[data-theme="dark"] .salida-group input::placeholder,
-html[data-theme="dark"] .movement-group input::placeholder,
-html[data-theme="dark"] .pdf-group input::placeholder {
-    color: var(--operator-text-soft) !important;
-    opacity: 1 !important;
-}
-
-html[data-theme="dark"] .transfer-close,
-html[data-theme="dark"] .salida-close,
-html[data-theme="dark"] .movement-close {
-    background: rgba(255, 255, 255, .08) !important;
-    color: var(--operator-text) !important;
-}
-
-html[data-theme="dark"] .pdf-summary-card,
-html[data-theme="dark"] .pdf-close {
-    background: var(--operator-card) !important;
-    border-color: var(--operator-border) !important;
-    color: var(--operator-text) !important;
-
-}
-
-html[data-theme="dark"] .pdf-summary-label,
-html[data-theme="dark"] .pdf-summary-value {
-    color: var(--operator-text) !important;
-}
 
 /* La pestaña activa debe conservar su fondo azul de acento; la regla
    general de arriba (misma especificidad de clases + más elementos)
@@ -480,18 +411,7 @@ html[data-theme="dark"] .sidebar-link:hover {
     background: rgba(255, 255, 255, .06);
 }
 
-html[data-theme="dark"] input[type="file"],
-html[data-theme="dark"] .form-control[type="file"],
-html[data-theme="dark"] .report-field input[type="file"],
-html[data-theme="dark"] .report-field select,
-html[data-theme="dark"] .report-field textarea,
-html[data-theme="dark"] .form-control,
-html[data-theme="dark"] select,
-html[data-theme="dark"] textarea {
-    background: #111827;
-    border-color: #334155;
-    color: #e2e8f0;
-}
+
 
 html[data-theme="dark"] input[type="file"] {
     padding: 10px 14px;
@@ -501,25 +421,6 @@ html[data-theme="dark"] input[type="file"] {
     color: #e2e8f0;
 }
 
-html[data-theme="dark"] input[type="file"]::file-selector-button,
-html[data-theme="dark"] .form-control[type="file"]::file-selector-button {
-    background: #0A4D9D;
-    color: #f8fafc;
-    border: none;
-    border-radius: 12px;
-    padding: 10px 14px;
-    cursor: pointer;
-}
-
-html[data-theme="dark"] input[type="file"]::file-selector-button:hover,
-html[data-theme="dark"] .form-control[type="file"]::file-selector-button:hover {
-    background: #0E5EB8;
-}
-
-html[data-theme="dark"] input[type="file"]::file-selector-button:hover,
-html[data-theme="dark"] .form-control[type="file"]::file-selector-button:hover {
-    background: #0E5EB8;
-}
 
 html[data-theme="dark"] .report-submit-btn,
 html[data-theme="dark"] .submit-suggestion-btn,
@@ -537,8 +438,6 @@ html[data-theme="dark"] .upload-option {
 html[data-theme="dark"] .upload-icon {
     background: #111827;
     color: #38bdf8;
-}
-
 }
 
 html[data-theme="dark"] .sidebar-link:hover .sidebar-icon,
@@ -688,47 +587,6 @@ html[data-theme="dark"] .swal2-html-container {
     color: var(--operator-text);
 }
 
-/* Inventario */
-
-html[data-theme="dark"] .input-group-text {
-    background: var(--operator-card);
-    border-color: var(--operator-border);
-    color: var(--operator-text);
-}
-
-html[data-theme="dark"] .p-3-rounded-bg-light {
-    background: var(--operator-card);
-    border-color: var(--operator-border);
-    color: var(--operator-text);
-}
-
-html[data-theme="dark"] .table-middle thead th {
-    background: var(--operator-card);
-    border-color: var(--operator-border);
-    color: var(--operator-text);
-}
-
-html[data-theme="dark"] .rack-location-table {
-    background: var(--operator-card) !important;
-    color: var(--operator-text) !important;
-    border-color: var(--operator-border) !important;
-}
-
-html[data-theme="dark"] .rack-location-table thead th {
-    background: var(--operator-card) !important;
-    color: var(--operator-text) !important;
-    border-color: var(--operator-card) !important;
-}
-
-html[data-theme="dark"] .rack-location-button {
-    background: var(--operator-primary) !important;
-    color: #fff !important;
-}
-
-html[data-theme="dark"] .rack-location-button:hover {
-    background: var(--operator-primary-light) !important;
-    border-color: var(--operator-primary-light) !important;
-}
 
 
 /* NOTAS */

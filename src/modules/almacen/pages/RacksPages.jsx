@@ -1,26 +1,58 @@
 import { useRacks } from "../hooks/useRacks";
 import { actualizarRack } from "../../../services/rackService";
 import { obtenerStockPorRack } from "../../../services/rackStockService";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RackModal from "../components/RackModal";
 import Loader from "../../../components/Loader";
 
 import { notifyError } from "../../../utils/notify";
-import { FaPlus, FaEdit, FaTools } from "react-icons/fa";
+import { FaPlus, FaEllipsisV, FaEdit, FaHammer, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 
 export default function RacksPages() {
-    const { racks, load, loading } = useRacks();
+    const { racks, loading } = useRacks();
     const [show, setShow] = useState(false);
     const [selected, setSelected] = useState(null);
+    const [openActionsId, setOpenActionsId] = useState(null);
     const [filters, setFilters] = useState({
         search: "",
         planta: "",
         estado: ""
     });
 
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (!event.target.closest(".rack-action-menu-wrapper")) {
+                setOpenActionsId(null);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const normalizeStatus = (value) => (value || "").toLowerCase();
+
+    const getDynamicStatusAction = (rackStatus) => {
+        const normalized = normalizeStatus(rackStatus);
+
+        if (normalized === "baja" || normalized === "inactivo") {
+            return {
+                label: "Alta",
+                nextStatus: "activo"
+            };
+        }
+
+        return {
+            label: "Baja",
+            nextStatus: "baja"
+        };
+    };
+
     const cambiarEstatus = async (rack, nuevoEstatus) => {
         try {
-            if (nuevoEstatus === "mantenimiento") {
+            const nextStatus = normalizeStatus(nuevoEstatus);
+
+            if (nextStatus === "mantenimiento") {
                 const stock = await obtenerStockPorRack(rack.id);
 
                 if ((stock || []).length > 0) {
@@ -34,13 +66,12 @@ export default function RacksPages() {
 
             await actualizarRack(rack.id, {
                 ...rack,
-                estatus: nuevoEstatus
+                estatus: nextStatus
             });
-
-            load();
 
         } catch (error) {
             console.error(error);
+            notifyError("Error", "No se pudo actualizar el estatus del rack");
         }
     };
 
@@ -123,29 +154,34 @@ export default function RacksPages() {
                             </div>
                         </div>
                     </div>
-                    <table className="table custom-table">
-                        <thead>
-                            <tr>
-                                <th>Rack</th>
-                                <th>Planta</th>
-                                <th>Estatus</th>
-                                <th>Tipo almacenamiento</th>
-                                <th>Asignación</th>
-                                <th>Elemento</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {racks
-                                .filter(r => {
-                                    const searchValue = filters.search.trim().toLowerCase();
-                                    const matchSearch = !searchValue || String(r.numeroRack || "").toLowerCase().includes(searchValue);
-                                    const matchPlanta = !filters.planta || r.planta === filters.planta;
-                                    const matchEstado = !filters.estado || r.estatus === filters.estado;
-                                    return matchSearch && matchPlanta && matchEstado;
-                                })
-                                .map(r => (
-                                <tr key={r.id}>
+                    <div className="table-scroll-container">
+                        <table className="table custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Rack</th>
+                                    <th>Planta</th>
+                                    <th>Estatus</th>
+                                    <th>Tipo almacenamiento</th>
+                                    <th>Asignación</th>
+                                    <th>Elemento</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {racks
+                                    .filter(r => {
+                                        const searchValue = filters.search.trim().toLowerCase();
+                                        const matchSearch = !searchValue || String(r.numeroRack || "").toLowerCase().includes(searchValue);
+                                        const matchPlanta = !filters.planta || r.planta === filters.planta;
+                                        const matchEstado = !filters.estado || r.estatus === filters.estado;
+                                        return matchSearch && matchPlanta && matchEstado;
+                                    })
+                                    .map(r => {
+                                        const rackStatus = normalizeStatus(r.estatus);
+                                        const dynamicStatusAction = getDynamicStatusAction(rackStatus);
+
+                                        return (
+                                    <tr key={r.id}>
                                     <td># {r.numeroRack}</td>
                                     
                                     <td>{r.planta}</td>
@@ -153,14 +189,14 @@ export default function RacksPages() {
 
                                         <span
                                             className={`badge 
-                                                    ${r.estatus === "activo"
+                                                    ${rackStatus === "activo"
                                                     ? "bg-success-subtle text-success"
-                                                    : r.estatus === "mantenimiento"
+                                                    : rackStatus === "mantenimiento"
                                                         ? "bg-warning-subtle text-warning"
                                                         : "bg-danger-subtle text-danger"
                                                 }`}
                                         >
-                                            {r.estatus}
+                                            {rackStatus}
                                         </span>
 
                                     </td>
@@ -206,63 +242,70 @@ export default function RacksPages() {
                                         {r.itemAsignado || "-"}
                                     </td>
 
-                                    <td className="d-flex gap-2">
-
-                                        <button
-                                            className="btn btn-sm btn-outline-primary"
-                                            onClick={() => {
-                                                setSelected(r);
-                                                setShow(true);
-                                            }}
-                                        >
-                                            <FaEdit className="me-2" />
-                                            Editar
-                                        </button>
-
-                                        {r.estatus === "activo" && (
+                                    <td className="rack-actions-cell">
+                                        <div className="rack-action-menu-wrapper">
                                             <button
-                                                className="btn btn-sm btn-outline-warning"
-                                                onClick={() => cambiarEstatus(r, "mantenimiento")}
+                                                type="button"
+                                                className="rack-action-menu-button"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setOpenActionsId(openActionsId === r.id ? null : r.id);
+                                                }}
+                                                aria-label="Acciones del rack"
                                             >
-                                                <FaTools className="me-2" />
-                                                Mantenimiento
+                                                <FaEllipsisV />
                                             </button>
-                                        )}
 
-                                        {r.estatus === "mantenimiento" && (
-                                            <>
-                                                <button
-                                                    className="btn btn-sm btn-outline-success"
-                                                    onClick={() => cambiarEstatus(r, "activo")}
-                                                >
-                                                    <FaTools className="me-2" />
-                                                    Activar
-                                                </button>
+                                            {openActionsId === r.id && (
+                                                <div className="rack-action-menu">
+                                                    <button
+                                                        type="button"
+                                                        className="rack-action-menu-mantenimiento"
+                                                        onClick={() => {
+                                                            setOpenActionsId(null);
+                                                            cambiarEstatus(r, "mantenimiento");
+                                                        }}
+                                                    >
+                                                        <FaHammer className="me-2" /> Mantenimiento
+                                                    </button>
 
-                                                <button
-                                                    className="btn btn-sm btn-outline-danger"
-                                                    onClick={() => cambiarEstatus(r, "baja")}
-                                                >
-                                                    <FaTools className="me-2" />
-                                                    Dar de baja
-                                                </button>
-                                            </>
-                                        )}
+                                                    <button
+                                                        type="button"
+                                                        className="rack-action-menu-editar"
+                                                        onClick={() => {
+                                                            setOpenActionsId(null);
+                                                            setSelected(r);
+                                                            setShow(true);
+                                                        }}
+                                                    >
+                                                    <FaEdit className="me-2" /> Editar
+                                                    </button>
 
-                                        {r.estatus === "baja" && (
-                                            <button
-                                                className="btn btn-sm btn-outline-success"
-                                                onClick={() => cambiarEstatus(r, "activo")}
-                                            >
-                                                Reactivar
-                                            </button>
-                                        )}
-
+                                                    <button
+                                                        type="button"
+                                                        className={`rack-action-menu-estatus ${dynamicStatusAction.nextStatus === "baja" ? "baja" : "alta"}`}
+                                                        onClick={() => {
+                                                            setOpenActionsId(null);
+                                                            cambiarEstatus(r, dynamicStatusAction.nextStatus);
+                                                        }}
+                                                    >
+                                                        {dynamicStatusAction.nextStatus === "baja" ? (
+                                                            <FaTimesCircle className="me-2" />
+                                                        ) : (
+                                                            <FaCheckCircle className="me-2" />
+                                                        )}
+                                                        {dynamicStatusAction.label}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                    </tr>
+                                        );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
 
                 </div>
             </div>
@@ -274,12 +317,20 @@ export default function RacksPages() {
                         setShow(false);
                         setSelected(null);
                     }}
-                    onSuccess={load}
+                    onSuccess={() => {}}
                 />
             )}
 
 
             <style jsx>{`
+
+                /* PAGINA */
+
+                .card{
+                border-radius: 30px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+                padding: 20px;
+                }
 
                 .custom-users-header input,
                 .custom-users-header select {
@@ -287,7 +338,7 @@ export default function RacksPages() {
                 }
 
                 .custom-users-card {
-                    border-radius: 16px;
+                    border-radius: 30px;
                     border: none;
                     box-shadow: 0 8px 25px rgba(0,0,0,0.05);
                 }
@@ -323,65 +374,218 @@ export default function RacksPages() {
                 }
 
                 
-                /*  TABLE */
+                /*  TABLA */
+
+                .card-body.table-responsive-container {
+                    overflow: visible;
+                    max-width: 100%;
+                    position: relative;
+                }
+
+                .table-scroll-container {
+                    overflow-y: visible;
+                    max-width: 100%;
+                    position: relative;
+                }
+
                 .table {
-                    border-collapse: separate !important;
+                    width: 100%;
+                    table-layout: fixed;
+                    padding: 0;
+                    border-collapse: collapse !important;
                     border-spacing: 0 10px !important;
                 }
 
                 .table thead th {
-                    font-size: 12px;
-                    text-transform: uppercase;
-                    color: #6b7280;
-                    border: none !important;
+                    border-bottom: 3px solid var(--operator-text);
+                    font-size: 14px;
+                    font-weight: 900;
+                    padding: 5px 5px;
+                    vertical-align: middle;
+                    border-top: none !important;
+                    white-space: nowrap;
+
+                    word-break: break-word;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    max-width: 230px;
+                    min-width: 100px;
+
                 }
 
                 .table tbody tr {
-                    background: #ffffff;
+                    background: var(--operator-card);
                     transition: all 0.2s ease;
                 }
 
                 .table tbody tr:hover {
                     transform: scale(1.01);
-                    box-shadow: var(--operator-text);
+                    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
                 }
 
                 .rack-search-container {
                     padding: 18px;
                     border-radius: 16px;
-                    background: #f8f9fa;
-                    border: 1px solid #e9ecef;
+                    background: var(--operator-card);
+                    border: var(--operator-border);
                 }
 
                 .rack-search-container .form-label {
-                    margin-bottom: 0.5rem;
+                    margin-bottom: 1rem;
                     font-size: 0.85rem;
                     font-weight: 600;
                 }
 
-                .rack-search-container .form-control,
-                .rack-search-container .form-select {
-                    border-radius: 12xpx;
-                    height: 49px;
+                .table td {
+                height: 50px;
+                font-size: 14px;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow: hidden;
+                max-width: 230px;
+                min-width: 100px;
+
+
                 }
 
-                .table td {
-                    background: var(--operator-card);
-                    color: var(--operator-text);
-                    border-color: var(--operator-border);
-                    vertical-align: middle;
-                    border-top: none !important;
-                    padding: 12px;
+
+                /* MENU DESPLEGABLE */
+
+                .table td.rack-actions-cell {
+                    width: 70px;
+                    text-align: center;
+                    overflow: visible;
+                    position: relative;
+                    z-index: 1;
                 }
+
+                .rack-action-menu-wrapper {
+                    position: relative;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 20;
+                }
+
+                .rack-action-menu-button {
+                    width: 36px;
+                    height: 36px;
+                    border: 1px solid var(--operator-border);
+                    border-radius: 999px;
+                    background: transparent;
+                    color: var(--operator-text);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                }
+
+                .rack-action-menu-button:hover {
+                    background: var(--operator-border);
+                }
+
+                .rack-action-menu {
+                    position: absolute;
+                    right: 0;
+                    top: calc(100% + 6px);
+                    min-width: 180px;
+                    background: var(--operator-card);
+                    border: 1px solid var(--operator-border);
+                    border-radius: 12px;
+                    box-shadow: 0 10px 24px var(--operator-shadow);
+                    padding: 6px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    z-index: 9999;
+                }
+
+                .rack-action-menu-mantenimiento {
+                    border: none;
+                    background: transparent;
+                    padding: 8px 10px;
+                    text-align: left;
+                    border-radius: 8px;
+                    color: var(--operator-text);
+                    cursor: pointer;
+                }
+
+                .rack-action-menu-mantenimiento:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-warning);
+                }
+
+                .rack-action-menu-editar {
+                    border: none;
+                    background: transparent;
+                    padding: 8px 10px;
+                    text-align: left;
+                    border-radius: 8px;
+                    color: var(--operator-);
+                    cursor: pointer;
+                }
+
+                .rack-action-menu-editar:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-primary);
+                }
+
+                .rack-action-menu-estatus {
+                    border: none;
+                    background: transparent;
+                    padding: 8px 10px;
+                    text-align: left;
+                    border-radius: 8px;
+                    color: var(--operator-text);
+                    cursor: pointer;
+                    font-weight: 600;
+                }
+
+                .rack-action-menu-estatus.baja {
+                    color: var(--operator-text);
+                }
+
+                .rack-action-menu-estatus.alta {
+                    color: var(--operator-text);
+                }
+
+                .rack-action-menu-estatus.baja:hover {
+                    background: rgba(220, 38, 38, 0.12);
+                    color: var(--operator-danger);
+                }
+
+                .rack-action-menu-estatus.alta:hover {
+                    background: rgba(34, 197, 94, 0.12);
+                    color: var(--operator-success);
+                }
+
 
                 .d-flex.gap-2.flex-wrap {
                     background: var(--operator-card);
                     border: var(--operator-border);
                     border-radius: 16px;
-                    padding: 10px;
+                    padding: 15px;
                     box-shadow: var(--operator-box-shadow);
                 }
 
+                    /* FORMS, INPUTS, SELECTS */
+
+                .form-control, .form-select {
+                    height: 50px;
+                    background-color: var(--operator-border);
+                    border-color: var(--operator-border);
+                    color: var(--operator-text) !important;
+                }
+                
+                .form-control:focus, .form-select:focus {
+                    background-color: var(--operator-border);
+                    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+                    border-color: var(--operator-primary);
+                }
 
             `}</style>
 

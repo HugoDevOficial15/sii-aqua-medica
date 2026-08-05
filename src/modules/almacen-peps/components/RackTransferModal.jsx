@@ -660,106 +660,97 @@ export default function RackTransferModal({
 
                     width: 560px;
                     max-width: 95%;
-
-                    background:
-                        rgba(255,255,255,0.94);
-
+                    background: var(--operator-card);
                     backdrop-filter: blur(12px);
-
-                    border-radius: 28px;
-
+                    border-radius: 30px;
                     padding: 28px;
-
-                    border:
-                        1px solid rgba(255,255,255,0.4);
-
-                    box-shadow:
-                        0 24px 48px rgba(0,0,0,0.18);
+                    border: 1px solid var(--operator-border);
+                    box-shadow: 0 8px 25px var(--operator-shadow);
                 }
 
                 .transfer-header {
-
                     display: flex;
-
+                    border: none;
                     justify-content: space-between;
-
                     align-items: center;
-
-                    margin-bottom: 24px;
+                    background: var(--operator-card);
                 }
 
                 .transfer-title {
-
+                    margin: 0;
                     font-size: 1.5rem;
-
                     font-weight: 800;
-
-                    color: #111827;
+                    color: var(--operator-text);
                 }
 
                 .transfer-subtitle {
-
-                    color: #6b7280;
-
-                    margin-top: 4px;
+                    color: var(--operator-text-soft);
+                    margin-top: 1px;
+                    margin-bottom: 10px;
+                    display: flex;
                 }
 
                 .transfer-close {
-
-                    width: 42px;
-
-                    height: 42px;
-
+                    width: 36px;
+                    height: 36px;
                     border: none;
+                    border-radius: 10px;
+                    background: var(--operator-card);
+                    color: var(--operator-text);
+                    font-size: 30px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
 
-                    border-radius: 14px;
+                .transfer-close:hover {
 
-                    background: #f3f4f6;
-
-                    font-size: 20px;
+                    background: var(--operator-border);
+                    color: var(--operator-primary);
                 }
 
                 .transfer-form {
-
                     display: flex;
-
+                    border: none;
                     flex-direction: column;
-
                     gap: 18px;
                 }
 
                 .transfer-group {
 
                     display: flex;
-
                     flex-direction: column;
-
                     gap: 8px;
                 }
 
                 .transfer-group label {
 
                     font-size: 13px;
-
+                
                     font-weight: 700;
-
-                    color: #374151;
+                    display: flex;
+                    color: var(--operator-text);
                 }
 
                 .transfer-group input,
                 .transfer-group select {
 
                     height: 52px;
-
                     border-radius: 14px;
-
-                    border:
-                        1px solid #d1d5db;
-
+                    border: 1px solid var(--operator-border);
                     padding: 0 14px;
-
-                    background: #fff;
+                    background: var(--operator-card);
+                    color: var(--operator-text);
                 }
+
+                .transfer-group input:focus,
+                .transfer-group select:focus {
+
+                    border: 1px solid var(--operator-primary);
+                    outline: none;
+                }
+
 
                 .transfer-stock-box {
 
@@ -785,43 +776,33 @@ export default function RackTransferModal({
                 }
 
                 .transfer-cancel {
-
-                    height: 48px;
-
-                    padding: 0 18px;
-
+                    height: 50px;
+                    padding: 0 24px;
                     border: none;
-
                     border-radius: 14px;
-
-                    background: #e5e7eb;
-
+                    background: var(--operator-border);
+                    color: var(--operator-text);
                     font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 20px var(--operator-shadow);
                 }
 
                 .transfer-submit {
-
-                    height: 48px;
-
+                    height: 50px;
                     padding: 0 24px;
-
                     border: none;
-
                     border-radius: 14px;
-
-                    background:
-                        linear-gradient(
-                            135deg,
-                            #2563eb,
-                            #1d4ed8
-                        );
-
+                    background: var(--operator-primary);
                     color: #fff;
-
                     font-weight: 700;
-
-                    box-shadow:
-                        0 10px 18px rgba(37,99,235,0.22);
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    display: flex;
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
                 }
 
             `}</style>

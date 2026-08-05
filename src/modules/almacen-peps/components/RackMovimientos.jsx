@@ -428,6 +428,9 @@ export default function RackMovimientos({
 
             <style jsx>{`
 
+
+
+
                 .rack-history-header {
 
                     display: flex;
@@ -487,17 +490,17 @@ export default function RackMovimientos({
 
                 .rack-history-top {
 
-    display: flex;
+                    display: flex;
 
-    flex-direction: column;
+                    flex-direction: column;
 
-    align-items: flex-start;
+                    align-items: flex-start;
 
-    gap: 8px;
+                    gap: 8px;
 
-    margin-bottom: 12px;
+                    margin-bottom: 12px;
 
-}
+                }
 
                 .rack-history-badge {
 
@@ -510,15 +513,15 @@ export default function RackMovimientos({
                     font-weight: 700;
                 }
 
-             .rack-history-date {
+                .rack-history-date {
 
-    font-size: 12px;
+                    font-size: 12px;
 
-    color: #6b7280;
+                    color: #6b7280;
 
-    font-weight: 500;
+                    font-weight: 500;
 
-}
+                }
 
                 .rack-history-name {
 
@@ -600,7 +603,7 @@ export default function RackMovimientos({
 
                     overflow: hidden;
 
-                    background: var(--operator-background);
+                    background: var(--operator-card);
 
                     border-radius: 20px;
 

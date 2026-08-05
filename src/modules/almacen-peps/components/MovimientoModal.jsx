@@ -30,12 +30,17 @@ import {
 } from "../../../services/productoService";
 
 import {
-    crearStock
+    crearStock,
+    obtenerStockPorRack
 } from "../../../services/rackStockService";
 
 import {
     registrarMovimiento
 } from "../../../services/movimientosService";
+
+import {
+    actualizarRack
+} from "../../../services/rackService";
 
 import {
     useAuth
@@ -64,6 +69,40 @@ export default function MovimientoModal({
         useState([]);
 
     const tipo = watch("tipo");
+
+    const obtenerCapacidadMaxima = (tipoSeleccionado) => {
+        const capacidadPorTipo = {
+            materia_prima: Number(rack?.pesoMaximoMateriaPrima ?? rack?.["pesoMaximo-materiaPrima"] ?? 0),
+            material_acondicionamiento: Number(rack?.pesoMaximoMaterialAcondicionamiento ?? rack?.["pesoMaximo-materialAcondicionamiento"] ?? 0),
+            producto_terminado: Number(rack?.pesoMaximoProductoTerminado ?? rack?.["pesoMaximo-productoTerminado"] ?? 0)
+        };
+
+        return Number(capacidadPorTipo[tipoSeleccionado] || 0);
+    };
+
+    const calcularPorcentajeTipo = (tipoSeleccionado, cantidad) => {
+        const capacidadMaxima = obtenerCapacidadMaxima(tipoSeleccionado);
+        const cantidadNumerica = Number(cantidad || 0);
+
+        if (!capacidadMaxima || !cantidadNumerica) {
+            return 0;
+        }
+
+        return Number(((cantidadNumerica / capacidadMaxima) * 100).toFixed(2));
+    };
+
+    const calcularOcupacionRack = (stockItems, tipoActual, cantidadActual) => {
+        const capacidadMaxima = obtenerCapacidadMaxima(tipoActual);
+        const stockPorTipo = (stockItems || [])
+            .filter(item => item.tipoItem === tipoActual)
+            .reduce((sum, item) => sum + Number(item.cantidadActual || 0), 0);
+
+        const totalParaTipo = stockPorTipo + Number(cantidadActual || 0);
+
+        if (!capacidadMaxima) return 0;
+
+        return Number(Math.min(100, (totalParaTipo / capacidadMaxima) * 100).toFixed(2));
+    };
     const fechaActual = new Date().toISOString().split("T")[0];
 
     /*
@@ -120,6 +159,18 @@ export default function MovimientoModal({
     ) => {
 
         try {
+            const rackBloqueado =
+                rack?.estatus === "mantenimiento" ||
+                rack?.estatus === "baja" ||
+                rack?.estatus === "inactivo";
+
+            if (rackBloqueado) {
+                notifyError(
+                    "Rack no disponible",
+                    "No se pueden agregar materiales a un rack en mantenimiento o dado de baja"
+                );
+                return;
+            }
 
             if (
                 !form.tipo ||
@@ -203,6 +254,12 @@ export default function MovimientoModal({
             |--------------------------------------------------------------------------
             */
 
+            const porcentajeMovimiento = calcularPorcentajeTipo(form.tipo, form.cantidad);
+            const porcentajeEspacio = Math.min(
+                100,
+                Number(rack?.espacioOcupado || 0) + porcentajeMovimiento
+            );
+
             const stockPayload = {
 
                 rackId: rack.id,
@@ -218,6 +275,9 @@ export default function MovimientoModal({
 
                 tipoItem:
                     form.tipo,
+
+                color:
+                    item?.color || item?.color2 || null,
 
                 lote:
                     form.lote,
@@ -240,6 +300,9 @@ export default function MovimientoModal({
                 numeroAnalisis:
                     form.numeroAnalisis || "",
 
+                espacio: porcentajeEspacio,
+                capacidadMaxima: obtenerCapacidadMaxima(form.tipo),
+
                 createdBy: {
 
                     id: user.id,
@@ -253,6 +316,10 @@ export default function MovimientoModal({
                 await crearStock(
                     stockPayload
                 );
+
+            await actualizarRack(rack.id, {
+                espacioOcupado: porcentajeEspacio
+            });
 
             /*
             |--------------------------------------------------------------------------
@@ -568,19 +635,16 @@ export default function MovimientoModal({
 
                     </div>
 
+                </form>
+
+                <div className="movement-actions">
                     <button
+                        type="submit"
                         className="movement-submit"
                     >
-
-                        <FaPlus
-                            className="me-2"
-                        />
-
                         Guardar entrada
-
                     </button>
-
-                </form>
+                </div>
 
             </div>
 
@@ -610,71 +674,65 @@ export default function MovimientoModal({
 
                     width: 700px;
                     max-width: 95%;
-
-                    background:
-                        rgba(255,255,255,0.95);
-
+                    background: var(--operator-card);
                     backdrop-filter: blur(12px);
-
                     border-radius: 30px;
-
                     padding: 30px;
-
-                    border:
-                        1px solid rgba(255,255,255,0.4);
-
-                    box-shadow:
-                        0 24px 48px rgba(0,0,0,0.18);
+                    border: 1px solid var(--operator-border);
+                    box-shadow: 0 8px 25px var(--operator-shadow);
+                    
                 }
 
                 .movement-header {
 
                     display: flex;
-
+                    border: none;
                     justify-content: space-between;
-
                     align-items: center;
-
-                    margin-bottom: 26px;
+                    margin-bottom: 10px;
+                    background: var(--operator-card);
                 }
 
                 .movement-title {
 
-                    font-size: 1.6rem;
-
+                    margin: 0;
+                    font-size: 1.5rem;
                     font-weight: 800;
-
-                    color: #111827;
+                    color: var(--operator-text);
                 }
 
                 .movement-subtitle {
 
-                    color: #6b7280;
-
+                    color: var(--operator-text-soft);
                     margin-top: 4px;
+                    display: flex;
                 }
 
                 .movement-close {
 
-                    width: 42px;
-
-                    height: 42px;
-
+                    width: 36px;
+                    height: 36px;
                     border: none;
+                    border-radius: 10px;
+                    background: var(--operator-card);
+                    color: var(--operator-text);
+                    font-size: 30px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
 
-                    border-radius: 14px;
+                .movement-close:hover {
 
-                    background: #f3f4f6;
-
-                    font-size: 20px;
+                    background: var(--operator-border);
+                    color: var(--operator-primary);
                 }
 
                 .movement-form {
 
                     display: flex;
-
                     flex-direction: column;
-
                     gap: 22px;
                 }
 
@@ -699,51 +757,55 @@ export default function MovimientoModal({
 
                 .movement-group label {
 
-                    font-size: 13px;
-
+                    display: flex;
+                    align-items: center;
+                    font-size: 14px;
                     font-weight: 700;
-
-                    color: #374151;
+                    color: var(--operator-text);
                 }
 
                 .movement-group input,
                 .movement-group select {
 
-                    height: 54px;
-
-                    border-radius: 14px;
-
-                    border:
-                        1px solid #d1d5db;
-
+                    height: 50px;
+                    border-radius: 12px;
+                    border: 1px solid var(--operator-border);
                     padding: 0 14px;
+                    background: var(--operator-border);
+                    color: var(--operator-text);
+                    font-size: 14px;
+                    outline: none;
+                }
 
-                    background: #fff;
+                .movement-group input:focus,
+                .movement-group input:focus,
+                .movement-group textarea:focus,
+                .movement-group select:focus {
+                    border-color: var(--operator-primary);
+                    box-shadow: 0 0 0 1px var(--operator-primary);
+                }
+
+                .movement-actions {
+                    display: flex;
+                    justify-content: flex-end;
+                    margin-top: 20px;
                 }
 
                 .movement-submit {
 
-                    height: 54px;
-
+                    height: 50px;
+                    padding: 0 24px;
                     border: none;
-
-                    border-radius: 16px;
-
-                    background:
-                        linear-gradient(
-                            135deg,
-                            #2563eb,
-                            #1d4ed8
-                        );
-
+                    border-radius: 14px;
+                    background: var(--operator-primary);
                     color: #fff;
-
                     font-weight: 700;
-
-                    font-size: 15px;
-
-                    box-shadow:
-                        0 14px 28px rgba(37,99,235,0.22);
+                    cursor: pointer;
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
                 }
 
             `}</style>

@@ -251,9 +251,6 @@ export default function RackPdfModal({
                         </div>
 
                         <div className="pdf-subtitle"
-                            style={{
-                                color: "var(--operator-text)",
-                            }}
                         >
 
                             {ubicacionLabel}
@@ -402,35 +399,22 @@ export default function RackPdfModal({
             }
 
             .pdf-modal {
-
+                overflow: hidden;
                 width: 560px;
                 max-width: 95%;
-
-                background:
-                    rgba(255,255,255,0.92);
-
+                background: var(--operator-card);
                 backdrop-filter: blur(12px);
-
-                border:
-                    1px solid rgba(255,255,255,0.4);
-
-                border-radius: 28px;
-
+                border: 1px solid var(--operator-border);
+                border-radius: 30px;
                 padding: 28px;
-
-                box-shadow:
-                    0 24px 48px rgba(0,0,0,0.18);
-
+                box-shadow: 0 24px 48px rgba(0,0,0,0.18);
                 animation:
                     modalIn 0.2s ease;
             }
 
             @keyframes modalIn {
-
                 from {
-
                     opacity: 0;
-
                     transform:
                         translateY(10px)
                         scale(0.98);
@@ -449,70 +433,66 @@ export default function RackPdfModal({
             .pdf-header {
 
                 display: flex;
-
+                border: none;
                 justify-content: space-between;
-
                 align-items: center;
-
                 margin-bottom: 24px;
+                background: var(--operator-card);
             }
 
             .pdf-title {
-
+                
+                margin: 0;
                 font-size: 1.5rem;
-
                 font-weight: 800;
-
-                color: #111827;
+                color: var(--operator-text);
             }
 
             .pdf-subtitle {
 
-                color: #6b7280;
-
+                color: var(--operator-text-soft);
                 margin-top: 4px;
+                display: flex;
             }
 
             .pdf-close {
 
-                width: 40px;
-
-                height: 40px;
-
-                border-radius: 12px;
-
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
                 border: none;
-
-                background: #f3f4f6;
-
-                font-size: 20px;
-
+                background: var(--operator-card);
+                color: var(--operator-text);
+                font-size: 30px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 transition: 0.2s ease;
             }
 
             .pdf-close:hover {
 
-                background: #e5e7eb;
+                background: var(--operator-border);
+                color: var(--operator-primary);
+
             }
 
             .pdf-summary {
 
                 display: grid;
-
                 grid-template-columns:
                     repeat(2, 1fr);
-
                 gap: 14px;
-
                 margin-bottom: 24px;
             }
 
             .pdf-summary-card {
 
-                background: #f9fafb;
+                background: var(--operator-border);
 
                 border:
-                    1px solid #f3f4f6;
+                    1px solid var(--operator-border);
 
                 border-radius: 18px;
 
@@ -523,7 +503,7 @@ export default function RackPdfModal({
 
                 font-size: 12px;
 
-                color: #6b7280;
+                color: var(--operator-text-soft);
 
                 margin-bottom: 6px;
             }
@@ -534,7 +514,7 @@ export default function RackPdfModal({
 
                 font-weight: 800;
 
-                color: #111827;
+                color: var(--operator-text);
             }
 
             .pdf-form {
@@ -564,7 +544,7 @@ export default function RackPdfModal({
 
                 font-weight: 600;
 
-                color: #374151;
+                color: var(--operator-text-soft);
             }
 
             .pdf-group input {
@@ -573,13 +553,12 @@ export default function RackPdfModal({
 
                 border-radius: 14px;
 
-                border:
-                    1px solid #d1d5db;
+                border: 1px solid var(--operator-border);
 
                 padding: 0 14px;
 
-                background: #fff;
-
+                background: var(--operator-border);
+                color: var(--operator-text);
                 transition: 0.2s ease;
             }
 
@@ -593,111 +572,59 @@ export default function RackPdfModal({
                     0 0 0 4px rgba(37,99,235,0.12);
             }
 
-            .pdf-preview-box {
 
-                background:
-                    linear-gradient(
-                        135deg,
-                        #f9fafb,
-                        #ffffff
-                    );
-
-                border:
-                    1px solid #f3f4f6;
-
-                border-radius: 22px;
-
-                padding: 20px;
-
-                margin-bottom: 28px;
-            }
-
-            .pdf-preview-title {
-
-                font-size: 15px;
-
-                font-weight: 700;
-
-                margin-bottom: 16px;
-
-                color: #111827;
-            }
-
-            .pdf-preview-list {
-
-                display: flex;
-
-                flex-direction: column;
-
-                gap: 12px;
-            }
-
-            .pdf-preview-item {
-
-                padding: 12px 14px;
-
-                background: #fff;
-
-                border-radius: 14px;
-
-                border:
-                    1px solid #f3f4f6;
-
-                color: #374151;
-
-                font-size: 14px;
-            }
 
             .pdf-actions {
 
+                border: none;
                 display: flex;
-
                 justify-content: flex-end;
-
                 gap: 12px;
             }
 
             .pdf-button-secondary {
-
-                height: 48px;
-
-                padding: 0 18px;
-
+                
+                height: 50px;
+                padding: 0 24px;
                 border-radius: 14px;
-
                 border: none;
-
-                background: #e5e7eb;
-
-                color: #111827;
-
+                background: var(--operator-border);
+                color: var(--operator-text);
                 font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-shadow);
+            }
+
+            .pdf-button-secondary:hover {
+
+                color: var(--operator-danger);
             }
 
             .pdf-button-primary {
 
                 height: 48px;
-
                 padding: 0 22px;
-
                 border-radius: 14px;
-
                 border: none;
-
                 background:
                     linear-gradient(
                         135deg,
                         #111827,
                         #1f2937
                     );
-
                 color: #fff;
-
                 font-weight: 700;
-
                 box-shadow:
                     0 8px 18px rgba(17,24,39,0.25);
             }
+
+            .pdf-button-primary:hover {
+
+
+                color: var(--operator-primary);
 
         `}</style>
 

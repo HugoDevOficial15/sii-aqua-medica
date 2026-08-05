@@ -40,6 +40,25 @@ export default function FiltersMateriales({ filters, setFilters }) {
                 </select>
             </div>
 
+            <style jsx>{`
+            .form-control {
+                height: 50px;
+                border-radius: 12px;
+                background: var(--operator-border);
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
+            }
+
+            .form-control:focus {
+                background: var(--operator-border);
+                color: var(--operator-text);
+                opacity: 0.6;
+            }
+            `}</style>
+
         </div>
     );
 }

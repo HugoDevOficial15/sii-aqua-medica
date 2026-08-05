@@ -14,7 +14,8 @@ import {
 
 import {
     suscribirStockPorRack,
-    descontarStockPEPS
+    descontarStockPEPS,
+    obtenerStockPorRack
 } from "../../../services/rackStockService";
 
 import {
@@ -32,6 +33,10 @@ import {
 
 import SnapshotManager
     from "../../../services/snapshots/snapshotManager";
+
+import {
+    actualizarRack
+} from "../../../services/rackService";
 
 export default function RackSalidaModal({
     rack,
@@ -160,6 +165,23 @@ export default function RackSalidaModal({
             p => p.itemId === itemId
         );
 
+    const calcularPorcentajeTipo = (tipoSeleccionado, cantidad) => {
+        const capacidadPorTipo = {
+            materia_prima: Number(rack?.pesoMaximoMateriaPrima ?? rack?.["pesoMaximo-materiaPrima"] ?? 0),
+            material_acondicionamiento: Number(rack?.pesoMaximoMaterialAcondicionamiento ?? rack?.["pesoMaximo-materialAcondicionamiento"] ?? 0),
+            producto_terminado: Number(rack?.pesoMaximoProductoTerminado ?? rack?.["pesoMaximo-productoTerminado"] ?? 0)
+        };
+
+        const capacidadMaxima = Number(capacidadPorTipo[tipoSeleccionado] || 0);
+        const cantidadNumerica = Number(cantidad || 0);
+
+        if (!capacidadMaxima || !cantidadNumerica) {
+            return 0;
+        }
+
+        return Number(((cantidadNumerica / capacidadMaxima) * 100).toFixed(2));
+    };
+
 
 
     /*
@@ -240,6 +262,16 @@ export default function RackSalidaModal({
                     cantidadSalida:
                         cantidad
                 });
+
+            const porcentajeMovimiento = calcularPorcentajeTipo(producto?.tipoItem, cantidad);
+            const porcentajeEspacio = Math.max(
+                0,
+                Number(rack?.espacioOcupado || 0) - porcentajeMovimiento
+            );
+
+            await actualizarRack(rack.id, {
+                espacioOcupado: porcentajeEspacio
+            });
 
             /*
             |--------------------------------------------------------------------------
@@ -556,8 +588,7 @@ export default function RackSalidaModal({
                 width: 620px;
                 max-width: 95%;
 
-                background:
-                    rgba(255,255,255,0.94);
+                background: var(--operator-card);
 
                 backdrop-filter: blur(12px);
 
@@ -565,8 +596,7 @@ export default function RackSalidaModal({
 
                 padding: 30px;
 
-                border:
-                    1px solid rgba(255,255,255,0.4);
+                border:none;
 
                 box-shadow:
                     0 24px 48px rgba(0,0,0,0.18);
@@ -575,6 +605,8 @@ export default function RackSalidaModal({
             .salida-header {
 
                 display: flex;
+
+                background: var(--operator-card);
 
                 justify-content: space-between;
 
@@ -585,41 +617,45 @@ export default function RackSalidaModal({
 
             .salida-title {
 
+                margin: 0;                
                 font-size: 1.6rem;
-
                 font-weight: 800;
-
-                color: #111827;
+                color: var(--operator-text);
             }
 
             .salida-subtitle {
 
-                color: #6b7280;
-
+                color: var(--operator-text-soft);
+                font-size: 1rem;
+                font-weight: 600;
                 margin-top: 5px;
+                display: flex;
             }
 
             .salida-close {
-
-                width: 42px;
-
-                height: 42px;
-
+                width: 40px;
+                height: 40px;
                 border: none;
-
-                border-radius: 14px;
-
-                background: #f3f4f6;
-
-                font-size: 20px;
+                border-radius: 10px;
+                background: var(--operator-card);
+                color: var(--operator-text);
+                font-size: 30px;
+                cursor: pointer;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            
+            .salida-close:hover {
+                background: var(--operator-border);
+                color: var(--operator-primary);
             }
 
             .salida-form {
 
                 display: flex;
-
+                background: var(--operator-card);
                 flex-direction: column;
-
                 gap: 20px;
             }
 
@@ -628,7 +664,7 @@ export default function RackSalidaModal({
                 display: flex;
 
                 flex-direction: column;
-
+                background: var(--operator-card);
                 gap: 8px;
             }
 
@@ -638,7 +674,9 @@ export default function RackSalidaModal({
 
                 font-weight: 700;
 
-                color: #374151;
+                color: var(--operator-text);
+
+                display: flex;
             }
 
             .salida-group input,
@@ -649,11 +687,18 @@ export default function RackSalidaModal({
                 border-radius: 14px;
 
                 border:
-                    1px solid #d1d5db;
+                    1px solid var(--operator-border);
 
                 padding: 0 14px;
 
-                background: #fff;
+                background: var(--operator-border);
+                color: var(--operator-text);
+            }
+
+            .salida-group input:focus,
+            .salida-group select:focus {
+                outline: none;
+                border-color: var(--operator-primary);
             }
 
             .salida-observacion-error {
@@ -684,7 +729,7 @@ export default function RackSalidaModal({
 
             .observaciones-stock-value {
 
-                front-size: 13px;
+                font-size: 13px;
 
                 color: #6b7280;
 
@@ -763,17 +808,19 @@ export default function RackSalidaModal({
 
             .salida-cancel {
 
-                height: 48px;
-
-                padding: 0 18px;
-
+                height: 50px;
+                padding: 0 24px;
                 border: none;
-
                 border-radius: 14px;
-
-                background: #e5e7eb;
-
+                background: var(--operator-border);
+                color: var(--operator-text);
                 font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-shadow);
+
             }
 
             .salida-submit {
@@ -798,7 +845,7 @@ export default function RackSalidaModal({
                 font-weight: 700;
 
                 box-shadow:
-                    0 12px 24px rgba(220,38,38,0.22);
+                    0 0px 24px rgba(220, 38, 38, 0.62);
             }
 
         `}</style>

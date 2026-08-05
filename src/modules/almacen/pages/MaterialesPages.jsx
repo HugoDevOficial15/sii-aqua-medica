@@ -53,7 +53,7 @@ export default function MaterialesPage() {
                 </div>
 
                 <button
-                    className="btn btn-primary d-flex align-items-center gap-2"
+                    className="btn btn-primary"
                     onClick={() => {
                         setSelected(null);
                         setShow(true);
@@ -90,6 +90,24 @@ export default function MaterialesPage() {
                     onSuccess={load}
                 />
             )}
+
+            <style jsx>{`
+
+            .btn-primary {
+                height: 40px;
+                padding: 0 20px;
+                border-radius: 10px;
+                border: none;
+                background: var(--operator-primary);
+                color: #fff;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-primary-light);
+            }
+            `}</style>
 
         </div>
     );

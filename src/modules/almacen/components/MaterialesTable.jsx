@@ -67,35 +67,57 @@ export default function MaterialesTable({ data, onEdit }) {
         </table>
 
         <style jsx>{`
-            tbody tr td:first-child {
-                background-color: var(--operator-card);
-                bordercolor: var(--operator-card);
-                color: var(--operator-text);
-            }
+        
+        /* PAGINA */
 
-            tbody tr td:nth-child(2) {
-                background-color: var(--operator-card);
+        .card {
+            border-radius: 30px;
+            box-shadow: 0px 8px 25px var(--operator-shadow);
+        }
 
-            }
+        .row {
+        padding: 15px 15px;
+        }
+
+        /* TABLA */
+
+        .table-responsive-container {
+            overflow-x: auto;
+            padding: 15px 15px;
+        }
+
+        .table thead th {
             
-            tbody tr td:nth-child(3) {
-                background-color: var(--operator-card);
-                bordercolor: var(--operator-card);
-                color: var(--operator-text);
-            }
+            border-bottom: 3px solid var(--operator-text);
+            font-size: 20px;
+            font-weight: 900;
+            padding: 5px 5px;
+            vertical-align: middle;
+            border-top: none !important;
+            white-space: wrap;
 
-            tbody tr td:nth-child(4) {
-                background-color: var(--operator-card);
-                bordercolor: var(--operator-card);
-                color: var(--operator-text);
-            }
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            max-width: 230px;
+            min-width: 100px;
+        }
 
-            tbody tr td:nth-child(5) {
-                background-color: var(--operator-card);
-                bordercolor: var(--operator-card);
-                color: var(--operator-text);
-            }
-            
+        .table tbody tr {
+            border-bottom: 3px solid var(--operator-border);
+            height: 50px;
+            font-size: 14px;
+            padding: 5px 5px;
+            vertical-align: middle;
+            border-top: none !important;
+            white-space: wrap;
+
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            max-width: 230px;
+            min-width: 100px;
+        }
+
+
         `}</style>
         </div>
     );

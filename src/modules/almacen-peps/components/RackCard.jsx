@@ -12,8 +12,6 @@ export default function RackCard({
     |--------------------------------------------------------------------------
     */
 
-    const MAX_LOTES = 10;
-
     const stock = rack.stock || [];
 
     const totalLotes = stock.length;
@@ -28,16 +26,10 @@ export default function RackCard({
     const totalProductos =
         productosUnicos.length;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Ocupación
-    |--------------------------------------------------------------------------
-    */
-
     const porcentaje =
         Math.min(
             Math.round(
-                (totalLotes / MAX_LOTES) * 100
+                Number(rack?.espacioOcupado || 0)
             ),
             100
         );

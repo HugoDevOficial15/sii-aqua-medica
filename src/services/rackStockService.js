@@ -70,6 +70,31 @@ export const eliminarStock = async (stockId) => {
     await deleteDoc(ref);
 };
 
+export const actualizarColorStockPorItem = async (itemId, color) => {
+    if (!itemId) return;
+
+    const q = query(
+        collection(db, COLLECTION),
+        where("itemId", "==", itemId),
+        where("activo", "==", true)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) return;
+
+    const batch = writeBatch(db);
+
+    snap.docs.forEach((docItem) => {
+        batch.update(doc(db, COLLECTION, docItem.id), {
+            color: color || null,
+            updatedAt: serverTimestamp()
+        });
+    });
+
+    await batch.commit();
+};
+
 /*
 |--------------------------------------------------------------------------
 | Obtener stock PEPS

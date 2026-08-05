@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaGift } from "react-icons/fa";
+
+import { getCumpleaniosPorMes } from "../../services/aniversariosService";
 
 export default function AniversarioMesesPage() {
     const navigate = useNavigate();
@@ -9,6 +12,17 @@ export default function AniversarioMesesPage() {
         "Mayo", "Junio", "Julio", "Agosto",
         "Septiembre", "Octubre", "Noviembre", "Diciembre"
     ];
+
+    const [conteoPorMes, setConteoPorMes] = useState(Array(12).fill(0));
+
+    useEffect(() => {
+        const cargarConteos = async () => {
+            const conteos = await getCumpleaniosPorMes();
+            setConteoPorMes(conteos);
+        };
+
+        cargarConteos();
+    }, []);
 
     return (
         <>
@@ -34,7 +48,7 @@ export default function AniversarioMesesPage() {
                                     <FaGift />
                                 </div>
                                 <span className="badge-month">
-                                    0
+                                    {conteoPorMes[index] ?? 0}
                                 </span>
                             </div>
 

@@ -123,6 +123,7 @@ const buildMaterialGroups = (stock = [], racks = [], planta = "") => {
                 itemId: item.itemId || null,
                 nombreItem: item.nombreItem || "Sin nombre",
                 tipoItem: item.tipoItem || "",
+                color: item.color || item.color2 || null,
                 totalCantidad: 0,
                 lastEntry: null,
                 racks: []
@@ -134,6 +135,7 @@ const buildMaterialGroups = (stock = [], racks = [], planta = "") => {
         const entryDate = item.fechaEntrada || item.createdAt;
 
         group.totalCantidad += cantidad;
+        group.color = group.color || item.color || item.color2 || null;
         group.lastEntry = compareDates(entryDate, group.lastEntry) < 0
             ? entryDate
             : group.lastEntry || entryDate;
@@ -329,7 +331,7 @@ export default function AlmacenMaterialesPage() {
                 </div>
 
                 <div className="table-responsive-container">
-                    <table className="table table-hover align-middle">
+                    <table className="table table-principal">
                         <thead>
                             <tr>
                                 <th>Material</th>
@@ -356,6 +358,14 @@ export default function AlmacenMaterialesPage() {
                                         >
                                             <td>
                                                 <div className="d-flex align-items-center gap-2">
+                                                    <span
+                                                        className="material-color-dot"
+                                                        style={{
+                                                            backgroundColor: item.color || "#cce3ff",
+                                                            border: "2px solid rgba(11, 21, 46, 0.16)"
+                                                        }}
+                                                        title={item.color || "Sin color"}
+                                                    />
                                                     <FaBoxes />
                                                     <strong>{item.nombreItem}</strong>
                                                 </div>
@@ -414,10 +424,48 @@ export default function AlmacenMaterialesPage() {
                 </div>
             </div>
             <style jsx>{`
+
+
+            /* PAGINA */
+
+            .card {
+                border-radius: 30px;
+                box-shadow: 0 8px 25px var(--operator-shadow);
+            }
+
+
+
+            /* COLOR */
             .p-3-rounded-bg-light {
                 background-color: var(--operator-card);
                 border-color: var(--operator-border);
                 color: var(--operator-text);
+            }
+
+            .material-color-dot {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                flex-shrink: 0;
+                display: inline-block;
+            }
+
+                /* TABLA PRINCIPAL */
+
+            .table-principal thead tr {
+                
+        border-bottom: 3px solid var(--operator-text);
+        font-size: 20px;
+        font-weight: 900;
+        padding: 5px 5px;
+        vertical-align: middle;
+        border-top: none !important;
+        white-space: wrap;
+
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 230px;
+        min-width: 100px;
             }
 
             .rack-location-list {
@@ -440,6 +488,7 @@ export default function AlmacenMaterialesPage() {
                 border-bottom: 1px solid var(--operator-border);
                 padding: 10px 12px;
                 font-weight: 600;
+                font-size: 14px;
             }
 
             .rack-location-action-cell {
@@ -448,7 +497,7 @@ export default function AlmacenMaterialesPage() {
                 max-width: 70px;
                 min-width: 70px;
             }
-
+                /* BOTONES */
             .rack-location-button {
                 background: var(--operator-primary);
                 color: #fff;
@@ -456,6 +505,7 @@ export default function AlmacenMaterialesPage() {
                 padding: 0.35rem 0.7rem;
                 font-size: 0.8rem;
                 font-weight: 600;
+                bordercolor: none;
                 transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
             }
 
@@ -463,6 +513,62 @@ export default function AlmacenMaterialesPage() {
                 background: var(--operator-background);
 
                 transform: translateY(-1px);
+            }
+
+            /* LABELS INPUTS */
+
+            .form-label {
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                color: "var(--operator-text)"
+            }
+
+            .input-group-text {
+                background-color: var(--operator-card);
+                border-color: var(--operator-border);
+                color: var(--operator-text);
+            }
+
+            .form-control {
+                height: 50px;
+                border-radius: 12px;
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+                background: var(--operator-border);
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
+            }
+
+            .form-control:focus {
+                background-color: var(--operator-border);
+                border-color: var(--operator-primary);
+                box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+            }
+
+            .form-select {
+                height: 50px;
+                border-radius: 12px;
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+                background: var(--operator-border);
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
+                cursor: pointer;
+            }
+
+            .form-select:focus {
+                background-color: var(--operator-border);
+                border-color: var(--operator-primary);
+                box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+            }
+
+            .form-select:disabled {
+                background-color: var(--operator-card);
+                color: var(--operator-text);
+                opacity: 0.6;
             }
 
             `}</style>

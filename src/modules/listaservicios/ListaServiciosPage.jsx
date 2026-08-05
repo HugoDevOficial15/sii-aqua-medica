@@ -729,6 +729,21 @@ export default function ListaServiciosPage() {
                 </div>
             )}
 
+            <style jsx>{`
+                
+                /* PAGINA */
+
+            .card {
+                border-radius: 30px;
+                
+            }
+
+                /* CONTAINER */
+
+                /* TABLA */
+
+                /* LABELS, FORMS y SELECTS */
+            `}</style>
         </div>
     );
 } 

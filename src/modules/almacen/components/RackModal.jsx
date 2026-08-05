@@ -6,6 +6,39 @@ import { useState, useEffect } from "react";
 import { FaPlus } from "react-icons/fa";
 import { validateRack } from "../../../schemas/rackSchema";
 
+const normalizarPayloadRack = (form = {}) => {
+    const payload = { ...form };
+
+    const camposCapacidad = {
+        "pesoMaximo-materiaPrima": "pesoMaximoMateriaPrima",
+        "pesoMaximo-materialAcondicionamiento": "pesoMaximoMaterialAcondicionamiento",
+        "pesoMaximo-productoTerminado": "pesoMaximoProductoTerminado"
+    };
+
+    Object.entries(camposCapacidad).forEach(([origen, destino]) => {
+        if (payload[origen] !== undefined) {
+            payload[destino] = payload[origen];
+            delete payload[origen];
+        }
+    });
+
+    [
+        "pesoMaximoMateriaPrima",
+        "pesoMaximoMaterialAcondicionamiento",
+        "pesoMaximoProductoTerminado"
+    ].forEach((campo) => {
+        if (payload[campo] === "" || payload[campo] === null || payload[campo] === undefined) {
+            payload[campo] = null;
+            return;
+        }
+
+        const valor = Number(payload[campo]);
+        payload[campo] = Number.isFinite(valor) ? valor : null;
+    });
+
+    return payload;
+};
+
 import { db } from "../../../config/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { obtenerRacks } from "../../../services/rackService";
@@ -55,6 +88,10 @@ export default function RackModal({ onClose, onSuccess, data }) {
             Object.keys(data).forEach(k => {
                 setValue(k, data[k]);
             });
+
+            setValue("pesoMaximoMateriaPrima", data.pesoMaximoMateriaPrima ?? data["pesoMaximo-materiaPrima"] ?? "");
+            setValue("pesoMaximoMaterialAcondicionamiento", data.pesoMaximoMaterialAcondicionamiento ?? data["pesoMaximo-materialAcondicionamiento"] ?? "");
+            setValue("pesoMaximoProductoTerminado", data.pesoMaximoProductoTerminado ?? data["pesoMaximo-productoTerminado"] ?? "");
 
             if (data.ubicacionTipo) {
                 setValue("ubicacionTipo", data.ubicacionTipo); 
@@ -211,6 +248,24 @@ export default function RackModal({ onClose, onSuccess, data }) {
             return notifyError("Error", "Planta requerida");
         }
 
+        const camposCapacidad = [
+            "pesoMaximoMateriaPrima",
+            "pesoMaximoMaterialAcondicionamiento",
+            "pesoMaximoProductoTerminado"
+        ];
+
+        for (const campo of camposCapacidad) {
+            const valor = form[campo];
+
+            if (valor === "" || valor === null || valor === undefined) {
+                continue;
+            }
+
+            if (Number.isNaN(Number(valor))) {
+                return notifyError("Error", `El campo ${campo} debe ser un número válido`);
+            }
+        }
+
         try {
             const existingRacks = await obtenerRacks();
 
@@ -260,19 +315,21 @@ export default function RackModal({ onClose, onSuccess, data }) {
                 itemAsignadoFinal = itemSeleccionado?.nombre || form.itemAsignado || "";
             }
 
+            const payloadRack = normalizarPayloadRack({
+                ...form,
+                tipoAsignacion: asignacionFinal,
+                itemAsignado: itemAsignadoFinal,
+                colorTipoAlmacenamiento:
+                    form.tipoAlmacenamiento === "producto_terminado"
+                        ? "#2563eb"
+                        : ""
+            });
+
             if (data) {
 
                 await actualizarRack(
                     data.id,
-                    {
-                        ...form,
-                        tipoAsignacion: asignacionFinal,
-                        itemAsignado: itemAsignadoFinal,
-                        colorTipoAlmacenamiento:
-                            form.tipoAlmacenamiento === "producto_terminado"
-                                ? "#2563eb"
-                                : ""
-                    }
+                    payloadRack
                 );
 
                 notifySuccess(
@@ -284,17 +341,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
                 await crearRack({
 
-                    ...form,
-
-                    tipoAsignacion: asignacionFinal,
-
-                    itemAsignado:
-                        itemAsignadoFinal || "",
-
-                    colorTipoAlmacenamiento:
-                        form.tipoAlmacenamiento === "producto_terminado"
-                            ? "#2563eb"
-                            : "",
+                    ...payloadRack,
 
                     createdAt: new Date()
                 });
@@ -327,7 +374,6 @@ export default function RackModal({ onClose, onSuccess, data }) {
         <div style={styles.backdrop}>
 
             <div style={styles.modalCard}>
-
                 {/* HEADER */}
                 <div style={styles.header}>
 
@@ -338,8 +384,9 @@ export default function RackModal({ onClose, onSuccess, data }) {
                     </h5>
 
                     <button
+                        className="close"
                         style={styles.closeButton}
-                        onClick={onClose}x
+                        onClick={onClose}
                     >
                         ×
                     </button>
@@ -381,6 +428,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                                     }}
                                 >
                                     <input
+                                        className="input"
                                         type="radio"
                                         value={option.value}
                                         {...register("ubicacionTipo")}
@@ -403,6 +451,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                         </label>
 
                         <input
+                            className="input"
                             placeholder={numeroPlaceholder}
                             value={numeroRackValue}
                             {...register("numeroRack", {
@@ -434,6 +483,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                         >
 
                             <select
+                                className="select"
                                 {...register("planta")}
                                 style={{
                                     ...styles.input,
@@ -455,26 +505,10 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
                             </select>
 
-                            <select
-                                {...register("estatus")}
-                                style={{
-                                    ...styles.input,
-                                    flex: 1
-                                }}
-                            >
-                                <option value="activo">
-                                    Activo
-                                </option>
-
-                                <option value="inactivo">
-                                    Inactivo
-                                </option>
-
-                            </select>
-
                         </div>
 
                         <select
+                            className="select"
                             {...register("tipoAlmacenamiento")}
                             style={styles.input}
                         >
@@ -497,6 +531,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                         </select>
 
                         <select
+                            className="select"
                             style={styles.input}
                             value={tipoAsignacion}
                             onChange={(e) =>
@@ -523,6 +558,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                         {tipoAsignacion && (
 
                             <select
+                                className="select"
                                 {...register("itemAsignadoId")}
                                 style={styles.input}
                             >
@@ -543,7 +579,36 @@ export default function RackModal({ onClose, onSuccess, data }) {
                                 ))}
 
                             </select>
+                            
                         )}
+
+                        <input
+                            className="input"
+                            type="number"
+                            step="any"
+                            {...register("pesoMaximoMateriaPrima")}
+                            style={styles.input}
+                            placeholder="Capacidad máxima de materia prima"
+                        />
+
+                        <input
+                            className="input"
+                            type="number"
+                            step="any"
+                            {...register("pesoMaximoMaterialAcondicionamiento")}
+                            style={styles.input}
+                            placeholder="Capacidad máxima de material de acondicionamiento"
+                        />
+
+                        <input
+                            className="input"
+                            type="number"
+                            step="any"
+                            {...register("pesoMaximoProductoTerminado")}
+                            style={styles.input}
+                            placeholder="Capacidad máxima de producto terminado"
+                        />
+
 
                         {/* FOOTER */}
                         <div style={styles.footer}>
@@ -572,6 +637,27 @@ export default function RackModal({ onClose, onSuccess, data }) {
                 </div>
 
             </div>
+
+            <style>{`
+
+                .input:focus {
+                    background-color: var(--operator-border);
+                    border-color: var(--operator-primary);
+                    box-shadow: 0 0 0 0.1rem var(--operator-primary);
+                }
+
+                .select:focus {
+                    background-color: var(--operator-border);
+                    border-color: var(--operator-primary);
+                    box-shadow: 0 0 0 0.1rem var(--operator-primary);
+                }
+
+                .close:hover {
+                    background-color: var(--operator-border);
+                    color: var(--operator-primary);
+                }
+
+            `}</style>
 
         </div>
     );
@@ -646,42 +732,33 @@ const styles = {
 
         padding: "24px 30px",
 
-        borderBottom:
-            "1px solid var(--operator-border)",
+        borderBottom:"none",
 
-        background:
-            "linear-gradient(135deg,var(--operator-background),var(--operator-background))",
+        background: "var(--operator-card)"
 
     },
 
     title: {
 
         margin: 0,
-
         fontSize: "1.5rem",
-
         fontWeight: "800",
-
         color: "var(--operator-text)"
     },
 
     closeButton: {
 
-        width: "42px",
-
-        height: "42px",
-
-        borderRadius: "14px",
-
-        background: "var(--operator-card)",
-
-        color: "var(--operator-text)",
-
-        border: "1px solid var(--operator-border)",
-
-        fontSize: "20px",
-
+        width: "36px",
+        height: "36px",
+        border: "none", 
+        borderRadius: "10px",
+        background: "var(--operator-card)", 
+        color: "var(--operator-text)", 
+        fontSize: "30px",
         cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
         
     },
 
@@ -702,6 +779,7 @@ const styles = {
         gap: "20px"
     },
 
+
     label: {
 
         color: "var(--operator-text)",
@@ -715,12 +793,11 @@ const styles = {
 
         borderRadius: "14px",
 
-        border:
-            "1px solid var(--operator-border)",
+        border: "1px solid var(--operator-border)",
 
         padding: "0 14px",
 
-        background: "var(--operator-card)",
+        background: "var(--operator-border)",
 
         fontSize: "14px",
 
@@ -750,29 +827,16 @@ const styles = {
     saveButton: {
 
         height: "50px",
-
         padding: "0 24px",
-
         borderRadius: "14px",
-
         border: "none",
-
-        background:
-            "linear-gradient(135deg,#2563eb,#1d4ed8)",
-
+        background: "var(--operator-primary)",
         color: "#fff",
-
         fontWeight: "700",
-
         cursor: "pointer",
-
         display: "flex",
-
         alignItems: "center",
-
         justifyContent: "center",
-
-        boxShadow:
-            "0 12px 24px rgba(37,99,235,0.22)"
+        boxShadow: "0 0px 20px var(--operator-primary-light)",
     }
 };
