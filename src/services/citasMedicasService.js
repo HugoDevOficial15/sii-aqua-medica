@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { CITA_ESTADOS, ESTADOS_CANCELABLES } from "../constants/citasMedicasStates";
+import { createNotification } from "../utils/createNotification";
 
 export const getCitasMedicas = async () => {
     const snap = await getDocs(collection(db, "citas_medicas"));
@@ -105,12 +106,11 @@ export const cancelAppointmentByUser = async (citaId, user, motivo) => {
 
     // Confirmación para el propio usuario de que su cancelación se registró.
     if (user?.id) {
-        await addDoc(collection(db, "notificaciones"), {
+        await createNotification({
+            IdUsuario: user.id,
             Titulo: "Cita cancelada",
             Mensaje: "Tu cancelación fue registrada correctamente.",
-            Destino: "CitaCanceladaConfirmacion",
-            IdUsuario: user.id,
-            fechaCreacion: serverTimestamp()
+            Destino: "CitaCanceladaConfirmacion"
         });
     }
 
@@ -120,11 +120,8 @@ export const cancelAppointmentByUser = async (citaId, user, motivo) => {
 // CANCELACIÓN MASIVA POR AGENDA (Administrador)
 // ======================================================
 // Agrega al batch recibido la cancelación de todas las citas cancelables
-// de una agenda + una notificación por cada usuario afectado. No hace
-// commit: lo hace el llamador, para poder combinarlo con otras
-// operaciones (ej. actualizar la propia agenda) en una sola operación
-// atómica. Así cancelAppointmentsByAgenda() y updateAgendaWithBatch()
-// (en agendaMedicaService.js) reutilizan exactamente la misma lógica.
+// de una agenda. Retorna los datos de las citas para crear notificaciones
+// después (fuera del batch).
 export const queueCancelacionCitasPorAgenda = async (batch, agendaId, motivo, adminUid) => {
 
     const q = query(
@@ -134,6 +131,8 @@ export const queueCancelacionCitasPorAgenda = async (batch, agendaId, motivo, ad
     );
 
     const snap = await getDocs(q);
+
+    const citasACancelar = [];
 
     snap.docs.forEach(citaDoc => {
 
@@ -150,19 +149,15 @@ export const queueCancelacionCitasPorAgenda = async (batch, agendaId, motivo, ad
         const idUsuario = cita.userId || cita.usuarioId;
 
         if (idUsuario) {
-            const notifRef = doc(collection(db, "notificaciones"));
-            batch.set(notifRef, {
-                Titulo: "Cita cancelada",
-                Mensaje: `La agenda médica fue modificada por el administrador. Tu cita ha sido cancelada.\n\nMotivo:\n${motivo}\n\nPor favor agenda una nueva cita.`,
-                Destino: "CitaCancelada",
-                IdUsuario: idUsuario,
-                fechaCreacion: serverTimestamp()
+            citasACancelar.push({
+                idUsuario,
+                motivo
             });
         }
 
     });
 
-    return snap.docs.length;
+    return { count: snap.docs.length, citasACancelar };
 
 };
 
@@ -170,11 +165,25 @@ export const cancelAppointmentsByAgenda = async (agendaId, motivo, adminUid) => 
 
     const batch = writeBatch(db);
 
-    const citasCanceladas = await queueCancelacionCitasPorAgenda(batch, agendaId, motivo, adminUid);
+    const { count, citasACancelar } = await queueCancelacionCitasPorAgenda(batch, agendaId, motivo, adminUid);
 
     await batch.commit();
 
-    return { success: true, citasCanceladas };
+    // Crear notificaciones después del batch (con push notifications automáticas)
+    for (const cita of citasACancelar) {
+        try {
+            await createNotification({
+                IdUsuario: cita.idUsuario,
+                Titulo: "Cita cancelada",
+                Mensaje: `La agenda médica fue modificada por el administrador. Tu cita ha sido cancelada.\n\nMotivo:\n${cita.motivo}\n\nPor favor agenda una nueva cita.`,
+                Destino: "CitaCancelada"
+            });
+        } catch (error) {
+            console.error(`Error creando notificación para usuario ${cita.idUsuario}:`, error);
+        }
+    }
+
+    return { success: true, citasCanceladas: count };
 
 };
 
@@ -222,6 +231,103 @@ export const getAvailableSchedules = async ({ agendaId, fecha, bloquesPosibles, 
     return {
         bloques: bloquesPosibles.filter(h => !horasOcultasParaNomina.has(h)),
         ocupadas: Array.from(horasOcupadas)
+    };
+
+};
+
+// ======================================================
+// AGENDAR CITA (Operador)
+// ======================================================
+// Valida dos reglas:
+// 1. Aislamiento de campaña: un usuario NO puede tener dos citas en la
+//    misma agenda (campaña).
+// 2. Bloqueo de horario: un usuario NO puede tener dos citas a la misma
+//    hora y fecha (en distintas agendas, sí es posible si las horas no
+//    coinciden).
+// Si ambas validaciones pasan, crea la cita.
+export const bookAppointment = async (appointmentData) => {
+
+    const {
+        agendaId,
+        fecha,
+        horaInicio,
+        userId,
+        nominaUsuario,
+        usuario,
+        nombre,
+        paciente
+    } = appointmentData;
+
+    if (!agendaId || !fecha || !horaInicio || !userId) {
+        throw new Error("Datos incompletos para agendar la cita.");
+    }
+
+    // ======================================================
+    // 1. AISLAMIENTO DE CAMPAÑA
+    // ======================================================
+    // Verifica si el usuario ya tiene una cita en esta agenda específica.
+    const qCampana = query(
+        collection(db, "citas_medicas"),
+        where("agendaId", "==", agendaId),
+        where("userId", "==", userId)
+    );
+
+    const snapCampana = await getDocs(qCampana);
+
+    if (!snapCampana.empty) {
+        throw new Error("Ya tienes un turno asignado en esta campaña.");
+    }
+
+    // ======================================================
+    // 2. BLOQUEO DE HORARIO
+    // ======================================================
+    // Verifica si el usuario ya tiene una cita en la misma fecha y hora
+    // (sin importar la agenda/campaña).
+    const qHorario = query(
+        collection(db, "citas_medicas"),
+        where("userId", "==", userId),
+        where("fecha", "==", fecha)
+    );
+
+    const snapHorario = await getDocs(qHorario);
+
+    snapHorario.docs.forEach(doc => {
+        const cita = doc.data();
+        const horaExistente = cita.horaInicio || cita.hora || "";
+
+        if (horaExistente === horaInicio) {
+            throw new Error("Ya tienes otra cita agendada a esta misma hora.");
+        }
+    });
+
+    // ======================================================
+    // SI PASA AMBAS VALIDACIONES, CREA LA CITA
+    // ======================================================
+    const nuevaCita = {
+        agendaId,
+        fecha,
+
+        horaInicio,
+        hora: horaInicio,
+        horario: horaInicio,
+        time: horaInicio,
+
+        userId,
+        nominaUsuario: nominaUsuario || null,
+
+        usuario: usuario || nombre || paciente || null,
+        paciente: paciente || usuario || nombre || null,
+        nombre: nombre || usuario || paciente || null,
+
+        estado: CITA_ESTADOS.ACTIVA,
+        createdAt: serverTimestamp()
+    };
+
+    const docRef = await addDoc(collection(db, "citas_medicas"), nuevaCita);
+
+    return {
+        id: docRef.id,
+        ...nuevaCita
     };
 
 };;

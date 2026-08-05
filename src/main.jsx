@@ -12,6 +12,13 @@ import "./styles/auth/login-premium.css";
 
 import App from './App.jsx';
 
+// Registrar Service Worker para notificaciones push offline
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(registration => console.log('✓ Service Worker registrado'))
+    .catch(error => console.error('✗ Error registrando Service Worker:', error));
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />

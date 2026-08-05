@@ -1,6 +1,7 @@
-import { collection, getDocs, Timestamp, updateDoc, doc, addDoc, writeBatch } from "firebase/firestore";
+import { collection, getDocs, Timestamp, updateDoc, doc, addDoc, writeBatch, serverTimestamp } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { queueCancelacionCitasPorAgenda } from "./citasMedicasService";
+import { createNotification } from "../utils/createNotification";
 
 export const getAgendasMedicas = async () => {
     const snap = await getDocs(collection(db, "agendas_medicas"));
@@ -17,6 +18,32 @@ export const crearAgenda = async (data) => {
         estado: "activa",
         createdAt: Timestamp.now()
     });
+
+    // Crear notificación para todos los usuarios
+    try {
+        const usersSnapshot = await getDocs(collection(db, "usuarios"));
+
+        const notificacionesPromises = usersSnapshot.docs.map(userDoc => {
+            const userId = userDoc.id;
+            return createNotification({
+                IdUsuario: userId,
+                Titulo: "📅 Nueva agenda médica",
+                Mensaje: `Se creó la campaña: "${data.nombre}". Revisa los horarios disponibles.`,
+                Destino: "citas-medicas",
+                extra: {
+                    NomAgenda: data.nombre,
+                    agendaId: docRef.id
+                }
+            }).catch(error => {
+                console.error(`Error creando notificación para usuario ${userId}:`, error);
+            });
+        });
+
+        await Promise.all(notificacionesPromises);
+    } catch (err) {
+        console.error("No se pudo crear las notificaciones de nueva agenda:", err);
+        // No impedimos que la agenda se cree si las notificaciones fallan
+    }
 
     return docRef.id;
 };

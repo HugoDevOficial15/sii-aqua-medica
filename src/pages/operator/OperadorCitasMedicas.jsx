@@ -12,7 +12,8 @@ import { CITA_ESTADOS } from "../../constants/citasMedicasStates";
 import {
     getUserAppointments,
     cancelAppointmentByUser,
-    getAvailableSchedules
+    getAvailableSchedules,
+    bookAppointment
 } from "../../services/citasMedicasService";
 
 export default function OperadorCitasMedicas() {
@@ -157,44 +158,22 @@ export default function OperadorCitasMedicas() {
 
         setProcesando(true);
         const nombreFinal = user?.nombre || "Ángel Julián Ojeda Ramírez";
-        const uidUsuario = user?.uid || user?.id || nombreFinal; // Identificador único del usuario actual
+        const uidUsuario = user?.uid || user?.id || nombreFinal;
 
         try {
-            // Verificar si el usuario ya tiene una cita este mismo día
-            const qDuplicada = query(
-                collection(db, "citas_medicas"),
-                where("fecha", "==", fechaElegida)
-            );
-            const snapshotDuplicada = await getDocs(qDuplicada);
-
-            const yaTieneCitaHoy = snapshotDuplicada.docs.some(doc => {
-                const data = doc.data();
-                return data.userId === uidUsuario || data.usuario === nombreFinal || data.paciente === nombreFinal;
-            });
-
-            if (yaTieneCitaHoy) {
-                notifyWarning("Cita ya existente", "Ya tienes una cita programada para este día. No puedes tomar otra.");
-                setProcesando(false);
-                return;
-            }
-
-            await addDoc(collection(db, "citas_medicas"), {
+            // La función centralizada hace dos validaciones:
+            // 1. Aislamiento de campaña: no puedes tener dos citas en la misma agenda
+            // 2. Bloqueo de horario: no puedes tener dos citas a la misma hora,
+            //    aunque sean en agendas diferentes
+            await bookAppointment({
                 agendaId: agendaActiva.id,
                 fecha: fechaElegida,
+                horaInicio: horaElegida,
                 userId: uidUsuario,
                 nominaUsuario: user?.nomina || null,
-
-                hora: horaElegida,
-                horario: horaElegida,
-                time: horaElegida,
-                horaInicio: horaElegida,
-
                 usuario: nombreFinal,
-                paciente: nombreFinal,
                 nombre: nombreFinal,
-
-                estado: CITA_ESTADOS.ACTIVA,
-                createdAt: serverTimestamp()
+                paciente: nombreFinal
             });
 
             notifySuccess("Cita agendada", "Tu cita fue registrada con éxito.");
@@ -204,7 +183,7 @@ export default function OperadorCitasMedicas() {
             setVista("lista");
         } catch (error) {
             console.error("Error al guardar cita:", error);
-            notifyError("Error", "Hubo un error al agendar la cita.");
+            notifyError("Error", error.message || "Hubo un error al agendar la cita.");
         } finally {
             setProcesando(false);
         }

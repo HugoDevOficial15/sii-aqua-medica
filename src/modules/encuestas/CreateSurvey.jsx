@@ -161,27 +161,28 @@ export default function CreateSurvey() {
     // (input separado por comas); aquí se normalizan a un único objeto
     // antes de guardar, sin tocar el resto del formulario.
     const construirAsignacion = (data) => {
-
-        const areasSeleccionadas = data.areas || [];
-
-        if (areasSeleccionadas.includes("ALL")) {
-            return { tipo: "global", valores: [] };
-        }
-
-        if (data.asignacion?.tipo === "usuarios") {
-            return {
-                tipo: "usuarios",
-                valores: (data.asignacion.valores || [])
-                    .map(v => String(v).trim())
-                    .filter(Boolean)
-            };
-        }
-
+    // 🔥 1. Prioridad absoluta: Si es por usuarios, procesamos e ignoramos las áreas
+    if (data.asignacion?.tipo === "usuarios") {
         return {
-            tipo: "area",
-            valores: areasSeleccionadas
+            tipo: "usuarios",
+            valores: (data.asignacion.valores || [])
+                .map(v => String(v).trim())
+                .filter(Boolean)
         };
+    }
+
+    // 2. Si es global (Todas las áreas)
+    const areasSeleccionadas = data.areas || [];
+    if (areasSeleccionadas.includes("ALL")) {
+        return { tipo: "global", valores: [] };
+    }
+
+    // 3. Por defecto (Por área)
+    return {
+        tipo: "area",
+        valores: areasSeleccionadas
     };
+};
 
     const hnadleSaveSurvey = async (data) => {
 
@@ -762,166 +763,106 @@ export default function CreateSurvey() {
 
 
                             {currentStep === 2 && (
-                                <>
+    <>
+        <div className="mt-3">
+            <label>
+                <strong>Asignación</strong>
+            </label>
 
-                                    <div className="mt-3">
+            {/* TIPO ASIGNACIÓN */}
+            <select
+                className="form-control mb-4 mt-4"
+                {...register("asignacion.tipo", {
+                    onChange: (e) => {
+                        if (e.target.value === "usuarios") {
+                            // 🔥 Inyectamos un área fantasma para que Zod apruebe el formulario sin bloquear
+                            setValue("areas", [AREAS[0]?.nombre || "Sistemas"], { shouldValidate: true });
+                        } else {
+                            setValue("areas", [], { shouldValidate: true });
+                        }
+                    }
+                })}
+            >
+                <option value="area">Por área</option>
+                <option value="usuarios">Por usuarios</option>
+            </select>
 
-                                        <label>
-                                            <strong>Asignación</strong>
-                                        </label>
+            {/* TODAS LAS ÁREAS (Solo mostrar si la asignación es por área) */}
+            {watch("asignacion.tipo") === "area" && (
+                <label
+                    className={`area-card mb-4 ${watch("areas")?.includes("ALL") ? "selected" : ""}`}
+                >
+                    <input
+                        type="checkbox"
+                        checked={watch("areas")?.includes("ALL")}
+                        onChange={(e) => {
+                            if (e.target.checked) {
+                                setValue("areas", ["ALL"], { shouldValidate: true });
+                                setValue("asignacion.tipo", "area");
+                                setValue("asignacion.valores", []);
+                            } else {
+                                setValue("areas", [], { shouldValidate: true });
+                            }
+                        }}
+                    />
+                    <span>Todas las áreas</span>
+                </label>
+            )}
 
-                                        {/* TIPO ASIGNACIÓN */}
+            {/* ÁREAS (Ocultar si seleccionó "Todas" o si está en modo "Usuarios") */}
+            {watch("asignacion.tipo") === "area" && !watch("areas")?.includes("ALL") && (
+                <div className="areas-grid mt-4">
+                    {AREAS.map(area => {
+                        const selected = watch("areas") || [];
+                        const isSelected = selected.includes(area.nombre);
+                        return (
+                            <div key={area.id} className="area-grid-item">
+                                <label className={`area-card ${isSelected ? "selected" : ""}`}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={(e) => {
+                                            let updated = [...selected];
+                                            if (e.target.checked) {
+                                                updated.push(area.nombre);
+                                            } else {
+                                                updated = updated.filter(a => a !== area.nombre);
+                                            }
+                                            setValue("areas", updated, { shouldValidate: true });
+                                        }}
+                                    />
+                                    <span>{area.nombre}</span>
+                                </label>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
-                                        <select
-                                            className="form-control mb-4 mt-4"
-                                            {...register("asignacion.tipo")}
-                                        >
-                                            <option value="area">
-                                                Por área
-                                            </option>
-
-                                            <option value="usuarios">
-                                                Por usuarios
-                                            </option>
-
-                                        </select>
-
-                                        {/* TODAS LAS ÁREAS */}
-
-                                        <label
-                                            className={`area-card mb-4 ${watch("areas")?.includes("ALL") ? "selected" : ""}`}
-                                        >
-
-                                            <input
-                                                type="checkbox"
-                                                checked={watch("areas")?.includes("ALL")}
-                                                onChange={(e) => {
-
-                                                    if (e.target.checked) {
-
-                                                        setValue("areas", ["ALL"]);
-
-                                                        setValue("asignacion.tipo", "area");
-
-                                                        setValue("asignacion.valores", []);
-
-                                                    } else {
-
-                                                        setValue("areas", []);
-
-                                                    }
-
-                                                }}
-                                            />
-
-                                            <span>
-                                                Todas las áreas
-                                            </span>
-
-                                        </label>
-
-                                        {/* ÁREAS */}
-
-                                        {!watch("areas")?.includes("ALL") && (
-                                            <>
-
-                                                {watch("asignacion.tipo") === "area" && (
-
-                                                    <div className="areas-grid mt-4">
-
-                                                        {AREAS.map(area => {
-
-                                                            const selected = watch("areas") || [];
-
-                                                            const isSelected = selected.includes(area.nombre);
-
-                                                            return (
-
-                                                                <div
-                                                                    key={area.id}
-                                                                    className="area-grid-item"
-                                                                >
-
-                                                                    <label
-                                                                        className={`area-card ${isSelected ? "selected" : ""}`}
-                                                                    >
-
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={isSelected}
-                                                                            onChange={(e) => {
-
-                                                                                let updated = [...selected];
-
-                                                                                if (e.target.checked) {
-
-                                                                                    updated.push(area.nombre);
-
-                                                                                } else {
-
-                                                                                    updated = updated.filter(
-                                                                                        a => a !== area.nombre
-                                                                                    );
-                                                                                }
-
-                                                                                setValue("areas", updated);
-
-                                                                            }}
-                                                                        />
-
-                                                                        <span>
-                                                                            {area.nombre}
-                                                                        </span>
-
-                                                                    </label>
-
-                                                                </div>
-
-                                                            );
-                                                        })}
-
-                                                    </div>
-
-                                                )}
-
-                                                {/* USUARIOS */}
-
-                                                {watch("asignacion.tipo") === "usuarios" && (
-
-                                                    <div className="mt-4">
-
-                                                        <label className="mb-2">
-                                                            <strong>Usuarios</strong>
-                                                        </label>
-
-                                                        <input
-                                                            className="form-control"
-                                                            placeholder="Ejemplo: 502,100,104"
-                                                            onBlur={(e) => {
-
-                                                                const valores = e.target.value
-                                                                    .split(",")
-                                                                    .map(v => v.trim());
-
-                                                                setValue(
-                                                                    "asignacion.valores",
-                                                                    valores
-                                                                );
-
-                                                            }}
-                                                        />
-
-                                                    </div>
-
-                                                )}
-
-                                            </>
-                                        )}
-
-                                    </div>
-
-                                </>
-                            )}
+            {/* USUARIOS */}
+            {watch("asignacion.tipo") === "usuarios" && (
+                <div className="mt-4">
+                    <label className="mb-2">
+                        <strong>Usuarios</strong>
+                    </label>
+                    <input
+                        className="form-control"
+                        placeholder="Ejemplo: 502, 100, 104"
+                        // 🔥 Usamos defaultValue y onChange para actualizar en tiempo real sin borrar las comas
+                        defaultValue={watch("asignacion.valores")?.join(", ")}
+                        onChange={(e) => {
+                            const valores = e.target.value
+                                .split(",")
+                                .map(v => v.trim())
+                                .filter(Boolean);
+                            setValue("asignacion.valores", valores, { shouldValidate: true });
+                        }}
+                    />
+                </div>
+            )}
+        </div>
+    </>
+)}
 
 
 

@@ -377,12 +377,40 @@ export default function SoporteAdmin() {
                 </div>
               </div>
 
-              {/* Capturas de pantalla adjuntas */}
+              {/* 🔥 SECCIÓN DE CAPTURAS CORREGIDA */}
               <div className="mb-4">
                 <label className="text-secondary fw-semibold mb-1" style={{ fontSize: "0.85rem" }}>
                   CAPTURAS DE PANTALLA ADJUNTAS
                 </label>
-                {selectedProblema.capturas && selectedProblema.capturas.length > 0 ? (
+
+                {/* 1. Si NO hay capturas */}
+                {(!selectedProblema.capturas || selectedProblema.capturas.length === 0) && (
+                  <div style={styles.fieldBox} className="text-secondary fst-italic">
+                    El usuario no adjuntó capturas de pantalla.
+                  </div>
+                )}
+
+                {/* 2. NUEVO FORMATO: String Base64 */}
+                {selectedProblema.capturas && typeof selectedProblema.capturas === 'string' && selectedProblema.capturas.length > 0 && (
+                  <div className="d-flex flex-wrap gap-2 mt-2">
+                    <a href={selectedProblema.capturas} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={selectedProblema.capturas}
+                        alt="Captura adjunta"
+                        style={{
+                          width: "100px",
+                          height: "100px",
+                          objectFit: "cover",
+                          borderRadius: "10px",
+                          border: "1px solid var(--operator-border)",
+                        }}
+                      />
+                    </a>
+                  </div>
+                )}
+
+                {/* 3. FORMATO VIEJO: Arreglo de strings */}
+                {selectedProblema.capturas && Array.isArray(selectedProblema.capturas) && selectedProblema.capturas.length > 0 && (
                   <div className="d-flex flex-wrap gap-2 mt-2">
                     {selectedProblema.capturas.map((imgUrl, idx) => (
                       <a key={idx} href={imgUrl} target="_blank" rel="noopener noreferrer">
@@ -400,12 +428,10 @@ export default function SoporteAdmin() {
                       </a>
                     ))}
                   </div>
-                ) : (
-                  <div style={styles.fieldBox} className="text-secondary fst-italic">
-                    El usuario no adjuntó capturas de pantalla.
-                  </div>
                 )}
               </div>
+              {/* 🔥 FIN SECCIÓN DE CAPTURAS CORREGIDA */}
+
 
               {/* GESTIÓN RÁPIDA DE ESTADO */}
               <div className="border-top pt-3" style={{ borderColor: "var(--operator-border)" }}>

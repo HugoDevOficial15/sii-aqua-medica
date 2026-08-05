@@ -93,82 +93,71 @@ export default function OperatorSurveyDetail({
 
     };
 
-    const handleFinishSurvey =
-        async () => {
+    const handleFinishSurvey = async () => {
+        try {
+            setSaving(true);
+            const result = calculateScore();
 
-            try {
+            // 🔥 1. LÓGICA DE INTENTOS Y ESTADO
+            // Leemos los intentos anteriores (si es la primera vez, será 0)
+            const intentosPrevios = survey.intentos || 0; 
+            const intentosActuales = intentosPrevios + 1;
 
-                setSaving(true);
-
-                const result =
-                    calculateScore();
-
-                await saveSurveyResponse({
-
-                    // Campos canónicos: idEncuesta + nominaUsuario son la
-                    // clave usada para cruzar respuestas con encuestas.
-                    idEncuesta: survey.id,
-                    nominaUsuario: user.nomina,
-                    puntuacionObtenida: result.calificacion,
-
-                    // Campos heredados (se conservan por compatibilidad).
-                    encuestaId: survey.id,
-
-                    userId: user.id,
-
-                    username: user.username,
-
-                    nombre: user.nombre,
-
-                    respuestas: answers,
-
-                    totalPreguntas:
-                        survey.preguntas.length,
-
-                    correctas:
-                        result.correctas,
-
-                    calificacion:
-                        result.calificacion,
-
-                    aprobada:
-                        result.calificacion >= MIN_APROBATORIO
-
-                });
-
-                if (onFinished) {
-                    onFinished();
+            let nuevoEstado = "";
+            
+            // Evaluamos con tu constante MIN_APROBATORIO
+            if (result.calificacion >= MIN_APROBATORIO) {
+                nuevoEstado = "completada";
+            } else {
+                // Reprobó. Verificamos si alcanzó el límite de 3
+                if (intentosActuales >= 3) {
+                    nuevoEstado = "bloqueada";
+                } else {
+                    nuevoEstado = "reprobada";
                 }
-
-                onSurveyResult({
-
-                    correctas:
-                        result.correctas,
-
-                    calificacion:
-                        result.calificacion,
-
-                    total:
-                        survey.preguntas.length
-
-                });
-
-                onNavigate(
-                    "survey-result"
-                );
-
-            } catch (error) {
-
-                console.error(error);
-
-                setSaving(false);
-
             }
 
-        };
+            // 🔥 2. GUARDADO EN FIREBASE
+            await saveSurveyResponse({
+                // Campos canónicos
+                idEncuesta: survey.id,
+                nominaUsuario: user.nomina,
+                puntuacionObtenida: result.calificacion,
 
+                // Campos heredados
+                encuestaId: survey.id,
+                userId: user.id,
+                username: user.username,
+                nombre: user.nombre,
+                respuestas: answers,
+                totalPreguntas: survey.preguntas.length,
+                correctas: result.correctas,
+                calificacion: result.calificacion,
+                aprobada: result.calificacion >= MIN_APROBATORIO,
+                
+                // NUEVOS CAMPOS ENVIADOS AL SERVICIO
+                intentos: intentosActuales,
+                estadoActual: nuevoEstado
+            });
 
+            if (onFinished) {
+                onFinished();
+            }
 
+            onSurveyResult({
+                correctas: result.correctas,
+                calificacion: result.calificacion,
+                total: survey.preguntas.length
+            });
+
+            // Redirigir a la pantalla de resultados
+            onNavigate("survey-result");
+
+        } catch (error) {
+            console.error("Error al finalizar la encuesta:", error);
+            setSaving(false);
+        }
+    };
 
     return (
         <>

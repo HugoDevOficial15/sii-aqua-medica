@@ -17,7 +17,7 @@ import {
     FaAmbulance,
     FaSyringe,
     FaLifeRing,
-    FaNewspaper, // <-- NUEVO ÍCONO IMPORTADO AQUÍ
+    FaNewspaper, 
     FaClipboardCheck,
     FaBuffer,
     FaExchangeAlt

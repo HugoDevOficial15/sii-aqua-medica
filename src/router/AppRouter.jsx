@@ -38,11 +38,26 @@ import MaintenancePage from "../components/MaintenancePage";
 // 🔥 NUEVAS IMPORTACIONES PARA LAS NOTIFICACIONES PUSH
 import { useAuth } from "../hooks/useAuth";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import { initPushNotifications, stopPushNotifications } from "../services/pushNotificationService";
+import { useEffect } from "react";
 
 export default function AppRouter() {
     // 🔥 EXTRAEMOS EL USUARIO ACTUAL Y ENCENDEMOS LAS NOTIFICACIONES
     const { user } = useAuth();
     usePushNotifications(user);
+
+    // 🔥 INICIALIZAR LISTENER DE NOTIFICACIONES EN TIEMPO REAL
+    // Detecta nuevas notificaciones en Firestore y las envía vía FCM
+    useEffect(() => {
+        const userId = user?.uid || user?.id; // 🔥 PRIORIZAMOS UID
+        if (userId) {
+            initPushNotifications(userId);
+
+            return () => {
+                stopPushNotifications();
+            };
+        }
+    }, [user?.uid, user?.id]);
 
     return (
         <BrowserRouter>

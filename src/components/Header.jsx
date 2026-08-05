@@ -28,6 +28,30 @@ export default function Header({ toggleSidebar }) {
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef(null);
 
+    const DISMISSED_NOTIFS_KEY = "dismissed_admin_notifications";
+
+    const getDismissedFromStorage = () => {
+        try {
+            const raw = localStorage.getItem(DISMISSED_NOTIFS_KEY);
+            return raw ? JSON.parse(raw) : [];
+        } catch (err) {
+            console.error("Error reading dismissed notifications from localStorage:", err);
+            return [];
+        }
+    };
+
+    const addDismissedToStorage = (id) => {
+        try {
+            const arr = getDismissedFromStorage();
+            if (!arr.includes(id)) {
+                arr.push(id);
+                localStorage.setItem(DISMISSED_NOTIFS_KEY, JSON.stringify(arr));
+            }
+        } catch (err) {
+            console.error("Error saving dismissed notification to localStorage:", err);
+        }
+    };
+
     // Reutiliza las funciones ya existentes: getPendingRequests() (misma
     // que usa el módulo Solicitudes) y getSemaforo() (mismo cálculo que
     // ya usa la tabla de Medicamentos), solo para armar la lista que se
@@ -67,7 +91,12 @@ export default function Header({ toggleSidebar }) {
                         ruta: "/medicamento"
                     }));
 
-                setNotifications([...notifsSolicitudes, ...notifsMedicamentos]);
+                // Filtrar notificaciones ya descartadas (persistidas en localStorage)
+                const dismissed = getDismissedFromStorage();
+                const todas = [...notifsSolicitudes, ...notifsMedicamentos];
+                const visibles = todas.filter(n => !dismissed.includes(n.id));
+
+                setNotifications(visibles);
 
             } catch (error) {
                 console.error("Error al cargar notificaciones del administrador:", error);
@@ -101,6 +130,12 @@ export default function Header({ toggleSidebar }) {
 
     const handleDismissNotification = (event, id) => {
         event.stopPropagation();
+        try {
+            addDismissedToStorage(id);
+        } catch (err) {
+            console.error("Error al persistir el descarte de notificación:", err);
+        }
+
         setNotifications((prev) => prev.filter((notif) => notif.id !== id));
     };
 

@@ -7,6 +7,9 @@ import { db } from "../../config/firebase";
 
 import { useAuth } from "../../hooks/useAuth";
 
+// 👇 Importamos el servicio de push notifications
+import { initPushNotifications, stopPushNotifications } from "../../services/pushNotificationService";
+
 import OperatorShell from "./layout/OperatorShell";
 
 import OperatorHome from "./OperatorHome";
@@ -58,6 +61,18 @@ export default function AppOperator() {
         error: surveysError,
         refetch: refetchSurveys
     } = useOperatorSurveys();
+
+    // 🚀 NUEVO: Inicializamos el servicio de push notifications para el usuario actual
+    useEffect(() => {
+        const userId = user?.uid || user?.id;
+        if (userId) {
+            initPushNotifications(userId);
+        }
+
+        return () => {
+            stopPushNotifications();
+        };
+    }, [user?.uid, user?.id]);
 
     //  4. EL VIGILANTE EN TIEMPO REAL
     useEffect(() => {

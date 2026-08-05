@@ -1,5 +1,5 @@
 import { db } from "../config/firebase";
-
+import { createNotification } from "../utils/createNotification"; // 👈 Asegúrate de que esta ruta sea correcta según la ubicación de tu archivo
 import {
     collection,
     addDoc,
@@ -45,10 +45,6 @@ const snapshotCampos = (data) => {
 // ======================
 // CREAR SOLICITUD (Operador)
 // ======================
-// Nunca escribe en "users": únicamente crea un documento en
-// "solicitudesCambios" con estado "Pendiente" para que el administrador
-// lo revise. "user" es el objeto completo del operador autenticado
-// (AuthProvider), usado para el snapshot de "datosActuales".
 export const requestProfileChange = async (user, changes) => {
 
     if (!user?.nomina) {
@@ -83,39 +79,30 @@ export const requestProfileChange = async (user, changes) => {
 // ======================
 // LISTAR (Administrador)
 // ======================
-// Una sola consulta trae todas las solicitudes; los filtros (estado,
-// área, fecha, buscador) se resuelven en memoria en el componente.
 export const getAllRequests = async () => {
-
     const q = query(requestCollection, orderBy("fechaSolicitud", "desc"));
-
     const snapshot = await getDocs(q);
 
     return snapshot.docs.map(d => ({
         id: d.id,
         ...d.data()
     }));
-
 };
 
 export const getPendingRequests = async () => {
-
     const q = query(requestCollection, where("estado", "==", "Pendiente"));
-
     const snapshot = await getDocs(q);
 
     return snapshot.docs.map(d => ({
         id: d.id,
         ...d.data()
     }));
-
 };
 
 // ======================
 // MIS SOLICITUDES (Operador)
 // ======================
 export const getUserRequests = async (nomina) => {
-
     const q = query(
         requestCollection,
         where("nominaActual", "==", nomina)
@@ -130,18 +117,11 @@ export const getUserRequests = async (nomina) => {
             const fechaB = b.fechaSolicitud?.toMillis?.() ?? 0;
             return fechaB - fechaA;
         });
-
 };
 
 // ======================
 // APROBAR (Administrador)
 // ======================
-// Busca al usuario por nómina y aplica ÚNICAMENTE los campos solicitados
-// vía updateUserFields() (updateDoc, nunca addDoc/setDoc, nunca un UID
-// nuevo). El perfil ya actualizado llega al operador en tiempo real a
-// través del listener de su propio documento en AppOperator.jsx, sin
-// necesidad de que este proceso (el navegador del administrador) toque
-// su AuthProvider/localStorage directamente.
 export const approveRequest = async (requestId, administradorRevision) => {
 
     const requestRef = doc(db, "solicitudesCambios", requestId);
@@ -153,10 +133,6 @@ export const approveRequest = async (requestId, administradorRevision) => {
 
     const solicitud = requestSnap.data();
 
-    // "nomina" se guarda en "users" como Number (todas las búsquedas usan
-    // where("nomina","==",Number(...))); el formulario la captura como
-    // string, así que se normaliza aquí para no corromper el tipo de dato
-    // y romper búsquedas futuras por nómina para este usuario.
     const datosSolicitados = { ...solicitud.datosSolicitados };
     if (datosSolicitados.nomina !== undefined) {
         datosSolicitados.nomina = Number(datosSolicitados.nomina);
@@ -177,12 +153,12 @@ export const approveRequest = async (requestId, administradorRevision) => {
         administradorRevision
     });
 
-    await addDoc(collection(db, "notificaciones"), {
+    // 🔥 USAMOS LA UTILIDAD CREATE NOTIFICATION (Dispara la Push Notification)
+    await createNotification({
+        IdUsuario: solicitud.idUsuario, // UID del operador
         Titulo: "Solicitud aprobada",
         Mensaje: "Tus cambios de perfil fueron aprobados.",
-        Destino: "SolicitudAprobada",
-        IdUsuario: solicitud.idUsuario,
-        fechaCreacion: serverTimestamp()
+        Destino: "/solicitudes"
     });
 
     return { success: true, data: result.data };
@@ -210,12 +186,12 @@ export const rejectRequest = async (requestId, administradorRevision, comentario
         administradorRevision
     });
 
-    await addDoc(collection(db, "notificaciones"), {
+    // 🔥 USAMOS LA UTILIDAD CREATE NOTIFICATION (Dispara la Push Notification)
+    await createNotification({
+        IdUsuario: solicitud.idUsuario, // UID del operador
         Titulo: "Solicitud rechazada",
-        Mensaje: `Tu solicitud fue rechazada. Motivo: ${comentario}`,
-        Destino: "SolicitudRechazada",
-        IdUsuario: solicitud.idUsuario,
-        fechaCreacion: serverTimestamp()
+        Mensaje: `Tu solicitud fue rechazada. Motivo: ${comentario || "Sin comentarios"}`,
+        Destino: "/solicitudes"
     });
 
     return { success: true };

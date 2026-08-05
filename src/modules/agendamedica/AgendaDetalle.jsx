@@ -49,22 +49,31 @@ export default function AgendaDetalle({ agenda, onBack }) {
         fetchData();
     };
 
-    // 🛡️ Filtro por fecha con ESCUDO anti-crasheos
+    //  Filtro por fecha 
     const citasFiltradas = citas
-        .filter(c => !fecha || c.fecha === fecha)
+        .filter(c => {
+            if (!fecha) return true;
+
+            // 1. Extraemos las partes del input (ej. "2026-08-05")
+            const [y, m, d] = fecha.split("-");
+            
+            // 2. Armamos la versión regional (ej. "05/08/2026")
+            const fechaRegional = `${d}/${m}/${y}`;
+            
+            // 3. Aprobamos si coincide con cualquiera de los dos formatos
+            return c.fecha === fecha || c.fecha === fechaRegional;
+        })
         .sort((a, b) => {
-            // Si la cita no tiene horaInicio, busca 'hora', si tampoco tiene, usa "00:00" para no crashear
-            const horaA = a.horaInicio || a.hora || "00:00";
-            const horaB = b.horaInicio || b.hora || "00:00";
+            // Si la cita no tiene horaInicio, busca 'hora', si tampoco tiene, usa "00:00" para no crashear[cite: 2]
+            const horaA = a.horaInicio || a.hora || "00:00"; 
+            const horaB = b.horaInicio || b.hora || "00:00"; 
 
             const [h1, m1] = horaA.split(":").map(Number);
             const [h2, m2] = horaB.split(":").map(Number);
 
             return h1 !== h2 ? h1 - h2 : m1 - m2;
         });
-
-    if (loading) return <Loader text="Cargando citas..." />;
-
+        
     return (
         <div className="page-transition">
 

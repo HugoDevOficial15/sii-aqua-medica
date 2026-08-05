@@ -118,7 +118,7 @@ export default function OperatorNotifications({ onNavigate }) {
             <div className="notification-card unread" onClick={() => handleNavigation('surveys')} style={{ cursor: 'pointer' }}>
                 <div className="notification-icon survey"><FiClipboard /></div>
                 <div className="notification-content">
-                    <strong>Encuesta pendiente</strong>
+                    <strong>Encuestas pendiente</strong>
                     <p>Tienes una evaluación por responder.</p>
                     <small>Hace 1 hora</small>
                 </div>

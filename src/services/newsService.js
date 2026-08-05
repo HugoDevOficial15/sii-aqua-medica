@@ -1,6 +1,7 @@
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../services/firebaseConfig"; // Ajusta tu ruta
+import { createNotification } from "../utils/createNotification";
 
 export const crearNoticia = async (titulo, contenido, archivoImagen) => {
   try {
@@ -24,16 +25,28 @@ export const crearNoticia = async (titulo, contenido, archivoImagen) => {
       autor: "Administrador"
     });
 
-    // 3. Disparamos la notificación general para los usuarios (AQUA News)
-    await addDoc(collection(db, "notificaciones"), {
-      tipo: "news",
-      titulo: "AQUA News",
-      mensaje: "Nuevo comunicado disponible.",
-      fecha: serverTimestamp(),
-      leido: false,
-      noticiaId: docRef.id,
-      ruta: "/news"
+    // 3. Disparamos la notificación a todos los usuarios activos
+    // Obtener todos los usuarios
+    const usersSnapshot = await getDocs(collection(db, "usuarios"));
+
+    const notificacionesPromises = usersSnapshot.docs.map(userDoc => {
+      const userId = userDoc.id;
+      return createNotification({
+        IdUsuario: userId,
+        Titulo: "📰 Nueva noticia",
+        Mensaje: titulo || "Nuevo comunicado disponible.",
+        Destino: "/news",
+        extra: {
+          tipo: "news",
+          noticiaId: docRef.id,
+          imagenUrl: imagenUrl || null
+        }
+      }).catch(error => {
+        console.error(`Error creando notificación para usuario ${userId}:`, error);
+      });
     });
+
+    await Promise.all(notificacionesPromises);
 
     return true;
   } catch (error) {
