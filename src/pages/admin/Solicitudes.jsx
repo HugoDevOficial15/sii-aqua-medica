@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
-import { FiEye, FiCheck, FiX, FiArrowLeft } from "react-icons/fi";
+import { FiEye, FiCheck, FiX, FiArrowLeft, FiTrash2 } from "react-icons/fi";
 
 import Loader from "../../components/Loader";
 import { notifySuccess, notifyError } from "../../utils/notify";
@@ -10,6 +10,7 @@ import {
     getAllRequests,
     approveRequest,
     rejectRequest
+    , eliminarSolicitud
 } from "../../services/solicitudesCambiosService";
 
 import { useAuth } from "../../hooks/useAuth";
@@ -191,6 +192,58 @@ export default function Solicitudes() {
 
     };
 
+    const handleEliminar = async (solicitud) => {
+
+        const confirm = await Swal.fire({
+            icon: "warning",
+            title: "¿Eliminar esta solicitud?",
+            text: "La solicitud se eliminará permanentemente.",
+            showCancelButton: true,
+            confirmButtonText: "Eliminar",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#dc3545"
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        setProcesando(true);
+
+        try {
+
+            const result = await eliminarSolicitud(solicitud.id);
+
+            if (!result.success) {
+                if (result.error === "IS_PENDING") {
+                    notifyError("No permitido", "No se puede eliminar una solicitud que aún está en estado Pendiente. Cambia su estado a Aprobada o Rechazada primero.");
+                    return;
+                }
+                notifyError("Error", "No se pudo eliminar la solicitud.");
+                return;
+            }
+
+            notifySuccess("Solicitud eliminada", "La solicitud fue removida de la base de datos.");
+
+            // Si estamos viendo el detalle de la solicitud eliminada, volver a la lista
+            if (seleccionada?.id === solicitud.id) {
+                setVista("lista");
+                setSeleccionada(null);
+            }
+
+            cargar();
+
+        } catch (error) {
+
+            console.error(error);
+            notifyError("Error", "No se pudo eliminar la solicitud.");
+
+        } finally {
+
+            setProcesando(false);
+
+        }
+
+    };
+
     if (loading) {
         return <Loader text="Cargando solicitudes..." />;
     }
@@ -281,6 +334,17 @@ export default function Solicitudes() {
                                     <FiX className="me-2" />
                                     Rechazar
                                 </button>
+
+                                {seleccionada.estado !== "Pendiente" && (
+                                    <button
+                                        className="btn btn-outline-danger"
+                                        disabled={procesando}
+                                        onClick={() => handleEliminar(seleccionada)}
+                                    >
+                                        <FiTrash2 className="me-2" />
+                                        Eliminar
+                                    </button>
+                                )}
 
                             </div>
 
@@ -472,6 +536,17 @@ export default function Solicitudes() {
                                                     </button>
                                                 </>
                                             )}
+
+                                                                    {s.estado !== "Pendiente" && (
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-danger"
+                                                                            disabled={procesando}
+                                                                            onClick={() => handleEliminar(s)}
+                                                                        >
+                                                                            <FiTrash2 className="me-1" />
+                                                                            Eliminar
+                                                                        </button>
+                                                                    )}
 
                                         </div>
                                     </td>

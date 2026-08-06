@@ -1,0 +1,568 @@
+/* =======================================
+SUGERENCIAS / IDEAS — COMPONENTE OPERADOR
+======================================= */
+
+/* VISTAS GENERALES */
+.suggestion-list-screen,
+.suggestion-create-screen,
+.suggestion-detail-screen {
+    background: var(--operator-background);
+    color: var(--operator-text);
+}
+
+/* =======================================
+BANNER MORADO (Hero)
+======================================= */
+
+.suggestion-hero-banner {
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    border-radius: 32px;
+    padding: 32px 24px;
+    text-align: center;
+    color: white;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.3);
+}
+
+.suggestion-hero-banner .hero-emoji {
+    font-size: 48px;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+    display: block;
+}
+
+.suggestion-hero-banner h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1.2;
+}
+
+.suggestion-hero-banner p {
+    margin: 0;
+    font-size: 15px;
+    opacity: 0.9;
+    line-height: 1.5;
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-hero-banner {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.2);
+}
+
+/* =======================================
+TABS / CONTADORES
+======================================= */
+
+.suggestion-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.suggestion-tab {
+    flex: 1;
+    padding: 16px 8px;
+    background: var(--operator-card);
+    border-radius: 16px;
+    text-align: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+}
+
+.suggestion-tab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.suggestion-tab.active {
+    border-color: #f59e0b;
+}
+
+.suggestion-tab .tab-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.suggestion-tab .tab-count {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--operator-text);
+    display: block;
+}
+
+.suggestion-tab .tab-label {
+    font-size: 12px;
+    color: var(--operator-text-soft);
+    margin-top: 2px;
+    display: block;
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-tab {
+    background: var(--operator-card);
+    color: var(--operator-text);
+}
+
+html[data-theme="dark"] .suggestion-tab.active {
+    border-color: #fbbf24;
+}
+
+/* =======================================
+TARJETAS DE IDEA (Lista)
+======================================= */
+
+.suggestion-card-item {
+    background: var(--operator-card);
+    border-radius: 24px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.suggestion-card-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+.suggestion-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.suggestion-status-badge {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.suggestion-status-badge.pending {
+    background-color: #ffedd5;
+    color: #ea580c;
+}
+
+.suggestion-status-badge.review {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.suggestion-status-badge.approved {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.suggestion-status-badge.rejected {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.suggestion-points {
+    font-weight: bold;
+    color: var(--operator-text);
+    font-size: 15px;
+}
+
+.suggestion-card-title {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--operator-text);
+}
+
+.suggestion-card-desc {
+    margin: 0;
+    color: var(--operator-text-soft);
+    font-size: 14px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-card-item {
+    background: var(--operator-card);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="dark"] .suggestion-card-item:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .suggestion-status-badge.pending {
+    background-color: rgba(245, 158, 11, 0.16);
+    color: #fbbf24;
+}
+
+html[data-theme="dark"] .suggestion-status-badge.review {
+    background-color: rgba(59, 130, 246, 0.16);
+    color: #60a5fa;
+}
+
+html[data-theme="dark"] .suggestion-status-badge.approved {
+    background-color: rgba(16, 185, 129, 0.16);
+    color: #6ee7b7;
+}
+
+html[data-theme="dark"] .suggestion-status-badge.rejected {
+    background-color: rgba(239, 68, 68, 0.16);
+    color: #fca5a5;
+}
+
+/* =======================================
+FORMULARIO DE CREACIÓN
+======================================= */
+
+.suggestion-form-field {
+    margin-bottom: 20px;
+}
+
+.suggestion-form-field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--operator-text);
+    font-size: 15px;
+}
+
+.suggestion-form-field input,
+.suggestion-form-field select,
+.suggestion-form-field textarea {
+    width: 100%;
+    padding: 14px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--operator-border);
+    background: var(--operator-background);
+    color: var(--operator-text);
+    font-size: 16px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.suggestion-form-field input:focus,
+.suggestion-form-field select:focus,
+.suggestion-form-field textarea:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.suggestion-form-field textarea {
+    resize: none;
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-form-field input,
+html[data-theme="dark"] .suggestion-form-field select,
+html[data-theme="dark"] .suggestion-form-field textarea {
+    background: rgba(30, 41, 59, 0.5);
+    color: var(--operator-text);
+    border-color: var(--operator-border);
+}
+
+html[data-theme="dark"] .suggestion-form-field input::placeholder,
+html[data-theme="dark"] .suggestion-form-field textarea::placeholder {
+    color: var(--operator-text-soft);
+}
+
+/* =======================================
+TARJETAS DE FORMULARIO
+======================================= */
+
+.suggestion-form-card {
+    background: var(--operator-card);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    margin-bottom: 24px;
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-form-card {
+    background: var(--operator-card);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* =======================================
+OPCIONES DE UPLOAD
+======================================= */
+
+.suggestion-upload-option {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 12px;
+    background: var(--operator-background);
+    border-radius: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--operator-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.suggestion-upload-option:hover {
+    background: rgba(124, 58, 237, 0.05);
+    border-color: #7c3aed;
+}
+
+.suggestion-upload-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #7c3aed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.suggestion-upload-label {
+    flex: 1;
+}
+
+.suggestion-upload-label strong {
+    display: block;
+    color: var(--operator-text);
+    font-size: 15px;
+    margin-bottom: 2px;
+}
+
+.suggestion-upload-label small {
+    display: block;
+    color: var(--operator-text-soft);
+    font-size: 13px;
+}
+
+.suggestion-upload-success {
+    color: #10b981;
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-upload-option {
+    background: rgba(30, 41, 59, 0.5);
+    border-color: var(--operator-border);
+}
+
+html[data-theme="dark"] .suggestion-upload-option:hover {
+    background: rgba(124, 58, 237, 0.1);
+}
+
+/* =======================================
+BOTONES
+======================================= */
+
+.suggestion-submit-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    color: white;
+    padding: 18px;
+    border-radius: 20px;
+    border: none;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.25);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.suggestion-submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.35);
+}
+
+.suggestion-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-submit-btn {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.2);
+}
+
+html[data-theme="dark"] .suggestion-submit-btn:hover:not(:disabled) {
+    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.25);
+}
+
+/* =======================================
+DETALLE DE IDEA
+======================================= */
+
+.suggestion-detail-hero {
+    background: var(--operator-card);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 24px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.suggestion-detail-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.suggestion-detail-hero h1 {
+    margin: 0 0 12px 0;
+    font-size: 26px;
+    font-weight: bold;
+    color: var(--operator-text);
+    line-height: 1.2;
+}
+
+.suggestion-detail-content {
+    background: var(--operator-card);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.suggestion-detail-content h3 {
+    margin: 0 0 12px 0;
+    font-size: 18px;
+    color: var(--operator-text);
+    font-weight: bold;
+}
+
+.suggestion-detail-content p {
+    margin: 0;
+    color: var(--operator-text-soft);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-detail-hero,
+html[data-theme="dark"] .suggestion-detail-content {
+    background: var(--operator-card);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* =======================================
+TIMELINE / ACTIVIDAD
+======================================= */
+
+.suggestion-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.suggestion-timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--operator-border);
+    color: var(--operator-text-soft);
+    font-weight: 500;
+    background: var(--operator-background);
+    transition: all 0.2s ease;
+}
+
+.suggestion-timeline-item.done {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: #10b981;
+    color: #10b981;
+}
+
+.suggestion-timeline-item.active {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: #f59e0b;
+    color: #f59e0b;
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-timeline-item {
+    background: rgba(30, 41, 59, 0.5);
+    border-color: var(--operator-border);
+}
+
+html[data-theme="dark"] .suggestion-timeline-item.done {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: #10b981;
+    color: #6ee7b7;
+}
+
+html[data-theme="dark"] .suggestion-timeline-item.active {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: #f59e0b;
+    color: #fbbf24;
+}
+
+/* =======================================
+PUNTOS / RECOMPENSAS
+======================================= */
+
+.suggestion-points-card {
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    border-radius: 24px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: white;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+}
+
+.suggestion-points-icon {
+    font-size: 48px;
+    flex-shrink: 0;
+}
+
+.suggestion-points-card h3 {
+    margin: 0 0 4px 0;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.suggestion-points-card p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-points-card {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.2);
+}
+
+/* =======================================
+ESTADO VACÍO
+======================================= */
+
+.suggestion-empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--operator-text-soft);
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .suggestion-empty-state {
+    color: var(--operator-text-soft);
+}

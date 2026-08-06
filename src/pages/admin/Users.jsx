@@ -524,7 +524,7 @@ export default function Users({onClose}) {
         <div className="page-transition">
 
             {/* HEADER */}
-            <div className="d-flex justify-content-between align-items-center mb-4 custom-users-header">
+            <div className="d-flex justify-content-between mb-4 custom-users-header">
 
                 <div className="page mb-3">
                     <h6 >

@@ -6,6 +6,7 @@ import {
     getDocs,
     getDoc,
     doc,
+    deleteDoc,
     updateDoc,
     query,
     where,
@@ -193,6 +194,32 @@ export const rejectRequest = async (requestId, administradorRevision, comentario
         Mensaje: `Tu solicitud fue rechazada. Motivo: ${comentario || "Sin comentarios"}`,
         Destino: "/solicitudes"
     });
+
+    return { success: true };
+
+};
+
+// ======================
+// ELIMINAR SOLICITUD (Administrador)
+// ======================
+export const eliminarSolicitud = async (requestId) => {
+    const requestRef = doc(db, "solicitudesCambios", requestId);
+
+    const requestSnap = await getDoc(requestRef);
+
+    if (!requestSnap.exists()) {
+        return { success: false, error: "REQUEST_NOT_FOUND" };
+    }
+
+    const solicitud = requestSnap.data();
+
+    // Solo permitir eliminar cuando la solicitud NO esté en estado Pendiente
+    // (es decir, permitir eliminación solo después de que haya sido Aprobada o Rechazada)
+    if (solicitud.estado === "Pendiente") {
+        return { success: false, error: "IS_PENDING" };
+    }
+
+    await deleteDoc(requestRef);
 
     return { success: true };
 

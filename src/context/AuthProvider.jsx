@@ -45,6 +45,7 @@ export function AuthProvider({ children }) {
                 const usuarioCompleto = {
                     ...userData,
                     username,
+                    uid: firebaseUser.uid,
                     mustChangePassword: userData.mustChangePassword || false
                 };
 
@@ -74,6 +75,9 @@ export function AuthProvider({ children }) {
         setLoading(false); 
     };
 
+    // No olvides importar la función en la parte superior de AuthProvider.js:
+    // import { clearStorageSafely } from "../utils/storage";
+
     // ==========================================================
     // LOGOUT
     // ==========================================================
@@ -85,8 +89,8 @@ export function AuthProvider({ children }) {
         } finally {
             setUser(null);
             setPermisos([]);
-            localStorage.clear();
-            sessionStorage.clear();
+            // 🛡️ REEMPLAZAMOS EL ASESINO SILENCIOSO AQUÍ
+            clearStorageSafely();
         }
     };
 

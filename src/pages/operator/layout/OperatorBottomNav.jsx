@@ -26,7 +26,7 @@ export default function OperatorBottomNav({
         },
 
         {
-            id: "suggestions",
+            id: "suggestion-create",
             label: "Ideas",
             icon: <FiMessageSquare />
         },

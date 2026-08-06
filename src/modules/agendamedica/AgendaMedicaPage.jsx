@@ -180,7 +180,7 @@ export default function AgendaMedicaPage() {
 
         try {
 
-            const adminUid = user?.uid || user?.id || "Administrador";
+            const adminUid = user?.uid;
 
             const updates = confirmAction.type === "editar"
                 ? confirmAction.updates

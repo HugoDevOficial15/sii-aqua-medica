@@ -2,6 +2,7 @@ import {
     collection,
     getDocs,
     doc,
+    getDoc,
     addDoc,
     updateDoc, query, where,
     writeBatch,
@@ -73,6 +74,26 @@ export const getUserAppointments = async (nomina) => {
             ...doc.data()
         }));
 
+        // Enriquecer cada cita con el nombre de la agenda (si está disponible)
+        // para que desde la vista de usuario podamos mostrar la campaña/agenda.
+        for (let i = 0; i < misCitas.length; i++) {
+            const cita = misCitas[i];
+            try {
+                if (cita.agendaId) {
+                    const agendaRef = doc(db, "agendas_medicas", cita.agendaId);
+                    const agendaSnap = await getDoc(agendaRef);
+                    misCitas[i] = {
+                        ...cita,
+                        agendaNombre: agendaSnap.exists() ? agendaSnap.data().nombre : null
+                    };
+                } else {
+                    misCitas[i] = { ...cita, agendaNombre: null };
+                }
+            } catch (error) {
+                misCitas[i] = { ...cita, agendaNombre: null };
+            }
+        }
+
         // 3. Filtramos y ordenamos localmente con JavaScript puro
         misCitas = misCitas
             // Dejamos solo las citas activas
@@ -100,14 +121,14 @@ export const cancelAppointmentByUser = async (citaId, user, motivo) => {
         estado: CITA_ESTADOS.CANCELADA_USUARIO,
         motivoCancelacion: motivo,
         fechaCancelacion: serverTimestamp(),
-        canceladaPor: user?.uid || user?.id || null,
+        canceladaPor: user?.uid || null,
         nominaCancelada: user?.nomina || null
     });
 
     // Confirmación para el propio usuario de que su cancelación se registró.
-    if (user?.id) {
+    if (user?.uid) {
         await createNotification({
-            IdUsuario: user.id,
+            IdUsuario: user.uid,
             Titulo: "Cita cancelada",
             Mensaje: "Tu cancelación fue registrada correctamente.",
             Destino: "CitaCanceladaConfirmacion"

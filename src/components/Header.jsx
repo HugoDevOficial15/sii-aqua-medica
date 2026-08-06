@@ -30,37 +30,55 @@ export default function Header({ toggleSidebar }) {
 
     const DISMISSED_NOTIFS_KEY = "dismissed_admin_notifications";
 
+    // 🍪 1. LEER DESDE COOKIES (Inmune a localStorage.clear)
     const getDismissedFromStorage = () => {
         try {
+            const nameEQ = DISMISSED_NOTIFS_KEY + "=";
+            const ca = document.cookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                let c = ca[i].trim();
+                if (c.indexOf(nameEQ) === 0) {
+                    return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
+                }
+            }
+            // Fallback por si acaso
             const raw = localStorage.getItem(DISMISSED_NOTIFS_KEY);
             return raw ? JSON.parse(raw) : [];
         } catch (err) {
-            console.error("Error reading dismissed notifications from localStorage:", err);
+            console.error("Error leyendo notificaciones descartadas:", err);
             return [];
         }
     };
 
+    // 🍪 2. GUARDAR EN COOKIES
     const addDismissedToStorage = (id) => {
         try {
             const arr = getDismissedFromStorage();
             if (!arr.includes(id)) {
                 arr.push(id);
-                localStorage.setItem(DISMISSED_NOTIFS_KEY, JSON.stringify(arr));
+                
+                // Evitamos que la cookie crezca infinitamente (máx 100 descartes)
+                if (arr.length > 100) arr.shift();
+                
+                const stringified = JSON.stringify(arr);
+                
+                // Guardar en localStorage como respaldo
+                localStorage.setItem(DISMISSED_NOTIFS_KEY, stringified);
+                
+                // Guardar en Cookie válida por 30 días para sobrevivir al Login
+                const d = new Date();
+                d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
+                document.cookie = `${DISMISSED_NOTIFS_KEY}=${encodeURIComponent(stringified)};expires=${d.toUTCString()};path=/`;
             }
         } catch (err) {
-            console.error("Error saving dismissed notification to localStorage:", err);
+            console.error("Error guardando notificación descartada:", err);
         }
     };
 
-    // Reutiliza las funciones ya existentes: getPendingRequests() (misma
-    // que usa el módulo Solicitudes) y getSemaforo() (mismo cálculo que
-    // ya usa la tabla de Medicamentos), solo para armar la lista que se
-    // muestra aquí. No se agrega lógica de negocio nueva.
     useEffect(() => {
 
         const cargarNotificaciones = async () => {
             try {
-
                 const [solicitudes, medicamentos] = await Promise.all([
                     getPendingRequests(),
                     getMedicamentos()
@@ -82,7 +100,8 @@ export default function Header({ toggleSidebar }) {
                     })
                     .filter(m => m.semaforo.color !== "verde")
                     .map(m => ({
-                        id: `medicamento-${m.id}`,
+                        // 🔥 ID INTELIGENTE: Incluye el color para avisarte si empeora a rojo
+                        id: `medicamento-${m.id}-${m.semaforo.color}`,
                         icon: <FaSyringe />,
                         title: m.semaforo.color === "rojo"
                             ? "Medicamento por vencer / vencido"
@@ -91,7 +110,6 @@ export default function Header({ toggleSidebar }) {
                         ruta: "/medicamento"
                     }));
 
-                // Filtrar notificaciones ya descartadas (persistidas en localStorage)
                 const dismissed = getDismissedFromStorage();
                 const todas = [...notifsSolicitudes, ...notifsMedicamentos];
                 const visibles = todas.filter(n => !dismissed.includes(n.id));
@@ -123,7 +141,13 @@ export default function Header({ toggleSidebar }) {
         };
     }, [showDropdown]);
 
-    const handleNotificationClick = (ruta) => {
+    const handleNotificationClick = (id, ruta) => {
+        try {
+            addDismissedToStorage(id);
+        } catch (err) {
+            console.error("Error al persistir el descarte:", err);
+        }
+        setNotifications((prev) => prev.filter((notif) => notif.id !== id));
         setShowDropdown(false);
         navigate(ruta);
     };
@@ -133,9 +157,8 @@ export default function Header({ toggleSidebar }) {
         try {
             addDismissedToStorage(id);
         } catch (err) {
-            console.error("Error al persistir el descarte de notificación:", err);
+            console.error("Error al persistir el descarte:", err);
         }
-
         setNotifications((prev) => prev.filter((notif) => notif.id !== id));
     };
 
@@ -211,10 +234,12 @@ export default function Header({ toggleSidebar }) {
                                             </div>
                                         ) : (
                                             notifications.map(n => (
-                                                <button
+                                                <div
                                                     key={n.id}
                                                     className="notification-dropdown-item"
-                                                    onClick={() => handleNotificationClick(n.ruta)}
+                                                    onClick={() => handleNotificationClick(n.id, n.ruta)}
+                                                    role="button"
+                                                    tabIndex={0}
                                                 >
                                                     <span className="notification-dropdown-item-icon">
                                                         {n.icon}
@@ -233,7 +258,7 @@ export default function Header({ toggleSidebar }) {
                                                     >
                                                         <FaTimes />
                                                     </button>
-                                                </button>
+                                                </div>
                                             ))
                                         )}
 

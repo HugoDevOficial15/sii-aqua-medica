@@ -50,7 +50,10 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
         { to: "/herramientas", icon: <FaTools />, label: "Herramientas", permiso: "herramientas.ver" },
         { to: "/configuracion", icon: <FaCog />, label: "Configuración", permiso: "config.ver" },
         { to: "/soporte", icon: <FaLifeRing />, label: "Soporte" },
-        { to: "/reporte-problemas", icon: <FaLifeRing />, label: "Reporte de Problemas" }
+        { to: "/reporte-problemas", icon: <FaLifeRing />, label: "Reporte de Problemas" },
+        { to: "/capacitaciones", icon: <FaClipboardList />, label: "Capacitaciones" },
+        { to: "/ideas", icon: <FaMattressPillow />, label: "Ideas" },
+
     ];
 
     return (

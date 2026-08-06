@@ -158,7 +158,7 @@ export default function OperadorCitasMedicas() {
 
         setProcesando(true);
         const nombreFinal = user?.nombre || "Ángel Julián Ojeda Ramírez";
-        const uidUsuario = user?.uid || user?.id || nombreFinal;
+        const uidUsuario = user?.uid;
 
         try {
             // La función centralizada hace dos validaciones:
@@ -382,6 +382,7 @@ export default function OperadorCitasMedicas() {
                                         <tr>
                                             <th className="px-3 py-3 citas-op-muted">Fecha</th>
                                             <th className="px-3 py-3 citas-op-muted">Hora</th>
+                                            <th className="px-3 py-3 citas-op-muted">Agenda</th>
                                             <th className="px-3 py-3 citas-op-muted">Estado</th>
                                             <th className="px-3 py-3 citas-op-muted"></th>
                                         </tr>
@@ -391,6 +392,8 @@ export default function OperadorCitasMedicas() {
                                             <tr key={cita.id}>
                                                 <td className="px-3 py-3 align-middle">{formatearFecha(cita.fecha)}</td>
                                                 <td className="px-3 py-3 align-middle">{cita.horaInicio || cita.hora || "-"}</td>
+                                                <td className="px-3 py-3 align-middle">{cita.agendaNombre || '-'}</td>
+
                                                 <td className="px-3 py-3 align-middle">
                                                     <span className="badge bg-success">Activa</span>
                                                 </td>

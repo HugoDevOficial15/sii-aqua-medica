@@ -1,9 +1,3 @@
-// ============================================================
-// Servicio centralizado de Push Notifications
-// Detecta nuevas notificaciones en Firestore y muestra
-// alertas locales en el dispositivo usando Capacitor.
-// ============================================================
-
 import { collection, query, where, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { Capacitor } from "@capacitor/core";
@@ -11,9 +5,13 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 
 let unsubscribe = null;
 
-export const initPushNotifications = (userIdUsuario) => {
+export const initPushNotifications = async (userDataOrId) => {
+    // Soportamos tanto si pasas el objeto completo 'user' como si pasas solo el string del ID
+    const posiblesIds = typeof userDataOrId === 'object' 
+        ? [userDataOrId?.uid, userDataOrId?.id].filter(Boolean)
+        : [userDataOrId].filter(Boolean);
 
-    if (!userIdUsuario) {
+    if (posiblesIds.length === 0) {
         console.warn("pushNotificationService: No user ID provided");
         return;
     }
@@ -23,20 +21,27 @@ export const initPushNotifications = (userIdUsuario) => {
     }
 
     if (!Capacitor.isNativePlatform()) {
-        console.log("pushNotificationService: Not a native platform, skipping setup");
         return;
     }
 
     try {
+        await LocalNotifications.createChannel({
+            id: 'sii_aqua_canal_v3',
+            name: 'Avisos Urgentes SII AQUA V3',
+            importance: 5,
+            visibility: 1,
+            sound: 'default',
+            vibration: true,
+        });
+
+        // 🔑 Usamos "in" para barrer tanto el UID como el ID numérico (ej. 502)
         const q = query(
             collection(db, "notificaciones"),
-            where("IdUsuario", "==", userIdUsuario),
+            where("IdUsuario", "in", posiblesIds),
             where("enviado", "==", false)
         );
 
         unsubscribe = onSnapshot(q, async (snapshot) => {
-
-            // Solicitamos permisos de notificaciones locales por seguridad
             let permStatus = await LocalNotifications.checkPermissions();
             if (permStatus.display !== 'granted') {
                 permStatus = await LocalNotifications.requestPermissions();
@@ -47,14 +52,16 @@ export const initPushNotifications = (userIdUsuario) => {
                 const notifId = docSnap.id;
 
                 try {
-                    // Disparamos la notificación localmente en el dispositivo
                     await LocalNotifications.schedule({
                         notifications: [
                             {
                                 title: notif.Titulo || "SII AQUA Médica",
                                 body: notif.Mensaje || "Tienes un nuevo aviso importante.",
                                 id: new Date().getTime(),
+                                channelId: 'sii_aqua_canal_v3',
                                 sound: 'default',
+                                visibility: 1,
+                                importance: 5,
                                 extra: {
                                     destino: notif.Destino || null,
                                     accion: notif.Accion || null,
@@ -64,7 +71,6 @@ export const initPushNotifications = (userIdUsuario) => {
                         ]
                     });
 
-                    // Marcar como enviado en Firestore para que no se repita
                     const notifRef = doc(db, "notificaciones", notifId);
                     await updateDoc(notifRef, {
                         enviado: true,
@@ -77,9 +83,6 @@ export const initPushNotifications = (userIdUsuario) => {
                     console.error(`✗ Error procesando notificación ${notifId}:`, error);
                 }
             }
-
-        }, (error) => {
-            console.error("Error en listener de notificaciones:", error);
         });
 
     } catch (error) {

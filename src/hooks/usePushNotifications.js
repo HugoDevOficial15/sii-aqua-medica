@@ -2,16 +2,39 @@ import { useEffect } from 'react';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
-// 🔥 Cambiamos updateDoc por setDoc
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+
+export const crearCanalDeNotificacion = async () => {
+  if (!Capacitor.isNativePlatform()) return;
+  
+  await LocalNotifications.createChannel({
+    id: 'sii_aqua_canal_v3',
+    name: 'Avisos Urgentes SII AQUA',
+    description: 'Canal para notificaciones importantes y solicitudes',
+    importance: 5,
+    visibility: 1,
+    sound: 'default',
+    vibration: true,
+  });
+};
 
 export function usePushNotifications(user) {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
+    // Usar SOLO el UID de Firebase Authentication que viene del parámetro user
+    const uidReal = user?.uid;
+
+    // Si no hay usuario autenticado, detener la ejecución
+    if (!uidReal) {
+      return;
+    }
+
     const registrarNotificaciones = async () => {
       try {
+        await crearCanalDeNotificacion();
+
         let permStatus = await PushNotifications.checkPermissions();
         if (permStatus.receive === 'prompt') {
           permStatus = await PushNotifications.requestPermissions();
@@ -22,20 +45,11 @@ export function usePushNotifications(user) {
 
         PushNotifications.addListener('registration', async (token) => {
           console.log('TOKEN_FCM_OBTENIDO:', token?.value);
-          
-          const uidReal = user?.uid || user?.id || JSON.parse(localStorage.getItem("auth") || "{}")?.uid || JSON.parse(localStorage.getItem("auth") || "{}")?.id;
-          
-          if (!uidReal) {
-            console.log('FCM_ERROR: No se encontró ningún UID de usuario disponible.');
-            return;
-          }
-
           console.log('FCM_GUARDANDO: Escribiendo token en Firestore para el usuario:', uidReal);
           
           try {
             const userRef = doc(db, 'usuarios', uidReal);
             
-            // 🔥 Usamos setDoc con { merge: true } para crear el documento si no existe o actualizarlo si ya existe
             await setDoc(userRef, { 
               fcmToken: token.value 
             }, { merge: true });
@@ -52,7 +66,9 @@ export function usePushNotifications(user) {
               title: notification.title || 'SII AQUA Médica',
               body: notification.body || 'Tienes un nuevo aviso importante.',
               id: Date.now(),
-              sound: 'default'
+              channelId: 'sii_aqua_canal_prioritario',
+              sound: 'default',
+              extra: notification.data || {}
             }]
           });
         });

@@ -32,6 +32,7 @@ import Soporte from "../pages/admin/Soporte";
 import ReporteProblem from "../pages/admin/ReporteProblem";
 import Solicitudes from "../pages/admin/Solicitudes";
 import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
+import Ideas from "../pages/admin/Ideas";
 
 import MaintenancePage from "../components/MaintenancePage";
 
@@ -49,7 +50,7 @@ export default function AppRouter() {
     // 🔥 INICIALIZAR LISTENER DE NOTIFICACIONES EN TIEMPO REAL
     // Detecta nuevas notificaciones en Firestore y las envía vía FCM
     useEffect(() => {
-        const userId = user?.uid || user?.id; // 🔥 PRIORIZAMOS UID
+        const userId = user?.uid;
         if (userId) {
             initPushNotifications(userId);
 
@@ -57,7 +58,7 @@ export default function AppRouter() {
                 stopPushNotifications();
             };
         }
-    }, [user?.uid, user?.id]);
+    }, [user?.uid]);
 
     return (
         <BrowserRouter>
@@ -296,6 +297,15 @@ export default function AppRouter() {
                         }
                     />
 
+                    <Route
+                        path="/ideas"
+                        element={
+                            <ProtectedRoute>
+                                <Ideas />
+                            </ProtectedRoute>
+                        }
+                    />
+
                     {/* REPORTE DE PROBLEMAS */}
                     <Route
                         path="/reporte-problemas"
@@ -319,7 +329,18 @@ export default function AppRouter() {
                     }
                 />
 
-
+                <Route
+                        path="/capacitaciones"
+                        element={
+                            <ProtectedRoute permiso="capacitaciones.ver">
+                                <MaintenancePage
+                                    title="Mantenimiento"
+                                    subtitle="El modulo de capacitaciones aún se encuentra en desarrollo."
+                                    message="El módulo de capacitaciones aún se encuentra en desarrollo."
+                                />
+                            </ProtectedRoute>
+                        }
+                    />
 
                 <Route
                     path="/privacy"

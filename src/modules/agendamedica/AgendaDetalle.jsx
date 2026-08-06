@@ -131,8 +131,13 @@ export default function AgendaDetalle({ agenda, onBack }) {
                                             <strong>{c.horaInicio || c.hora || "-"}</strong> {c.horaFin ? `- ${c.horaFin}` : ""}
                                         </td>
 
-                                        {/* Adaptado para leer 'usuarioNombre' (viejo) o 'usuario' (nuevo) */}
-                                        <td>{c.usuarioNombre || c.usuario || c.nombre || "-"}</td>
+                                        {/* Mostrar nombre del usuario que reservó y, si existe, la nómina */}
+                                        <td>
+                                            <div>{c.usuarioNombre || c.usuario || c.nombre || "-"}</div>
+                                            {c.nominaUsuario && (
+                                                <small className="text-muted">Nómina {c.nominaUsuario}</small>
+                                            )}
+                                        </td>
 
                                         <td>
                                             {/* Ajustamos para minúsculas y mayúsculas por si acaso */}
@@ -195,7 +200,7 @@ export default function AgendaDetalle({ agenda, onBack }) {
 
             </div>
 
-            {/* 🎨 ESTILOS PRO (Con la corrección de JSX) */}
+            {/*  ESTILOS PRO (Con la corrección de JSX) */}
             <style jsx="true">{`
 
             .custom-users-header input {

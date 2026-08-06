@@ -62,40 +62,34 @@ export default function AppOperator() {
         refetch: refetchSurveys
     } = useOperatorSurveys();
 
-    // 🚀 NUEVO: Inicializamos el servicio de push notifications para el usuario actual
+    // Listener en tiempo real para contar notificaciones del operador
     useEffect(() => {
-        const userId = user?.uid || user?.id;
-        if (userId) {
-            initPushNotifications(userId);
-        }
+        const userId = user?.uid;
+        if (!userId) return;
 
-        return () => {
-            stopPushNotifications();
-        };
-    }, [user?.uid, user?.id]);
+        const q = query(
+            collection(db, "notificaciones"),
+            where("IdUsuario", "==", userId)
+        );
 
-    //  4. EL VIGILANTE EN TIEMPO REAL
-    useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, "notificaciones"), (snapshot) => {
+        const unsubscribe = onSnapshot(q, (snapshot) => {
             setNotificacionesCount(snapshot.size);
         }, (error) => {
-            console.error("Error escuchando notificaciones:", error);
+            console.error("Error escuchando notificaciones del usuario:", error);
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [user?.uid]);
 
-    // Sincronización en tiempo real del perfil propio (CORREGIDO)
+    // Sincronización en tiempo real del perfil propio
     useEffect(() => {
-        const uidABuscar = user?.uid || user?.id;
-        if (!uidABuscar) return;
+        const uid = user?.uid;
+        if (!uid) return;
 
-        // Buscamos el documento correcto usando el uid (Igual que hicimos al guardar la foto)
-        const q = query(collection(db, "users"), where("uid", "==", uidABuscar));
+        const q = query(collection(db, "users"), where("uid", "==", uid));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             if (!snapshot.empty) {
-                // ¡Lo encontró! Actualiza la sesión con los datos reales, incluyendo la foto
                 updateUserProfile(snapshot.docs[0].data());
             }
         }, (error) => {
@@ -103,7 +97,7 @@ export default function AppOperator() {
         });
 
         return () => unsubscribe();
-    }, [user?.uid, user?.id]);
+    }, [user?.uid]);
 
     const handleNavigate = (view, data = null) => {
         setScreen(view);
@@ -162,7 +156,7 @@ export default function AppOperator() {
             case "citas-medicas":
                 return <OperadorCitasMedicas onBack={() => setScreen("home")} />;
             case "suggestion-create":
-                return <OperatorSuggestionCreate onBack={() => setScreen("suggestions")} />;
+                return <OperatorSuggestionCreate onBack={() => setScreen("home")} />;
             case "suggestion-detail":
                 return <OperatorSuggestionDetail onBack={() => setScreen("suggestions")} />;
             case "survey-detail":
