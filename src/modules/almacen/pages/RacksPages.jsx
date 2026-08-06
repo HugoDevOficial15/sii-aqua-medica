@@ -181,7 +181,10 @@ export default function RacksPages() {
                                         const dynamicStatusAction = getDynamicStatusAction(rackStatus);
 
                                         return (
-                                    <tr key={r.id}>
+                                    <tr
+                                        key={r.id}
+                                        className={openActionsId === r.id ? "rack-row-active" : ""}
+                                    >
                                     <td># {r.numeroRack}</td>
                                     
                                     <td>{r.planta}</td>
@@ -398,16 +401,15 @@ export default function RacksPages() {
 
                 .table thead th {
                     border-bottom: 3px solid var(--operator-text);
-                    font-size: 14px;
+                    font-size: 20px;
                     font-weight: 900;
                     padding: 5px 5px;
                     vertical-align: middle;
                     border-top: none !important;
-                    white-space: nowrap;
+                    white-space: wrap;
 
                     word-break: break-word;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
+                    overflow-wrap: anywhere;
                     max-width: 230px;
                     min-width: 100px;
 
@@ -421,6 +423,11 @@ export default function RacksPages() {
                 .table tbody tr:hover {
                     transform: scale(1.01);
                     box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+                }
+
+                .table tbody tr.rack-row-active{
+                    transform: none !important;
+                    box-shadow: none !important;
                 }
 
                 .rack-search-container {
@@ -437,17 +444,18 @@ export default function RacksPages() {
                 }
 
                 .table td {
-                height: 50px;
-                font-size: 14px;
-                padding: 5px 5px;
-                vertical-align: middle;
-                border-top: none !important;
-                white-space: wrap;
+                    border-bottom: 3px solid var(--operator-border);
+                    height: 50px;
+                    font-size: 14px;
+                    padding: 5px 5px;
+                    vertical-align: middle;
+                    border-top: none !important;
+                    white-space: wrap;
 
-                word-break: break-word;
-                overflow: hidden;
-                max-width: 230px;
-                min-width: 100px;
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
+                    max-width: 230px;
+                    min-width: 100px;
 
 
                 }
@@ -456,19 +464,23 @@ export default function RacksPages() {
                 /* MENU DESPLEGABLE */
 
                 .table td.rack-actions-cell {
-                    width: 70px;
+  
                     text-align: center;
                     overflow: visible;
-                    position: relative;
-                    z-index: 1;
+                    justify-content: center;
+                    isolation: auto;
+
+
                 }
 
                 .rack-action-menu-wrapper {
-                    position: relative;
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    z-index: 20;
+
+                    max-width: 36px;
+                    min-width: 36px;
+                    
                 }
 
                 .rack-action-menu-button {
@@ -476,42 +488,45 @@ export default function RacksPages() {
                     height: 36px;
                     border: 1px solid var(--operator-border);
                     border-radius: 999px;
-                    background: transparent;
+                    background: var(--operator-card);
                     color: var(--operator-text);
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
+                    padding: 10px;
                 }
 
                 .rack-action-menu-button:hover {
                     background: var(--operator-border);
+                    color: var(--operator-primary);
                 }
 
                 .rack-action-menu {
                     position: absolute;
-                    right: 0;
-                    top: calc(100% + 6px);
-                    min-width: 180px;
+                    min-width: 200px;
                     background: var(--operator-card);
                     border: 1px solid var(--operator-border);
-                    border-radius: 12px;
+                    border-radius: 10px;
                     box-shadow: 0 10px 24px var(--operator-shadow);
-                    padding: 6px;
+                    padding: 8px 10px;
                     display: flex;
+                    text-align: center;
                     flex-direction: column;
                     gap: 4px;
                     z-index: 9999;
+                    
                 }
 
                 .rack-action-menu-mantenimiento {
                     border: none;
-                    background: transparent;
+                    background: var(--operator-border);
                     padding: 8px 10px;
                     text-align: left;
                     border-radius: 8px;
                     color: var(--operator-text);
                     cursor: pointer;
+                    font-weight: 600;
                 }
 
                 .rack-action-menu-mantenimiento:hover {
@@ -521,12 +536,13 @@ export default function RacksPages() {
 
                 .rack-action-menu-editar {
                     border: none;
-                    background: transparent;
+                    background: var(--operator-border);
                     padding: 8px 10px;
                     text-align: left;
                     border-radius: 8px;
-                    color: var(--operator-);
+                    color: var(--operator-text);
                     cursor: pointer;
+                    font-weight: 600;
                 }
 
                 .rack-action-menu-editar:hover {
@@ -536,7 +552,7 @@ export default function RacksPages() {
 
                 .rack-action-menu-estatus {
                     border: none;
-                    background: transparent;
+                    background: var(--operator-border);
                     padding: 8px 10px;
                     text-align: left;
                     border-radius: 8px;

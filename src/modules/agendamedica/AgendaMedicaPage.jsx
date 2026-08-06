@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { db } from "../../config/firebase";
-import { FiEye, FiEdit2, FiTrash2, FiArrowLeft, FiSave, FiPlus } from "react-icons/fi";
+import {FaEllipsisV} from "react-icons/fa";
+import { FiEye, FiEdit, FiTrash2, FiArrowLeft, FiSave, FiPlus } from "react-icons/fi";
 import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
 import Loader from "../../components/Loader";
 
@@ -29,6 +30,22 @@ export default function AgendaMedicaPage() {
         fechaFin: "",
         duracionMin: 30
     });
+
+    const [openActivationId, setOpenActivationId] = useState(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (!event.target.closest(".agenda-activation-menu")) {
+                setOpenActivationId(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
+
 
     // Modal obligatorio de confirmación con motivo: se abre cuando el admin
     // cambia fechaInicio/fechaFin o desactiva una agenda (ver punto 1 del
@@ -381,8 +398,15 @@ export default function AgendaMedicaPage() {
                                         <td colSpan="6" className="text-center p-4 text-secondary">No hay agendas registradas.</td>
                                     </tr>
                                 ) : (
+
+
+
                                     agendas.map((agenda) => (
-                                        <tr key={agenda.id}>
+
+                                        <tr key={agenda.id}
+                                            className={openActivationId === agenda.id ? "agenda-activation-menu" : ""}
+                                        
+                                        >
                                             <td className="px-4 py-3 align-middle">{agenda.nombre || "Sin nombre"}</td>
                                             <td className="px-4 py-3 align-middle">{agenda.fechaInicio} → {agenda.fechaFin}</td>
                                             <td className="px-4 py-3 align-middle">{agenda.duracionMin} min</td>
@@ -400,42 +424,73 @@ export default function AgendaMedicaPage() {
                                                     {agenda.estado === 'activa' ? 'Desactivar' : 'Activar'}
                                                 </button>
                                             </td>
-                                            <td className="px-4 py-3 align-middle">
-                                                <div className="d-flex gap-2">
-                                                    <button 
-                                                        className="btn btn-sm btn-primary d-flex align-items-center gap-1"
-                                                        onClick={() => {
-                                                            setAgendaSeleccionada(agenda);
-                                                            setVista("detalle");
-                                                        }}
-                                                    >
-                                                        <FiEye /> Ver
+
+
+
+                                            <td className="agenda-actions-cell">
+                                                <div className="agenda-action-menu-wrapper">
+                                                    <button
+                                                        type="button"
+                                                        className="agenda-action-btn"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            setOpenActivationId(openActivationId === agenda.id ? null : agenda.id);
+                                                        }}>
+                                                        <FaEllipsisV />
                                                     </button>
 
-                                                    <button 
-                                                        className="btn btn-sm btn-warning d-flex align-items-center gap-1"
-                                                        onClick={() => {
-                                                            setAgendaSeleccionada(agenda);
-                                                            setFormEdicion({
-                                                                nombre: agenda.nombre || "",
-                                                                fechaInicio: agenda.fechaInicio || "",
-                                                                fechaFin: agenda.fechaFin || "",
-                                                                duracionMin: agenda.duracionMin || 30
-                                                            });
+                                                    {openActivationId === agenda.id && (
+                                                        <div className="agenda-action-menu">
+
+                                                            <button
+                                                                type="button"
+                                                                className="agenda-action-menu-item-ver"
+                                                                onClick={() => {
+                                                                    setOpenActivationId(null);
+                                                                    setAgendaSeleccionada(agenda);
+                                                                    setVista("detalle");
+                                                            }}
+                                                            >
+                                                                <FiEye /> Ver
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="agenda-action-menu-item-editar"
+                                                                onClick={() => {
+                                                                    setOpenActivationId(null);
+                                                                    setAgendaSeleccionada(agenda);
+                                                                    setFormEdicion({
+                                                                    nombre: agenda.nombre || "",
+                                                                    fechaInicio: agenda.fechaInicio || "",
+                                                                    fechaFin: agenda.fechaFin || "",
+                                                                    duracionMin: agenda.duracionMin || 30
+                                                                });
                                                             setVista("editar");
-                                                        }}
-                                                    >
-                                                        <FiEdit2 /> Editar
-                                                    </button>
+                                                            }}
+                                                            >
+                                                            <FiEdit /> Editar
+                                                            </button>
 
-                                                    <button 
-                                                        className="btn btn-sm btn-danger d-flex align-items-center gap-1"
-                                                        onClick={() => handleEliminar(agenda.id, agenda.nombre)}
-                                                    >
-                                                        <FiTrash2 /> Borrar
-                                                    </button>
+                                                            <button
+                                                            type="button"
+                                                            className="agenda-action-menu-item-borrar"
+                                                            onClick={() => { 
+                                                                setOpenActivationId(null);
+                                                                handleEliminar(agenda.id, agenda.nombre); }}
+                                                            >
+                                                            <FiTrash2 /> Borrar
+                                                            </button>
+
+                                                        </div>
+                                                    )}
                                                 </div>
+                                                
                                             </td>
+
+
+
+
                                         </tr>
                                     ))
                                 )}
@@ -453,6 +508,94 @@ export default function AgendaMedicaPage() {
                 .agenda-medica-table > :not(caption) > * > * { background: var(--operator-card); color: var(--operator-text); border-color: var(--operator-border); }
                 .agenda-medica-table thead { border-bottom: 1px solid var(--operator-border); }
                 .agenda-medica-table tbody tr { border-bottom: 1px solid var(--operator-border); }
+
+                .agenda-medica-table tbody tr.agenda-activation-menu {
+                    transform: none !important;
+                    box-shadow: none !important;
+                }
+
+                .agenda-actions-cell { 
+                    text-align: center;
+                    overflow: visible;
+                    justify-content: center;
+                    isolation: auto;
+                }
+
+                .agenda-action-menu-wrapper {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+
+                    max-width: 36px;
+                    min-width: 36px;
+                }
+
+                .agenda-action-btn {
+                    width: 36px;
+                    height: 36px;
+                    border: 1px solid var(--operator-border);
+                    border-radius: 999px;
+                    background: var(--operator-card);
+                    color: var(--operator-text);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    padding: 10px;
+                
+                }
+
+                .agenda-action-btn:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-primary);
+                }
+
+                .agenda-action-menu {
+                    position: absolute;
+                    min-width: 200px;
+                    background: var(--operator-background);
+                    border: 1px solid var(--operator-border);
+                    border-radius: 10px;
+                    box-shadow: 0 10px 24px var(--operator-shadow);
+                    padding: 8px 10px;
+                    display: flex;
+                    text-align: center;
+                    flex-direction: column;
+                    gap: 4px;
+                    z-index: 9999;
+                }
+
+                .agenda-action-menu-item-ver,
+                .agenda-action-menu-item-editar,
+                .agenda-action-menu-item-borrar {
+                    border: none;
+                    background: var(--operator-card);
+                    padding: 8px 10px;
+                    text-align: left;
+                    border-radius: 8px;
+                    gap: 8px;
+                    color: var(--operator-text);
+                    cursor: pointer;
+                    font-weight: 600;
+                }
+
+                .agenda-action-menu-item-ver:hover {
+                    background: var(--operator-border);
+                    color: rgba(141, 134, 229, 0.77);
+                }
+
+                .agenda-action-menu-item-editar:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-primary);
+                }
+
+                .agenda-action-menu-item-borrar:hover {
+                    background: rgba(255, 0, 0, 0.1);
+                    color: var(--operator-danger);
+                }
+
+
+
             `}</style>
 
             {confirmAction && (

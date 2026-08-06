@@ -17,7 +17,7 @@ import {
     FaClosedCaptioning, FaCalendarMinus, FaCalendarDay,
     FaBuilding, FaSearch, FaFilePdf,
     FaFileExport, FaEyeSlash, FaLock, FaChartPie,
-    FaChartBar, FaCalendarPlus
+    FaChartBar, FaCalendarPlus, FaTrashAlt
 } from "react-icons/fa";
 
 import { notifySuccess, notifyError } from "../../utils/notify";
@@ -570,14 +570,16 @@ export default function ListaServiciosPage() {
                                         </button>
 
                                     </td>
+                                    <td>
                                     {s.estado === "pendiente" && (
                                         <button
                                             className="btn btn-sm btn-outline-danger ms-2"
                                             onClick={() => setServicioEliminar(s)}
                                         >
-                                            Eliminar
+                                            <FaTrashAlt className="me-2" /> Eliminar
                                         </button>
                                     )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -739,10 +741,137 @@ export default function ListaServiciosPage() {
             }
 
                 /* CONTAINER */
-
+            .card-body-table-responsive-container {
+                display: flex;
+                
+            }
                 /* TABLA */
 
+            .table {
+                table-layout: fixed;
+                width: 100%;
+                border-collapse: collapse;
+                border-spacing: 0 10px !important;    
+            }
+
+            .table thead th {
+                border-bottom: 3px solid var(--operator-text);
+                font-size: 20px;
+                font-weight: 900;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
+            }
+
+            .table tbody td {
+                border-bottom: 3px solid var(--operator-border);
+                height: 50px;
+                font-size: 14px;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
+            }
+
+            .table tbody tr:hover {
+                transform: scale(1.02);
+                transition: transform 0.2s;
+        }
+
+
+
                 /* LABELS, FORMS y SELECTS */
+
+            .form-control, .form-select {
+                height: 50px;
+                border-radius: 12px;
+                background-color: var(--operator-card);
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
+            }
+
+            .form-control:focus{
+                border-color: var(--operator-primary);
+                background-color: var(--operator-card);
+            }
+
+            .form-control::placeholder {
+                color: var(--operator-text);
+                opacity: 0.7;
+            }
+
+            .form-control::date {
+                color: var(--operator-text);
+                opacity: 0.7;
+            }
+
+                /* BOTONES */
+
+                .ms-2 {
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    text-align: center;
+                    color: var(--operator-text); 
+                }
+
+                .btn-danger {
+                    height: 40px;
+                    padding: 0 20px;
+                    border-radius: 10px;
+                    border: none;
+                    color: #fff;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 10px var(--operator-danger);
+                }
+
+                .btn-outline-danger {
+                    height: 40px;
+                    padding: 0 20px;
+                    border-radius: 10px;
+                    color: var(--operator-text);
+                    background: transparent;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 5px var(--operator-danger);
+                }
+
+                .btn-primary {
+                    height: 40px;
+                    padding: 0 20px;
+                    border-radius: 10px;
+                    border: none;
+                    background: var(--operator-primary);
+                    color: #fff;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                }
             `}</style>
         </div>
     );

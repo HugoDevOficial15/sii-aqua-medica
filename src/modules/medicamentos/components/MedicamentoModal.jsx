@@ -22,6 +22,9 @@ const schema = z.object({
 export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
     const [loading, setLoading] = useState(false)
+    const [hoveredField, setHoveredField] = useState(null)
+    const [focusedField, setFocusedField] = useState(null)
+    const [isCloseHovered, setIsCloseHovered] = useState(false)
 
     const {
         register,
@@ -49,6 +52,27 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
             })
         }
     }, [])
+
+    const handleFieldEnter = (fieldName) => setHoveredField(fieldName)
+    const handleFieldLeave = () => setHoveredField(null)
+    const handleFieldFocus = (fieldName) => setFocusedField(fieldName)
+    const handleFieldBlur = () => setFocusedField(null)
+
+    const getInputStyle = (fieldName, hasError = false) => ({
+        ...styles.input,
+        ...(hoveredField === fieldName || focusedField === fieldName
+            ? styles.inputActive
+            : {}),
+        ...(hasError ? styles.inputError : {})
+    })
+
+    const getTextareaStyle = (fieldName, hasError = false) => ({
+        ...styles.textarea,
+        ...(hoveredField === fieldName || focusedField === fieldName
+            ? styles.textareaActive
+            : {}),
+        ...(hasError ? styles.inputError : {})
+    })
 
     const onSubmit = async (form) => {
 
@@ -95,6 +119,27 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
         <div style={styles.backdrop}>
 
+            <style>{`
+                .custom-field::placeholder {
+                    color: #94a3b8;
+                    opacity: 1;
+                }
+
+                .custom-field:hover,
+                .custom-field:focus {
+                    border-color: var(--operator-primary) !important;
+                    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+                }
+
+                .btn-close:hover {
+                    background: var(--operator-primary);
+                    color: var(--operator-primary);
+                    border: none;
+                }
+
+
+            `}</style>
+
             <div style={styles.modalCard}>
 
                 {/* HEADER */}
@@ -105,8 +150,14 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                     </h5>
 
                     <button
-                        style={styles.closeButton}
+                        className="btn-close"
+                        style={{
+                            ...styles.closeButton,
+                            ...(isCloseHovered ? styles.closeButtonHover : {})
+                        }}
                         onClick={onClose}
+                        onMouseEnter={() => setIsCloseHovered(true)}
+                        onMouseLeave={() => setIsCloseHovered(false)}
                     >
                         ×
                     </button>
@@ -124,19 +175,24 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                     >
 
                         <input
+                            className="custom-field"
                             placeholder="Medicamento"
                             {...register("nombreMedicamento")}
-                            style={{
-                                ...styles.input,
-                                ...(errors.nombreMedicamento
-                                    ? styles.inputError
-                                    : {})
-                            }}
+                            onMouseEnter={() => handleFieldEnter("nombreMedicamento")}
+                            onMouseLeave={handleFieldLeave}
+                            onFocus={() => handleFieldFocus("nombreMedicamento")}
+                            onBlur={handleFieldBlur}
+                            style={getInputStyle("nombreMedicamento", Boolean(errors.nombreMedicamento))}
                         />
 
                         <select
+                            className="custom-field"
                             {...register("presentacion")}
-                            style={styles.input}
+                            onMouseEnter={() => handleFieldEnter("presentacion")}
+                            onMouseLeave={handleFieldLeave}
+                            onFocus={() => handleFieldFocus("presentacion")}
+                            onBlur={handleFieldBlur}
+                            style={getInputStyle("presentacion")}
                         >
                             <option value="">Presentación</option>
                             <option value="Tabletas">Tabletas</option>
@@ -157,21 +213,31 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                         >
 
                             <input
+                                className="custom-field"
                                 type="number"
                                 placeholder="Cantidad"
                                 {...register("cantidad", {
                                     valueAsNumber: true
                                 })}
+                                onMouseEnter={() => handleFieldEnter("cantidad")}
+                                onMouseLeave={handleFieldLeave}
+                                onFocus={() => handleFieldFocus("cantidad")}
+                                onBlur={handleFieldBlur}
                                 style={{
-                                    ...styles.input,
+                                    ...getInputStyle("cantidad"),
                                     flex: 1
                                 }}
                             />
 
                             <select
+                                className="custom-field"
                                 {...register("unidadCantidad")}
+                                onMouseEnter={() => handleFieldEnter("unidadCantidad")}
+                                onMouseLeave={handleFieldLeave}
+                                onFocus={() => handleFieldFocus("unidadCantidad")}
+                                onBlur={handleFieldBlur}
                                 style={{
-                                    ...styles.input,
+                                    ...getInputStyle("unidadCantidad"),
                                     width: "160px"
                                 }}
                             >
@@ -182,10 +248,15 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                             </select>
 
                             <input
+                                className="custom-field"
                                 placeholder="Lote"
                                 {...register("lote")}
+                                onMouseEnter={() => handleFieldEnter("lote")}
+                                onMouseLeave={handleFieldLeave}
+                                onFocus={() => handleFieldFocus("lote")}
+                                onBlur={handleFieldBlur}
                                 style={{
-                                    ...styles.input,
+                                    ...getInputStyle("lote"),
                                     flex: 1
                                 }}
                             />
@@ -197,9 +268,15 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                         </label>
 
                         <input
+                            className="custom-field"
                             type="date"
+                            placeholder="Selecciona una fecha"
                             {...register("fechaCaducidad")}
-                            style={styles.input}
+                            onMouseEnter={() => handleFieldEnter("fechaCaducidad")}
+                            onMouseLeave={handleFieldLeave}
+                            onFocus={() => handleFieldFocus("fechaCaducidad")}
+                            onBlur={handleFieldBlur}
+                            style={getInputStyle("fechaCaducidad")}
                         />
 
                         <label style={styles.label}>
@@ -207,21 +284,37 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                         </label>
 
                         <input
+                            className="custom-field"
                             type="date"
+                            placeholder="Selecciona una fecha"
                             {...register("fechaIngreso")}
-                            style={styles.input}
+                            onMouseEnter={() => handleFieldEnter("fechaIngreso")}
+                            onMouseLeave={handleFieldLeave}
+                            onFocus={() => handleFieldFocus("fechaIngreso")}
+                            onBlur={handleFieldBlur}
+                            style={getInputStyle("fechaIngreso")}
                         />
 
                         <input
+                            className="custom-field"
                             placeholder="Ubicación"
                             {...register("ubicacion")}
-                            style={styles.input}
+                            onMouseEnter={() => handleFieldEnter("ubicacion")}
+                            onMouseLeave={handleFieldLeave}
+                            onFocus={() => handleFieldFocus("ubicacion")}
+                            onBlur={handleFieldBlur}
+                            style={getInputStyle("ubicacion")}
                         />
 
                         <textarea
+                            className="custom-field"
                             placeholder="Observaciones"
                             {...register("observaciones")}
-                            style={styles.textarea}
+                            onMouseEnter={() => handleFieldEnter("observaciones")}
+                            onMouseLeave={handleFieldLeave}
+                            onFocus={() => handleFieldFocus("observaciones")}
+                            onBlur={handleFieldBlur}
+                            style={getTextareaStyle("observaciones")}
                         />
 
                         {/* FOOTER */}
@@ -280,6 +373,7 @@ const styles = {
         padding: "20px",
 
         zIndex: 9999
+        
     },
 
     modalCard: {
@@ -312,8 +406,6 @@ const styles = {
         alignItems: "center",
 
         padding: "24px 30px",
-
-        borderBottom: "1px solid var(--operator-border)"
     },
 
     title: {
@@ -329,19 +421,41 @@ const styles = {
 
     closeButton: {
 
-        width: "42px",
+        width: "36px",
 
-        height: "42px",
+        height: "36px",
 
-        borderRadius: "14px",
+        borderRadius: "10px",
 
         background: "var(--operator-card)",
 
-        fontSize: "20px",
+        fontSize: "30px",
 
         cursor: "pointer",
 
-        border: "1px solid var(--operator-border)"
+        border: "none",
+
+        color: "var(--operator-text)",
+
+        display: "flex",
+
+        alignItems: "center",
+
+        justifyContent: "center",
+
+        lineHeight: 1,
+
+        transition: "all 0.2s ease"
+    },
+
+    closeButtonHover: {
+
+        background: "var(--operator-card)",
+
+        color: "var(--operator-primary)",
+
+        border: "none",
+
     },
     body: {
 
@@ -384,13 +498,35 @@ const styles = {
 
         padding: "0 14px",
 
-        background: "var(--operator-background)",
+        background: "var(--operator-border)",
 
         color: "var(--operator-text)",
 
         fontSize: "14px",
 
         outline: "none"
+    },
+
+    inputActive: {
+
+        background: "var(--operator-card)",
+
+        border: "1px solid var(--operator-primary)",
+
+        boxShadow: "0 0 0 3px rgba(37,99,235,0.12)",
+
+        transform: "translateY(-1px)"
+    },
+
+    textareaActive: {
+
+        background: "var(--operator-card)",
+
+        border: "1px solid var(--operator-primary)",
+
+        boxShadow: "0 0 0 3px rgba(37,99,235,0.12)",
+
+        transform: "translateY(-1px)"
     },
 
     textarea: {

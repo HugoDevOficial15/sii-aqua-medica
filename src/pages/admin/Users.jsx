@@ -34,7 +34,7 @@ import { userSchema } from "../../schemas/userSchema";
 // import { resetPasswordByAdmin } from "../../services/adminAuthService";
 
 // Icons
-import { FaUserCheck, FaUserEdit, FaUserPlus, FaUserSlash, FaFileExcel, FaKey, FaCheckCircle, FaFileImport, FaSearch } from "react-icons/fa";
+import { FaUserCheck, FaEdit, FaUserEdit, FaUserPlus, FaUserSlash, FaFileExcel, FaKey, FaCheckCircle, FaFileImport, FaSearch, FaEllipsisV } from "react-icons/fa";
 
 // Areas
 import { AREAS } from "../../catalogs/areas";
@@ -74,6 +74,9 @@ export default function Users({onClose}) {
     const csvInputRef = useRef(null);
     const [importing, setImporting] = useState(false);
 
+    // Acciones abiertas
+    const [openActionsId, setOpenActionsId] = useState(null);
+
     // Form React Hook Form
     const {
         register,
@@ -83,6 +86,19 @@ export default function Users({onClose}) {
     } = useForm({
         resolver: zodResolver(userSchema)
     });
+
+    // Cerrar menú de acciones al hacer clic fuera
+    useEffect(() => {
+        const closeMenu = (event) => {
+            if (!event.target.closest(".users-actions-cell")) {
+                setOpenActionsId(null);
+            }
+        };
+
+        document.addEventListener("mousedown", closeMenu);
+
+        return () => document.removeEventListener("mousedown", closeMenu);
+    }, []);
 
 
     // Tabala
@@ -627,7 +643,10 @@ export default function Users({onClose}) {
 
                             {currentUsers.map((user) => (
 
-                                <tr key={user.id}>
+                                <tr
+                                    key={user.id}
+                                    className={openActionsId === user.id ? "user-row-active user-row-open" : ""}
+                                >
 
                                     <td>{user.nomina}</td>
                                     <td>{user.nombre}</td>
@@ -644,41 +663,78 @@ export default function Users({onClose}) {
                                         )}
                                     </td>
 
-                                    <td>
-
-                                        <button
-                                            className="btn btn-sm btn-outline-primary me-2 custom-btn"
-                                            onClick={() => handleEdit(user)}
+                                    <td className="users-actions-cell">
+                                        <div
+                                            className="users-actions-wrapper"
+                                            onMouseDown={(event) => event.stopPropagation()}
                                         >
-                                            <FaUserEdit className="me-1" />
-                                            Editar
-                                        </button>
+                                            <button 
+                                                type="button"
+                                                className="user-action-menu-button"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setOpenActionsId(openActionsId === user.id ? null : user.id);
+                                                }}
+                                                aria-label="Abrir menú de acciones"
+                                            >
+                                                <FaEllipsisV />
+                                            </button>
 
-                                        <button
-                                            className={`btn btn-sm ${user.activo ? "btn-outline-danger" : "btn-outline-success"} me-2 custom-btn`}
-                                            onClick={() => toggleUserStatus(user)}
-                                        >
-                                            {user.activo ? (
-                                                <>
-                                                    <FaUserSlash className="me-1" />
-                                                    Baja
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <FaUserCheck className="me-1" />
-                                                    Activar
-                                                </>
+                                            {openActionsId === user.id && (
+                                                <div
+                                                    className="user-action-menu"
+                                                    onMouseDown={(event) => event.stopPropagation()}
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        className="user-action-menu-editar"
+                                                        onClick={() => {
+                                                            setOpenActionsId(null);
+                                                            handleEdit(user);
+                                                        }}
+                                                        onMouseDown={(event) => event.stopPropagation()}
+                                                    >
+                                                        <FaEdit className="me-1" />
+                                                        Editar
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        className={`user-action-menu-${user.activo ? "baja" : "activar"}`}
+                                                        onClick={() => {
+                                                            setOpenActionsId(null);
+                                                            toggleUserStatus(user);
+                                                        }}
+                                                        onMouseDown={(event) => event.stopPropagation()}
+                                                    >
+                                                        {user.activo ? (
+                                                            <>
+                                                                <FaUserSlash className="me-1" />
+                                                                Baja
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <FaUserCheck className="me-1" />
+                                                                Activar
+                                                            </>
+                                                        )}
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        className="user-action-menu-reset"
+                                                        onClick={() => {
+                                                            setOpenActionsId(null);
+                                                            handleResetPassword(user);
+                                                        }}
+                                                        onMouseDown={(event) => event.stopPropagation()}
+                                                    >
+                                                        <FaKey className="me-1" />
+                                                        Reset
+                                                    </button>
+                                                </div>
                                             )}
-                                        </button>
-
-                                        <button
-                                            className="btn btn-sm btn-outline-warning custom-btn"
-                                            onClick={() => handleResetPassword(user)}
-                                        >
-                                            <FaKey className="me-1" />
-                                            Reset
-                                        </button>
-
+                                        </div>
                                     </td>
 
                                 </tr>
@@ -861,6 +917,11 @@ export default function Users({onClose}) {
                 background: var(--operator-card);
                 border-radius: 30px; 
                 box-shadow: 0 8px 25px var(--operator-shadow);
+                overflow: visible;
+            }
+
+            .card-body.table-responsive-container {
+                overflow: visible;
             }
             /* TABLA */
 
@@ -896,8 +957,7 @@ export default function Users({onClose}) {
                 min-width: 100px;
             }
 
-            .table tbody td {
-                border-bottom: 3px solid var(--operator-border);
+            .table td {
                 height: 50px;
                 font-size: 14px;
                 padding: 5px 5px;
@@ -906,14 +966,39 @@ export default function Users({onClose}) {
                 white-space: wrap;
 
                 word-break: break-word;
-                overflow-wrap: anywhere;
+                overflow: hidden;
                 max-width: 230px;
                 min-width: 100px;
             }
 
-            .table tbody tr:hover {
+            .table tbody tr {
+                position: relative;
+                z-index: 1;
+            }
+
+            .table tbody tr:not(.user-row-open):hover {
                 transform: scale(1.02);
-                transition: transform 0.2s;
+                box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+                z-index: 2;
+            }
+
+            .table tbody tr.user-row-open {
+                z-index: 20;
+            }
+
+            .table tbody tr.user-row-open:hover {
+                transform: none !important;
+                box-shadow: none !important;
+                z-index: 20;
+            }
+
+            .table tbody tr.user-row-active {
+                transform: none !important;
+                box-shadow: none !important;
+            }
+
+            .table thead tr th:nth-child(6) {
+                text-align: center;
             }
 
 
@@ -1021,7 +1106,6 @@ export default function Users({onClose}) {
             }
             
 
-                .modal-body .form-control,
                 .modal-body .form-select {
                     height: 50px;
                     border-radius: 12px;
@@ -1033,15 +1117,33 @@ export default function Users({onClose}) {
                     outline: none;
                 }
 
-            .modal-body .form-control:focus,
+            .form-control {
+                height: 50px;
+                border-radius: 12px;
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+                background: var(--operator-card);
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
+            }
+
+            .form-control:focus {
+                background: var(--operator-card);
+            }
+
             .modal-body .form-select:focus {
 
             
-                        
+                
                 border-color: #2563eb;
                         
                 box-shadow:
                     0 0 0 4px rgba(37,99,235,0.10);
+            }
+
+            .form-control::placeholder{
+                color: var(--operator-text);
             }
 
             .modal-footer .btn-secondary {
@@ -1110,30 +1212,127 @@ export default function Users({onClose}) {
                 color: var(--operator-primary);
             }
 
-.row.g-3 {
+            .row.g-3 {
 
-    --bs-gutter-y: 20px;
+                --bs-gutter-y: 20px;
 
-    --bs-gutter-x: 20px;
-}
+                --bs-gutter-x: 20px;
+            }
 
-.custom-modal {
+            .custom-modal {
 
-    animation: modalFade .18s ease;
-}
+                animation: modalFade .18s ease;
+            }
 
-@keyframes modalFade {
+            @keyframes modalFade {
 
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(.98);
-    }
+                from {
+                    opacity: 0;
+                    transform: translateY(10px) scale(.98);
+                }
 
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+                /* MENU ACCIONES */
+
+            .table td.users-actions-cell {
+
+                text-align: center;
+                overflow: visible;
+                justify-content: center;
+                position: relative;
+                z-index: 3;
+
+            }
+
+
+            .users-actions-wrapper {
+                position: relative;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                max-width: 36px;
+                min-width: 36px;
+                z-index: 4;
+                isolation: isolate;
+            }
+
+            .user-action-menu-button {
+                width: 36px;
+                height: 36px;
+                border: 1px solid var(--operator-border);
+                border-radius: 999px;
+                background: var(--operator-card);
+                color: var(--operator-text);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                padding: 10px;
+            }
+
+            .user-action-menu-button:hover {
+                background: var(--operator-border);
+                color: var(--operator-primary);
+            }
+
+            .user-action-menu {
+                position: absolute;
+                min-width: 180px;
+                overflow: visible;
+                background: var(--operator-background);
+                border: 1px solid var(--operator-background);
+                border-radius: 10px;
+                box-shadow: 0 10px 24px var(--operator-shadow);
+                padding: 8px 10px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                z-index: 99999;
+            }
+
+            .user-action-menu-editar,
+            .user-action-menu-baja,
+            .user-action-menu-activar,
+            .user-action-menu-reset {
+                border: none;
+                background: var(--operator-card);
+                padding: 8px 10px;
+                display: flex;
+                text-align: center;
+                align-items: center;
+                font-size: 12px;
+                font-weight: 800;
+                border-radius: 8px;
+                color: var(--operator-text);
+                cursor: pointer;
+            }
+
+            .user-action-menu-editar:hover {
+                background: var(--operator-border);
+                color: var(--operator-primary);
+            }
+
+            .user-action-menu-baja:hover {
+                background: rgba(231, 26, 26, 0.15);
+                color: var(--operator-danger);
+            }
+
+            .user-action-menu-activar:hover {
+                background: rgba(26, 226, 26, 0.18);
+                color: var(--operator-success);
+            }
+
+            .user-action-menu-reset:hover {
+                background: var(--operator-border);
+                color: var(--operator-warning);
+            }
+
+
 
 
         `}</style>

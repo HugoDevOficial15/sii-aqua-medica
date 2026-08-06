@@ -1246,6 +1246,10 @@ export default function CreateSurvey() {
         min-width: 100px;
 }
 
+.table thead tr th:nth-child(5){
+                text-align: center;
+}
+
 /* ==================================================
    ACTIONS MENU
 ================================================== */
@@ -1283,11 +1287,11 @@ export default function CreateSurvey() {
     padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
     z-index: 9999;
-    border: 1px solid var(--operator-border);
+    border: 1px solid var(--operator-background );
     border-radius: 10px;
-    background: var(--operator-card);
+    background: var(--operator-background);
     box-shadow: 0 12px 24px rgba(2, 6, 23, 0.14);
 }
 
@@ -1309,6 +1313,9 @@ export default function CreateSurvey() {
 .survey-action-item:hover {
     background: var(--operator-background);
 }
+
+
+
 
 /* ==================================================
    STATUS
