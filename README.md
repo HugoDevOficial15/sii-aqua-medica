@@ -342,3 +342,81 @@ CSS:
         border-radius: 10px;
 
 
+# MENUS DESPLEGABLES #
+
+* Despues del "." va el nombre de la clase que utilices
+
+
+.actions-cell {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: visible;
+    isolation: auto;
+}
+
+.actions-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10;
+    border: 1px solid var(--operator-border);
+    background: var(--operator-card);
+    color: var(--operator-text);
+}
+
+.actions-toggle:hover {
+    background: var(--operator-background);
+    color: var(--operator-primary);
+}
+
+.action-menu-button {
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--operator-border);
+        border-radius: 999px;
+        background: var(--operator-card);
+        color: var(--operator-text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 10px;
+}
+
+.actions-menu {
+    position: absolute;
+    min-width: 60%;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    z-index: 9999;
+    border: 1px solid var(--operator-background);
+    border-radius: 10px;
+    background: var(--operator-background);
+    box-shadow: 0 12px 24px rgba(2, 6, 23, 0.14);
+}
+
+.action-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 10px;
+    background: var(--operator-card);
+    color: var(--operator-text);
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.action-item:hover {
+    background: var(--operator-background);
+}

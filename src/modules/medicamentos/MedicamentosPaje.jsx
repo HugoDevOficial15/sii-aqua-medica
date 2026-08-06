@@ -101,74 +101,9 @@ export default function MedicamentosPage() {
 
             <style jsx>{`
 
-                .custom-users-header input,
-                .custom-users-header select {
-                    border-radius: 10px;
-                }
 
-                .custom-users-card {
-                    border-radius: 16px;
-                    border: none;
-                    box-shadow: 0 8px 25px rgba(0,0,0,0.05);
-                }
 
-                .custom-table {
-                    border-collapse: separate;
-                    border-spacing: 0 10px;
-                }
-
-                .custom-table tbody tr:hover {
-                    transform: scale(1.01);
-                    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-                }
-
-                .custom-badge-success {
-                    background: #dcfce7;
-                    color: #15803d;
-                    padding: 6px 12px;
-                    border-radius: 999px;
-                    font-size: 0.8rem;
-                }
-
-                .custom-badge-danger {
-                    background: #fee2e2;
-                    color: #b91c1c;
-                    padding: 6px 12px;
-                    border-radius: 999px;
-                }
-
-                .custom-btn {
-                    border-radius: 8px;
-                }
                 
-                /* TABLE */
-                .table {
-                    border-collapse: separate !important;
-                    border-spacing: 0 10px !important;
-                }
-
-                .table thead th {
-                    font-size: 12px;
-                    text-transform: uppercase;
-                    color: #6b7280;
-                    border: none !important;
-                }
-
-                .table tbody tr {
-                    background: #ffffff;
-                    transition: all 0.2s ease;
-                }
-
-                .table tbody tr:hover {
-                    transform: scale(1.01);
-                    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-                }
-
-                .table td {
-                    vertical-align: middle;
-                    border-top: none !important;
-                    padding: 12px;
-                }
 
 
             `}</style>

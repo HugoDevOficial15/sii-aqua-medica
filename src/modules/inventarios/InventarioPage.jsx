@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import EquipoModal from "../../modules/inventarios/components/EquipoModal";
 
 // Icons
-import { FaPlus, FaEdit, FaArrowDown, FaClipboardList } from "react-icons/fa";
+import { FaPlus, FaEdit, FaArrowDown, FaClipboardList, FaEllipsisV, FaTrash, FaCheck } from "react-icons/fa";
 
 // Loader
 import Loader from "../../components/Loader";
@@ -24,6 +24,7 @@ export default function InventarioPage() {
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [selected, setSelected] = useState(null);
+    const [openActionsId, setOpenActionsId] = useState(null);
 
 
     const [showLogs, setShowLogs] = useState(false);
@@ -72,15 +73,14 @@ export default function InventarioPage() {
         setShowModal(true)
     }
 
-    const handleBaja = async (id) => {
-        await bajaEquipo(id)
-        notifySuccess("Equipo dado de baja", "Baja correcta")
-        fetchData()
-    }
-
-    const handleActivar = async (id) => {
-        await activarEquipo(id)
-        notifySuccess("Equipo activado", "Alta correcta")
+    const toggleBajaActivar = async (id, estado) => {
+        if (estado) {
+            await bajaEquipo(id)
+            notifySuccess("Equipo dado de baja", "Baja correcta")
+        } else {
+            await activarEquipo(id)
+            notifySuccess("Equipo activado", "Alta correcta")
+        }
         fetchData()
     }
 
@@ -98,6 +98,23 @@ export default function InventarioPage() {
 
         return matchSearch && matchTipo
     });
+
+
+        // Cerrar menu cuando se hace click fuera
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (!event.target.closest(".action-menu")) {
+                setOpenActionsId(null);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     // Loading
     if (loading) {
@@ -179,8 +196,10 @@ export default function InventarioPage() {
                             </thead>
 
                             <tbody>
+
                                 {equiposFiltrados.map((e) => (
-                                    <tr key={e.id}>
+                                    <tr key={e.id}
+                                        className= {openActionsId === e.id ? "table-row-active" : ""}>
                                         <td>{e.codigo}</td>
                                         <td>{e.tipo.toUpperCase()}</td>
                                         <td>{e.usuarioNombre}</td>
@@ -198,44 +217,77 @@ export default function InventarioPage() {
                                             )}
                                         </td>
 
-                                        <td>
-                                            <button
-                                                className="btn btn-sm btn-outline-primary me-2 custom-btn"
-                                                onClick={() => handleEdit(e)}
-                                            >
-                                                <FaEdit className="me-1" />
-                                                Editar
-                                            </button>
-
-                                            {e.estado ? (
+                                        
+                                        <td className="inventario-actions-cell">
+                                            <div className="inventario-action-menu-wrapper">
                                                 <button
-                                                    className="btn btn-sm btn-outline-danger me-2 custom-btn"
-                                                    onClick={() => handleBaja(e.id)}
+                                                    type="button"
+                                                    className="inventario-action-button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        setOpenActionsId(openActionsId === e.id ? null : e.id);
+                                                    }}
+                                                    aria-label="Acciones"
                                                 >
-                                                    <FaArrowDown className="me-1" />
-                                                    Baja
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    className="btn btn-sm btn-outline-success me-2 custom-btn"
-                                                    onClick={() => handleActivar(e.id)}
-                                                >
-                                                    <FaPlus className="me-2" />
-                                                    Alta
-                                                </button>
-                                            )}
+                                                    <FaEllipsisV />
+                                                    
+                                                    </button>
 
-                                            <button
-                                                className="btn btn-sm btn-outline-dark me-2 custom-btn"
-                                                onClick={() => {
-                                                    setSelectedLogs(e);
-                                                    setShowLogs(true);
-                                                }}
-                                            >
-                                                <FaClipboardList className="me-1" />
-                                                Logs
-                                            </button>
+                                                    {openActionsId === e.id && (
+                                                        <div className="action-menu">
+                                                            <button
+                                                                type="button"
+                                                                className="action-menu-item-editar"
+                                                                onClick={() => {
+                                                                    handleEdit(e);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                <FaEdit className="me-2" />
+                                                                Editar
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className={`action-menu-item-${e.estado ? 'baja' : 'activar'}`}
+                                                                onClick={() => {
+                                                                    setOpenActionsId(null);
+                                                                    toggleBajaActivar(e.id, e.estado);
+                                                                }}
+                                                            >
+                                                                {e.estado ? (
+                                                                    <>
+                                                                        <FaTrash className="me-2" />
+                                                                        Dar de baja
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <FaCheck className="me-2" />
+                                                                        Activar
+                                                                    </>
+                                                                )}
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="action-menu-item-log"
+                                                                onClick={() => {
+                                                                    setSelectedLogs(e);
+                                                                    setShowLogs(true);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                <FaClipboardList className="me-2" />
+                                                                Ver Logs
+                                                            </button>
+
+                                                        </div>
+                                                    )}
+                                                
+                                            </div>
                                         </td>
+
+
 
 
 
@@ -362,15 +414,30 @@ export default function InventarioPage() {
                     border-radius: 12px;
                     border: 1px solid var(--operator-border);
                     padding: 0 14px;
+                    background: var(--operator-card);
 
                     color: var(--operator-text);
                     font-size: 14px;
                     outline: none;
                 }
 
+                .form-control:focus{
+                    background: var(--operator-card);
+                    border: 1px solid var(--operator-primary);
+                }
+
+                .form-control::placeholder {
+                    color: var(--operator-text);
+                }
+
                 .custom-table tbody tr:hover {
                     transform: scale(1.02);
                     transition: transform 0.2s;
+                }
+
+                .custom-table tbody tr.table-row-active {
+                    transform: none !important;
+                    box-shadow: none !important;
                 }
 
                 .custom-badge-success {
@@ -408,6 +475,97 @@ export default function InventarioPage() {
                     border-radius: 999px;
                     font-size: 0.8rem;
                 }
+
+                    /* MENU DE ACCIONES */
+
+                .table td.inventario-actions-cell {
+                    text-align: center;
+                    overflow: visible;
+                    justify-content: center;
+                    isolation: auto;
+
+
+                }
+
+                .inventario-action-menu-wrapper {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+
+                    
+                    max-width: 36px;
+                    min-width: 36px;
+                }
+
+                .inventario-action-button {
+                    width: 36px;
+                    height: 36px;
+                    border: 1px solid var(--operator-border);
+                    border-radius: 999px;
+                    background: var(--operator-card);
+                    color: var(--operator-text);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    padding: 10px;
+                }
+
+                .inventario-action-button:hover {
+                    background: var(--operator-card);
+                    color: var(--operator-primary);
+                }
+
+                .action-menu {
+                    position: absolute;
+                    min-width: 200px;
+                    background: var(--operator-background);
+                    border: 1px solid var(--operator-background);
+                    border-radius: 10px;
+                    box-shadow: 0 10px 24px var(--operator-shadow);
+                    padding: 8px 10px;
+                    display: flex;
+                    text-align: center;
+                    flex-direction: column;
+                    gap: 4px;
+                    z-index: 9999;
+                }
+
+                .action-menu-item-editar,
+                .action-menu-item-baja,
+                .action-menu-item-activar,
+                .action-menu-item-log {
+                    border: none;
+                    background: var(--operator-card);
+                    padding: 8px 10px;
+                    display: flex;
+                    text-align: center;
+                    align-items: center;
+                    font-size: 12px;
+                    font-weight: 800;
+                    border-radius: 8px;
+                    color: var(--operator-text);
+                    cursor: pointer;
+                }
+
+                .action-menu-item-editar:hover {
+                    background: var(--operator-card);
+                    color: var(--operator-primary);
+                }
+
+                .action-menu-item-baja:hover {
+                    background: rgba(128, 31, 31, 0.18);
+                    color: var(--operator-danger);
+                }
+                .action-menu-item-activar:hover {
+                    background: rgba(31, 128, 31, 0.2);
+                    color: var(--operator-success);
+                }
+                .action-menu-item-log:hover {
+                    background: var(--operator-card);
+                    color: rgba(62, 100, 206, 0.8);
+                }
+
 
 
             `}</style>

@@ -49,6 +49,53 @@ export const FiltrosMedicamentos = ({
                     Inactivos
                 </button>
             </div>
+
+            <style>{`
+
+            .btn-light {
+                border-radius: 10px;
+            }
+
+            .btn-success {
+                border-radius: 10px;
+            }
+
+            .btn-warning {
+                border-radius: 10px;
+            }
+
+            .btn-danger {
+                border-radius: 10px;
+            }
+
+            .btn-outline-dark {
+                border-radius: 10px;
+            }
+
+            .btn-outline-primary {
+                border-radius: 10px;
+            }
+
+            .btn-outline-secondary {
+                border-radius: 10px;
+            }
+
+            .btn-primary {
+                
+                height: 40px;
+                padding: 0 20px;
+                border-radius: 10px;
+                border: none;
+                background: var(--operator-primary);
+                color: #fff;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-primary-light);
+            }
+            `}</style>
         </div>
     )
 }

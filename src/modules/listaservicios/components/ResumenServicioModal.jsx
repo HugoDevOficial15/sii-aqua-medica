@@ -74,8 +74,13 @@ export default function ResumenServiciosModal({
                         <div className="sub">Mes {mes}</div>
                     </h6>
 
-                    <button className="btn-close" onClick={onClose}>
-                        {/* <FaTimes /> */}
+                    <button
+                        className="close-button"
+                        onClick={onClose}
+                        aria-label="Cerrar resumen"
+                        type="button"
+                    >
+                        ×
                     </button>
                 </div>
 
@@ -162,20 +167,55 @@ export default function ResumenServiciosModal({
                 .custom-modal {
                     width: 650px;
                     max-width: 95%;
-                    background: white;
-                    border-radius: 16px;
+                    background: var(--operator-card);
+                    backdrop-filter: blur(12px);
+                    border-radius: 30px;
+                    border: 1px solid var(--operator-border);
                     padding: 18px;
+                    overflow-y: hidden;
+                    box-shadow: 0 24px 48px var(--operator-shadow);
+
                 }
 
                 .custom-modal-header {
                     display: flex;
+                    border: none;
                     justify-content: space-between;
+                    align-items: center;
                     margin-bottom: 10px;
+                }
+
+                .mb-0 {
+                    margin: 0;
+                    font-size: 1.5rem;
+                    font-weight: 800;
+                    color: var(--operator-text);
                 }
 
                 .sub {
                     font-size: 12px;
-                    color: #6b7280;
+                    color: var(--operator-text-soft);
+                }
+
+                .close-button {
+                    width: 36px;
+                    height: 36px;
+                    border: none;
+                    border-radius: 10px;
+                    background: var(--operator-card);
+                    color: var(--operator-text);
+                    font-size: 30px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    line-height: 1;
+                    padding: 0;
+                }
+
+                .close-button:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-primary);
                 }
 
                 .progress-section {
@@ -243,6 +283,10 @@ export default function ResumenServiciosModal({
                     padding: 4px 8px;
                     border-radius: 6px;
                     font-size: 12px;
+                }
+
+                .btn-close {
+
                 }
 
             `}</style>

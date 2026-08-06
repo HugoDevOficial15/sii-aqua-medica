@@ -18,6 +18,9 @@ export default function PuestosPage() {
     const [showModal, setShowModal] = useState(false);
     const [puestoEdit, setPuestoEdit] = useState(null);
 
+
+    
+
     // Buscador
     const [search, setSaerch] = useState("");
 
@@ -126,6 +129,32 @@ export default function PuestosPage() {
                 box-shadow: 0 0px 20px var(--operator-primary-light);
 
             }
+
+            .form-control{
+
+                height: 50px;
+                border-radius: 12px;
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+                background: var(--operator-card);
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
+            }
+
+            .form-control:focus {
+
+                background: var(--operator-card);
+                color: var(--operator-text);
+                border-color: var(--operator-primary);
+                box-shadow: 0 0 0 0.2rem var(--operator-primary-light);
+            }
+
+            .form-control::placeholder {
+    
+                color: var(--operator-text);
+                
+            }
                 /* CONTENEDOR DE LA TABLA */
 
             .custom-users-card {
@@ -180,6 +209,10 @@ export default function PuestosPage() {
                     transition: transform 0.2s;
                 }
 
+                .custom-table thead th:nth-child(3){
+                    text-align: center;
+                }
+
                 .custom-badge-success {
                     background: #dcfce7;
                     color: #15803d;
@@ -203,6 +236,8 @@ export default function PuestosPage() {
                 .custom-btn.me-2 {
                     border-radius: 10px;
                 }
+
+                
 
                 
 
