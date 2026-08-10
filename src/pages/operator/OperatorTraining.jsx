@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
     FiBookOpen,
     FiAward,
@@ -5,8 +6,42 @@ import {
     FiCheckCircle,
     FiXCircle
 } from "react-icons/fi";
+import { useAuth } from "../../hooks/useAuth";
+import { getOperatorTrainings, getTrainingStats } from "../../services/operatorTrainingService";
+import Loader from "../../components/Loader";
 
 export default function OperatorTraining() {
+    const { user, userArea } = useAuth();
+    const [trainings, setTrainings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({ pendientes: 0, aprobadas: 0, certificados: 0 });
+
+    useEffect(() => {
+        const loadTrainings = async () => {
+            try {
+                const data = await getOperatorTrainings(userArea, user?.uid);
+                setTrainings(data);
+                setStats(getTrainingStats(data));
+            } catch (error) {
+                console.error("Error loading trainings:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user?.uid) {
+            loadTrainings();
+        }
+    }, [user?.uid, userArea]);
+
+    if (loading) {
+        return <Loader text="Cargando capacitaciones..." />;
+    }
+
+    const pendientes = trainings.filter(t => (t.estado || "pendiente") === "pendiente");
+    const aprobadas = trainings.filter(t => t.estado === "aprobada");
+    const certificados = trainings.filter(t => t.estado === "certificado");
+
     return (
         <div className="training-screen">
 
@@ -32,7 +67,7 @@ export default function OperatorTraining() {
 
                     <FiClock />
 
-                    <h3>3</h3>
+                    <h3>{stats.pendientes}</h3>
 
                     <span>Pendientes</span>
 
@@ -42,7 +77,7 @@ export default function OperatorTraining() {
 
                     <FiCheckCircle />
 
-                    <h3>12</h3>
+                    <h3>{stats.aprobadas}</h3>
 
                     <span>Aprobadas</span>
 
@@ -52,7 +87,7 @@ export default function OperatorTraining() {
 
                     <FiAward />
 
-                    <h3>8</h3>
+                    <h3>{stats.certificados}</h3>
 
                     <span>Certificados</span>
 
@@ -60,125 +95,113 @@ export default function OperatorTraining() {
 
             </div>
 
-            <div className="training-section">
+            {pendientes.length > 0 && (
+                <div className="training-section">
 
-                <h4>
-                    Pendientes
-                </h4>
+                    <h4>
+                        Pendientes
+                    </h4>
 
-                <div className="course-card pending">
+                    {pendientes.map((training) => (
+                        <div key={training.id} className="course-card pending">
 
-                    <div className="course-top">
+                            <div className="course-top">
 
-                        <span className="course-badge pending">
-                            Pendiente
-                        </span>
+                                <span className="course-badge pending">
+                                    Pendiente
+                                </span>
 
-                    </div>
+                            </div>
 
-                    <h3>
-                        Respaldo de Base de Datos
-                    </h3>
+                            <h3>
+                                {training.titulo}
+                            </h3>
 
-                    <p>
-                        Capacitación obligatoria para personal de sistemas.
-                    </p>
+                            <p>
+                                {training.descripcion}
+                            </p>
 
-                    <button className="course-btn">
-                        Iniciar capacitación
-                    </button>
+                            <button className="course-btn">
+                                Iniciar capacitación
+                            </button>
 
-                </div>
-
-            </div>
-
-            <div className="training-section">
-
-                <h4>
-                    Aprobadas
-                </h4>
-
-                <div className="course-card approved">
-
-                    <div className="course-top">
-
-                        <span className="course-badge approved">
-                            Aprobada
-                        </span>
-
-                        <strong>
-                            95/100
-                        </strong>
-
-                    </div>
-
-                    <h3>
-                        Seguridad Operativa
-                    </h3>
-
-                    <p>
-                        Curso completado exitosamente.
-                    </p>
+                        </div>
+                    ))}
 
                 </div>
+            )}
 
-                <div className="course-card approved">
+            {aprobadas.length > 0 && (
+                <div className="training-section">
 
-                    <div className="course-top">
+                    <h4>
+                        Aprobadas
+                    </h4>
 
-                        <span className="course-badge approved">
-                            Aprobada
-                        </span>
+                    {aprobadas.map((training) => (
+                        <div key={training.id} className="course-card approved">
 
-                        <strong>
-                            88/100
-                        </strong>
+                            <div className="course-top">
 
-                    </div>
+                                <span className="course-badge approved">
+                                    Aprobada
+                                </span>
 
-                    <h3>
-                        Manejo de Inventarios
-                    </h3>
+                            </div>
 
-                    <p>
-                        Curso completado exitosamente.
-                    </p>
+                            <h3>
+                                {training.titulo}
+                            </h3>
 
-                </div>
+                            <p>
+                                Curso completado exitosamente.
+                            </p>
 
-            </div>
-
-            <div className="training-section">
-
-                <h4>
-                    Reprobadas
-                </h4>
-
-                <div className="course-card failed">
-
-                    <div className="course-top">
-
-                        <span className="course-badge failed">
-                            Reprobada
-                        </span>
-
-                        <strong>
-                            55/100
-                        </strong>
-
-                    </div>
-
-                    <h3>
-                        Procedimientos PEPS
-                    </h3>
-
-                    <p>
-                        Esperando nuevo intento.
-                    </p>
+                        </div>
+                    ))}
 
                 </div>
+            )}
 
-            </div>
+            {certificados.length > 0 && (
+                <div className="training-section">
+
+                    <h4>
+                        Certificados
+                    </h4>
+
+                    {certificados.map((training) => (
+                        <div key={training.id} className="course-card certified">
+
+                            <div className="course-top">
+
+                                <span className="course-badge certified">
+                                    Certificado
+                                </span>
+
+                            </div>
+
+                            <h3>
+                                {training.titulo}
+                            </h3>
+
+                            <p>
+                                Certificación otorgada.
+                            </p>
+
+                        </div>
+                    ))}
+
+                </div>
+            )}
+
+            {trainings.length === 0 && (
+                <div className="training-section">
+                    <p style={{ textAlign: "center", color: "#999", padding: "20px" }}>
+                        No hay capacitaciones asignadas en este momento.
+                    </p>
+                </div>
+            )}
 
         </div>
     );
