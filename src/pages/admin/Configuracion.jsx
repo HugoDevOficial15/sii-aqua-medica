@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
-
+import {useAuth} from "../../hooks/useAuth";
 import OperatorPreferences from "../operator/OperatorPreferences";
 
 export default function Configuracion() {
 
     const navigate = useNavigate();
+    const{user} = useAuth();
 
     return (
         <div className="container-fluid p-4 fade-in" style={{ color: "var(--operator-text)" }}>
@@ -19,7 +20,7 @@ export default function Configuracion() {
 
             <div className="card border-0" style={{ backgroundColor: "var(--operator-card)", borderRadius: "24px", boxShadow: "var(--operator-shadow)" }}>
                 <div className="card-body p-4">
-                    <OperatorPreferences onBack={() => navigate("/dashboard")} adminMode />
+                    <OperatorPreferences onBack={() => navigate("/dashboard")} adminMode usuarioActual={user} />
                 </div>
             </div>
         </div>

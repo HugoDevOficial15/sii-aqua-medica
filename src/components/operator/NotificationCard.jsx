@@ -100,9 +100,41 @@ export function getConfigEstilo(destino) {
 
 }
 
+const parseFirestoreTimestamp = (value) => {
+    if (!value) return null;
+    if (typeof value?.toDate === "function") return value.toDate();
+    if (typeof value === "number") return new Date(value);
+    return new Date(value);
+};
+
+const getElapsedTimeText = (timestamp) => {
+    const date = parseFirestoreTimestamp(timestamp);
+    if (!date || Number.isNaN(date.getTime())) return "Hace ahora";
+
+    const now = new Date();
+    const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffSeconds < 60) return "Hace ahora";
+
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) return diffMinutes === 1 ? "Hace 1 minuto" : `Hace ${diffMinutes} minutos`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return diffHours === 1 ? "Hace 1 hora" : `Hace ${diffHours} horas`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return diffDays === 1 ? "Hace 1 día" : `Hace ${diffDays} días`;
+
+    return date.toLocaleDateString("es-MX", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+    });
+};
+
 export default function NotificationCard({ notif, onClick }) {
 
     const { icono: Icono, bg, color, borderColor, tituloDefault } = getConfigEstilo(notif.Destino);
+    const fechaTexto = getElapsedTimeText(notif.fechaCreacion || notif.fechaEnviado || notif.createdAt || notif.fecha);
 
     return (
         <div
@@ -117,7 +149,7 @@ export default function NotificationCard({ notif, onClick }) {
             <div className="notification-content">
                 <strong>{notif.Titulo || tituloDefault}</strong>
                 <p>{notif.Mensaje}</p>
-                <small>Nuevo</small>
+                <small>{fechaTexto}</small>
             </div>
         </div>
     );

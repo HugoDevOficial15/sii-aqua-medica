@@ -170,8 +170,8 @@ export default function ReportProblemForm({
                         id="report-imagenes"
                         type="file"
                         accept="image/*"
-                        // 🔥 Quitamos el atributo "multiple" para restringir a 1 archivo
                         onChange={handleImageChange}
+                        className="adaptive-input"
                     />
                     
                     {/* 🔥 NUEVO: Renderizado del preview para una sola imagen */}

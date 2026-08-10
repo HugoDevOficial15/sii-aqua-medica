@@ -23,6 +23,14 @@ export default function Header({ toggleSidebar }) {
     const { user } = useAuth();
     const handleLogout = useLogout();
     const navigate = useNavigate();
+    const themeAttr = (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme')) || 'light';
+    const fallbackBg = themeAttr === 'dark' ? '0A4D9D' : 'ffffff';
+    const fallbackColor = themeAttr === 'dark' ? 'ffffff' : '0A4D9D';
+    const avatarSrc =
+        user?.fotoPerfil ||
+        user?.photoURL ||
+        user?.photoUrl ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.nombre || "Usuario")}&background=${fallbackBg}&color=${fallbackColor}&bold=true&size=256`;
 
     const [notifications, setNotifications] = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
@@ -272,9 +280,9 @@ export default function Header({ toggleSidebar }) {
                         <div className="user-card">
 
                             <div className="avatar-wrapper">
-                                <FaUserCircle className="user-avatar" />
-                                <span className="status-dot"></span>
-                            </div>
+                                    <img src={avatarSrc} alt="Avatar" className="profile-avatar" />
+                                    <span className="status-dot"></span>
+                                </div>
 
                             <div className="user-info">
 

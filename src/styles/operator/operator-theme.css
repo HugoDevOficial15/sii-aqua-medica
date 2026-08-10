@@ -569,16 +569,9 @@ html[data-theme="dark"] .custom-modal {
     color: var(--operator-text);
 }
 
-
 html[data-theme="dark"] .custom-modal-header h5 {
     color: var(--operator-text);
 }
-
-
-
-
-
-
 
 /* --- ALERTAS (SweetAlert2) --- */
 
@@ -602,4 +595,14 @@ html[data-theme="dark"] .text-muted-small-mb-2 {
     color: var(--operator-text) !important;
 }
 
-
+.navigation {
+    position: relative;
+    width: 400%;
+    height: 70%;
+    background: var(--primary-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    box-shadow:0 15px 25px rgba(0,0,0,.2);
+}

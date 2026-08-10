@@ -960,6 +960,10 @@ export default function CreateSurvey() {
                                                             Verdadero / Falso
                                                         </option>
 
+                                                        <option value="abierta">
+                                                            Abierta
+                                                        </option>
+
                                                     </select>
 
                                                     {/* MULTIPLE */}

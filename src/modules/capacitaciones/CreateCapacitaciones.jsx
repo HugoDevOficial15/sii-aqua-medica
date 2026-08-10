@@ -14,6 +14,7 @@ export default function CreateCapacitaciones() {
     const [loading, setLoading] = useState(true);
     const [trainings, setTrainings] = useState([]);
     const [showModal, setShowModal] = useState(false);
+    const [filterState, setFilterState] =useState("Todos");
     const [saving, setSaving] = useState(false);
     const [editing, setEditing] = useState(false);
     const [currentId, setCurrentId] = useState(null);
@@ -222,8 +223,8 @@ export default function CreateCapacitaciones() {
     }
 
     return (
-        <div id="capacitaciones-fix" className="page-transition">
-            {/* Header */}
+<div id="capacitaciones-fix" className="container-fluid p-4 page-transition" style={{ color: "var(--operator-text)" }}>           
+     {/* Header */}
             <div className="d-flex justify-content-between mb-4">
                 <div className="page mb-3">
                     <h6>
@@ -252,6 +253,34 @@ export default function CreateCapacitaciones() {
 
             <div className="card shadow-sm">
                 <div className="card-body">
+                    {/* Header de Filtros */}
+                    <div className="mb-4 d-flex gap-2" style={{ borderBottom: "1px solid var(--operator-border)", paddingBottom: "16px" }}>
+                        <button
+                            className={`btn btn-sm ${filterState === "todos" ? "btn-primary" : "btn-outline-primary"}`}
+                            onClick={() => setFilterState("todos")}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            className={`btn btn-sm ${filterState === "pendiente" ? "btn-primary" : "btn-outline-primary"}`}
+                            onClick={() => setFilterState("pendiente")}
+                        >
+                            Pendientes
+                        </button>
+                        <button
+                            className={`btn btn-sm ${filterState === "aprobada" ? "btn-primary" : "btn-outline-primary"}`}
+                            onClick={() => setFilterState("aprobada")}
+                        >
+                            Aprobadas
+                        </button>
+                        <button
+                            className={`btn btn-sm ${filterState === "certificado" ? "btn-primary" : "btn-outline-primary"}`}
+                            onClick={() => setFilterState("certificado")}
+                        >
+                            Certificados
+                        </button>
+                    </div>
+
                     <div className="table-responsive table-responsive-container">
                         <table className="table training-table">
                             <thead>

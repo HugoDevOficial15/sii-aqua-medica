@@ -54,7 +54,7 @@ export default function OperatorDrawer({
         },
 
         {
-            id: "suggestions",
+            id: "suggestion-create",
             icon: <FiTrendingUp />,
             label: "Sugerencias"
         },
@@ -108,13 +108,14 @@ export default function OperatorDrawer({
     const nombrePrimero = nombreParts[0] || "Usuario";
     const nombreSegundo = nombreParts[2] || nombreParts[1] || "";
     const nameFull = [nombrePrimero, nombreSegundo].filter(Boolean).join(" ");
+    const themeAttr = (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme')) || 'light';
+    const fallbackBg = themeAttr === 'dark' ? '0A4D9D' : 'ffffff';
+    const fallbackColor = themeAttr === 'dark' ? 'ffffff' : '0A4D9D';
     const avatarSrc =
         datosUsuario?.fotoPerfil ||
         datosUsuario?.photoURL ||
         datosUsuario?.photoUrl ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            nameFull || "Usuario"
-        )}&background=ffffff&color=0A4D9D&bold=true&size=256`;
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(nameFull || "Usuario")}&background=${fallbackBg}&color=${fallbackColor}&bold=true&size=256`;
 
     return (
         <>
@@ -142,7 +143,7 @@ export default function OperatorDrawer({
 
 
                     <div className="drawer-avatar-v2">
-                        <img src={avatarSrc} alt="Avatar" />
+                        <img src={avatarSrc} alt="Avatar" className="profile-avatar large" />
                     </div>
 
                     <h3>

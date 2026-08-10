@@ -315,3 +315,55 @@ body {
         transform: scale(1);
     }
 }
+
+/* =========================
+   PROFILE AVATAR + FILE INPUT ADAPTIVE
+   Shared styles for circular avatar with ring and file input button
+   ========================= */
+.profile-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    object-fit: cover;
+    display: inline-block;
+    border: 3px solid #ffffff;
+    box-shadow: 0 8px 20px rgba(10, 77, 157, 0.06);
+}
+
+/* Ring color adapts in dark mode via data-theme attribute */
+html[data-theme="dark"] .profile-avatar {
+    border-color: rgba(255,255,255,0.06);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+}
+
+/* Larger avatar in drawer/header */
+.profile-avatar.large {
+    width: 84px;
+    height: 84px;
+    border-width: 4px;
+}
+
+/* File input adaptive styling: style the browser file button */
+.adaptive-input[type="file"] {
+    font-size: 14px;
+    color: #111;
+}
+
+.adaptive-input[type="file"]::file-selector-button,
+.adaptive-input[type="file"]::-webkit-file-upload-button {
+    background: var(--operator-primary);
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+/* Dark theme adjustments for file button */
+html[data-theme="dark"] .adaptive-input[type="file"]::file-selector-button,
+html[data-theme="dark"] .adaptive-input[type="file"]::-webkit-file-upload-button {
+    background: #60a5fa;
+    color: #07203a;
+}

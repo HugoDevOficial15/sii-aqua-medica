@@ -36,15 +36,13 @@ import Ideas from "../pages/admin/Ideas";
 
 import MaintenancePage from "../components/MaintenancePage";
 import Capacitaciones from "../pages/admin/Capacitaciones";
-
-// 🔥 NUEVAS IMPORTACIONES PARA LAS NOTIFICACIONES PUSH
 import { useAuth } from "../hooks/useAuth";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { initPushNotifications, stopPushNotifications } from "../services/pushNotificationService";
 import { useEffect } from "react";
 
 export default function AppRouter() {
-    // 🔥 EXTRAEMOS EL USUARIO ACTUAL Y ENCENDEMOS LAS NOTIFICACIONES
+    
     const { user } = useAuth();
     usePushNotifications(user);
 
@@ -119,6 +117,16 @@ export default function AppRouter() {
                             </ProtectedRoute>
                         }
                     />
+
+                    {/* CAPACITACIONES */}
+                    <Route
+                        path="/capacitaciones"
+                        element={
+                            <ProtectedRoute permiso="capacitaciones.ver">
+                                <Capacitaciones />
+                            </ProtectedRoute>
+                        }
+                        />
 
                     {/* SOLICITUDES DE CAMBIOS */}
                     <Route
@@ -320,7 +328,7 @@ export default function AppRouter() {
                 </Route>
 
 
-                {/* OPERADOR (NO SE TOCA) */}
+                {/* OPERADOR */}
                 <Route
                     path="/app"
                     element={
@@ -329,15 +337,6 @@ export default function AppRouter() {
                         </ProtectedRoute>
                     }
                 />
-
-                <Route
-                        path="/capacitaciones"
-                        element={
-                            <ProtectedRoute permiso="capacitaciones.ver">
-                                <Capacitaciones />
-                            </ProtectedRoute>
-                        }
-                    />
 
                 <Route
                     path="/privacy"

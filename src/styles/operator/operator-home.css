@@ -636,50 +636,45 @@ BOTTOM NAV V2
 } */
 
 .operator-nav-premium {
-    --operator-bottom-nav-height: 82px;
+    --operator-bottom-nav-height: 60px;
 
     position: fixed;
 
-    bottom: calc(20px + var(--safe-bottom));
+    bottom: 0;
 
-    left: 50%;
+    left: 0;
 
-    /* En Android, la barra de gestos no siempre reporta su altura vía
-       env(safe-area-inset-bottom) (soporte más consistente en iOS), así
-       que en móvil se suma un margen extra fijo para no quedar pegados
-       ni solapar el texto con la barra nativa. No afecta escritorio. */
+    right: 0;
 
-    transform: translateX(-50%);
-
-    width: calc(100% - 32px - (var(--safe-left) + var(--safe-right)));
-
-    max-width: 398px;
+    width: 100%;
 
     height: var(--operator-bottom-nav-height);
 
-    background:
-        rgba(255, 255, 255, .96);
+    background: rgba(255, 255, 255, 0.96);
 
     backdrop-filter: blur(20px);
 
-    border-radius: 32px;
+    border-radius: 0;
 
     display: flex;
 
     align-items: center;
 
     justify-content: space-around;
-    box-shadow:
-        0 10px 30px rgba(0, 0, 0, .12),
-        0 0 0 1px rgba(0, 0, 0, .05);
+
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
 
     z-index: 6000;
+
+    overflow: visible;
+
+    padding-bottom: var(--safe-bottom);
 }
 
 @media (max-width: 768px) {
 
     .operator-nav-premium {
-        bottom: calc(32px + var(--safe-bottom));
+        bottom: 0;
     }
 
 }
@@ -713,20 +708,24 @@ BOTTOM NAV V2
 
     justify-content: center;
 
-    gap: 6px;
+    gap: 4px;
 
     color: #94A3B8;
 
-    transition: .25s;
+    transition: all 0.25s ease;
+
+    padding: 8px 12px;
+
+    cursor: pointer;
 }
 
 .nav-icon {
 
-    width: 42px;
+    width: 28px;
 
-    height: 42px;
+    height: 28px;
 
-    border-radius: 14px;
+    border-radius: 8px;
 
     display: flex;
 
@@ -734,14 +733,18 @@ BOTTOM NAV V2
 
     justify-content: center;
 
-    font-size: 20px;
+    font-size: 18px;
+
+    transition: all 0.25s ease;
 }
 
 .nav-item span {
 
-    font-size: 11px;
+    font-size: 10px;
 
     font-weight: 600;
+
+    text-transform: capitalize;
 }
 
 .nav-item.active {
@@ -754,6 +757,56 @@ BOTTOM NAV V2
     background: #EEF4FF;
 
     color: #0A4D9D;
+
+    transform: scale(1.1);
+}
+
+/* Liquid-like active bubble: override and enhance default nav styles */
+.nav-item {
+    border: none;
+    background: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #94A3B8;
+    transition: color .25s;
+    position: relative;
+}
+
+.nav-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: transform .28s cubic-bezier(.2,.9,.3,1), background .28s, box-shadow .28s;
+    will-change: transform, box-shadow;
+}
+
+.nav-item span {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.nav-item.active {
+    color: #0A4D9D;
+}
+
+.nav-item.active .nav-icon {
+    background: #EEF4FF;
+    color: #0A4D9D;
+    transform: translateY(-18px) scale(1.06);
+    box-shadow: 0 18px 30px rgba(10, 77, 157, 0.08), 0 6px 18px rgba(10,77,157,0.06);
+    border-radius: 50%;
+}
+
+@media (max-width: 420px) {
+    .nav-icon { width: 48px; height: 48px; }
+    .nav-item.active .nav-icon { transform: translateY(-16px) scale(1.04); }
 }
 
 /* =====================================

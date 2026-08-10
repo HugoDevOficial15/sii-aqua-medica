@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, doc, deleteDoc } from "firebase/firestore";
-import { db } from "../../config/firebase"; 
-
-import { FiClipboard, FiAward, FiBookOpen } from "react-icons/fi";
+import { db } from "../../config/firebase";
 
 import { useAuth } from "../../hooks/useAuth";
 import NotificationCard from "../../components/operator/NotificationCard";
@@ -12,14 +10,17 @@ import NotificationCard from "../../components/operator/NotificationCard";
 // simplemente se descartan y regresan a Inicio.
 const RUTA_POR_DESTINO = {
     "Citas Medicas": "citas-medicas",
+    "citas-medicas": "citas-medicas",
     "Noticias": "news",
+    "/news": "news",
     "Cumpleaños": "home",
     "Aniversario": "home",
     "SolicitudAprobada": "profile",
     "SolicitudRechazada": "profile",
     "ProblemaActualizado": "support",
     "CitaCancelada": "citas-medicas",
-    "CitaCanceladaConfirmacion": "citas-medicas"
+    "CitaCanceladaConfirmacion": "citas-medicas",
+    "/solicitudes": "solicitudes"
 };
 
 export default function OperatorNotifications({ onNavigate }) {
@@ -46,7 +47,10 @@ export default function OperatorNotifications({ onNavigate }) {
                     // cumpleaños- solo deben mostrarse a ese usuario. Las
                     // que no declaran IdUsuario siguen siendo broadcast
                     // (Noticias, Citas Medicas) como ya funcionaban.
-                    .filter(n => !n.IdUsuario || n.IdUsuario === user?.id);
+                    .filter(n => {
+                    const currentUserIds = [user?.uid, user?.id].filter(Boolean);
+                    return !n.IdUsuario || currentUserIds.includes(n.IdUsuario);
+                });
 
                 setNotificaciones(notifs);
             } catch (error) {
@@ -57,7 +61,7 @@ export default function OperatorNotifications({ onNavigate }) {
         };
 
         fetchNotificaciones();
-    }, [user?.id]);
+    }, [user?.uid, user?.id]);
 
     //  FUNCIÓN PARA BORRAR Y NAVEGAR
     const handleCompletarTarea = async (idNotificacion, ruta) => {
@@ -75,13 +79,6 @@ export default function OperatorNotifications({ onNavigate }) {
         }
     };
 
-    // Función segura para las tarjetas estáticas que aún no son dinámicas
-    const handleNavigation = (ruta) => {
-        if (typeof onNavigate === 'function') {
-            onNavigate(ruta);
-        }
-    };
-
     return (
         <div className="notifications-screen">
             <div className="notifications-hero">
@@ -95,9 +92,7 @@ export default function OperatorNotifications({ onNavigate }) {
                 ========================================== */}
             {!loading && notificaciones.map((notif) => {
 
-                const ruta = RUTA_POR_DESTINO[notif.Destino];
-
-                if (!ruta) return null;
+                const ruta = RUTA_POR_DESTINO[notif.Destino] || notif.Destino?.replace(/^\//, "") || "home";
 
                 return (
                     <NotificationCard
@@ -115,32 +110,6 @@ export default function OperatorNotifications({ onNavigate }) {
             
             {/* Borramos la tarjeta estática de AQUA News porque ya será dinámica */}
 
-            <div className="notification-card unread" onClick={() => handleNavigation('surveys')} style={{ cursor: 'pointer' }}>
-                <div className="notification-icon survey"><FiClipboard /></div>
-                <div className="notification-content">
-                    <strong>Encuestas pendiente</strong>
-                    <p>Tienes una evaluación por responder.</p>
-                    <small>Hace 1 hora</small>
-                </div>
-            </div>
-
-            <div className="notification-card" onClick={() => handleNavigation('recognitions')} style={{ cursor: 'pointer' }}>
-                <div className="notification-icon recognition"><FiAward /></div>
-                <div className="notification-content">
-                    <strong>Reconocimiento recibido</strong>
-                    <p>Se agregó una nueva insignia.</p>
-                    <small>Ayer</small>
-                </div>
-            </div>
-
-            <div className="notification-card" onClick={() => handleNavigation('training')} style={{ cursor: 'pointer' }}>
-                <div className="notification-icon training"><FiBookOpen /></div>
-                <div className="notification-content">
-                    <strong>Capacitación disponible</strong>
-                    <p>Nueva capacitación asignada.</p>
-                    <small>Hace 2 días</small>
-                </div>
-            </div>
         </div>
     );
 }

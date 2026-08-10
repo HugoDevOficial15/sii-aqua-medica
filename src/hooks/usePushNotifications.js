@@ -66,7 +66,7 @@ export function usePushNotifications(user) {
               title: notification.title || 'SII AQUA Médica',
               body: notification.body || 'Tienes un nuevo aviso importante.',
               id: Date.now(),
-              channelId: 'sii_aqua_canal_prioritario',
+              channelId: 'sii_aqua_canal_v3',
               sound: 'default',
               extra: notification.data || {}
             }]

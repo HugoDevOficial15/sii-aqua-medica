@@ -78,10 +78,6 @@ body {
   white-space: nowrap; 
 }
 
-/* ==========================================================================
-   🛠️ REPARACIÓN DE DESBORDAMIENTO POR TABLAS GIGANTES
-   ========================================================================== */
-
 /* 1. Limitamos el contenedor global para que nunca genere scroll horizontal */
 .layout {
   width: 100vw;

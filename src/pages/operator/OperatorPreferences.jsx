@@ -125,24 +125,13 @@ export default function OperatorPreferences({ onBack, usuarioActual, adminMode =
                 
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap' }}>
                     {/* Círculo de previsualización */}
-                    <div 
-                        style={{ 
-                            width: '90px', 
-                            height: '90px', 
-                            borderRadius: '50%', 
-                            backgroundColor: 'var(--bg-secondary, #334155)',
-                            overflow: 'hidden',
-                            border: '3px solid var(--accent-color, #38bdf8)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                        }}
-                    >
+                    <div style={{ flexShrink: 0 }}>
                         {previewFoto ? (
-                            <img src={previewFoto} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={previewFoto} alt="Perfil" className="profile-avatar large" />
                         ) : (
-                            <FiUser size={40} color="var(--text-muted, #94a3b8)" />
+                            <div style={{ width: 84, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '999px', border: '4px solid var(--operator-primary)', background: 'var(--operator-card)' }}>
+                                <FiUser size={40} color="var(--text-muted, #94a3b8)" />
+                            </div>
                         )}
                     </div>
 
@@ -152,13 +141,7 @@ export default function OperatorPreferences({ onBack, usuarioActual, adminMode =
                             type="file" 
                             accept="image/jpeg, image/png, image/webp" 
                             onChange={handleFileChange}
-                            style={{ 
-                                width: '100%', 
-                                padding: '8px', 
-                                marginBottom: '12px',
-                                fontSize: '0.9rem',
-                                color: 'var(--text-primary)'
-                            }} 
+                            className="adaptive-input"
                         />
                         
                         {archivoFoto && (

@@ -21,6 +21,8 @@ self.addEventListener("push", (event) => {
             badge: "/logosmall.svg",
             tag: data.notification?.tag || "notification",
             requireInteraction: true,
+            vibrate: [300, 100, 400, 100, 400],
+            silent: false,
             data: {
                 destino: data.data?.destino || null,
                 accion: data.data?.accion || null,
