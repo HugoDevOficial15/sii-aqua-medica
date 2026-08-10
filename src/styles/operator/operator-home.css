@@ -614,26 +614,6 @@ HEADER PREMIUM
 BOTTOM NAV V2
 ===================================== */
 
-/* .nav-floating-wrapper {
-
-    position: fixed;
-
-    bottom: 22px;
-
-    left: 50%;
-
-    transform: translateX(-50%);
-
-    width: 100%;
-
-    display: flex;
-
-    justify-content: center;
-
-    z-index: 1500;
-
-    pointer-events: none;
-} */
 
 .operator-nav-premium {
     --operator-bottom-nav-height: 82px;
