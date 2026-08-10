@@ -755,7 +755,7 @@ export default function CreateCapacitaciones() {
                             {isOnline && currentStep === 3 && (
                                 <>
                                     <div className="mt-4">
-                                        <div className="d-flex-mb-3">
+                                        <div className="d-flex justify-content-between align-items-center mb-3">
                                             <h5 className="m-0">
                                                 Preguntas
                                             </h5>
@@ -897,46 +897,153 @@ export default function CreateCapacitaciones() {
             )}
 
             <style>{`
-.file-upload-area {
-    border: 2px dashed var(--operator-border);
-    border-radius: 12px;
-    padding: 30px;
-    text-align: center;
-    background: var(--operator-background);
+/* ==================================================
+   PAGE
+================================================== */
+
+.page-transition {
+    animation: fadePage 0.35s ease;
+}
+
+/* ==================================================
+   PAGE HEADER
+================================================== */
+
+.page {
+    display: flex;
+    flex-direction: column;
+}
+
+.badge-title {
+    width: fit-content;
+    margin-top: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #dbeafe, #eff6ff);
+    color: #123a91;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid rgba(37,99,235,0.08);
+}
+
+/* ==================================================
+   BOTONES BASE
+================================================== */
+
+.btn {
+    transition: all 0.2s ease !important;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* ==================================================
+   BOTÓN CREAR CAPACITACIÓN
+================================================== */
+
+.btn-primary.btn-custom {
+    height: 50px;
+    padding: 0 20px;
+    border-radius: 10px;
+    border: none;
+    background: var(--operator-primary);
+    color: #fff;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0px 20px var(--operator-primary-light);
 }
 
-.file-upload-area:hover {
-    border-color: var(--operator-primary);
-    background: rgba(10, 77, 157, 0.05);
+.btn-primary.btn-custom:hover {
+    transform: translateY(0px);
+    box-shadow: 0 0px 26px rgba(37,99,235,0.22);
 }
 
-.file-upload-icon {
-    font-size: 32px;
-    color: var(--operator-primary);
-    margin-bottom: 10px;
+/* ==================================================
+   MAIN CARD
+================================================== */
+
+.card.shadow-sm {
+    background: var(--operator-card);
+    border-radius: 30px;
+    box-shadow: 0 8px 25px var(--operator-shadow);
+    padding: 10px;
 }
 
-.file-input {
-    display: none;
+/* ==================================================
+   TABLE
+================================================== */
+
+.table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: separate !important;
+    border-spacing: 0 10px !important;
+    padding: 10px;
 }
 
-.file-upload-area p {
-    margin: 10px 0 0;
-    color: var(--operator-text);
+.table thead th {
+    border-bottom: 3px solid var(--operator-text);
+    font-size: 20px;
+    font-weight: 900;
+    padding: 5px 5px;
+    vertical-align: middle;
+    border-top: none !important;
+    white-space: wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 230px;
+    min-width: 100px;
 }
 
-.training-table tbody tr:not(.training-row-menu-open):hover {
+.training-table tbody tr:not(.training-row-menu-open):hover,
+.training-table tbody tr:not(.training-row-menu-open):hover > td,
+.training-table tbody tr:not(.training-row-menu-open):hover > th {
     transform: scale(1.01);
     transition: transform 0.2s;
+    background: transparent !important;
+    background-color: transparent !important;
+    color: inherit !important;
+    box-shadow: none !important;
 }
+
+.table tbody tr.training-row-menu-open {
+    transform: none !important;
+    transition: none !important;
+}
+
+.table td {
+    border-bottom: 3px solid var(--operator-border);
+    height: 50px;
+    font-size: 14px;
+    padding: 5px 5px;
+    vertical-align: middle;
+    border-top: none !important;
+    white-space: wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 230px;
+    min-width: 100px;
+}
+
+.table thead tr th:nth-child(5){
+    text-align: center;
+}
+
+/* ==================================================
+   ACTIONS MENU
+================================================== */
 
 .training-actions-cell {
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: visible;
+    isolation: auto;
 }
 
 .training-actions-toggle {
@@ -946,6 +1053,7 @@ export default function CreateCapacitaciones() {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 10;
     border: 1px solid var(--operator-border);
     background: var(--operator-card);
     color: var(--operator-text);
@@ -982,26 +1090,105 @@ export default function CreateCapacitaciones() {
     color: var(--operator-text);
     font-size: 12px;
     font-weight: 800;
+    text-align: center;
 }
 
 .training-action-item:hover {
     background: var(--operator-background);
 }
 
-.text-info {
+/* ==================================================
+   STATUS
+================================================== */
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge.bg-warning {
+    background: rgba(255,193,7,0.12) !important;
+    color: #FFA000 !important;
+}
+
+.badge.bg-info {
+    background: rgba(0,172,193,0.12) !important;
     color: #0dcaf0 !important;
 }
 
-.text-success {
-    color: #198754 !important;
+.badge.bg-success {
+    background: rgba(16,185,129,0.12) !important;
+    color: #059669 !important;
 }
 
-.training-steps {
-    width: 70%;
+/* ==================================================
+   MODAL BACKDROP
+================================================== */
+
+.modal-backdrop-custom {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
     display: flex;
-    gap: 8px;
-    margin-bottom: 6px;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(2, 6, 23, 0.68);
+    backdrop-filter: blur(8px);
+}
+
+/* ==================================================
+   MODAL
+================================================== */
+
+.modal-full {
+    width: min(1120px, 100%);
+    max-height: min(92vh, 980px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--operator-card);
+    border: 1px solid var(--operator-border);
+    border-radius: 24px;
+    box-shadow: 0 24px 48px var(--operator-shadow);
+}
+
+.modal-full .custom-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 30px;
+    border: none;
+    background: var(--operator-card);
+}
+
+.modal-full .modal-header h5 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
     color: var(--operator-text);
+}
+
+.modal-close-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    background: var(--operator-card);
+    color: var(--operator-text);
+    font-size: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+    background: var(--operator-border);
+    color: var(--operator-primary);
 }
 
 .training-modal-form {
@@ -1012,9 +1199,344 @@ export default function CreateCapacitaciones() {
     overflow: auto;
 }
 
+.modal-body-content {
+    border: none;
+    padding: 0;
+    background: transparent;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.col-span-12 { grid-column: span 12; }
+.col-span-6 { grid-column: span 6; }
+.col-span-4 { grid-column: span 4; }
+.col-span-3 { grid-column: span 3; }
+
+.training-steps {
+    width: 70%;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    color: var(--operator-text);
+}
+
+.step-btn {
+    flex: 1 1 180px;
+    border: 1px solid var(--operator-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: var(--operator-background);
+    color: var(--operator-text);
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.step-btn.active {
+    color: #fff;
+    background: var(--operator-primary);
+    box-shadow: 0 0 0 1px rgba(10, 77, 157, 0.12), 0 0px 24px var(--operator-primary-light);
+}
+
+.modal-full .text-primary {
+    color: var(--operator-primary);
+}
+
+.modal-full label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--operator-text);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.modal-full input,
+.modal-full select,
+.modal-full textarea {
+    height: 50px;
+    border-radius: 12px !important;
+    border: 1px solid var(--operator-border);
+    background: var(--operator-border);
+    color: var(--operator-text) !important;
+    padding: 0 14px;
+    font-size: 14px;
+    outline: none;
+    box-shadow: none !important;
+    transition: all 0.2s ease;
+}
+
+.modal-full textarea {
+    min-height: 120px;
+    padding: 14px;
+}
+
+.modal-full input:focus,
+.modal-full select:focus,
+.modal-full textarea:focus {
+    background: var(--operator-border);
+    border-color: var(--operator-primary);
+    box-shadow: 0 0 0 4px var(--operator-primary-light);
+}
+
+.modal-full .card {
+    border: none !important;
+    border-radius: 24px !important;
+    background: var(--operator-background);
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.form-check {
+    padding: 10px 14px;
+    border-radius: 14px;
+    transition: all 0.2s ease;
+}
+
+.form-check:hover {
+    background: rgba(10, 77, 157, 0.08);
+}
+
+.areas-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    align-items: stretch;
+}
+
+.area-grid-item {
+    width: 100%;
+}
+
+.area-card {
+    position: relative;
+    border: 1px solid var(--operator-border);
+    border-radius: 18px;
+    padding: 16px 18px;
+    background: var(--operator-background);
+    color: var(--operator-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.area-card:hover {
+    border-color: var(--operator-primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(10, 77, 157, 0.08);
+}
+
+.area-card.selected {
+    border-color: var(--operator-primary);
+    background: linear-gradient(135deg, rgba(10, 77, 157, 0.12), rgba(30, 109, 216, 0.08));
+    box-shadow: 0 10px 24px rgba(10, 77, 157, 0.12);
+}
+
+.area-card input {
+    width: 20px;
+    height: 20px;
+    margin-right: 4px;
+    accent-color: var(--operator-primary);
+    cursor: pointer;
+}
+
+.area-card span {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--operator-text);
+}
+
+/* ==================================================
+   FILE UPLOAD
+================================================== */
+
+.file-upload-area {
+    border: 2px dashed var(--operator-border);
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    background: var(--operator-background);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.file-upload-area:hover {
+    border-color: var(--operator-primary);
+    background: rgba(10, 77, 157, 0.05);
+}
+
+.file-upload-icon {
+    font-size: 32px;
+    color: var(--operator-primary);
+    margin-bottom: 10px;
+}
+
+.file-input {
+    display: none;
+}
+
+.file-upload-area p {
+    margin: 10px 0 0;
+    color: var(--operator-text);
+}
+
+.list-group {
+    list-style: none;
+    padding: 0;
+}
+
+.list-group-item {
+    background: var(--operator-background);
+    border: 1px solid var(--operator-border);
+    padding: 12px;
+    border-radius: 8px;
+}
+
+/* ==================================================
+   MODAL FOOTER
+================================================== */
+
+.modal-footer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 16px;
+}
+
+.modal-primary-btn,
+.modal-secondary-btn {
+    height: 50px;
+    padding: 0 18px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.modal-primary-btn {
+    background: var(--operator-primary);
+    color: #fff;
+    box-shadow: 0 0 20px var(--operator-primary-light);
+}
+
+.modal-primary-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 24px var(--operator-primary-light);
+}
+
+.modal-primary-btn-success {
+    background: #059669;
+    box-shadow: 0 0 20px rgba(5, 150, 105, 0.25);
+}
+
+.modal-secondary-btn {
+    background: var(--operator-background);
+    color: var(--operator-text);
+    border: 1px solid var(--operator-border);
+}
+
+.modal-secondary-btn:hover {
+    background: var(--operator-border);
+}
+
+.modal-full::-webkit-scrollbar {
+    width: 10px;
+}
+
+.modal-full::-webkit-scrollbar-thumb {
+    background: rgba(10, 77, 157, 0.22);
+    border-radius: 999px;
+}
+
+/* ==================================================
+   RESPONSIVE
+================================================== */
+
 @media (max-width: 992px) {
+    .col-span-6,
+    .col-span-4,
+    .col-span-3 {
+        grid-column: span 12;
+    }
+
     .training-steps {
         width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-backdrop-custom {
+        padding: 0;
+    }
+
+    .modal-full {
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .training-modal-form {
+        padding: 18px;
+    }
+
+    .modal-full .custom-modal-header {
+        padding: 18px;
+    }
+
+    .training-steps {
+        flex-direction: column;
+    }
+
+    .step-btn {
+        flex: 1 1 auto;
+    }
+
+    .areas-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-footer-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .modal-footer-actions > div {
+        width: 100%;
+    }
+
+    .modal-footer-actions .d-flex {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .modal-primary-btn,
+    .modal-secondary-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-full .modal-header h5 {
+        font-size: 1.1rem;
+    }
+
+    .training-modal-form {
+        gap: 14px;
     }
 }
 `}</style>

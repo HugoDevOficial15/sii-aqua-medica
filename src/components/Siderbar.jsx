@@ -34,6 +34,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
         { to: "/usuarios", icon: <FaUsers />, label: "Usuarios", permiso: "usuarios.ver" },
         { to: "/puestos", icon: <FaUserTie />, label: "Puestos", permiso: "puestos.ver" },
         { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
+        { to: "/capacitaciones", icon: <FaClipboardList />, label: "Capacitaciones", permiso: "capacitaciones.ver" },
         { to: "/solicitudes", icon: <FaClipboardCheck />, label: "Solicitudes", permiso: "solicitudes.ver" },
         { to: "/noticias", icon: <FaNewspaper />, label: "Noticias", permiso: "noticias.ver" },
         { to: "/inventario", icon: <FaBoxes />, label: "Inventario", permiso: "inventario.ver" },
@@ -51,7 +52,6 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
         { to: "/configuracion", icon: <FaCog />, label: "Configuración", permiso: "config.ver" },
         { to: "/soporte", icon: <FaLifeRing />, label: "Soporte" },
         { to: "/reporte-problemas", icon: <FaLifeRing />, label: "Reporte de Problemas" },
-        { to: "/capacitaciones", icon: <FaClipboardList />, label: "Capacitaciones" },
         { to: "/ideas", icon: <FaMattressPillow />, label: "Ideas" },
 
     ];
