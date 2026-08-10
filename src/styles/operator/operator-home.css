@@ -636,15 +636,15 @@ BOTTOM NAV V2
 } */
 
 .operator-nav-premium {
-    --operator-bottom-nav-height: 60px;
+    --operator-bottom-nav-height: 82px;
 
     position: fixed;
 
     bottom: 0;
 
-    left: 0;
+    left: 50%;
 
-    right: 0;
+    transform: translateX(-50%);
 
     width: 100%;
 
@@ -660,7 +660,9 @@ BOTTOM NAV V2
 
     align-items: center;
 
-    justify-content: space-around;
+    justify-content: center;
+
+    gap: 8px;
 
     box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
 
@@ -708,24 +710,20 @@ BOTTOM NAV V2
 
     justify-content: center;
 
-    gap: 4px;
+    gap: 6px;
 
     color: #94A3B8;
 
-    transition: all 0.25s ease;
-
-    padding: 8px 12px;
-
-    cursor: pointer;
+    transition: 0.25s;
 }
 
 .nav-icon {
 
-    width: 28px;
+    width: 42px;
 
-    height: 28px;
+    height: 42px;
 
-    border-radius: 8px;
+    border-radius: 14px;
 
     display: flex;
 
@@ -733,18 +731,14 @@ BOTTOM NAV V2
 
     justify-content: center;
 
-    font-size: 18px;
-
-    transition: all 0.25s ease;
+    font-size: 20px;
 }
 
 .nav-item span {
 
-    font-size: 10px;
+    font-size: 11px;
 
     font-weight: 600;
-
-    text-transform: capitalize;
 }
 
 .nav-item.active {
@@ -758,7 +752,7 @@ BOTTOM NAV V2
 
     color: #0A4D9D;
 
-    transform: scale(1.1);
+    transform: scale(1.12);
 }
 
 /* Liquid-like active bubble: override and enhance default nav styles */
