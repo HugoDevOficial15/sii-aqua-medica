@@ -117,8 +117,8 @@
     padding-left: calc(10px + var(--safe-left));
     padding-right: calc(10px + var(--safe-right));
     padding-top: calc(100px + var(--safe-top) + 6px);
-    padding-bottom: calc(var(--operator-bottom-nav-height, 64px) + var(--safe-bottom) + 24px);
-    scroll-padding-bottom: calc(var(--operator-bottom-nav-height, 64px) + var(--safe-bottom) + 24px);
+    padding-bottom: calc(var(--operator-bottom-nav-height, 82px) + var(--safe-bottom) + 24px);
+    scroll-padding-bottom: calc(var(--operator-bottom-nav-height, 82px) + var(--safe-bottom) + 24px);
 }
 
 
