@@ -11,7 +11,7 @@ import { getOperatorTrainings, getTrainingStats } from "../../services/operatorT
 import Loader from "../../components/Loader";
 
 export default function OperatorTraining() {
-    const { user, userArea } = useAuth();
+    const { user } = useAuth();
     const [trainings, setTrainings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ pendientes: 0, aprobadas: 0, certificados: 0 });
@@ -19,7 +19,7 @@ export default function OperatorTraining() {
     useEffect(() => {
         const loadTrainings = async () => {
             try {
-                const data = await getOperatorTrainings(userArea, user?.uid);
+                const data = await getOperatorTrainings(user?.area, user?.uid);
                 setTrainings(data);
                 setStats(getTrainingStats(data));
             } catch (error) {
@@ -32,7 +32,7 @@ export default function OperatorTraining() {
         if (user?.uid) {
             loadTrainings();
         }
-    }, [user?.uid, userArea]);
+    }, [user?.uid, user?.area]);
 
     if (loading) {
         return <Loader text="Cargando capacitaciones..." />;

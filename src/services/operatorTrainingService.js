@@ -1,40 +1,47 @@
 import { db } from "../config/firebase";
-import { query, where, collection, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 
 const trainingCollection = collection(db, "capacitaciones");
 
 // Obtener capacitaciones asignadas al operador
 export const getOperatorTrainings = async (userArea, userId) => {
     try {
-        const q = query(
-            trainingCollection,
-            where("asignacion.tipo", "in", ["global", "area", "usuarios"])
-        );
+        console.log("🔍 Obteniendo capacitaciones - Área:", userArea, "UID:", userId);
 
-        const snapshot = await getDocs(q);
+        const snapshot = await getDocs(trainingCollection);
 
-        // Filtrar capacitaciones por asignación del operador
         const trainings = snapshot.docs
             .map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }))
             .filter(training => {
-                const asignacion = training.asignacion;
+                const asignacion = training.asignacion || {};
+                const tipo = asignacion.tipo;
+                const valores = asignacion.valores || [];
 
-                if (asignacion.tipo === "global") return true;
-
-                if (asignacion.tipo === "area" && userArea) {
-                    return asignacion.valores?.includes(userArea);
+                // 1. Si es global
+                if (tipo === "global") {
+                    console.log(`✅ "${training.titulo}" - Asignado a TODOS`);
+                    return true;
                 }
 
-                if (asignacion.tipo === "usuarios") {
-                    return asignacion.valores?.includes(String(userId));
+                // 2. Si es por área
+                if (tipo === "area" && userArea && valores.includes(userArea)) {
+                    console.log(`✅ "${training.titulo}" - Asignado a área ${userArea}`);
+                    return true;
+                }
+
+                // 3. Si es por usuario específico
+                if (tipo === "usuarios" && userId && valores.includes(String(userId))) {
+                    console.log(`✅ "${training.titulo}" - Asignado al usuario ${userId}`);
+                    return true;
                 }
 
                 return false;
             });
 
+        console.log("📊 Total capacitaciones para operador:", trainings.length);
         return trainings;
     } catch (error) {
         console.error("Error fetching operator trainings:", error);
