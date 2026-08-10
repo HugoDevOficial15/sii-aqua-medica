@@ -17,10 +17,11 @@ import {
     FaAmbulance,
     FaSyringe,
     FaLifeRing,
-    FaNewspaper, 
+    FaNewspaper,
     FaClipboardCheck,
     FaBuffer,
-    FaExchangeAlt
+    FaExchangeAlt,
+    FaGraduationCap
 } from "react-icons/fa";
 
 import { FaMattressPillow } from "react-icons/fa6";
@@ -34,7 +35,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
         { to: "/usuarios", icon: <FaUsers />, label: "Usuarios", permiso: "usuarios.ver" },
         { to: "/puestos", icon: <FaUserTie />, label: "Puestos", permiso: "puestos.ver" },
         { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
-        { to: "/capacitaciones", icon: <FaClipboardList />, label: "Capacitaciones", permiso: "capacitaciones.ver" },
+        { to: "/capacitaciones", icon: <FaGraduationCap />, label: "Capacitaciones", permiso: "capacitaciones.ver" },
         { to: "/solicitudes", icon: <FaClipboardCheck />, label: "Solicitudes", permiso: "solicitudes.ver" },
         { to: "/noticias", icon: <FaNewspaper />, label: "Noticias", permiso: "noticias.ver" },
         { to: "/inventario", icon: <FaBoxes />, label: "Inventario", permiso: "inventario.ver" },
