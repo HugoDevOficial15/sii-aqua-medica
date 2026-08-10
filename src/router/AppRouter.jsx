@@ -35,6 +35,7 @@ import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
 import Ideas from "../pages/admin/Ideas";
 
 import MaintenancePage from "../components/MaintenancePage";
+import Capacitaciones from "../pages/admin/Capacitaciones";
 
 // 🔥 NUEVAS IMPORTACIONES PARA LAS NOTIFICACIONES PUSH
 import { useAuth } from "../hooks/useAuth";
@@ -333,11 +334,7 @@ export default function AppRouter() {
                         path="/capacitaciones"
                         element={
                             <ProtectedRoute permiso="capacitaciones.ver">
-                                <MaintenancePage
-                                    title="Mantenimiento"
-                                    subtitle="El modulo de capacitaciones aún se encuentra en desarrollo."
-                                    message="El módulo de capacitaciones aún se encuentra en desarrollo."
-                                />
+                                <Capacitaciones />
                             </ProtectedRoute>
                         }
                     />
