@@ -19,7 +19,6 @@ export default function CreateCapacitaciones() {
     const [currentId, setCurrentId] = useState(null);
     const [currentStep, setCurrentStep] = useState(1);
     const [openActionsId, setOpenActionsId] = useState(null);
-    const [filterState, setFilterState] = useState("todos");
     const [uploadedFiles, setUploadedFiles] = useState([]);
 
     const {
@@ -217,10 +216,6 @@ export default function CreateCapacitaciones() {
         setValue("asignacion.archivos", updated);
     }
 
-    const filteredTrainings = trainings.filter(training => {
-        if (filterState === "todos") return true;
-        return (training.estado || "pendiente") === filterState;
-    });
 
     if (loading) {
         return <Loader text="Cargando capacitaciones..." />
@@ -257,34 +252,6 @@ export default function CreateCapacitaciones() {
 
             <div className="card shadow-sm">
                 <div className="card-body">
-                    {/* Header de Filtros */}
-                    <div className="mb-4 d-flex gap-2" style={{ borderBottom: "1px solid var(--operator-border)", paddingBottom: "16px" }}>
-                        <button
-                            className={`btn btn-sm ${filterState === "todos" ? "btn-primary" : "btn-outline-primary"}`}
-                            onClick={() => setFilterState("todos")}
-                        >
-                            Todos
-                        </button>
-                        <button
-                            className={`btn btn-sm ${filterState === "pendiente" ? "btn-primary" : "btn-outline-primary"}`}
-                            onClick={() => setFilterState("pendiente")}
-                        >
-                            Pendientes
-                        </button>
-                        <button
-                            className={`btn btn-sm ${filterState === "aprobada" ? "btn-primary" : "btn-outline-primary"}`}
-                            onClick={() => setFilterState("aprobada")}
-                        >
-                            Aprobadas
-                        </button>
-                        <button
-                            className={`btn btn-sm ${filterState === "certificado" ? "btn-primary" : "btn-outline-primary"}`}
-                            onClick={() => setFilterState("certificado")}
-                        >
-                            Certificados
-                        </button>
-                    </div>
-
                     <div className="table-responsive table-responsive-container">
                         <table className="table training-table">
                             <thead>
@@ -297,7 +264,7 @@ export default function CreateCapacitaciones() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredTrainings.map((training) => {
+                                {trainings.map((training) => {
                                     const isMenuOpen = openActionsId === training.id;
                                     const estado = training.estado || "pendiente";
 
