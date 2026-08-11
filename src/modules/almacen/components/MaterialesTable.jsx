@@ -1,6 +1,23 @@
-import { FaEdit } from "react-icons/fa";
+import { FaEdit, FaEllipsisV } from "react-icons/fa";
+import { useState, useEffect } from "react";
 
 export default function MaterialesTable({ data, onEdit }) {
+
+    const [openActionsId, setOpenActionsId] = useState(null);
+
+    // Cerrar menu de acciones al hacer click fuera del mismo
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (!event.target.closest(".materiales-actions-cell")) {
+                setOpenActionsId(null);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        
+        return () =>  document.removeEventListener("mousedown", handleClickOutside);
+
+    }, []);
 
     if (!data.length) {
         return <div className="text-center py-4 text-muted">No hay registros</div>;
@@ -21,8 +38,11 @@ export default function MaterialesTable({ data, onEdit }) {
             </thead>
 
             <tbody>
+
                 {data.map(item => (
-                    <tr key={item.id}>
+
+                    <tr key={item.id}
+                        className={openActionsId === item.id ? "materiales-row-active materiales-row-open" : ""}>
 
                         <td>{item.nombre}</td>
 
@@ -51,13 +71,40 @@ export default function MaterialesTable({ data, onEdit }) {
                             </span>
                         </td>
 
-                        <td className="text-end">
-                            <button
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => onEdit(item)}
+                        <td className="materiales-actions-cell">
+                            <div
+                                className="materiales-actions-wrapper"
+                                onMouseDown={(event) => event.stopPropagation()}
                             >
-                                <FaEdit /> Editar
-                            </button>
+                                <button
+                                    type="button"
+                                    className="materiales-action-menu-button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setOpenActionsId(openActionsId === item.id ? null : item.id);
+                                    }}
+                                    aria-label="Abrir menú de acciones"
+                                >
+                                    <FaEllipsisV />
+
+                                </button>
+
+                                {openActionsId === item.id && (
+                                    <div 
+                                        className="materiales-actions-menu"
+                                        onMouseDown={(event) => event.stopPropagation()}
+                                    >
+                                        <button
+                                    className="materiales-action-menu-item-editar"
+                                    onClick={() => onEdit(item)}
+                                >
+                                    <FaEdit /> Editar
+                                </button>
+                    
+                                    
+                            </div>
+                                )}
+                            </div>
                         </td>
 
                     </tr>
@@ -117,7 +164,83 @@ export default function MaterialesTable({ data, onEdit }) {
             min-width: 100px;
         }
 
+        .table thead tr th:nth-child(5) {
+            text-align: center;
+        }
 
+        /* MENU DE ACCIONES */
+
+        .table td.materiales-actions-cell {
+            text-align: center;
+            overflow: visible;
+            justify-content: center;
+            position: relative;
+            z-index: 3;
+        }
+
+        .materiales-actions-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            max-width: 36px;
+            min-width: 36px;
+            z-index: 4;
+            isolation: isolate;
+        }
+
+        .materiales-action-menu-button {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--operator-border);
+            border-radius: 999px;
+            background: var(--operator-card);
+            color: var(--operator-text);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        .materiales-action-menu-button:hover {
+            background: var(--operator-border);
+            color: var(--operator-primary);
+        }
+
+        .materiales-actions-menu {
+            position: absolute;
+            min-width: 180px;
+            overflow: visible;
+            background: var(--operator-background);
+            border: 1px solid var(--operator-background);
+            border-radius: 10px;
+            box-shadow: 0 10px 24px var(--operator-shadow);
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 99999;
+        }
+
+        .materiales-action-menu-item-editar {
+            border: none;
+            background: var(--operator-card);
+            padding: 8px 10px;
+            display: flex;
+            text-align: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 800;
+            border-radius: 8px;
+            color: var(--operator-text);
+            cursor: pointer;
+        }
+
+        .materiales-action-menu-item-editar:hover {
+            background: var(--operator-border);
+            color: var(--operator-primary);
+        }
         `}</style>
         </div>
     );

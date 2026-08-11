@@ -599,8 +599,9 @@ export default function RackPdfModal({
             }
 
             .pdf-button-secondary:hover {
-
                 color: var(--operator-danger);
+                transition: transform 0.2s;
+                transform: scale(1.02);
             }
 
             .pdf-button-primary {
@@ -608,7 +609,7 @@ export default function RackPdfModal({
                 height: 48px;
                 padding: 0 22px;
                 border-radius: 14px;
-                border: none;
+                border: 1px solid var(--operator-text);
                 background:
                     linear-gradient(
                         135deg,
@@ -622,9 +623,9 @@ export default function RackPdfModal({
             }
 
             .pdf-button-primary:hover {
-
-
-                color: var(--operator-primary);
+                color: var(--operator-danger);
+                transition: transform 0.2s;
+                transform: scale(1.02);
 
         `}</style>
 

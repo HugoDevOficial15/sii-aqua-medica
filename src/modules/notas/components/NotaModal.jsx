@@ -47,14 +47,14 @@ export default function NotaModal({ show, onClose, onSave, data }) {
             <div className="custom-modal">
 
                 <div className="custom-modal-header">
-                    <h6>{data ? "Editar Nota" : "Nueva Nota"}</h6>
-                    <button className="btn-close" onClick={onClose}></button>
+                    <h5 className="custom-modal-title">{data ? "Editar Nota" : "Nueva Nota"}</h5>
+                    <button className="btn-close" onClick={onClose}> × </button>
                 </div>
 
                 <div className="custom-modal-body">
 
                     <input
-                        className="form-control mb-2"
+                        className="form-control"
                         placeholder="Título"
                         value={form.titulo}
                         onChange={(e) =>
@@ -63,7 +63,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     />
 
                     <textarea
-                        className="form-control mb-2"
+                        className="form-control-texto"
                         rows={4}
                         placeholder="Contenido"
                         value={form.contenido}
@@ -73,7 +73,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     />
 
                     <select
-                        className="form-control mb-2"
+                        className="form-control"
                         value={form.prioridad}
                         onChange={(e) =>
                             setForm({ ...form, prioridad: e.target.value })
@@ -86,7 +86,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
 
                     <input
                         type="date"
-                        className="form-control mb-3"
+                        className="form-control"
                         value={form.fechaLimite || ""}
                         onChange={(e) =>
                             setForm({ ...form, fechaLimite: e.target.value })
@@ -122,45 +122,142 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     background: var(--operator-card);
                     color: var(--operator-text);
                     width: 600px;
+                    padding: 15px;
                     max-width: 95%;
-                    border-radius: 12px;
+                    border-radius: 20px;
                     overflow: hidden;
                     box-shadow: 0 20px 40px rgba(0,0,0,0.12);
                     border: 1px solid var(--operator-border);
                 }
 
                 .custom-modal-header {
-                    padding: 15px 20px;
-                    border-bottom: 1px solid var(--operator-border);
                     display: flex;
+                    border: none;
                     justify-content: space-between;
                     align-items: center;
+                    padding: 24px 30px;
                     background: var(--operator-card);
+                }
+
+                .custom-modal-title {
+                    margin: 0;
+                    font-size: 1.5rem;
+                    font-weight: 800;
+                    color: var(--operator-text);
                 }
 
                 .custom-modal-body {
-                    padding: 20px;
+                    border: none;
+                    padding: 30px;
                     background: var(--operator-card);
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
                 }
 
                 .custom-modal-footer {
-                    padding: 15px 20px;
-                    border-top: 1px solid var(--operator-border);
+                    border: none;
+                    gap: 12px;
                     display: flex;
                     justify-content: flex-end;
-                    gap: 10px;
-                    background: var(--operator-card);
                 }
 
-                .custom-modal-footer .btn-secondary {
+                .custom-modal-footer{
                     height: 48px;
                     padding: 0 18px;
                     border-radius: 12px;
                     background: var(--operator-card);
                     color: var(--operator-text);
-                    border: 1px solid var(--operator-border);
                     font-weight: 700;
+
                 }
+
+                .btn-secondary {
+                    height: 40px;
+                    padding: 0 24px;   
+                    border: none;
+                    border-radius: 14px;
+                    background: var(--operator-border);
+                    color: var(--operator-text);
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 20px var(--operator-shadow);
+                }
+
+                .btn-secondary:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-danger)
+                }
+
+                .form-control {
+                    height: 50px;
+                    border-radius: 12px;
+                    border: 1px solid var(--operator-border);
+                    background: var(--operator-border);
+                    color: var(--operator-text);
+                    font-size: 14px;
+                    outline: none;
+                    grid-gap: 10px;
+                }
+
+                .form-control:focus {
+                    border-color: var(--operator-primary);
+                    background: var(--operator-border);
+                    color: var(--operator-text);
+                }
+
+                .form-control::placeholder {
+                    color: var(--operator-text);
+                    background: transparent;
+                }
+
+                .form-control-texto {
+                    height: 80px;
+                    border-radius: 12px;
+                    padding: 10px;
+                    border: 1px solid var(--operator-border);
+                    background: var(--operator-border);
+                    color: var(--operator-text);
+                    font-size: 14px;
+                    outline: none;
+                    grid-gap: 10px;
+                }
+
+                .form-control-texto:focus {
+                    border-color: var(--operator-primary);
+                    background: var(--operator-border);
+                    color: var(--operator-text);
+                }
+
+                .form-control-texto::placeholder {
+                    color: var(--operator-text);
+                    background: transparent;
+                }
+
+                .btn-close {
+                    width: 36px;
+                    height: 36px;
+                    border: none; 
+                    border-radius: 10px;
+                    background: var(--operator-card); 
+                    color: var(--operator-text); 
+                    font-size: 30px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .btn-close:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-primary);
+                }
+
+
+
             `}</style>
         </div>
     );

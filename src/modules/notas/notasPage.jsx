@@ -8,7 +8,7 @@ import NotaCard from "./components/NotaCard";
 import { useAuth } from "../../hooks/useAuth";
 
 import Loader from "../../components/Loader";
-import { FaPlusCircle } from "react-icons/fa";
+import { FaPlus} from "react-icons/fa";
 
 import NotaModal from "./components/NotaModal";
 import {
@@ -113,7 +113,7 @@ export default function NotasPage() {
                         setShowModal(true);
                     }}
                 >
-                    <FaPlusCircle /> Nueva Nota
+                    <FaPlus /> Nueva Nota
                 </button>
             </div>
 
@@ -143,6 +143,25 @@ export default function NotasPage() {
                 onSave={handleSave}
                 data={notaEditar}
             />
+
+            <style jsx>{`
+
+                .btn-primary {
+                height: 40px;
+                padding: 0 20px;
+                border-radius: 10px;
+                border: none;
+                background: var(--operator-primary);
+                color: #fff;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-primary-light);
+                }
+                
+            `}</style>
 
         </div>
     );

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useRacksDashboard } from "../hooks/useRacksDashboard";
 import RacksFilters from "../components/RacksFilters";
 import RackGrid from "../components/RackGrid";
@@ -8,12 +9,36 @@ import Loader from "../../../components/Loader";
 
 export default function RacksDashboard() {
 
+    const location = useLocation();
     const { racks, load, loading } = useRacksDashboard();
 
     const [filters, setFilters] = useState({});
 
-    // const [selected, setSelected] = useState(null);
-    const [selectedId, setSelectedId] = useState(null);
+    const [selectedId, setSelectedId] = useState(() => {
+        const params = new URLSearchParams(location.search);
+        return params.get("rackId") || null;
+    });
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const rackIdFromUrl = params.get("rackId") || null;
+        const rackNumeroFromUrl = params.get("rackNumero") || "";
+        const plantaFromUrl = params.get("planta") || "";
+
+        setSelectedId(rackIdFromUrl);
+
+        const hasRackFilter = rackIdFromUrl || rackNumeroFromUrl || plantaFromUrl;
+
+        if (!hasRackFilter) {
+            return;
+        }
+
+        setFilters((prev) => ({
+            ...prev,
+            search: rackNumeroFromUrl || prev.search || "",
+            planta: plantaFromUrl || prev.planta || ""
+        }));
+    }, [location.search]);
 
     const filtered = racks.filter(r => {
 

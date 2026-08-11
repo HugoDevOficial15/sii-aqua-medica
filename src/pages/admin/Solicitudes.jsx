@@ -614,17 +614,23 @@ export default function Solicitudes() {
 }
 
 .form-control {
-    background: var(--operator-text) !important;
-    color: var(--operator-background) !important;
-    border-color:var(--operator-border); ;
-    border-radius: 10px;
+    background: var(--operator-border) !important;
+    color: var(--operator-text) !important;
+    border: 1px solid var(--operator-border);
+    border-radius: 12px;
 }
 
 .form-control:focus {
     box-shadow: 0 0 0 0.25rem var(--operator-focus);
     border-color: var(--operator-primary);
-    background: transparent;
+    background: var(--operator-card);
     color: var(--operator-text);
+}
+
+.form-control::placeholder {
+    color: var(--operator-text);
+    background: transparent;
+    
 }
 
 

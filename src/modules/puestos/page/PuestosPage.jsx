@@ -136,7 +136,7 @@ export default function PuestosPage() {
                 border-radius: 12px;
                 border: 1px solid var(--operator-border);
                 padding: 0 14px;
-                background: var(--operator-card);
+                background: var(--operator-border);
                 color: var(--operator-text);
                 font-size: 14px;
                 outline: none;

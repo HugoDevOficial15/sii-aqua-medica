@@ -120,8 +120,8 @@ export default function DisponibilidadMesModal({
             <div className="modal-container">
 
                 <div className="modal-header">
-                    <h6>Disponibilidad mes {mes}</h6>
-                    <button className="btn-close" onClick={onClose}></button>
+                    <h5 className="modal-header-title">Disponibilidad mes {mes}</h5>
+                    <button className="btn-close" onClick={onClose}> × </button>
                 </div>
 
                 <div className="modal-body">
@@ -200,9 +200,10 @@ export default function DisponibilidadMesModal({
 .modal-container {
     width: 90%;
     max-width: 900px;
-    height: 90vh; /* 🔥 importante */
-    background: white;
-    border-radius: 12px;
+    height: 90vh;
+    background: var(--operator-card);
+    border-radius: 30px;
+    box-shadow: 0 8px 25px var(--operator-shadow); ;
 
     display: flex;
     flex-direction: column; /* 🔥 clave */
@@ -210,10 +211,20 @@ export default function DisponibilidadMesModal({
 
 /* HEADER */
 .modal-header {
-    padding: 10px;
     display: flex;
+    border: none;
     justify-content: space-between;
-    border-bottom: 1px solid #eee;
+    align-items: center;
+    padding: 24px 30px;
+    background: var(--operator-card);
+
+}
+
+.modal-header-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--operator-text);
 }
 
 /* 🔥 BODY CON SCROLL */
@@ -226,15 +237,14 @@ export default function DisponibilidadMesModal({
 /* 🔥 FOOTER FIJO */
 .modal-footer {
     padding: 10px;
-    border-top: 1px solid #eee;
     display: flex;
     justify-content: flex-end;
-    background: white;
+    background: var(--operator-card);
 }
 
 /* CONTENIDO */
 .dia-card {
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--operator-text);
     padding: 10px 0;
 }
 
@@ -265,6 +275,45 @@ export default function DisponibilidadMesModal({
     color: #b91c1c;
     font-size: 12px;
     margin-top: 4px;
+}
+
+.btn-secondary {
+    height: 50px;
+    padding: 0 24px;   
+    border: none;
+    border-radius: 14px;
+    background: var(--operator-border);
+    color: var(--operator-text);
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0px 20px var(--operator-shadow);
+}
+
+.btn-secondary:hover {
+    background: var(--operator-border);
+    color: var(--operator-danger)
+}
+
+.btn-close {
+    width: 36px;
+    height: 36px;
+    border: none; 
+    border-radius: 10px;
+    background: var(--operator-card); 
+    color: var(--operator-text); 
+    font-size: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-close:hover {
+    background: var(--operator-border);
+    color: var(--operator-primary);
 }
 
 `}</style>

@@ -298,7 +298,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                 i => i.id === form.itemAsignadoId
             );
 
-            let asignacionFinal = tipoAsignacion;
+            let asignacionFinal = tipoAsignacion || form.tipoAlmacenamiento || "";
             let itemAsignadoFinal = "";
 
             const stockRack = data
@@ -306,7 +306,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                 : [];
 
             asignacionFinal = resolverAsignacion({
-                tipoAsignacionSeleccionada: tipoAsignacion,
+                tipoAsignacionSeleccionada: asignacionFinal,
                 tipoAlmacenamientoSeleccionado: form.tipoAlmacenamiento,
                 stockRack
             });
@@ -384,8 +384,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                     </h5>
 
                     <button
-                        className="close"
-                        style={styles.closeButton}
+                        className="close-button"
                         onClick={onClose}
                     >
                         ×
@@ -588,7 +587,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                             step="any"
                             {...register("pesoMaximoMateriaPrima")}
                             style={styles.input}
-                            placeholder="Capacidad máxima de materia prima"
+                            placeholder="Capacidad máxima de materia prima (kg)"
                         />
 
                         <input
@@ -597,7 +596,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                             step="any"
                             {...register("pesoMaximoMaterialAcondicionamiento")}
                             style={styles.input}
-                            placeholder="Capacidad máxima de material de acondicionamiento"
+                            placeholder="Capacidad máxima de material de acondicionamiento (pz)"
                         />
 
                         <input
@@ -606,7 +605,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                             step="any"
                             {...register("pesoMaximoProductoTerminado")}
                             style={styles.input}
-                            placeholder="Capacidad máxima de producto terminado"
+                            placeholder="Capacidad máxima de producto terminado (kg)"
                         />
 
 
@@ -615,7 +614,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
                             <button
                                 type="submit"
-                                style={styles.saveButton}
+                                className="btn btn-primary"
                             >
 
                                 <FaPlus
@@ -654,6 +653,48 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
                 .close:hover {
                     background-color: var(--operator-border);
+                    color: var(--operator-primary);
+                }
+
+                .btn-primary {
+                    height: 50px;
+                    padding: 0 24px;
+                    border-radius: 14px;
+                    border: none;
+                    background: var(--operator-primary);
+                    color: #fff;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                }
+
+                .btn-primary:hover {
+                    background: var(--operator-primary);
+                    color: #fff;
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                    transition: 0.2s;
+                    transform: scale(1.02);
+                }
+
+                .close-button {
+                    width: 36px;
+                    height: 36px;
+                    border: none; 
+                    border-radius: 10px;
+                    background: var(--operator-card); 
+                    color: var(--operator-text); 
+                    font-size: 30px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .close-button:hover {
+                    background: var(--operator-border);
                     color: var(--operator-primary);
                 }
 
@@ -824,19 +865,4 @@ const styles = {
         justifyContent: "flex-end"
     },
 
-    saveButton: {
-
-        height: "50px",
-        padding: "0 24px",
-        borderRadius: "14px",
-        border: "none",
-        background: "var(--operator-primary)",
-        color: "#fff",
-        fontWeight: "700",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 0px 20px var(--operator-primary-light)",
-    }
 };

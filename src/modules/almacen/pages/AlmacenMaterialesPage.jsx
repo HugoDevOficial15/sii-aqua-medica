@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaSearch, FaBoxes } from "react-icons/fa";
 import Loader from "../../../components/Loader";
 import { obtenerRacks } from "../../../services/rackService";
@@ -162,6 +163,7 @@ const buildMaterialGroups = (stock = [], racks = [], planta = "") => {
 };
 
 export default function AlmacenMaterialesPage() {
+    const navigate = useNavigate();
     const [stock, setStock] = useState([]);
     const [racks, setRacks] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -254,6 +256,15 @@ export default function AlmacenMaterialesPage() {
         }));
     };
 
+    const handleVerRack = (rack) => {
+        if (!rack?.rackId) return;
+
+        const rackNumero = rack.rackNumero || "";
+        const planta = rack.planta || "";
+
+        navigate(`/almacen/peps?rackId=${encodeURIComponent(rack.rackId)}&rackNumero=${encodeURIComponent(rackNumero)}&planta=${encodeURIComponent(planta)}`);
+    };
+
     const direcciones = useRacksDashboard();
     const direccion = "";
     
@@ -267,7 +278,7 @@ export default function AlmacenMaterialesPage() {
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <div className="page mb-3">
                     <h6><strong>Almacén Materiales</strong></h6>
-                    <span className="badge-title">AQUA Médica · PEPS</span>
+                    <span className="badge-title">AQUA Médica</span>
                 </div>
             </div>
 
@@ -403,7 +414,14 @@ export default function AlmacenMaterialesPage() {
                                                                             <th className="rack-location-head">Cantidad: {rack.cantidad}</th>
                                                                             <th className="rack-location-head">Última entrada: {formatDate(rack.ultimaEntrada)}</th>
                                                                             <th className="rack-location-head rack-location-action-cell">
-                                                                                <button className="rack-location-button" type="button">
+                                                                                <button
+                                                                                    className="rack-location-button"
+                                                                                    type="button"
+                                                                                    onClick={(event) => {
+                                                                                        event.stopPropagation();
+                                                                                        handleVerRack(rack);
+                                                                                    }}
+                                                                                >
                                                                                     Ver
                                                                                 </button>
                                                                             </th>
@@ -453,19 +471,18 @@ export default function AlmacenMaterialesPage() {
                 /* TABLA PRINCIPAL */
 
             .table-principal thead tr {
-                
-        border-bottom: 3px solid var(--operator-text);
-        font-size: 20px;
-        font-weight: 900;
-        padding: 5px 5px;
-        vertical-align: middle;
-        border-top: none !important;
-        white-space: wrap;
+                border-bottom: 3px solid var(--operator-text);
+                font-size: 20px;
+                font-weight: 900;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
 
-        word-break: break-word;
-        overflow-wrap: anywhere;
-        max-width: 230px;
-        min-width: 100px;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
             }
 
             .rack-location-list {
@@ -491,9 +508,24 @@ export default function AlmacenMaterialesPage() {
                 font-size: 14px;
             }
 
+            .rack-location-head {                
+                border-bottom: 3px solid var(--operator-text);
+                font-size: 20px;
+                font-weight: 900;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
+            
+            }
+
             .rack-location-action-cell {
                 text-align: right;
-                width: 100 px;
                 max-width: 70px;
                 min-width: 70px;
             }
@@ -530,6 +562,13 @@ export default function AlmacenMaterialesPage() {
                 color: var(--operator-text);
             }
 
+            .input-group-text:hover {
+                background-color: var(--operator-background);
+                
+                transition: transform 0.2s;
+                transform: scale(1.02);
+            }
+
             .form-control {
                 height: 50px;
                 border-radius: 12px;
@@ -544,7 +583,13 @@ export default function AlmacenMaterialesPage() {
             .form-control:focus {
                 background-color: var(--operator-border);
                 border-color: var(--operator-primary);
+                color: var(--operator-text);
                 box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+            }
+
+            .form-control::placeholder {
+                color: var(--operator-text);
+                opacity: 0.6;
             }
 
             .form-select {
@@ -569,6 +614,25 @@ export default function AlmacenMaterialesPage() {
                 background-color: var(--operator-card);
                 color: var(--operator-text);
                 opacity: 0.6;
+            }
+
+            .rack-location-button {
+                height: 30px;
+                padding: 0 20px;
+                border-radius: 10px;
+                border: none;
+                background: var(--operator-primary);
+                color: #fff;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .rack-location-button:hover {
+                background: var(--operator-border);
+                color: var(--operator-primary);
             }
 
             `}</style>

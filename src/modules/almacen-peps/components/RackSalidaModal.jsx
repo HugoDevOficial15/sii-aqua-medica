@@ -823,6 +823,13 @@ export default function RackSalidaModal({
 
             }
 
+            .salida-cancel:hover {
+                background: var(--operator-border);
+                color: var(--operator-danger);
+                transition: transform 0.2s;
+                transform: scale(1.02);
+            }
+
             .salida-submit {
 
                 height: 50px;
@@ -845,8 +852,23 @@ export default function RackSalidaModal({
                 font-weight: 700;
 
                 box-shadow:
-                    0 0px 24px rgba(220, 38, 38, 0.62);
+                    0 0px 20px rgba(220, 38, 38, 0.62);
             }
+
+            .salida-submit:hover {
+                background:
+                    linear-gradient(
+                        135deg,
+                        #b91c1c,
+                        #991b1b
+                    );
+                box-shadow:
+                    0 0px 10px rgba(220, 38, 38, 0.62);
+                transition: transform 0.2s;
+                transform: scale(1.02);
+            }
+
+
 
         `}</style>
 

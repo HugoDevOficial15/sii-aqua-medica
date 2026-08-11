@@ -9,12 +9,116 @@ import {
     doc,
     deleteDoc,
     writeBatch,
-    onSnapshot, getDocs
+    onSnapshot, getDocs,
+    getDoc
 } from "firebase/firestore";
 
 import { db } from "../config/firebase";
+import { actualizarRack } from "./rackService";
 
 const COLLECTION = "rack_stock";
+
+const normalizarTipo = (valor = "") => String(valor || "").toLowerCase().trim();
+
+const obtenerCapacidadPorTipo = (rack = {}) => ({
+    materia_prima: Number(rack?.pesoMaximoMateriaPrima ?? rack?.["pesoMaximo-materiaPrima"] ?? 0),
+    material_acondicionamiento: Number(rack?.pesoMaximoMaterialAcondicionamiento ?? rack?.["pesoMaximo-materialAcondicionamiento"] ?? 0),
+    producto_terminado: Number(rack?.pesoMaximoProductoTerminado ?? rack?.["pesoMaximo-productoTerminado"] ?? 0)
+});
+
+const calcularPorcentajeMovimiento = (rack = {}, tipoItem = "", cantidad = 0) => {
+    const capacidadPorTipo = obtenerCapacidadPorTipo(rack);
+    const tipoNormalizado = normalizarTipo(tipoItem);
+    const capacidadMaxima = Number(capacidadPorTipo[tipoNormalizado] || 0);
+    const cantidadNumerica = Number(cantidad || 0);
+
+    if (!capacidadMaxima || !cantidadNumerica) {
+        return 0;
+    }
+
+    return Number(((cantidadNumerica / capacidadMaxima) * 100).toFixed(2));
+};
+
+export const actualizarOcupacionRack = async ({ rackId, rack, tipoItem = "", cantidad = 0, operacion = "sumar" }) => {
+    if (!rackId || !rack) return;
+
+    const porcentajeMovimiento = calcularPorcentajeMovimiento(rack, tipoItem, cantidad);
+
+    if (!porcentajeMovimiento) return;
+
+    const ocupacionActual = Number(rack?.espacioOcupado || 0);
+    const ocupacionResultante = operacion === "restar"
+        ? Math.max(0, ocupacionActual - porcentajeMovimiento)
+        : Math.min(100, ocupacionActual + porcentajeMovimiento);
+
+    await actualizarRack(rackId, {
+        espacioOcupado: Number(ocupacionResultante.toFixed(2))
+    });
+};
+
+export const actualizarOcupacionRackPorMovimientos = async ({ rackId, rack, movimientos = [], operacion = "sumar" }) => {
+    if (!rackId || !rack) return;
+
+    const totalesPorTipo = (movimientos || []).reduce((acc, mov) => {
+        const tipo = normalizarTipo(mov?.tipoItem || "");
+
+        if (!tipo) return acc;
+
+        acc[tipo] = (acc[tipo] || 0) + Number(mov?.cantidad || 0);
+        return acc;
+    }, {});
+
+    const porcentajeTotal = Object.entries(totalesPorTipo).reduce((acc, [tipo, cantidad]) => {
+        const porcentaje = calcularPorcentajeMovimiento(rack, tipo, cantidad);
+        return acc + porcentaje;
+    }, 0);
+
+    if (!porcentajeTotal) return;
+
+    const ocupacionActual = Number(rack?.espacioOcupado || 0);
+    const ocupacionResultante = operacion === "restar"
+        ? Math.max(0, ocupacionActual - porcentajeTotal)
+        : Math.min(100, ocupacionActual + porcentajeTotal);
+
+    await actualizarRack(rackId, {
+        espacioOcupado: Number(ocupacionResultante.toFixed(2))
+    });
+};
+
+export const obtenerEstadoAsignacionRack = ({ rack, stockItems = [] }) => {
+    const tipoAlmacenamiento = normalizarTipo(rack?.tipoAlmacenamiento);
+    const stockActivo = (stockItems || []).filter(item => Number(item.cantidadActual || 0) > 0);
+
+    if (stockActivo.length === 0) {
+        if (tipoAlmacenamiento) {
+            return tipoAlmacenamiento;
+        }
+
+        return rack?.tipoAsignacion || "";
+    }
+
+    const tiposLotes = [...new Set(stockActivo.map(item => normalizarTipo(item.tipoItem)))];
+
+    if (tiposLotes.length === 0) {
+        return tipoAlmacenamiento || rack?.tipoAsignacion || "";
+    }
+
+    const coincideTipo = tiposLotes.every(tipo => tipo === tipoAlmacenamiento);
+
+    return coincideTipo ? "lote_en_uso" : "ubicacion_temporal";
+};
+
+export const actualizarAsignacionRackPorStock = async (rackId, rack, stockItems = []) => {
+    if (!rackId) return;
+
+    const estadoAsignacion = obtenerEstadoAsignacionRack({ rack, stockItems });
+
+    if (!estadoAsignacion) return;
+
+    await actualizarRack(rackId, {
+        tipoAsignacion: estadoAsignacion
+    });
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -24,7 +128,7 @@ const COLLECTION = "rack_stock";
 
 export const crearStock = async (data) => {
 
-    return await addDoc(
+    const stockRef = await addDoc(
         collection(db, COLLECTION),
         {
             ...data,
@@ -37,6 +141,30 @@ export const crearStock = async (data) => {
             activo: true
         }
     );
+
+    if (data?.rackId) {
+        const rackSnap = await getDoc(doc(db, "racks", data.rackId));
+        const rack = rackSnap.exists() ? { id: rackSnap.id, ...rackSnap.data() } : null;
+        const stockActual = await obtenerStockPorRack(data.rackId);
+
+        if (rack) {
+            await actualizarOcupacionRack({
+                rackId: data.rackId,
+                rack,
+                tipoItem: data.tipoItem,
+                cantidad: Number(data.cantidadActual || 0),
+                operacion: "sumar"
+            });
+
+            await actualizarAsignacionRackPorStock(
+                data.rackId,
+                rack,
+                stockActual
+            );
+        }
+    }
+
+    return stockRef;
 };
 /*
 |--------------------------------------------------------------------------
@@ -274,6 +402,27 @@ export const descontarStockPEPS = async ({
     */
 
     await batch.commit();
+
+    if (rackId) {
+        const rackSnap = await getDoc(doc(db, "racks", rackId));
+        const rack = rackSnap.exists() ? { id: rackSnap.id, ...rackSnap.data() } : null;
+        const stockRestante = await obtenerStockPorRack(rackId);
+
+        if (rack) {
+            await actualizarOcupacionRackPorMovimientos({
+                rackId,
+                rack,
+                movimientos,
+                operacion: "restar"
+            });
+
+            await actualizarAsignacionRackPorStock(
+                rackId,
+                rack,
+                stockRestante
+            );
+        }
+    }
 
     return movimientos;
 };

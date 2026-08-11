@@ -75,9 +75,6 @@ export function AuthProvider({ children }) {
         setLoading(false); 
     };
 
-    // No olvides importar la función en la parte superior de AuthProvider.js:
-    // import { clearStorageSafely } from "../utils/storage";
-
     // ==========================================================
     // LOGOUT
     // ==========================================================
@@ -89,8 +86,7 @@ export function AuthProvider({ children }) {
         } finally {
             setUser(null);
             setPermisos([]);
-            // 🛡️ REEMPLAZAMOS EL ASESINO SILENCIOSO AQUÍ
-            clearStorageSafely();
+            localStorage.removeItem("user");
         }
     };
 
@@ -111,11 +107,10 @@ export function AuthProvider({ children }) {
     const can = (permiso) => {
         if (!user) return false;
 
-        // 🔑 Llave maestra temporal: cualquier rol que empiece con "admin"
-        // (admin, admin_general, admin_rrhh, admin_operaciones, ...) pasa
-        // directo, sin revisar la colección "roles" (todavía incompleta).
-        // Quitar este bypass en cuanto los permisos reales estén cargados.
-        if (user.rol && user.rol.startsWith("admin")) return true;
+        // Solo los usuarios con rol "admin_sistemas" tienen acceso a todo, sin importar los permisos asignados.
+
+        const esAdminSistemas = user?.rol === "admin_sistemas";
+        if (esAdminSistemas) return true;
 
         if (!Array.isArray(permisos)) return false;
         return permisos.includes("*") || permisos.includes(permiso);

@@ -740,7 +740,7 @@ export default function RackTransferModal({
                     border-radius: 14px;
                     border: 1px solid var(--operator-border);
                     padding: 0 14px;
-                    background: var(--operator-card);
+                    background: var(--operator-border);
                     color: var(--operator-text);
                 }
 
@@ -758,10 +758,16 @@ export default function RackTransferModal({
 
                     border-radius: 18px;
 
-                    background: #f9fafb;
+                                    background: linear-gradient( 135deg, #eff6ff, #ffffff);
 
                     border:
-                        1px solid #f3f4f6;
+                        1px solid var(--operator-border);
+
+                    color: var(--operator-primary);
+
+                    font-weight: 800;
+
+                    font-size: 1.5rem;
                 }
 
                 .transfer-actions {
@@ -790,6 +796,13 @@ export default function RackTransferModal({
                     box-shadow: 0 0px 20px var(--operator-shadow);
                 }
 
+                .transfer-cancel:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-danger);
+                    transition: transform 0.2s;
+                    transform: scale(1.02);
+                }
+
                 .transfer-submit {
                     height: 50px;
                     padding: 0 24px;
@@ -803,6 +816,13 @@ export default function RackTransferModal({
                     cursor: pointer;
                     display: flex;
                     box-shadow: 0 0px 20px var(--operator-primary-light);
+                }
+
+                .transfer-submit:hover {
+                    background: var(--operator-primary);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                    transition: transform 0.2s;
+                    transform: scale(1.02);
                 }
 
             `}</style>

@@ -55,8 +55,13 @@ export default function FiltersMateriales({ filters, setFilters }) {
             .form-control:focus {
                 background: var(--operator-border);
                 color: var(--operator-text);
-                opacity: 0.6;
+
             }
+
+            .form-control::placeholder {
+                color: var(--operator-text);
+                background: transparent;
+                }
             `}</style>
 
         </div>

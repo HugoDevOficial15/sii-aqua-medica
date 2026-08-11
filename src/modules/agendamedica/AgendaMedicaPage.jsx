@@ -370,8 +370,7 @@ export default function AgendaMedicaPage() {
                 </div>
 
                 <button 
-                    className="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-semibold shadow-sm"
-                    style={{ borderRadius: '10px' }}
+                    className="btn btn-primary"
                     onClick={() => setVista("crear")}
                 >
                     <FiPlus size={18} /> Nueva Agenda
@@ -384,12 +383,12 @@ export default function AgendaMedicaPage() {
                         <table className="table table-borderless table-hover mb-0 agenda-medica-table">
                             <thead>
                                 <tr>
-                                    <th className="px-4 py-3 text-secondary">Nombre</th>
-                                    <th className="px-4 py-3 text-secondary">Rango</th>
-                                    <th className="px-4 py-3 text-secondary">Duración</th>
-                                    <th className="px-4 py-3 text-secondary">Estatus</th>
-                                    <th className="px-4 py-3 text-secondary">Cambiar</th>
-                                    <th className="px-4 py-3 text-secondary">Acciones</th>
+                                    <th>Nombre</th>
+                                    <th>Rango</th>
+                                    <th>Duración</th>
+                                    <th>Estatus</th>
+                                    <th>Cambiar</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -407,15 +406,15 @@ export default function AgendaMedicaPage() {
                                             className={openActivationId === agenda.id ? "agenda-activation-menu" : ""}
                                         
                                         >
-                                            <td className="px-4 py-3 align-middle">{agenda.nombre || "Sin nombre"}</td>
-                                            <td className="px-4 py-3 align-middle">{agenda.fechaInicio} → {agenda.fechaFin}</td>
-                                            <td className="px-4 py-3 align-middle">{agenda.duracionMin} min</td>
-                                            <td className="px-4 py-3 align-middle">
+                                            <td >{agenda.nombre || "Sin nombre"}</td>
+                                            <td>{agenda.fechaInicio} → {agenda.fechaFin}</td>
+                                            <td>{agenda.duracionMin} min</td>
+                                            <td>
                                                 <span className={`badge ${agenda.estado === 'activa' ? 'bg-success' : 'bg-warning text-dark'} px-2 py-1`} style={{ borderRadius: '6px' }}>
                                                     {agenda.estado || "inactiva"}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 align-middle">
+                                            <td>
                                                 <button 
                                                     className="btn btn-sm btn-outline-secondary fw-semibold px-3"
                                                     style={{ borderRadius: '6px' }}
@@ -501,13 +500,64 @@ export default function AgendaMedicaPage() {
             </div>
             <style>{`
                 .agenda-medica-page { color: var(--operator-text); }
-                .agenda-medica-card { background: var(--operator-card); color: var(--operator-text); border: 1px solid var(--operator-border) !important; }
-                .agenda-medica-input { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
+
+                .agenda-medica-card { 
+                    background: var(--operator-card);
+                    color: var(--operator-text);
+                    border: 1px solid var(--operator-border) !important; 
+                }
+
+                .agenda-medica-input {
+                    background: var(--operator-background);
+                    color: var(--operator-text);
+                    border-color: var(--operator-border);
+                
+                    }
                 .agenda-medica-input:focus { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
-                .agenda-medica-table { color: var(--operator-text); }
+                
+                
+                
+                .agenda-medica-table { 
+                    table-layout: fixed;
+                    width: 100%;
+                    border-collapse: separate !important;
+                    border-spacing: 0 10px !important;
+                }
+
+                .agenda-medica-table thead th {
+                    border-bottom: 3px solid var(--operator-text);
+                    height: 50px;
+                    font-size: 20px;
+                    font-weight: 900;
+                    padding: 5px 5px;
+                    vertical-align: middle;
+                    border-top: none !important;
+                    white-space: wrap;
+                    color: var(--operator-text);
+
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
+                    max-width: 230px;
+                    min-width: 100px;
+                }
+
                 .agenda-medica-table > :not(caption) > * > * { background: var(--operator-card); color: var(--operator-text); border-color: var(--operator-border); }
-                .agenda-medica-table thead { border-bottom: 1px solid var(--operator-border); }
-                .agenda-medica-table tbody tr { border-bottom: 1px solid var(--operator-border); }
+                
+                .agenda-medica-table tbody tr {
+                    height: 50px;
+                    font-size: 14px;
+                    padding: 5px 5px;
+                    vertical-align: middle;
+                    border-top: none !important;
+                    white-space: wrap;
+                    border-bottom: 1px solid var(--operator-border);
+
+                    word-break: break-word;
+                    overflow: hidden;
+                    max-width: 230px;
+                    min-width: 100px;
+                }
+
 
                 .agenda-medica-table tbody tr.agenda-activation-menu {
                     transform: none !important;
@@ -593,7 +643,21 @@ export default function AgendaMedicaPage() {
                     background: rgba(255, 0, 0, 0.1);
                     color: var(--operator-danger);
                 }
-
+                
+                .btn-primary {       
+                    height: 40px;
+                    padding: 0 20px;
+                    border-radius: 10px;
+                    border: none;
+                    background: var(--operator-primary);
+                    color: #fff;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                }
 
 
             `}</style>

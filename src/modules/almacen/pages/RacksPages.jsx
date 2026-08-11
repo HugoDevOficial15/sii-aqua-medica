@@ -35,7 +35,7 @@ export default function RacksPages() {
     const getDynamicStatusAction = (rackStatus) => {
         const normalized = normalizeStatus(rackStatus);
 
-        if (normalized === "baja" || normalized === "inactivo") {
+        if (normalized === "mantenimiento" || normalized === "baja" || normalized === "inactivo") {
             return {
                 label: "Alta",
                 nextStatus: "activo"
@@ -51,6 +51,7 @@ export default function RacksPages() {
     const cambiarEstatus = async (rack, nuevoEstatus) => {
         try {
             const nextStatus = normalizeStatus(nuevoEstatus);
+            const currentStatus = normalizeStatus(rack.estatus);
 
             if (nextStatus === "mantenimiento") {
                 const stock = await obtenerStockPorRack(rack.id);
@@ -62,6 +63,26 @@ export default function RacksPages() {
                     );
                     return;
                 }
+            }
+
+            if (nextStatus === "baja") {
+                const stock = await obtenerStockPorRack(rack.id);
+
+                if ((stock || []).length > 0) {
+                    notifyError(
+                        "Rack no vacío",
+                        "El rack debe estar vacío antes de darlo de baja"
+                    );
+                    return;
+                }
+            }
+
+            if (nextStatus === "activo" && currentStatus === "mantenimiento") {
+                await actualizarRack(rack.id, {
+                    ...rack,
+                    estatus: "activo"
+                });
+                return;
             }
 
             await actualizarRack(rack.id, {
@@ -96,7 +117,7 @@ export default function RacksPages() {
                 </div>
 
 
-                <button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={() => setShow(true)}>
+                <button className="btn btn-primary d-flex align-items-center gap-2" onClick={() => setShow(true)}>
                     <FaPlus />
                     Nuevo
                 </button>
@@ -376,6 +397,26 @@ export default function RacksPages() {
                     border-radius: 8px;
                 }
 
+                .btn-primary {
+                    height: 50px;
+                    padding: 0 20px;
+                    border-radius: 10px;
+                    border: none;
+                    background: var(--operator-primary);
+                    color: #fff;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                }
+
+                
+
+
+
+
                 
                 /*  TABLA */
 
@@ -601,6 +642,11 @@ export default function RacksPages() {
                     background-color: var(--operator-border);
                     box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
                     border-color: var(--operator-primary);
+                }
+
+                .form-control::placeholder {
+                    color: var(--operator-text);
+                    background: transparent;
                 }
 
             `}</style>

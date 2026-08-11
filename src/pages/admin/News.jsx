@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { FaEdit } from "react-icons/fa";
+import { FaEdit, FaEllipsisV } from "react-icons/fa";
 
 // 👇 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
@@ -33,6 +33,21 @@ export default function News() {
     "Sistemas", "Validaciones", "Vigilancia"
   ];
 
+  const [openActionsId, setOpenActionsId] = useState(null);
+
+
+  // Cerrar menú de acciones al hacer clic fuera
+  useEffect(() => {
+    const closeMenu = (event) => {
+        if (!event.target.closest(".news-actions-cell")) {
+            setOpenActionsId(null);
+        }
+    };
+
+        document.addEventListener("mousedown", closeMenu);
+
+        return () => document.removeEventListener("mousedown", closeMenu);
+    }, []);
   const [noticias, setNoticias] = useState([]);
 
   const cargarNoticias = async () => {
@@ -189,8 +204,11 @@ export default function News() {
                   </tr>
                 </thead>
                 <tbody>
+                  
                   {noticiasVigentes.map((noticia) => (
-                    <tr key={noticia.id}>
+                    
+                    <tr key={noticia.id}
+                        className={openActionsId === noticia.id ? "news-row-active news-row-open" : ""}>
                       <td className="py-3 border-0"><span className="fw-medium">{noticia.titulo}</span></td>
                       <td className="border-0">
                         <span className={`badge ${noticia.areaDestino === 'Todas' ? 'bg-primary' : 'bg-secondary'}`}>
@@ -203,16 +221,49 @@ export default function News() {
                           {noticia.estado || "Activa"}
                         </span>
                       </td>
-                      <td className="border-0 ">
-                        <button className="btn btn-outline-primary btn-sm px-3"  onClick={() => abrirFormularioEditar(noticia)}>
-                          <FaEdit className="me-1" /> Editar
-                        </button>
+                      <td className="news-actions-cell">
+                        <div
+                          className="news-actions-wrapper"
+                          onMouseDown={(event) => event.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            className="news-action-menu-button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenActionsId(openActionsId === noticia.id ? null : noticia.id);
+                            }}
+                            aria-label="Abrir menú de acciones"
+                          >
+
+                            <FaEllipsisV />
+                          </button>
+
+                          {openActionsId === noticia.id && (
+                            <div className="news-action-menu"
+                              onMouseDown={(event) => event.stopPropagation()}
+                            >
+                              <button
+                                type="button"
+                                className="news-action-menu-item-editar"
+                                onClick={() => {
+                                  setOpenActionsId(null);
+                                  handleEditarNoticia(noticia);
+                                }}
+                                onMouseDown={(event) => event.stopPropagation()}
+                              >
+                                <FaEdit className="me-2" /> Editar
+                              </button>
+                            </div>
+                          )}
+
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {noticiasVigentes.length === 0 && <div className="text-center text-muted py-5">No hay noticias activas en este momento.</div>}
+              {noticiasVigentes.length === 0 && <div className="text-center text-muted py-5">No hay noticias activas en este momento.</div>}   
             </div>
           </div>
         </div>
@@ -352,8 +403,100 @@ export default function News() {
 
         /* MODAL */
         
-        
-      `}</style>
+        .form-control, .form-select {
+          color: var(--operator-text);
+          border-radius: 10px;
+          border: 1px solid var(--operator-border);
+          background: var(--operator-border) !important;
+        }
+
+        .form-control:focus, .form-select:focus {
+          color: var(--operator-text);
+          border-color: var(--operator-primary);
+          box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .form-control::placeholder, .form-select::placeholder {
+          color: var(--operator-text);
+          background: var(--operator-border);
+        }
+
+        /*  MENU DE ACCIONES */
+
+        .table td .news-actions-cell {
+          text-align: center;
+          overflow: visible;
+          justify-content: center;
+          position: relative;
+          z-index: 3;
+        }
+
+        .news-actions-wrapper {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          max-width: 36px;
+          min-width: 36px;
+          z-index: 4;
+          isolation: isolate;
+        } 
+
+        .news-action-menu-button {
+          width: 36px;
+          height: 36px;
+          border: 1px solid var(--operator-border);
+          border-radius: 999px;
+          background: var(--operator-card);
+          color: var(--operator-text);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          padding: 10px;
+        }
+
+        .news-action-menu-button:hover {
+          background: var(--operator-border);
+          color: var(--operator-primary);
+        }
+
+        .news-action-menu {
+          position: absolute;
+          min-width: 180px;
+          overflow: visible;
+          background: var(--operator-background);
+          border: 1px solid var(--operator-background);
+          border-radius: 10px;
+          box-shadow: 0 10px 24px var(--operator-shadow);
+          padding: 8px 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          z-index: 99999;
+        }
+
+        .news-action-menu-item-editar {
+          border: none;
+          background: var(--operator-card);
+          padding: 8px 10px;
+          display: flex;
+          text-align: center;
+          align-items: center;
+          font-size: 12px;
+          font-weight: 800;
+          border-radius: 8px;
+          color: var(--operator-text);
+          cursor: pointer;
+        }
+
+        .news-action-menu-item-editar:hover {
+          background: var(--operator-border);
+          color: var(--operator-primary);
+        }
+
+
+`}</style>
     </div>
   );
 }

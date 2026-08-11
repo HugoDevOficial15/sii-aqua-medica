@@ -807,6 +807,7 @@ export default function ListaServiciosPage() {
             .form-control:focus{
                 border-color: var(--operator-primary);
                 background-color: var(--operator-card);
+                color: var(--operator-text);
             }
 
             .form-control::placeholder {

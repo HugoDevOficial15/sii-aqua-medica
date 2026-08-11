@@ -89,7 +89,7 @@ export default function RacksFilters({ filters, setFilters }) {
                     padding: 20px;
 
                     border-radius: 18px;
-                    background: #ffffff;
+                    background: var(--operator-card);
                     border: 1px solid #e9ecef;
 
                     box-shadow:
@@ -131,16 +131,13 @@ export default function RacksFilters({ filters, setFilters }) {
                 .custom-select {
                     width: 100%;
                     height: 48px;
-
                     border-radius: 12px;
-                    border: 1px solid #dee2e6;
-
-                    background: #f8f9fa;
-
+                    border: 1px solid var(--operator-border);
+                    background: var(--operator-border);
                     transition: all 0.2s ease;
-
                     font-size: 0.95rem;
                     font-weight: 500;
+                    color: var(--operator-text);
                 }
 
                 .custom-input {
@@ -149,8 +146,9 @@ export default function RacksFilters({ filters, setFilters }) {
 
                 .custom-input:focus,
                 .custom-select:focus {
-                    border-color: #0d6efd;
-                    background: #ffffff;
+                    border-color: var(--operator-primary);
+                    background: var(--operator-border);
+                    color: var(--operator-text);
 
                     box-shadow:
                         0 0 0 4px rgba(13, 110, 253, 0.12);
@@ -161,6 +159,12 @@ export default function RacksFilters({ filters, setFilters }) {
                 .custom-select {
                     cursor: pointer;
                 }
+
+                .custom-input::placeholder {
+                    color: var(--operator-text);
+                    background: transparent;
+                }
+
 
                 @media (max-width: 768px) {
                     .rack-filters-container {

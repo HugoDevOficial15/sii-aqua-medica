@@ -635,16 +635,16 @@ export default function MovimientoModal({
 
                     </div>
 
-                </form>
+                    <div className="movement-actions">
+                        <button
+                            type="submit"
+                            className="movement-submit"
+                        >
+                            Guardar entrada
+                        </button>
+                    </div>
 
-                <div className="movement-actions">
-                    <button
-                        type="submit"
-                        className="movement-submit"
-                    >
-                        Guardar entrada
-                    </button>
-                </div>
+                </form>
 
             </div>
 
@@ -806,6 +806,13 @@ export default function MovimientoModal({
                     align-items: center;
                     justify-content: center;
                     box-shadow: 0 0px 20px var(--operator-primary-light);
+                }
+
+                .movement-submit:hover {
+                    background: var(--operator-primary);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                    transition: transform 0.2s;
+                    transform: scale(1.02);
                 }
 
             `}</style>

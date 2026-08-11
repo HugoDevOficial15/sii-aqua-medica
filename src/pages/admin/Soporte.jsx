@@ -495,7 +495,7 @@ export default function SoporteAdmin() {
 // definidas en operator-theme.css (light/dark), en vez de hex fijos.
 const styles = {
   input: {
-    backgroundColor: "var(--operator-background)",
+    backgroundColor: "var(--operator-border)",
     color: "var(--operator-text)",
     border: "1px solid var(--operator-border)",
     borderRadius: "10px",
@@ -525,7 +525,6 @@ const styles = {
   },
   header: {
     padding: "20px 24px",
-    borderBottom: "1px solid var(--operator-border)",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -548,12 +547,15 @@ const styles = {
     overflowY: "auto",
   },
   fieldBox: {
-    backgroundColor: "var(--operator-background)",
+    backgroundColor: "var(--operator-border)",
     border: "1px solid var(--operator-border)",
     borderRadius: "12px",
     padding: "12px 16px",
     color: "var(--operator-text)",
     fontSize: "0.95rem",
+    overflowWrap: "break-word",
+    textAlign: "center",
+    overflow: "hidden",
   },
   footer: {
     padding: "16px 24px",

@@ -200,7 +200,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                     </h5>
 
                     <button
-                        style={styles.closeButton}
+                        className="btn-close"
                         onClick={onClose}
                     >
                         ×
@@ -349,8 +349,8 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                             <button
                                 type="submit"
-                                style={styles.saveButton}
-                            >
+                                className="btn btn-primary"
+                                >
 
                                 <FaPlus
                                     style={{
@@ -369,6 +369,50 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                 </div>
 
             </div>
+
+            <style>{`
+                .btn-primary {
+                    height: 50px;
+                    padding: 0 24px;
+                    border-radius: 14px;
+                    border: none;
+                    background: var(--operator-primary);
+                    color: #fff;
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                }
+
+                .btn-primary:hover {
+                    background: var(--operator-primary);
+                    color: #fff;
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                    transition: 0.2s;
+                    transform: scale(1.02);
+                }
+
+                .btn-close {
+                    width: 36px;
+                    height: 36px;
+                    border: none; 
+                    border-radius: 10px;
+                    background: var(--operator-card); 
+                    color: var(--operator-text); 
+                    font-size: 30px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .btn-close:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-primary);
+                }
+            `}</style>
 
         </div>
     );

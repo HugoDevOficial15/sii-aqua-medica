@@ -98,6 +98,7 @@ export default function Users({onClose}) {
         document.addEventListener("mousedown", closeMenu);
 
         return () => document.removeEventListener("mousedown", closeMenu);
+        
     }, []);
 
 
@@ -1029,6 +1030,7 @@ export default function Users({onClose}) {
                 padding: 6px 12px;
                 border-radius: 999px;
                 font-size:0.8rem;
+                height: 24px;
             }
 
             .custom-badge-danger {
@@ -1122,7 +1124,7 @@ export default function Users({onClose}) {
                 border-radius: 12px;
                 border: 1px solid var(--operator-border);
                 padding: 0 14px;
-                background: var(--operator-card);
+                background: var(--operator-border);
                 color: var(--operator-text);
                 font-size: 14px;
                 outline: none;
@@ -1130,16 +1132,12 @@ export default function Users({onClose}) {
 
             .form-control:focus {
                 background: var(--operator-card);
+                color: var(--operator-text);
             }
 
             .modal-body .form-select:focus {
-
-            
-                
                 border-color: #2563eb;
-                        
-                box-shadow:
-                    0 0 0 4px rgba(37,99,235,0.10);
+                box-shadow: 0 0 0 4px rgba(37,99,235,0.10);
             }
 
             .form-control::placeholder{
@@ -1160,6 +1158,11 @@ export default function Users({onClose}) {
                 justify-content: center;
                 box-shadow: 0 0px 20px var(--operator-shadow);
                 
+            }
+
+            .btn-secondary:hover {
+                background: var(--operator-border);
+                color: var(--operator-danger);
             }
 
 
@@ -1330,6 +1333,21 @@ export default function Users({onClose}) {
             .user-action-menu-reset:hover {
                 background: var(--operator-border);
                 color: var(--operator-warning);
+            }
+                
+            .btn-success {
+                height: 50px;
+                padding: 0 20px;
+                }
+
+            .btn-outline-secondary {
+                height: 50px;
+                padding: 0 20px;
+            }
+
+            .btn-outline-primary {
+                height: 50px;
+                padding: 0 20px;
             }
 
 
