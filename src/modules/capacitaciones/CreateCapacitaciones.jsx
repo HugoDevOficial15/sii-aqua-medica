@@ -1,26 +1,34 @@
 import { useEffect, useState } from "react";
-import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaSave, FaTrash, FaChartBar, FaWindowClose, FaEllipsisV, FaFileUpload } from "react-icons/fa";
-import { createTraining, getTrainings, updateTraining } from "../../services/trainingService";
+import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaSave, FaTrash, FaChartBar, FaEllipsisV, FaFileUpload } from "react-icons/fa";
+import { createTraining, getTrainings, updateTraining, deleteTraining } from "../../services/trainingService";
 import { notifySuccess, notifyError } from "../../utils/notify";
 import Loader from "../../components/Loader";
+import FloatingAlert from "../../components/FloatingAlert";
 import { AREAS } from "../../catalogs/areas";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { trainingSchema } from "../../schemas/trainingSchema";
 import { getAuth } from "firebase/auth";
+import EncuestaResultados from "../../modules/encuestas/EncuestaResultados";
 import '../../styles/index.css';
 
 export default function CreateCapacitaciones() {
     const [loading, setLoading] = useState(true);
     const [trainings, setTrainings] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [filterState, setFilterState] =useState("Todos");
+    const [filterState, setFilterState] = useState("Todos");
     const [saving, setSaving] = useState(false);
     const [editing, setEditing] = useState(false);
     const [currentId, setCurrentId] = useState(null);
     const [currentStep, setCurrentStep] = useState(1);
     const [openActionsId, setOpenActionsId] = useState(null);
     const [uploadedFiles, setUploadedFiles] = useState([]);
+
+    // Estados para ver resultados
+    const [viewingResults, setViewingResults] = useState(null);
+
+    // Fecha actual para validación (min={today})
+    const today = new Date().toISOString().split("T")[0];
 
     const {
         register,
@@ -43,7 +51,8 @@ export default function CreateCapacitaciones() {
             tipoCurso: "programado",
             formaEvaluacion: "",
             areas: [],
-            duracion: "",
+            duracionHoras: "0",
+            duracionMinutos: "0",
             horaInicio: "",
             horaFin: "",
             fechaInicio: "",
@@ -69,7 +78,7 @@ export default function CreateCapacitaciones() {
     });
 
     const formaEvaluacion = watch("formaEvaluacion");
-    const isOnline = formaEvaluacion && formaEvaluacion.toLowerCase().includes("línea");
+    const isOnline = formaEvaluacion && formaEvaluacion.toLowerCase().includes("digital");
 
     const addPregunta = () => {
         append({
@@ -138,14 +147,15 @@ export default function CreateCapacitaciones() {
                 ...data,
                 preguntas: (data.preguntas || []).map(p => ({
                     ...p,
-                    opciones: p.opciones || [],
-                    respuestaCorrecta: p.respuestaCorrecta === undefined ? null : p.respuestaCorrecta
+                    opciones: p.tipo === "abierta" ? [] : (p.opciones || []),
+                    respuestaCorrecta: p.tipo === "abierta" ? null : (p.respuestaCorrecta === undefined ? null : p.respuestaCorrecta)
                 }))
             };
 
             const trainingData = {
                 ...cleanData,
                 asignacion: construirAsignacion(data),
+                activa: true,
                 createdAt: new Date(),
                 userId: auth.currentUser.uid
             };
@@ -177,8 +187,8 @@ export default function CreateCapacitaciones() {
         update(index, {
             ...fields[index],
             tipo,
-            opciones: tipo === "multiple" ? [{ texto: "" }, { texto: "" }] : [],
-            respuestaCorrecta: undefined,
+            opciones: tipo === "multiple" ? [{ texto: "" }, { texto: "" }] : [{ texto: "N/A" }, { texto: "N/A" }],
+            respuestaCorrecta: tipo === "abierta" ? "abierta" : undefined,
         });
     }
 
@@ -190,14 +200,33 @@ export default function CreateCapacitaciones() {
         setShowModal(true);
     }
 
-    const updateTrainingState = async (training, newState) => {
-        const update = {
-            ...training,
-            estado: newState
-        }
+    // Funciones de estado
+    const toggleTraining = async (training) => {
+        const update = { ...training, activa: !training.activa };
         await updateTraining(training.id, update);
         const data = await getTrainings();
         setTrainings(data);
+    };
+
+    const updateTrainingState = async (training, newState) => {
+        const update = { ...training, estado: newState };
+        await updateTraining(training.id, update);
+        const data = await getTrainings();
+        setTrainings(data);
+    };
+
+    const handleDeleteTraining = async (training) => {
+        if (window.confirm("¿Estás seguro de que deseas eliminar esta capacitación? Esta acción no se puede deshacer.")) {
+            try {
+                await deleteTraining(training.id);
+                const data = await getTrainings();
+                setTrainings(data);
+                notifySuccess("Capacitación Eliminada", "La capacitación fue eliminada correctamente");
+            } catch (error) {
+                console.error("Error eliminando capacitación:", error);
+                notifyError("Error", "No se pudo eliminar la capacitación");
+            }
+        }
     };
 
     const handleFileUpload = (e) => {
@@ -217,14 +246,30 @@ export default function CreateCapacitaciones() {
         setValue("asignacion.archivos", updated);
     }
 
-
     if (loading) {
         return <Loader text="Cargando capacitaciones..." />
     }
 
+    // Interceptar la pantalla para mostrar resultados
+    if (viewingResults) {
+        return (
+            <EncuestaResultados
+                survey={viewingResults}
+                onBack={() => setViewingResults(null)}
+            />
+        );
+    }
+
     return (
-<div id="capacitaciones-fix" className="container-fluid p-4 page-transition" style={{ color: "var(--operator-text)" }}>           
-     {/* Header */}
+        <div id="capacitaciones-fix" className="container-fluid p-4 page-transition" style={{ color: "var(--operator-text)" }}>
+            {!showModal && (
+                <FloatingAlert
+                    errors={errors}
+                    title="⚠️ Campos faltantes en Capacitaciones"
+                    duration={6000}
+                />
+            )}
+            {/* Header */}
             <div className="d-flex justify-content-between mb-4">
                 <div className="page mb-3">
                     <h6>
@@ -253,10 +298,7 @@ export default function CreateCapacitaciones() {
 
             <div className="card shadow-sm">
                 <div className="card-body">
-                    {/* Header de Filtros */}
-                    <div className="mb-4 d-flex gap-2" style={{ borderBottom: "1px solid var(--operator-border)", paddingBottom: "16px" }}>
-                        
-                    </div>
+                    <div className="mb-4 d-flex gap-2" style={{ borderBottom: "1px solid var(--operator-border)", paddingBottom: "16px" }}></div>
 
                     <div className="table-responsive table-responsive-container">
                         <table className="table training-table">
@@ -279,17 +321,21 @@ export default function CreateCapacitaciones() {
                                             <td>{training.titulo}</td>
                                             <td>{training.fechaInicio}</td>
                                             <td>{training.fechaFin}</td>
+
+                                            {/* COLUMNA ESTADO */}
                                             <td>
-                                                {estado === "pendiente" && (
-                                                    <span className="badge bg-warning">Pendiente</span>
-                                                )}
-                                                {estado === "aprobada" && (
-                                                    <span className="badge bg-info">Aprobada</span>
-                                                )}
-                                                {estado === "certificado" && (
-                                                    <span className="badge bg-success">Certificado</span>
+                                                {training.activa !== false ? (
+                                                    <span className="text-success" style={{ fontWeight: 600, padding: "6px 12px", background: "rgba(16,185,129,0.12)", borderRadius: "999px" }}>
+                                                        <FaCheckCircle className="me-1" /> Activa
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-danger" style={{ fontWeight: 600, padding: "6px 12px", background: "rgba(239,68,68,0.12)", borderRadius: "999px" }}>
+                                                        <FaTimesCircle className="me-1" /> Inactiva
+                                                    </span>
                                                 )}
                                             </td>
+
+                                            {/* COLUMNA ACCIONES */}
                                             <td>
                                                 <div className="training-actions-cell">
                                                     <button
@@ -310,37 +356,72 @@ export default function CreateCapacitaciones() {
                                                                     setOpenActionsId(null);
                                                                 }}
                                                             >
-                                                                <FaEdit className="me-2" />
-                                                                Editar
+                                                                <FaEdit className="me-2" /> Editar
                                                             </button>
 
                                                             {estado !== "aprobada" && (
                                                                 <button
                                                                     type="button"
-                                                                    className="training-action-item text-info"
+                                                                    className="training-action-item"
+                                                                    style={{ color: "#0dcaf0", background: "transparent" }}
                                                                     onClick={() => {
                                                                         updateTrainingState(training, "aprobada");
                                                                         setOpenActionsId(null);
                                                                     }}
                                                                 >
-                                                                    <FaCheckCircle className="me-2" />
-                                                                    Aprobar
+                                                                    <FaCheckCircle className="me-2" /> Aprobar
                                                                 </button>
                                                             )}
 
                                                             {estado !== "certificado" && (
                                                                 <button
                                                                     type="button"
-                                                                    className="training-action-item text-success"
+                                                                    className="training-action-item"
+                                                                    style={{ color: "#059669", background: "transparent" }}
                                                                     onClick={() => {
                                                                         updateTrainingState(training, "certificado");
                                                                         setOpenActionsId(null);
                                                                     }}
                                                                 >
-                                                                    <FaCheckCircle className="me-2" />
-                                                                    Certificar
+                                                                    <FaCheckCircle className="me-2" /> Certificar
                                                                 </button>
                                                             )}
+
+                                                            <button
+                                                                type="button"
+                                                                className="training-action-item"
+                                                                onClick={() => {
+                                                                    setViewingResults(training);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                <FaChartBar className="me-2" /> Ver respuestas
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className={`training-action-item ${training.activa !== false ? "text-danger" : "text-success"}`}
+                                                                onClick={() => {
+                                                                    toggleTraining(training);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                                style={{ background: "transparent" }}
+                                                            >
+                                                                {training.activa !== false ? <FaTimesCircle className="me-2" /> : <FaCheckCircle className="me-2" />}
+                                                                {training.activa !== false ? "Desactivar" : "Activar"}
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="training-action-item text-danger"
+                                                                onClick={() => {
+                                                                    handleDeleteTraining(training);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                                style={{ background: "transparent" }}
+                                                            >
+                                                                <FaTrash className="me-2" /> Borrar
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </div>
@@ -371,6 +452,16 @@ export default function CreateCapacitaciones() {
                         </div>
 
                         <form onSubmit={handleSubmit(handleSaveTraining)} className="training-modal-form">
+                            {showModal && (
+                                <div style={{ marginBottom: "16px" }}>
+                                    <FloatingAlert
+                                        errors={errors}
+                                        title="⚠️ Campos faltantes"
+                                        duration={6000}
+                                        inline={true}
+                                    />
+                                </div>
+                            )}
                             {/* STEPS */}
                             <div className="training-steps mb-4">
                                 <button
@@ -402,7 +493,7 @@ export default function CreateCapacitaciones() {
 
                             {isOnline && currentStep === 3 && (
                                 <div className="alert alert-info mt-2">
-                                    La forma de evaluación es "en línea", por lo que se requieren preguntas
+                                    La forma de evaluación es "en digital", por lo que se requieren preguntas
                                 </div>
                             )}
 
@@ -437,6 +528,7 @@ export default function CreateCapacitaciones() {
                                                 </label>
                                                 <input
                                                     type="date"
+                                                    min={today}
                                                     {...register("fechaInicio")}
                                                     className={`form-control ${errors.fechaInicio ? "is-invalid" : ""}`}
                                                 />
@@ -448,6 +540,7 @@ export default function CreateCapacitaciones() {
                                                 </label>
                                                 <input
                                                     type="date"
+                                                    min={today}
                                                     {...register("fechaFin")}
                                                     className={`form-control ${errors.fechaFin ? "is-invalid" : ""}`}
                                                 />
@@ -469,6 +562,7 @@ export default function CreateCapacitaciones() {
                                                 </label>
                                                 <input
                                                     type="date"
+                                                    min={today}
                                                     {...register("fechaCurso")}
                                                     className={`form-control ${errors.fechaCurso ? "is-invalid" : ""}`}
                                                 />
@@ -496,13 +590,31 @@ export default function CreateCapacitaciones() {
                                                 />
                                             </div>
 
-                                            <div className="col-span-3">
+                                            <div className="col-span-2">
                                                 <label>
-                                                    <strong>Duración</strong>
+                                                    <strong>Duración (Horas)</strong>
                                                 </label>
                                                 <input
-                                                    {...register("duracion")}
-                                                    className={`form-control ${errors.duracion ? "is-invalid" : ""}`}
+                                                    type="number"
+                                                    min="0"
+                                                    max="99"
+                                                    maxLength="2"
+                                                    {...register("duracionHoras")}
+                                                    className={`form-control ${errors.duracionHoras ? "is-invalid" : ""}`}
+                                                />
+                                            </div>
+
+                                            <div className="col-span-2">
+                                                <label>
+                                                    <strong>Duración (Minutos)</strong>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="59"
+                                                    maxLength="2"
+                                                    {...register("duracionMinutos")}
+                                                    className={`form-control ${errors.duracionMinutos ? "is-invalid" : ""}`}
                                                 />
                                             </div>
 
@@ -514,8 +626,8 @@ export default function CreateCapacitaciones() {
                                                     {...register("modalidad")}
                                                     className={`form-control ${errors.modalidad ? "is-invalid" : ""}`}
                                                 >
-                                                    <option value="online">En línea</option>
-                                                    <option value="presencial">Presencial</option>
+                                                    <option value="online">Digital</option>
+                                                    <option value="presencial">Escrita</option>
                                                 </select>
                                             </div>
 
@@ -536,11 +648,15 @@ export default function CreateCapacitaciones() {
                                                 <label>
                                                     <strong>Forma de evaluación</strong>
                                                 </label>
-                                                <input
+                                                <select
                                                     {...register("formaEvaluacion")}
                                                     className={`form-control ${errors.formaEvaluacion ? "is-invalid" : ""}`}
-                                                    placeholder="Ej: En línea, Examen, etc"
-                                                />
+                                                >
+                                                    <option value="">Selecciona una opción</option>
+                                                    <option value="Digital">Digital</option>
+                                                    <option value="Escrita">Escrita</option>
+                                                    <option value="No aplica">No aplica</option>
+                                                </select>
                                             </div>
 
                                             <div className="col-span-12">
@@ -685,7 +801,7 @@ export default function CreateCapacitaciones() {
                                         {/* Carga de archivos */}
                                         <div className="mt-4">
                                             <label>
-                                                <strong>Archivos de Asignación</strong>
+                                                <strong>Archivo de la Capacitación </strong>
                                             </label>
                                             <div className="file-upload-area" onClick={() => document.getElementById("file-input-training").click()}>
                                                 <input
@@ -724,7 +840,7 @@ export default function CreateCapacitaciones() {
                                 </>
                             )}
 
-                            {/* STEP 3 - PREGUNTAS (Solo si es en línea) */}
+                            {/* STEP 3 - PREGUNTAS (Solo si es en digital) */}
                             {isOnline && currentStep === 3 && (
                                 <>
                                     <div className="mt-4">
@@ -815,10 +931,14 @@ export default function CreateCapacitaciones() {
                                                     )}
 
                                                     {tipo === "abierta" && (
-                                                        <div className="mt-3 p-3 bg-light rounded">
-                                                            <p className="text-muted mb-0">
-                                                                Los usuarios podrán escribir una respuesta libre para esta pregunta
+                                                        <div className="mt-3 p-3 rounded" style={{ background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+                                                            <p className="mb-0" style={{ color: "#3b82f6", fontWeight: "600" }}>
+                                                                Los usuarios podrán escribir una respuesta libre para esta pregunta.
                                                             </p>
+                                                            {/* 🔥 TRUCO VITAL: Campos ocultos para engañar a Zod y evitar el error de validación */}
+                                                            <input type="hidden" defaultValue="true" {...register(`preguntas.${index}.respuestaCorrecta`)} />
+                                                            <input type="hidden" defaultValue="N/A" {...register(`preguntas.${index}.opciones.0.texto`)} />
+                                                            <input type="hidden" defaultValue="N/A" {...register(`preguntas.${index}.opciones.1.texto`)} />
                                                         </div>
                                                     )}
                                                 </div>
@@ -1039,7 +1159,9 @@ export default function CreateCapacitaciones() {
 
 .training-actions-menu {
     position: absolute;
-    min-width: 60%;
+    right: 0;
+    top: 100%;
+    min-width: 180px;
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -1047,8 +1169,9 @@ export default function CreateCapacitaciones() {
     z-index: 9999;
     border: 1px solid var(--operator-background);
     border-radius: 10px;
-    background: var(--operator-background);
+    background: var(--operator-card);
     box-shadow: 0 12px 24px rgba(2, 6, 23, 0.14);
+    margin-top: 5px;
 }
 
 .training-action-item {
@@ -1061,9 +1184,10 @@ export default function CreateCapacitaciones() {
     border-radius: 10px;
     background: var(--operator-card);
     color: var(--operator-text);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 800;
-    text-align: center;
+    text-align: left; /* Alineado a la izquierda se ve más limpio */
+    white-space: nowrap; /* Obliga al texto a quedarse en una sola línea */
 }
 
 .training-action-item:hover {
@@ -1188,6 +1312,7 @@ export default function CreateCapacitaciones() {
 .col-span-6 { grid-column: span 6; }
 .col-span-4 { grid-column: span 4; }
 .col-span-3 { grid-column: span 3; }
+.col-span-2 { grid-column: span 2; }
 
 .training-steps {
     width: 70%;
@@ -1443,7 +1568,8 @@ export default function CreateCapacitaciones() {
 @media (max-width: 992px) {
     .col-span-6,
     .col-span-4,
-    .col-span-3 {
+    .col-span-3,
+    .col-span-2 {
         grid-column: span 12;
     }
 
@@ -1511,6 +1637,14 @@ export default function CreateCapacitaciones() {
     .training-modal-form {
         gap: 14px;
     }
+}
+
+.table-responsive-container {
+    overflow: visible !important;
+}
+
+.card-body {
+    overflow: visible !important;
 }
 `}</style>
         </div>

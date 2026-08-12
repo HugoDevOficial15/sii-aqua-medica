@@ -7,11 +7,10 @@ const opcionSchema = z.object({
 
 const preguntaSchema = z.object({
     id: z.string(),
-    tipo: z.enum(["multiple", "boolean", "relacionar"]),
+    tipo: z.enum(["multiple", "boolean", "relacionar", "abierta"]),
     pregunta: z.string().min(1, "Pregunta obligatoria"),
     obligatoria: z.boolean(),
 
-    // 🔥 CAMBIO AQUÍ
     opciones: z.array(opcionSchema).optional(),
 
     pares: z.array(
@@ -21,9 +20,7 @@ const preguntaSchema = z.object({
         })
     ).optional(),
 
-    respuestaCorrecta: z.any().refine(val => val !== undefined, {
-        message: "Debes definir la respuesta correcta"
-    })
+    respuestaCorrecta: z.any().optional()
 
 }).superRefine((data, ctx) => {
 
@@ -77,6 +74,12 @@ const preguntaSchema = z.object({
         }
     }
 
+    // 🔥 ABIERTA - No requiere respuestaCorrecta, solo la pregunta
+    if (data.tipo === "abierta") {
+        // Las preguntas abiertas solo necesitan tener la pregunta rellena
+        // No necesitan respuestaCorrecta
+    }
+
 });
 
 export const surveySchema = z.object({
@@ -94,11 +97,12 @@ export const surveySchema = z.object({
     modalidad: z.enum(["online", "presencial"]),
     tipoCurso: z.enum(["programado", "extraordinario"]),
 
-    formaEvaluacion: z.string().min(3),
+    formaEvaluacion: z.string().min(1),
 
     areas: z.array(z.string()).min(1, "Selecciona al menos un área"),
 
-    duracion: z.string().min(1),
+    duracionHoras: z.string().min(1, "Horas requeridas"),
+    duracionMinutos: z.string().min(1, "Minutos requeridos"),
     horaInicio: z.string().min(1),
     horaFin: z.string().min(1),
 

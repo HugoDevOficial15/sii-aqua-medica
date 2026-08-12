@@ -28,6 +28,7 @@ const preguntaSchema = z.object({
             });
         }
     }
+    
 
     if (data.tipo === "boolean") {
         if (data.respuestaCorrecta !== "true" && data.respuestaCorrecta !== "false") {
@@ -49,9 +50,10 @@ export const trainingSchema = z.object({
     instructor: z.string().min(3, "Instructor requerido"),
     modalidad: z.enum(["online", "presencial"]),
     tipoCurso: z.enum(["programado", "extraordinario"]),
-    formaEvaluacion: z.string().min(3),
+    formaEvaluacion: z.string().min(1),
     areas: z.array(z.string()).min(1, "Selecciona al menos un área"),
-    duracion: z.string().min(1),
+    duracionHoras: z.string().min(1, "Horas requeridas"),
+    duracionMinutos: z.string().min(1, "Minutos requeridos"),
     horaInicio: z.string().min(1),
     horaFin: z.string().min(1),
     fechaInicio: z.string(),
@@ -64,11 +66,11 @@ export const trainingSchema = z.object({
     preguntas: z.array(preguntaSchema).optional(),
     estado: z.enum(["pendiente", "aprobada", "certificado"]).optional()
 }).superRefine((data, ctx) => {
-    const isOnline = data.formaEvaluacion && data.formaEvaluacion.toLowerCase().includes("línea");
-    if (isOnline && (!data.preguntas || data.preguntas.length === 0)) {
+    const isDigital = data.formaEvaluacion && data.formaEvaluacion.toLowerCase().includes("digital");
+    if (isDigital && (!data.preguntas || data.preguntas.length === 0)) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Se requieren preguntas para evaluación en línea",
+            message: "Se requieren preguntas para evaluación digital",
             path: ["preguntas"]
         });
     }

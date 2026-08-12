@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import MobileBackButton from "./components/MobileBackButton";
 
@@ -32,6 +32,8 @@ export default function OperatorSurveyDetail({
 
     const [answers, setAnswers] = useState({});
 
+    const [timeRemaining, setTimeRemaining] = useState(null);
+
     const question =
         survey.preguntas[currentQuestion];
 
@@ -42,6 +44,44 @@ export default function OperatorSurveyDetail({
 
     const [saving, setSaving] =
         useState(false);
+
+    useEffect(() => {
+        if (timeRemaining === null) {
+            const horas = parseInt(survey.duracionHoras || 0);
+            const minutos = parseInt(survey.duracionMinutos || 0);
+            const segundosTotal = (horas * 3600) + (minutos * 60);
+            setTimeRemaining(segundosTotal > 0 ? segundosTotal : null);
+        }
+    }, [survey, timeRemaining]);
+
+    useEffect(() => {
+        if (timeRemaining === null || timeRemaining <= 0) return;
+
+        const timer = setInterval(() => {
+            setTimeRemaining(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [timeRemaining]);
+
+    useEffect(() => {
+        if (timeRemaining === 0 && !saving) {
+            handleFinishSurvey();
+        }
+    }, [timeRemaining, saving]);
+
+    const formatTime = (seconds) => {
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    };
 
     const calculateScore = () => {
 
@@ -191,11 +231,18 @@ export default function OperatorSurveyDetail({
                         {survey.descripcion}
                     </p>
 
-                    <span>
-
-                        Pregunta:  {currentQuestion + 1} de {survey.preguntas.length}
-
-                    </span>
+                    <div className="survey-header-info">
+                        <span>
+                            Pregunta: {currentQuestion + 1} de {survey.preguntas.length}
+                        </span>
+                        {timeRemaining !== null && (
+                            <div className={`survey-timer ${timeRemaining <= 60 ? 'critical' : ''}`} style={{
+                                color: timeRemaining <= 60 ? '#ef4444' : '#3b82f6'
+                            }}>
+                                ⏱️ {formatTime(timeRemaining)}
+                            </div>
+                        )}
+                    </div>
 
                     <div className="op-survey-progress">
 
@@ -292,6 +339,37 @@ export default function OperatorSurveyDetail({
                             </button>
 
                         </div>
+
+                    )}
+
+                    {question.tipo === "abierta" && (
+
+                        <textarea
+                            className="op-survey-open-answer"
+                            placeholder="Escribe tu respuesta aquí..."
+                            value={answers[question.id] || ""}
+                            onChange={(e) =>
+                                setAnswers(prev => ({
+                                    ...prev,
+                                    [question.id]: e.target.value
+                                }))
+                            }
+                            style={{
+                                width: "100%",
+                                minHeight: "140px",
+                                padding: "14px",
+                                borderRadius: "12px",
+                                border: "2px solid #3b82f6",
+                                background: "#f0f4f8",
+                                color: "#1e293b",
+                                fontFamily: "inherit",
+                                fontSize: "15px",
+                                resize: "vertical",
+                                marginTop: "16px",
+                                boxSizing: "border-box",
+                                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.1)"
+                            }}
+                        />
 
                     )}
 

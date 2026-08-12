@@ -2,30 +2,17 @@ import { useEffect, useState } from "react";
 // Iconos
 import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar, FaWindowClose, FaEllipsisV } from "react-icons/fa";
 // Service
-import { createSurvey, getSurveys, updateSurvey } from "../../services/surveyService";
+import { createSurvey, getSurveys, updateSurvey, deleteSurvey } from "../../services/surveyService";
 
 // Resultados/respuestas
 import EncuestaResultados from "./EncuestaResultados";
-
-// Notifcicaciones
+// Notificaciones
 import { notifySuccess, notifyError } from "../../utils/notify";
-
-// Loader
 import Loader from "../../components/Loader";
-
+import FloatingAlert from "../../components/FloatingAlert";
 import { AREAS } from "../../catalogs/areas";
-
-// CSS
 import '../../styles/index.css';
-
-
 import { getAuth } from "firebase/auth";
-
-// Areas
-
-// UseFrom
-
-// Formularios Validar
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { surveySchema } from "../../schemas/surveySchema";
@@ -34,26 +21,15 @@ export default function CreateSurvey() {
 
 
     const [loading, setLoading] = useState(true);
-
-
-
-
-
     const [surveys, setSurveys] = useState([]);
-
     const [showModal, setShowModal] = useState(false);
-
     const [saving, setSaving] = useState(false);
-
     const [editing, setEditing] = useState(false);
-
     const [currentId, setCurrentId] = useState(null);
-
     const [currentStep, setCurrentStep] = useState(1);
-
     const [viewingResults, setViewingResults] = useState(null);
-
     const [openActionsId, setOpenActionsId] = useState(null);
+    const today = new Date().toISOString().split("T")[0];
 
 
     const {
@@ -78,7 +54,8 @@ export default function CreateSurvey() {
             tipoCurso: "programado",
             formaEvaluacion: "",
             areas: [],
-            duracion: "",
+            duracionHoras: "0",
+            duracionMinutos: "0",
             horaInicio: "",
             horaFin: "",
 
@@ -161,28 +138,28 @@ export default function CreateSurvey() {
     // (input separado por comas); aquí se normalizan a un único objeto
     // antes de guardar, sin tocar el resto del formulario.
     const construirAsignacion = (data) => {
-    // 🔥 1. Prioridad absoluta: Si es por usuarios, procesamos e ignoramos las áreas
-    if (data.asignacion?.tipo === "usuarios") {
+        // 1. Prioridad absoluta: Si es por usuarios, procesamos e ignoramos las áreas
+        if (data.asignacion?.tipo === "usuarios") {
+            return {
+                tipo: "usuarios",
+                valores: (data.asignacion.valores || [])
+                    .map(v => String(v).trim())
+                    .filter(Boolean)
+            };
+        }
+
+        // 2. Si es global (Todas las áreas)
+        const areasSeleccionadas = data.areas || [];
+        if (areasSeleccionadas.includes("ALL")) {
+            return { tipo: "global", valores: [] };
+        }
+
+        // 3. Por defecto (Por área)
         return {
-            tipo: "usuarios",
-            valores: (data.asignacion.valores || [])
-                .map(v => String(v).trim())
-                .filter(Boolean)
+            tipo: "area",
+            valores: areasSeleccionadas
         };
-    }
-
-    // 2. Si es global (Todas las áreas)
-    const areasSeleccionadas = data.areas || [];
-    if (areasSeleccionadas.includes("ALL")) {
-        return { tipo: "global", valores: [] };
-    }
-
-    // 3. Por defecto (Por área)
-    return {
-        tipo: "area",
-        valores: areasSeleccionadas
     };
-};
 
     const hnadleSaveSurvey = async (data) => {
 
@@ -197,21 +174,18 @@ export default function CreateSurvey() {
                 return;
             }
 
-            // 🔥 LIMPIAR undefined (CLAVE)
+            //  LIMPIAR undefined (CLAVE)
             const cleanData = {
                 ...data,
                 preguntas: data.preguntas.map(p => {
-
                     let respuesta = p.respuestaCorrecta;
-
-                    // 🔥 evitar undefined
-                    if (respuesta === undefined) {
+                    if (respuesta === undefined || p.tipo === "abierta") {
                         respuesta = null;
                     }
 
                     return {
                         ...p,
-                        opciones: p.opciones || [],
+                        opciones: p.tipo === "abierta" ? [] : (p.opciones || []),
                         pares: p.pares || [],
                         respuestaCorrecta: respuesta
                     };
@@ -266,16 +240,14 @@ export default function CreateSurvey() {
         }
 
     };
-    const handleTipoChange = (index, tipo) => {
 
+    const handleTipoChange = (index, tipo) => {
         update(index, {
             ...fields[index],
             tipo,
-            opciones: tipo === "multiple" ? [{ texto: "" }, { texto: "" }] : [],
-            respuestaCorrecta: undefined,
-            pares: tipo === "relacionar"
-                ? [{ izquierda: "", derecha: "" }]
-                : [],
+            opciones: tipo === "multiple" ? [{ texto: "" }, { texto: "" }] : [{ texto: "N/A" }, { texto: "N/A" }],
+            respuestaCorrecta: tipo === "abierta" ? "abierta" : undefined,
+            pares: tipo === "relacionar" ? [{ izquierda: "", derecha: "" }] : [],
         });
     }
 
@@ -293,7 +265,7 @@ export default function CreateSurvey() {
 
     }
 
-    // Activar o desactivar 
+    // Activar o desactivar
     const toggleSurvey = async (survey) => {
 
         const update = {
@@ -307,6 +279,20 @@ export default function CreateSurvey() {
 
         setSurveys(data);
 
+    };
+
+    const handleDeleteSurvey = async (survey) => {
+        if (window.confirm("¿Estás seguro de que deseas eliminar esta encuesta? Esta acción no se puede deshacer.")) {
+            try {
+                await deleteSurvey(survey.id);
+                const data = await getSurveys();
+                setSurveys(data);
+                notifySuccess("Encuesta Eliminada", "La encuesta fue eliminada correctamente");
+            } catch (error) {
+                console.error("Error eliminando encuesta:", error);
+                notifyError("Error", "No se pudo eliminar la encuesta");
+            }
+        }
     };
 
     if (loading) {
@@ -323,11 +309,14 @@ export default function CreateSurvey() {
     }
 
     return (
-
-
-
         <div id="encuestas-fix" className="page-transition">
-
+            {!showModal && (
+                <FloatingAlert
+                    errors={errors}
+                    title="⚠️ Campos faltantes en Encuestas"
+                    duration={6000}
+                />
+            )}
             {/* Header */}
             <div className="d-flex justify-content-between mb-4">
 
@@ -458,6 +447,17 @@ export default function CreateSurvey() {
                                                                 {survey.activa ? <FaTimesCircle className="me-2" /> : <FaCheckCircle className="me-2" />}
                                                                 {survey.activa ? "Desactivar" : "Activar"}
                                                             </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="survey-action-item text-danger"
+                                                                onClick={() => {
+                                                                    handleDeleteSurvey(survey);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                <FaTrash className="me-2" /> Borrar
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </div>
@@ -507,6 +507,16 @@ export default function CreateSurvey() {
                             onSubmit={handleSubmit(hnadleSaveSurvey)}
                             className="survey-modal-form"
                         >
+                            {showModal && (
+                                <div style={{ marginBottom: "16px" }}>
+                                    <FloatingAlert
+                                        errors={errors}
+                                        title="⚠️ Campos faltantes"
+                                        duration={6000}
+                                        inline={true}
+                                    />
+                                </div>
+                            )}
 
                             {/* STEPS */}
                             <div className="survey-steps mb-4">
@@ -577,9 +587,9 @@ export default function CreateSurvey() {
                                                 <label>
                                                     <strong>Inicio de Encuesta</strong>
                                                 </label>
-
                                                 <input
                                                     type="date"
+                                                    min={today}
                                                     {...register("fechaInicio")}
                                                     className={`form-control ${errors.fechaInicio ? "is-invalid" : ""}`}
                                                 />
@@ -589,9 +599,9 @@ export default function CreateSurvey() {
                                                 <label>
                                                     <strong>Fin de Encuesta</strong>
                                                 </label>
-
                                                 <input
                                                     type="date"
+                                                    min={today}
                                                     {...register("fechaFin")}
                                                     className={`form-control ${errors.fechaFin ? "is-invalid" : ""}`}
                                                 />
@@ -612,9 +622,9 @@ export default function CreateSurvey() {
                                                 <label>
                                                     <strong>Fecha curso</strong>
                                                 </label>
-
                                                 <input
                                                     type="date"
+                                                    min={today}
                                                     {...register("fechaCurso")}
                                                     className={`form-control ${errors.fechaCurso ? "is-invalid" : ""}`}
                                                 />
@@ -644,14 +654,31 @@ export default function CreateSurvey() {
                                                 />
                                             </div>
 
-                                            <div className="col-span-3">
+                                            <div className="col-span-2">
                                                 <label>
-                                                    <strong>Duración</strong>
+                                                    <strong>Duración (Horas)</strong>
                                                 </label>
-
                                                 <input
-                                                    {...register("duracion")}
-                                                    className={`form-control ${errors.duracion ? "is-invalid" : ""}`}
+                                                    type="number"
+                                                    min="0"
+                                                    max="99"
+                                                    maxLength="2"
+                                                    {...register("duracionHoras")}
+                                                    className={`form-control ${errors.duracionHoras ? "is-invalid" : ""}`}
+                                                />
+                                            </div>
+
+                                            <div className="col-span-2">
+                                                <label>
+                                                    <strong>Duración (Minutos)</strong>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="59"
+                                                    maxLength="2"
+                                                    {...register("duracionMinutos")}
+                                                    className={`form-control ${errors.duracionMinutos ? "is-invalid" : ""}`}
                                                 />
                                             </div>
 
@@ -763,106 +790,106 @@ export default function CreateSurvey() {
 
 
                             {currentStep === 2 && (
-    <>
-        <div className="mt-3">
-            <label>
-                <strong>Asignación</strong>
-            </label>
+                                <>
+                                    <div className="mt-3">
+                                        <label>
+                                            <strong>Asignación</strong>
+                                        </label>
 
-            {/* TIPO ASIGNACIÓN */}
-            <select
-                className="form-control mb-4 mt-4"
-                {...register("asignacion.tipo", {
-                    onChange: (e) => {
-                        if (e.target.value === "usuarios") {
-                            // 🔥 Inyectamos un área fantasma para que Zod apruebe el formulario sin bloquear
-                            setValue("areas", [AREAS[0]?.nombre || "Sistemas"], { shouldValidate: true });
-                        } else {
-                            setValue("areas", [], { shouldValidate: true });
-                        }
-                    }
-                })}
-            >
-                <option value="area">Por área</option>
-                <option value="usuarios">Por usuarios</option>
-            </select>
+                                        {/* TIPO ASIGNACIÓN */}
+                                        <select
+                                            className="form-control mb-4 mt-4"
+                                            {...register("asignacion.tipo", {
+                                                onChange: (e) => {
+                                                    if (e.target.value === "usuarios") {
+                                                        //  Inyectamos un área fantasma para que Zod apruebe el formulario sin bloquear
+                                                        setValue("areas", [AREAS[0]?.nombre || "Sistemas"], { shouldValidate: true });
+                                                    } else {
+                                                        setValue("areas", [], { shouldValidate: true });
+                                                    }
+                                                }
+                                            })}
+                                        >
+                                            <option value="area">Por área</option>
+                                            <option value="usuarios">Por usuarios</option>
+                                        </select>
 
-            {/* TODAS LAS ÁREAS (Solo mostrar si la asignación es por área) */}
-            {watch("asignacion.tipo") === "area" && (
-                <label
-                    className={`area-card mb-4 ${watch("areas")?.includes("ALL") ? "selected" : ""}`}
-                >
-                    <input
-                        type="checkbox"
-                        checked={watch("areas")?.includes("ALL")}
-                        onChange={(e) => {
-                            if (e.target.checked) {
-                                setValue("areas", ["ALL"], { shouldValidate: true });
-                                setValue("asignacion.tipo", "area");
-                                setValue("asignacion.valores", []);
-                            } else {
-                                setValue("areas", [], { shouldValidate: true });
-                            }
-                        }}
-                    />
-                    <span>Todas las áreas</span>
-                </label>
-            )}
+                                        {/* TODAS LAS ÁREAS (Solo mostrar si la asignación es por área) */}
+                                        {watch("asignacion.tipo") === "area" && (
+                                            <label
+                                                className={`area-card mb-4 ${watch("areas")?.includes("ALL") ? "selected" : ""}`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={watch("areas")?.includes("ALL")}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setValue("areas", ["ALL"], { shouldValidate: true });
+                                                            setValue("asignacion.tipo", "area");
+                                                            setValue("asignacion.valores", []);
+                                                        } else {
+                                                            setValue("areas", [], { shouldValidate: true });
+                                                        }
+                                                    }}
+                                                />
+                                                <span>Todas las áreas</span>
+                                            </label>
+                                        )}
 
-            {/* ÁREAS (Ocultar si seleccionó "Todas" o si está en modo "Usuarios") */}
-            {watch("asignacion.tipo") === "area" && !watch("areas")?.includes("ALL") && (
-                <div className="areas-grid mt-4">
-                    {AREAS.map(area => {
-                        const selected = watch("areas") || [];
-                        const isSelected = selected.includes(area.nombre);
-                        return (
-                            <div key={area.id} className="area-grid-item">
-                                <label className={`area-card ${isSelected ? "selected" : ""}`}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={(e) => {
-                                            let updated = [...selected];
-                                            if (e.target.checked) {
-                                                updated.push(area.nombre);
-                                            } else {
-                                                updated = updated.filter(a => a !== area.nombre);
-                                            }
-                                            setValue("areas", updated, { shouldValidate: true });
-                                        }}
-                                    />
-                                    <span>{area.nombre}</span>
-                                </label>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+                                        {/* ÁREAS (Ocultar si seleccionó "Todas" o si está en modo "Usuarios") */}
+                                        {watch("asignacion.tipo") === "area" && !watch("areas")?.includes("ALL") && (
+                                            <div className="areas-grid mt-4">
+                                                {AREAS.map(area => {
+                                                    const selected = watch("areas") || [];
+                                                    const isSelected = selected.includes(area.nombre);
+                                                    return (
+                                                        <div key={area.id} className="area-grid-item">
+                                                            <label className={`area-card ${isSelected ? "selected" : ""}`}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={(e) => {
+                                                                        let updated = [...selected];
+                                                                        if (e.target.checked) {
+                                                                            updated.push(area.nombre);
+                                                                        } else {
+                                                                            updated = updated.filter(a => a !== area.nombre);
+                                                                        }
+                                                                        setValue("areas", updated, { shouldValidate: true });
+                                                                    }}
+                                                                />
+                                                                <span>{area.nombre}</span>
+                                                            </label>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
 
-            {/* USUARIOS */}
-            {watch("asignacion.tipo") === "usuarios" && (
-                <div className="mt-4">
-                    <label className="mb-2">
-                        <strong>Usuarios</strong>
-                    </label>
-                    <input
-                        className="form-control"
-                        placeholder="Ejemplo: 502, 100, 104"
-                        // 🔥 Usamos defaultValue y onChange para actualizar en tiempo real sin borrar las comas
-                        defaultValue={watch("asignacion.valores")?.join(", ")}
-                        onChange={(e) => {
-                            const valores = e.target.value
-                                .split(",")
-                                .map(v => v.trim())
-                                .filter(Boolean);
-                            setValue("asignacion.valores", valores, { shouldValidate: true });
-                        }}
-                    />
-                </div>
-            )}
-        </div>
-    </>
-)}
+                                        {/* USUARIOS */}
+                                        {watch("asignacion.tipo") === "usuarios" && (
+                                            <div className="mt-4">
+                                                <label className="mb-2">
+                                                    <strong>Usuarios</strong>
+                                                </label>
+                                                <input
+                                                    className="form-control"
+                                                    placeholder="Ejemplo: 502, 100, 104"
+                                                    // 🔥 Usamos defaultValue y onChange para actualizar en tiempo real sin borrar las comas
+                                                    defaultValue={watch("asignacion.valores")?.join(", ")}
+                                                    onChange={(e) => {
+                                                        const valores = e.target.value
+                                                            .split(",")
+                                                            .map(v => v.trim())
+                                                            .filter(Boolean);
+                                                        setValue("asignacion.valores", valores, { shouldValidate: true });
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
 
 
 
@@ -975,6 +1002,18 @@ export default function CreateSurvey() {
                                                             watch={watch}
                                                             setValue={setValue}
                                                         />
+                                                    )}
+
+                                                    {tipo === "abierta" && (
+                                                        <div className="mt-3 p-3 rounded" style={{ background: "rgba(59, 130, 246, 0.1)", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
+                                                            <p className="mb-0" style={{ color: "#3b82f6", fontWeight: "600" }}>
+                                                                Los usuarios podrán escribir una respuesta libre para esta pregunta.
+                                                            </p>
+                                                            {/* 🔥 TRUCO VITAL: Campos ocultos para engañar a Zod (Faltaban los de las opciones) */}
+                                                            <input type="hidden" defaultValue="true" {...register(`preguntas.${index}.respuestaCorrecta`)} />
+                                                            <input type="hidden" defaultValue="N/A" {...register(`preguntas.${index}.opciones.0.texto`)} />
+                                                            <input type="hidden" defaultValue="N/A" {...register(`preguntas.${index}.opciones.1.texto`)} />
+                                                        </div>
                                                     )}
 
                                                     {/* BOOLEAN */}
@@ -1287,16 +1326,19 @@ export default function CreateSurvey() {
 
 .survey-actions-menu {
     position: absolute;
-    min-width: 60%;
+    right: 0;
+    top: 100%;
+    min-width: 180px;
     padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
     z-index: 9999;
-    border: 1px solid var(--operator-background );
+    border: 1px solid var(--operator-background);
     border-radius: 10px;
-    background: var(--operator-background);
+    background: var(--operator-card);
     box-shadow: 0 12px 24px rgba(2, 6, 23, 0.14);
+    margin-top: 5px;
 }
 
 .survey-action-item {
@@ -1723,6 +1765,14 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
     .survey-modal-form {
         gap: 14px;
     }
+}
+
+.table-responsive-container {
+    overflow: visible !important;
+}
+
+.card-body {
+    overflow: visible !important;
 }
 
 `}</style>

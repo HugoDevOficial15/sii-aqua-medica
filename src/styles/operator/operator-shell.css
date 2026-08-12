@@ -1949,7 +1949,9 @@ NOTIFICATIONS
 
 .notification-card {
 
-    background: white;
+    background: var(--operator-card);
+
+    border: 1px solid var(--operator-border);
 
     border-radius: 24px;
 
@@ -1963,11 +1965,18 @@ NOTIFICATIONS
 
     box-shadow:
         0 10px 30px rgba(0, 0, 0, .05);
+
+    transition: all 0.2s ease;
+}
+
+.notification-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, .1);
 }
 
 .notification-card.unread {
 
-    border-left: 5px solid #0A4D9D;
+    border-left: 5px solid var(--operator-primary);
 }
 
 .notification-icon {
@@ -2016,15 +2025,16 @@ NOTIFICATIONS
 .notification-content strong {
     display: block;
     margin-bottom: 4px;
+    color: var(--operator-text);
 }
 
 .notification-content p {
     margin: 0;
-    color: #64748B;
+    color: var(--operator-text-soft);
 }
 
 .notification-content small {
-    color: #94A3B8;
+    color: var(--operator-text-soft);
 }
 
 /* =====================================

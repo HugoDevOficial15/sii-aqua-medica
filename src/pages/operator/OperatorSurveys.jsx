@@ -164,7 +164,7 @@ export default function OperatorSurveys({
                             <p><strong>Forma de evaluación:</strong> {survey.formaEvaluacion}</p>
                             <p><strong>Fecha del curso:</strong> {survey.fechaCurso}</p>
                             <p><strong>Horario:</strong> {survey.horaInicio} - {survey.horaFin}</p>
-                            <p><strong>Duración:</strong> {survey.duracion}</p>
+                            <p><strong>Duración:</strong> {survey.duracionHoras}h {survey.duracionMinutos}m</p>
 
                             {/* 🔥 SECCIÓN DE PUNTAJES Y BOTONES */}
                             {survey.estadoActual === "completada" && (

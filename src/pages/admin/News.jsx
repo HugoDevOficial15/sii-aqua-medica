@@ -3,7 +3,7 @@ import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs, query, or
 import { db } from "../../config/firebase";
 import { FaEdit, FaEllipsisV } from "react-icons/fa";
 
-// 👇 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
+// 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
   const d = new Date();
   const year = d.getFullYear();
@@ -23,7 +23,7 @@ export default function News() {
   const [areaDestino, setAreaDestino] = useState("Todas");
   const [imagen, setImagen] = useState(null);
   const [archivoSeleccionado, setArchivoSeleccionado] = useState(null);
-
+  const today = new Date().toISOString().split("T")[0];
   const listaAreas = [
     "Todas", "Almacen", "Comedor", "Comité Técnico", "Compras",
     "Contabilidad", "Control de Calidad", "Dirección General",
@@ -296,7 +296,13 @@ export default function News() {
                 <div className="col-md-6 mb-3">
                   <label className="form-label fw-medium">Fecha Límite de Visibilidad</label>
                   {/* Agregada la clase adaptive-input */}
-                  <input type="date" className="form-control adaptive-input" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)} required />
+                  <input 
+                  type="date" 
+                  min={today}
+                  className="form-control adaptive-input" 
+                  value={fechaLimite} 
+                  onChange={(e) => setFechaLimite(e.target.value)} 
+                  required />
                 </div>
                 <div className="col-md-6 mb-4">
                   <label className="form-label fw-medium">{noticiaEditando ? "Actualizar Imagen (Opcional)" : "Subir Imagen de Portada"}</label>
