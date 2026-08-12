@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { FiCheckCircle, FiClock, FiAlertCircle, FiClock as FiTimer } from "react-icons/fi";
 import { useAuth } from "../../hooks/useAuth";
 import { getOperatorTrainings } from "../../services/operatorTrainingService";
+import { saveTrainingResponse } from "../../services/servicesOperator/operatorTrainingResponseService";
 import Loader from "../../components/Loader";
+
+const MIN_APROBATORIO = 80;
 
 const ESTADO_LABEL = {
     pendiente: "Pendiente",
@@ -20,7 +23,7 @@ const ESTADO_BADGE_CLASS = {
     bloqueada: "badge expired"  
 };
 
-export default function OperatorTraining() {
+export default function OperatorTraining({ onTrainingComplete }) {
     const { user } = useAuth();
     const [trainings, setTrainings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -32,6 +35,7 @@ export default function OperatorTraining() {
     const [ongoingTraining, setOngoingTraining] = useState(null);
     const [answers, setAnswers] = useState({});
     const [timeLeft, setTimeLeft] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         const loadTrainings = async () => {
@@ -67,14 +71,16 @@ export default function OperatorTraining() {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timerId);
-                    handleSubmitTraining(); // Auto-enviar si se acaba el tiempo
+                    if (!isSubmitting) {
+                        handleSubmitTraining(); // Auto-enviar si se acaba el tiempo
+                    }
                     return 0;
                 }
                 return prev - 1;
             });
         }, 1000);
         return () => clearInterval(timerId);
-    }, [timeLeft]);
+    }, [timeLeft, isSubmitting]);
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600);
@@ -87,7 +93,12 @@ export default function OperatorTraining() {
     // 🔥 2. LÓGICA DE ESTADOS Y BLOQUEOS (Copia de Encuestas)
     const capacitacionesCorregidas = trainings.map(training => {
         let estadoCorregido = training.estadoActual || "pendiente";
-        
+
+        // Si está pendiente de validación, NO sobrescribir
+        if (estadoCorregido === "pendiente_validacion") {
+            return { ...training, estadoActual: estadoCorregido };
+        }
+
         if (training.miPuntaje !== undefined && training.miPuntaje !== null) {
             const puntajeNum = Number(training.miPuntaje);
             if (puntajeNum < 80) { // Calificación mínima
@@ -102,13 +113,13 @@ export default function OperatorTraining() {
 
     const contadores = {
         disponibles: capacitacionesCorregidas.filter(s => s.estadoActual === "pendiente").length,
-        respondidas: capacitacionesCorregidas.filter(s => s.estadoActual === "completada").length,
+        respondidas: capacitacionesCorregidas.filter(s => ["completada", "pendiente_validacion"].includes(s.estadoActual)).length,
         reprobadas: capacitacionesCorregidas.filter(s => ["reprobada", "bloqueada", "vencida"].includes(s.estadoActual)).length,
     };
 
     const capacitacionesAMostrar = capacitacionesCorregidas.filter(training => {
         if (activeTab === "Disponibles") return training.estadoActual === "pendiente";
-        if (activeTab === "Respondidas") return training.estadoActual === "completada";
+        if (activeTab === "Respondidas") return ["completada", "pendiente_validacion"].includes(training.estadoActual);
         if (activeTab === "Reprobadas") return ["reprobada", "bloqueada", "vencida"].includes(training.estadoActual);
         return true;
     });
@@ -133,13 +144,121 @@ export default function OperatorTraining() {
         setAnswers(prev => ({ ...prev, [preguntaId]: respuesta }));
     };
 
+    const calculateScore = () => {
+        let correctas = 0;
+        let tieneRespuestasAbiertas = false;
+
+        ongoingTraining.preguntas?.forEach(pregunta => {
+            const respuestaUsuario = answers[pregunta.id];
+
+            // MULTIPLE
+            if (
+                pregunta.tipo === "multiple" &&
+                respuestaUsuario === String(pregunta.respuestaCorrecta)
+            ) {
+                correctas++;
+            }
+
+            // BOOLEAN
+            if (
+                pregunta.tipo === "boolean" &&
+                String(respuestaUsuario) === String(pregunta.respuestaCorrecta)
+            ) {
+                correctas++;
+            }
+
+            // ABIERTA - No cuenta automáticamente, pendiente de validación admin
+            if (pregunta.tipo === "abierta" && respuestaUsuario) {
+                tieneRespuestasAbiertas = true;
+            }
+        });
+
+        // Contar solo preguntas que NO son abiertas para calcular porcentaje
+        const preguntasAutomaticas = ongoingTraining.preguntas?.filter(
+            p => p.tipo !== "abierta"
+        ).length || 0;
+
+        let calificacion = 0;
+        if (preguntasAutomaticas > 0) {
+            calificacion = Math.round((correctas / preguntasAutomaticas) * 100);
+        }
+
+        return {
+            correctas,
+            calificacion,
+            tieneRespuestasAbiertas
+        };
+    };
+
     const handleSubmitTraining = async () => {
-        if (!ongoingTraining) return;
-        console.log("Respuestas a enviar al backend:", answers);
-        // AQUÍ IRÁ TU LLAMADA AL BACKEND PARA GUARDAR RESPUESTAS Y PUNTAJE
-        alert("Capacitación enviada correctamente.");
-        setOngoingTraining(null);
-        setAnswers({});
+        if (!ongoingTraining || isSubmitting) return;
+
+        try {
+            setIsSubmitting(true);
+            const result = calculateScore();
+
+            // Lógica de intentos
+            const intentosPrevios = ongoingTraining.intentos || 0;
+            const intentosActuales = intentosPrevios + 1;
+
+            let nuevoEstado = "";
+
+            // Si hay respuestas abiertas, marcar como "pendiente_validacion"
+            if (result.tieneRespuestasAbiertas) {
+                nuevoEstado = "pendiente_validacion";
+            } else if (result.calificacion >= MIN_APROBATORIO) {
+                nuevoEstado = "completada";
+            } else {
+                if (intentosActuales >= 3) {
+                    nuevoEstado = "bloqueada";
+                } else {
+                    nuevoEstado = "reprobada";
+                }
+            }
+
+            // Guardar respuesta en Firebase
+            await saveTrainingResponse({
+                idCapacitacion: ongoingTraining.id,
+                capacitacionId: ongoingTraining.id,
+                nominaUsuario: user.nomina,
+                userId: user.id,
+                username: user.username,
+                nombre: user.nombre,
+                respuestas: answers,
+                totalPreguntas: ongoingTraining.preguntas?.length || 0,
+                correctas: result.correctas,
+                calificacion: result.calificacion,
+                puntuacionObtenida: result.calificacion,
+                aprobada: result.calificacion >= MIN_APROBATORIO,
+                tieneRespuestasAbiertas: result.tieneRespuestasAbiertas,
+                intentos: intentosActuales,
+                estadoActual: nuevoEstado,
+                fechaEnviado: new Date(),
+                titulo: ongoingTraining.titulo
+            });
+
+            alert(`Capacitación enviada correctamente.\n${
+                result.tieneRespuestasAbiertas
+                    ? 'Tu respuesta será revisada por el administrador.'
+                    : `Puntaje: ${result.calificacion}/100`
+            }`);
+
+            setOngoingTraining(null);
+            setAnswers({});
+
+            // Recargar capacitaciones
+            const data = await getOperatorTrainings(user?.area, user?.uid);
+            setTrainings(data.filter(t => t.activa !== false));
+
+            // Actualizar el contador de notificaciones
+            if (typeof onTrainingComplete === 'function') {
+                onTrainingComplete();
+            }
+        } catch (error) {
+            console.error("Error al guardar respuesta:", error);
+            alert("Error al enviar la capacitación. Intenta nuevamente.");
+            setIsSubmitting(false);
+        }
     };
 
     if (loading) return <Loader text="Cargando capacitaciones..." />;

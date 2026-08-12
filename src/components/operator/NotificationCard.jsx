@@ -1,4 +1,15 @@
-import { FiBell, FiActivity, FiCheckCircle, FiXCircle, FiRepeat } from "react-icons/fi";
+import {
+    FiBell,
+    FiActivity,
+    FiCheckCircle,
+    FiXCircle,
+    FiRepeat,
+    FiClipboard,
+    FiTrendingUp,
+    FiAward,
+    FiBookOpen,
+    FiHelpCircle
+} from "react-icons/fi";
 
 // Config visual (icono/colores) por tipo de notificación. "icono" puede
 // ser un componente de react-icons o un emoji (string) directamente.
@@ -7,6 +18,8 @@ export function getConfigEstilo(destino) {
     switch (destino) {
 
         case "Noticias":
+        case "/news":
+        case "news":
             return {
                 icono: FiBell,
                 bg: "#dbeafe",
@@ -16,6 +29,7 @@ export function getConfigEstilo(destino) {
             };
 
         case "Citas Medicas":
+        case "citas-medicas":
             return {
                 icono: FiActivity,
                 bg: "#e0f2fe",
@@ -62,7 +76,7 @@ export function getConfigEstilo(destino) {
 
         case "ProblemaActualizado":
             return {
-                icono: FiRepeat,
+                icono: FiHelpCircle,
                 bg: "#e0f2fe",
                 color: "#0284c7",
                 borderColor: "#0284c7",
@@ -85,6 +99,54 @@ export function getConfigEstilo(destino) {
                 color: "#16a34a",
                 borderColor: "#16a34a",
                 tituloDefault: "Cancelación registrada"
+            };
+
+        case "surveys":
+        case "Encuestas":
+            return {
+                icono: FiClipboard,
+                bg: "#fef3c7",
+                color: "#b45309",
+                borderColor: "#f59e0b",
+                tituloDefault: "Nueva Encuesta"
+            };
+
+        case "Sugerencias":
+            return {
+                icono: FiTrendingUp,
+                bg: "#f3e8ff",
+                color: "#7c3aed",
+                borderColor: "#a855f7",
+                tituloDefault: "Nueva Sugerencia"
+            };
+
+        case "Reconocimientos":
+            return {
+                icono: FiAward,
+                bg: "#fce7f3",
+                color: "#be185d",
+                borderColor: "#ec4899",
+                tituloDefault: "Nuevo Reconocimiento"
+            };
+
+        case "capacitaciones":
+        case "Capacitaciones":
+            return {
+                icono: FiBookOpen,
+                bg: "#dbeafe",
+                color: "#0369a1",
+                borderColor: "#0284c7",
+                tituloDefault: "Nueva Capacitación"
+            };
+
+        case "/solicitudes":
+        case "solicitudes":
+            return {
+                icono: FiCheckCircle,
+                bg: "#e7f5ff",
+                color: "#1971c2",
+                borderColor: "#1971c2",
+                tituloDefault: "Cambio de perfil"
             };
 
         default:

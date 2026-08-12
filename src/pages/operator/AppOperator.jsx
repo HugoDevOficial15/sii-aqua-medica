@@ -41,6 +41,7 @@ import OperatorAbout from "./OperatorAbout";
 import OperadorCitasMedicas from "./OperadorCitasMedicas";
 
 import { useOperatorSurveys } from "../../hooks/hooksOperator/useOperatorSurveys";
+import { useOperatorTrainings } from "../../hooks/hooksOperator/useOperatorTrainings";
 
 export default function AppOperator() {
 
@@ -61,6 +62,14 @@ export default function AppOperator() {
         error: surveysError,
         refetch: refetchSurveys
     } = useOperatorSurveys();
+
+    const {
+        trainings,
+        metrics: trainingMetrics,
+        loading: trainingsLoading,
+        error: trainingsError,
+        refetch: refetchTrainings
+    } = useOperatorTrainings();
 
     // Listener en tiempo real para contar notificaciones del operador
     useEffect(() => {
@@ -137,7 +146,7 @@ export default function AppOperator() {
             case "recognitions":
                 return <OperatorRecognitions />;
             case "training":
-                return <OperatorTraining />;
+                return <OperatorTraining onTrainingComplete={refetchTrainings} />;
             case "certificates":
                 return <OperatorCertificates />;
             case "notifications":
@@ -179,8 +188,11 @@ export default function AppOperator() {
         }
     };
 
-    //  5. Sumamos las notificaciones de Firebase + las Encuestas que tengas pendientes
-    const totalNotificaciones = (metrics?.pendientesCount || 0) + notificacionesCount;
+    //  5. Sumamos las notificaciones de Firebase + Encuestas + Capacitaciones pendientes
+    const totalNotificaciones = notificacionesCount;
+        (metrics?.pendientesCount || 0) +
+        (trainingMetrics?.pendientesCount || 0) +
+        notificacionesCount;
 
     return (
         <OperatorShell

@@ -23,9 +23,26 @@ export default function OperatorSurveyDetail({
 }) {
 
     if (!survey) {
-
         return null;
+    }
 
+    if (!survey.preguntas || survey.preguntas.length === 0) {
+        return (
+            <div style={{ padding: "40px 20px", textAlign: "center" }}>
+                <h2>Error al cargar la encuesta</h2>
+                <p>No se encontraron preguntas en esta encuesta.</p>
+                <button onClick={onBack} style={{
+                    padding: "10px 20px",
+                    background: "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer"
+                }}>
+                    Volver
+                </button>
+            </div>
+        );
     }
 
     const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -34,11 +51,13 @@ export default function OperatorSurveyDetail({
 
     const [timeRemaining, setTimeRemaining] = useState(null);
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const question =
-        survey.preguntas[currentQuestion];
+        survey.preguntas?.[currentQuestion];
 
     const isAnswered =
-        answers[question.id] !== undefined;
+        question && answers[question.id] !== undefined;
 
     const { user } = useAuth();
 
@@ -71,10 +90,10 @@ export default function OperatorSurveyDetail({
     }, [timeRemaining]);
 
     useEffect(() => {
-        if (timeRemaining === 0 && !saving) {
+        if (timeRemaining === 0 && !isSubmitting && !saving) {
             handleFinishSurvey();
         }
-    }, [timeRemaining, saving]);
+    }, [timeRemaining, isSubmitting, saving]);
 
     const formatTime = (seconds) => {
         const hrs = Math.floor(seconds / 3600);
@@ -86,6 +105,8 @@ export default function OperatorSurveyDetail({
     const calculateScore = () => {
 
         let correctas = 0;
+        let tieneRespuestasAbiertas = false;
+        let preguntasAbiertas = 0;
 
         survey.preguntas.forEach(pregunta => {
 
@@ -115,38 +136,63 @@ export default function OperatorSurveyDetail({
 
             }
 
+            // ABIERTA - No cuenta automáticamente, pendiente de validación admin
+            if (pregunta.tipo === "abierta") {
+                preguntasAbiertas++;
+                if (respuestaUsuario) {
+                    tieneRespuestasAbiertas = true;
+                }
+            }
+
         });
 
-        const calificacion =
-            Math.round(
-                (correctas /
-                    survey.preguntas.length) * 100
+        // Contar solo preguntas que NO son abiertas para calcular porcentaje
+        const preguntasAutomaticas = survey.preguntas.length - preguntasAbiertas;
+
+        let calificacion = 0;
+        if (preguntasAutomaticas > 0) {
+            calificacion = Math.round(
+                (correctas / preguntasAutomaticas) * 100
             );
+        } else if (tieneRespuestasAbiertas) {
+            // Si TODAS las preguntas son abiertas y tiene respuestas, calificación es 100 (pendiente validación)
+            calificacion = 100;
+        }
 
         return {
 
             correctas,
 
-            calificacion
+            calificacion,
+
+            tieneRespuestasAbiertas
 
         };
 
     };
 
     const handleFinishSurvey = async () => {
+        // Evitar enviar dos veces
+        if (isSubmitting) return;
+
         try {
+            setIsSubmitting(true);
             setSaving(true);
             const result = calculateScore();
 
             // 🔥 1. LÓGICA DE INTENTOS Y ESTADO
             // Leemos los intentos anteriores (si es la primera vez, será 0)
-            const intentosPrevios = survey.intentos || 0; 
+            const intentosPrevios = survey.intentos || 0;
             const intentosActuales = intentosPrevios + 1;
 
             let nuevoEstado = "";
-            
+
+            // Si hay respuestas abiertas, marcar como pendiente de validación
+            if (result.tieneRespuestasAbiertas) {
+                nuevoEstado = "pendiente_validacion";
+            }
             // Evaluamos con tu constante MIN_APROBATORIO
-            if (result.calificacion >= MIN_APROBATORIO) {
+            else if (result.calificacion >= MIN_APROBATORIO) {
                 nuevoEstado = "completada";
             } else {
                 // Reprobó. Verificamos si alcanzó el límite de 3
@@ -173,8 +219,9 @@ export default function OperatorSurveyDetail({
                 totalPreguntas: survey.preguntas.length,
                 correctas: result.correctas,
                 calificacion: result.calificacion,
-                aprobada: result.calificacion >= MIN_APROBATORIO,
-                
+                aprobada: result.calificacion >= MIN_APROBATORIO && !result.tieneRespuestasAbiertas,
+                tieneRespuestasAbiertas: result.tieneRespuestasAbiertas,
+
                 // NUEVOS CAMPOS ENVIADOS AL SERVICIO
                 intentos: intentosActuales,
                 estadoActual: nuevoEstado
@@ -187,7 +234,8 @@ export default function OperatorSurveyDetail({
             onSurveyResult({
                 correctas: result.correctas,
                 calificacion: result.calificacion,
-                total: survey.preguntas.length
+                total: survey.preguntas.length,
+                tieneRespuestasAbiertas: result.tieneRespuestasAbiertas
             });
 
             // Redirigir a la pantalla de resultados
@@ -196,6 +244,7 @@ export default function OperatorSurveyDetail({
         } catch (error) {
             console.error("Error al finalizar la encuesta:", error);
             setSaving(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -261,116 +310,120 @@ export default function OperatorSurveyDetail({
 
                 <div className="op-survey-question-card">
 
-                    <h2>
-                        {question.pregunta}
-                    </h2>
+                    {question && (
+                        <>
+                            <h2>
+                                {question.pregunta}
+                            </h2>
 
-                    {question.tipo === "multiple" && (
+                            {question.tipo === "multiple" && (
 
-                        <div className="op-survey-options-list">
+                                <div className="op-survey-options-list">
 
-                            {question.opciones.map(
-                                (option, index) => (
+                                {question.opciones.map(
+                                    (option, index) => (
 
-                                    <button
-                                        key={index}
-                                        className={
-                                            answers[question.id] === index
-                                                ? "op-survey-option-btn selected"
-                                                : "op-survey-option-btn"
-                                        }
-                                        onClick={() =>
-                                            setAnswers(prev => ({
-                                                ...prev,
-                                                [question.id]: index
-                                            }))
-                                        }
-                                    >
+                                        <button
+                                            key={index}
+                                            className={
+                                                answers[question.id] === index
+                                                    ? "op-survey-option-btn selected"
+                                                    : "op-survey-option-btn"
+                                            }
+                                            onClick={() =>
+                                                setAnswers(prev => ({
+                                                    ...prev,
+                                                    [question.id]: index
+                                                }))
+                                            }
+                                        >
 
-                                        {option.texto}
+                                            {option.texto}
 
-                                    </button>
+                                        </button>
 
-                                )
+                                    )
+                                )}
+
+                                </div>
+
                             )}
 
-                        </div>
+                            {question.tipo === "boolean" && (
 
-                    )}
+                            <div className="op-survey-options-list">
 
-                    {question.tipo === "boolean" && (
+                                <button
+                                    className={
+                                        answers[question.id] === true
+                                            ? "op-survey-option-btn selected"
+                                            : "op-survey-option-btn"
+                                    }
+                                    onClick={() =>
+                                        setAnswers(prev => ({
+                                            ...prev,
+                                            [question.id]: true
+                                        }))
+                                    }
+                                >
 
-                        <div className="op-survey-options-list">
+                                    Verdadero
 
-                            <button
-                                className={
-                                    answers[question.id] === true
-                                        ? "op-survey-option-btn selected"
-                                        : "op-survey-option-btn"
-                                }
-                                onClick={() =>
+                                </button>
+
+                                <button
+                                    className={
+                                        answers[question.id] === false
+                                            ? "op-survey-option-btn selected"
+                                            : "op-survey-option-btn"
+                                    }
+                                    onClick={() =>
+                                        setAnswers(prev => ({
+                                            ...prev,
+                                            [question.id]: false
+                                        }))
+                                    }
+                                >
+
+                                    Falso
+
+                                </button>
+
+                            </div>
+
+                            )}
+
+                            {question.tipo === "abierta" && (
+
+                            <textarea
+                                className="op-survey-open-answer"
+                                placeholder="Escribe tu respuesta aquí..."
+                                value={answers[question.id] || ""}
+                                onChange={(e) =>
                                     setAnswers(prev => ({
                                         ...prev,
-                                        [question.id]: true
+                                        [question.id]: e.target.value
                                     }))
                                 }
-                            >
+                                style={{
+                                    width: "100%",
+                                    minHeight: "140px",
+                                    padding: "14px",
+                                    borderRadius: "12px",
+                                    border: "2px solid #3b82f6",
+                                    background: "#f0f4f8",
+                                    color: "#1e293b",
+                                    fontFamily: "inherit",
+                                    fontSize: "15px",
+                                    resize: "vertical",
+                                    marginTop: "16px",
+                                    boxSizing: "border-box",
+                                    boxShadow: "0 2px 8px rgba(59, 130, 246, 0.1)"
+                                }}
+                            />
 
-                                Verdadero
-
-                            </button>
-
-                            <button
-                                className={
-                                    answers[question.id] === false
-                                        ? "op-survey-option-btn selected"
-                                        : "op-survey-option-btn"
-                                }
-                                onClick={() =>
-                                    setAnswers(prev => ({
-                                        ...prev,
-                                        [question.id]: false
-                                    }))
-                                }
-                            >
-
-                                Falso
-
-                            </button>
-
-                        </div>
-
-                    )}
-
-                    {question.tipo === "abierta" && (
-
-                        <textarea
-                            className="op-survey-open-answer"
-                            placeholder="Escribe tu respuesta aquí..."
-                            value={answers[question.id] || ""}
-                            onChange={(e) =>
-                                setAnswers(prev => ({
-                                    ...prev,
-                                    [question.id]: e.target.value
-                                }))
-                            }
-                            style={{
-                                width: "100%",
-                                minHeight: "140px",
-                                padding: "14px",
-                                borderRadius: "12px",
-                                border: "2px solid #3b82f6",
-                                background: "#f0f4f8",
-                                color: "#1e293b",
-                                fontFamily: "inherit",
-                                fontSize: "15px",
-                                resize: "vertical",
-                                marginTop: "16px",
-                                boxSizing: "border-box",
-                                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.1)"
-                            }}
-                        />
-
+                            )}
+                        </>
                     )}
 
                 </div>
