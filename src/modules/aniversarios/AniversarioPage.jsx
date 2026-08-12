@@ -9,7 +9,6 @@ import AnniversaryList from "./components/AnniversaryList";
 export default function AniversarioPage() {
 
     const { mes } = useParams();
-
     const [data, setData] = useState({
         cumpleanios: [],
         aniversarios: []
@@ -18,7 +17,7 @@ export default function AniversarioPage() {
     useEffect(() => {
         loadData();
     }, [mes]);
-
+    
     const loadData = async () => {
 
         const res = await getAniversariosByMes(Number(mes));

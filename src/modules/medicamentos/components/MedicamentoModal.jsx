@@ -7,16 +7,56 @@ import Loader from "../../../components/Loader"
 import { FaPlus } from "react-icons/fa"
 import { useEffect, useState } from "react"
 
+const parseDateInput = (value) => {
+    if (!value) return null
+
+    const parsed = new Date(`${value}T00:00:00`)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 const schema = z.object({
-    nombreMedicamento: z.string().min(1),
-    presentacion: z.string(),
-    cantidad: z.number(),
-    unidadCantidad: z.string(),
-    lote: z.string(),
-    fechaCaducidad: z.string(),
-    fechaIngreso: z.string(),
-    ubicacion: z.string(),
+    nombreMedicamento: z.string().min(1, "El nombre del medicamento es obligatorio."),
+    presentacion: z.string().min(1, "Selecciona una presentación."),
+    cantidad: z.number({ invalid_type_error: "La cantidad es obligatoria." }).min(1, "La cantidad debe ser mayor a 0."),
+    unidadCantidad: z.string().min(1, "Selecciona la unidad."),
+    lote: z.string().min(1, "El lote es obligatorio."),
+    fechaCaducidad: z.string().min(1, "La fecha de caducidad es obligatoria."),
+    fechaIngreso: z.string().min(1, "La fecha de ingreso es obligatoria."),
+    ubicacion: z.string().min(1, "La ubicación es obligatoria."),
     observaciones: z.string().optional()
+}).superRefine((data, ctx) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const fechaCaducidad = parseDateInput(data.fechaCaducidad)
+    const fechaIngreso = parseDateInput(data.fechaIngreso)
+
+    if (fechaCaducidad && fechaCaducidad < today) {
+        ctx.addIssue({
+            path: ["fechaCaducidad"],
+            code: z.ZodIssueCode.custom,
+            message: "La fecha de caducidad no puede ser menor a la fecha actual."
+        })
+    }
+
+    const minCaducidad = new Date(today)
+    minCaducidad.setFullYear(minCaducidad.getFullYear() + 1)
+
+    if (fechaCaducidad && fechaCaducidad < minCaducidad) {
+        ctx.addIssue({
+            path: ["fechaCaducidad"],
+            code: z.ZodIssueCode.custom,
+            message: "La fecha de caducidad debe ser al menos 1 año posterior a la fecha actual."
+        })
+    }
+
+    if (fechaIngreso && fechaIngreso < today) {
+        ctx.addIssue({
+            path: ["fechaIngreso"],
+            code: z.ZodIssueCode.custom,
+            message: "La fecha de ingreso no puede ser anterior a la fecha actual."
+        })
+    }
 })
 
 export default function MedicamentoModal({ onClose, onSuccess, data }) {
@@ -25,6 +65,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
     const [hoveredField, setHoveredField] = useState(null)
     const [focusedField, setFocusedField] = useState(null)
     const [isCloseHovered, setIsCloseHovered] = useState(false)
+    const todayString = new Date().toISOString().split("T")[0]
 
     const {
         register,
@@ -270,14 +311,18 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                         <input
                             className="custom-field"
                             type="date"
+                            min={todayString}
                             placeholder="Selecciona una fecha"
                             {...register("fechaCaducidad")}
                             onMouseEnter={() => handleFieldEnter("fechaCaducidad")}
                             onMouseLeave={handleFieldLeave}
                             onFocus={() => handleFieldFocus("fechaCaducidad")}
                             onBlur={handleFieldBlur}
-                            style={getInputStyle("fechaCaducidad")}
+                            style={getInputStyle("fechaCaducidad", Boolean(errors.fechaCaducidad))}
                         />
+                        {errors.fechaCaducidad && (
+                            <div style={styles.errorText}>{errors.fechaCaducidad.message}</div>
+                        )}
 
                         <label style={styles.label}>
                             Fecha de Ingreso
@@ -286,14 +331,18 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                         <input
                             className="custom-field"
                             type="date"
+                            min={todayString}
                             placeholder="Selecciona una fecha"
                             {...register("fechaIngreso")}
                             onMouseEnter={() => handleFieldEnter("fechaIngreso")}
                             onMouseLeave={handleFieldLeave}
                             onFocus={() => handleFieldFocus("fechaIngreso")}
                             onBlur={handleFieldBlur}
-                            style={getInputStyle("fechaIngreso")}
+                            style={getInputStyle("fechaIngreso", Boolean(errors.fechaIngreso))}
                         />
+                        {errors.fechaIngreso && (
+                            <div style={styles.errorText}>{errors.fechaIngreso.message}</div>
+                        )}
 
                         <input
                             className="custom-field"

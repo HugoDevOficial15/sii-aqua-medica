@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import { FaPlus } from "react-icons/fa";
 import { validateRack } from "../../../schemas/rackSchema";
 
+const normalizarTipo = (valor = "") => String(valor || "").trim().toLowerCase();
+
 const normalizarPayloadRack = (form = {}) => {
     const payload = { ...form };
 
@@ -147,35 +149,37 @@ export default function RackModal({ onClose, onSuccess, data }) {
         tipoAlmacenamientoSeleccionado,
         stockRack = []
     }) => {
-        if (tipoAsignacionSeleccionada === "ubicacion_temporal") {
-            return "ubicacion_temporal";
-        }
-
-        if (tipoAsignacionSeleccionada !== "lote_en_uso") {
-            return tipoAsignacionSeleccionada || "";
-        }
-
         const lotesActivos = (stockRack || []).filter(
             item => Number(item.cantidadActual || 0) > 0
         );
 
-        if (lotesActivos.length === 0) {
+        if (lotesActivos.length > 0) {
+            const tiposLotes = [
+                ...new Set(
+                    lotesActivos.map(item => normalizarTipo(item.tipoItem))
+                )
+            ];
+
+            const coincideTipo = tiposLotes.every(
+                tipo => tipo === normalizarTipo(tipoAlmacenamientoSeleccionado)
+            );
+
+            if (coincideTipo) {
+                return "lote_en_uso";
+            }
+
+            return "ubicacion_temporal";
+        }
+
+        if (tipoAsignacionSeleccionada === "ubicacion_temporal") {
+            return "ubicacion_temporal";
+        }
+
+        if (tipoAsignacionSeleccionada === "lote_en_uso") {
             return "lote_en_uso";
         }
 
-        const tiposLotes = [
-            ...new Set(
-                lotesActivos.map(item => item.tipoItem)
-            )
-        ];
-
-        const coincideTipo = tiposLotes.every(
-            tipo => tipo === tipoAlmacenamientoSeleccionado
-        );
-
-        return coincideTipo
-            ? "lote_en_uso"
-            : "ubicacion_temporal";
+        return "";
     };
 
     const onSubmit = async (form) => {
@@ -298,7 +302,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                 i => i.id === form.itemAsignadoId
             );
 
-            let asignacionFinal = tipoAsignacion || form.tipoAlmacenamiento || "";
+            let asignacionFinal = tipoAsignacion || "";
             let itemAsignadoFinal = "";
 
             const stockRack = data
@@ -605,7 +609,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                             step="any"
                             {...register("pesoMaximoProductoTerminado")}
                             style={styles.input}
-                            placeholder="Capacidad máxima de producto terminado (kg)"
+                            placeholder="Capacidad máxima de producto terminado (pz)"
                         />
 
 
@@ -638,6 +642,11 @@ export default function RackModal({ onClose, onSuccess, data }) {
             </div>
 
             <style>{`
+
+                .input::placeholder {
+                    color: var(--operator-text);
+                    opacity: 0.7;
+                }
 
                 .input:focus {
                     background-color: var(--operator-border);

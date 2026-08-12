@@ -31,7 +31,8 @@ import {
 
 import {
     crearStock,
-    obtenerStockPorRack
+    obtenerStockPorRack,
+    validarCapacidadRack
 } from "../../../services/rackStockService";
 
 import {
@@ -92,16 +93,26 @@ export default function MovimientoModal({
     };
 
     const calcularOcupacionRack = (stockItems, tipoActual, cantidadActual) => {
-        const capacidadMaxima = obtenerCapacidadMaxima(tipoActual);
-        const stockPorTipo = (stockItems || [])
-            .filter(item => item.tipoItem === tipoActual)
-            .reduce((sum, item) => sum + Number(item.cantidadActual || 0), 0);
+        const capacidadPorTipo = {
+            materia_prima: Number(rack?.pesoMaximoMateriaPrima ?? rack?.["pesoMaximo-materiaPrima"] ?? 0),
+            material_acondicionamiento: Number(rack?.pesoMaximoMaterialAcondicionamiento ?? rack?.["pesoMaximo-materialAcondicionamiento"] ?? 0),
+            producto_terminado: Number(rack?.pesoMaximoProductoTerminado ?? rack?.["pesoMaximo-productoTerminado"] ?? 0)
+        };
 
-        const totalParaTipo = stockPorTipo + Number(cantidadActual || 0);
+        const porcentajesActuales = Object.entries(capacidadPorTipo).reduce((sum, [tipo, capacidad]) => {
+            if (!Number(capacidad || 0)) return sum;
 
-        if (!capacidadMaxima) return 0;
+            const stockTipo = (stockItems || [])
+                .filter(item => item.tipoItem === tipo)
+                .reduce((total, item) => total + Number(item.cantidadActual || 0), 0);
 
-        return Number(Math.min(100, (totalParaTipo / capacidadMaxima) * 100).toFixed(2));
+            return sum + ((stockTipo / Number(capacidad)) * 100);
+        }, 0);
+
+        const nuevaCantidad = Number(cantidadActual || 0);
+        const nuevoPorcentaje = capacidadPorTipo[tipoActual] > 0 ? ((nuevaCantidad / Number(capacidadPorTipo[tipoActual])) * 100) : 0;
+
+        return Number(Math.min(100, porcentajesActuales + nuevoPorcentaje).toFixed(2));
     };
     const fechaActual = new Date().toISOString().split("T")[0];
 
@@ -253,6 +264,19 @@ export default function MovimientoModal({
             | Crear stock
             |--------------------------------------------------------------------------
             */
+
+            const stockActual = await obtenerStockPorRack(rack.id);
+            const validacion = validarCapacidadRack({
+                rack,
+                tipoItem: form.tipo,
+                cantidad: Number(form.cantidad),
+                stockItems: stockActual
+            });
+
+            if (!validacion.valido) {
+                notifyError("Espacio insuficiente", validacion.mensaje || "No hay espacio suficiente en el rack para esta entrada");
+                return;
+            }
 
             const porcentajeMovimiento = calcularPorcentajeTipo(form.tipo, form.cantidad);
             const porcentajeEspacio = Math.min(

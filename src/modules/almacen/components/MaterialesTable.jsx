@@ -149,6 +149,10 @@ export default function MaterialesTable({ data, onEdit }) {
             min-width: 100px;
         }
 
+        .table thead th:nth-child(5) {
+            text-align: center !important;
+        }
+
         .table tbody tr {
             border-bottom: 3px solid var(--operator-border);
             height: 50px;
@@ -164,18 +168,16 @@ export default function MaterialesTable({ data, onEdit }) {
             min-width: 100px;
         }
 
-        .table thead tr th:nth-child(5) {
-            text-align: center;
-        }
 
         /* MENU DE ACCIONES */
 
-        .table td.materiales-actions-cell {
+        .materiales-actions-cell {
             text-align: center;
             overflow: visible;
             justify-content: center;
             position: relative;
             z-index: 3;
+            align-items: center;
         }
 
         .materiales-actions-wrapper {
@@ -228,11 +230,11 @@ export default function MaterialesTable({ data, onEdit }) {
             background: var(--operator-card);
             padding: 8px 10px;
             display: flex;
-            text-align: center;
             align-items: center;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 800;
             border-radius: 8px;
+            gap: 10px;
             color: var(--operator-text);
             cursor: pointer;
         }

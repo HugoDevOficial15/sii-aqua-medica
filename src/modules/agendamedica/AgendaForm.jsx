@@ -317,6 +317,7 @@ export default function AgendaForm({ onSaved }) {
                 .agenda-form-card { background: var(--operator-card); color: var(--operator-text); border-color: var(--operator-border); }
                 .agenda-form-card .form-control { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
                 .agenda-form-card .form-control:focus { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
+                .agenda-form-card, .form-control::placeholder { color: var(--operator-text); background: transparent; }
                 .agenda-form-divider { border-color: var(--operator-border); opacity: 1; }
             `}</style>
         </div>

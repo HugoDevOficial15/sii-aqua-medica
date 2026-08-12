@@ -111,8 +111,8 @@ export default function RackInventory({ rack }) {
 
         if (tipo === "materia_prima") {
             return {
-                bg: "#dbeafe",
-                text: "#1d4ed8"
+                bg: "#7afbff",
+                text: "#4da0a3"
             };
         }
 
@@ -121,14 +121,14 @@ export default function RackInventory({ rack }) {
             "material_acondicionamiento"
         ) {
             return {
-                bg: "#fef3c7",
-                text: "#b45309"
+                bg: "#c7c3b5",
+                text: "#816957"
             };
         }
 
         return {
-            bg: "#dcfce7",
-            text: "#166534"
+            bg: "#ff9d9d",
+            text: "#651616"
         };
     };
 
@@ -157,6 +157,8 @@ export default function RackInventory({ rack }) {
                             getTypeColor(
                                 item.tipoItem
                             );
+                        const materialColor =
+                            item?.color || item?.color2 || "#cce3ff";
 
                         return (
 
@@ -170,6 +172,16 @@ export default function RackInventory({ rack }) {
                             >
 
                                 <div className="rack-stock-header">
+
+                                    <span
+                                        className="rack-stock-color"
+                                        style={{
+                                            backgroundColor: materialColor,
+                                            border: "2px solid rgba(15, 23, 42, 0.12)"
+                                        }}
+                                        title={materialColor || "Sin color"}
+                                        aria-label={`Color del material: ${materialColor}`}
+                                    />
 
                                     <div
                                         className="rack-stock-type"
@@ -291,10 +303,20 @@ export default function RackInventory({ rack }) {
                 .rack-stock-header {
 
                     display: flex;
-
-                    justify-content: flex-end;
-
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 9px;
                     margin-bottom: 10px;
+                    width: 100%;
+                }
+
+                .rack-stock-color {
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                    display: inline-block;
+                    flex-shrink: 0;
+                    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08);
                 }
 
                 .rack-stock-type {

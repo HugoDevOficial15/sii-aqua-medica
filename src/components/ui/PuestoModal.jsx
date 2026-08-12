@@ -49,7 +49,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                     </h5>
 
                     <button
-                        style={{ ...styles.closeButton, ...(isCloseHovered ? styles.closeButtonHover : {}) }}
+                        className="close-button"
                         onClick={onClose}
                         onMouseEnter={() => setIsCloseHovered(true)}
                         onMouseLeave={() => setIsCloseHovered(false)}
@@ -88,8 +88,8 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                     <div style={styles.footer}>
 
                         <button
+                            className = "btn btn-secondary custom-btn"
                             type="button"
-                            style={styles.cancelButton}
                             onClick={onClose}
                         >
                             Cancelar
@@ -97,7 +97,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
 
                         <button
                             type="submit"
-                            style={styles.saveButton}
+                            className="btn btn-primary custom-btn"
                         >
                             Guardar Puesto
                         </button>
@@ -107,6 +107,71 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                 </form>
 
             </div>
+            <style jsx>{`
+
+            .close-button {
+                width: 36px;
+                height: 36px;
+                border: none; 
+                border-radius: 10px;
+                background: var(--operator-card); 
+                color: var(--operator-text); 
+                font-size: 30px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .close-button:hover {
+                background: var(--operator-border);
+                color: var(--operator-primary);
+            }
+
+            .btn-secondary {
+                height: 50px;
+                padding: 0 24px;   
+                border: none;
+                border-radius: 14px;
+                background: var(--operator-border);
+                color: var(--operator-text);
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-shadow);
+            }
+                
+            .btn-secondary:hover {
+                background: var(--operator-border);
+                color: var(--operator-danger);
+            }
+
+            .btn-primary {
+                height: 50px;
+                padding: 0 24px;
+                border-radius: 14px;
+                border: none;
+                background: var(--operator-primary);
+                color: #fff;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-primary-light);
+            }
+
+            .btn-primary:hover {
+                background: var(--operator-primary);
+                color: #fff;
+                box-shadow: 0 0px 10px var(--operator-primary-light);
+            }
+
+
+
+            `}</style>
 
         </div>
     );

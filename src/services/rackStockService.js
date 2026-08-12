@@ -26,6 +26,63 @@ const obtenerCapacidadPorTipo = (rack = {}) => ({
     producto_terminado: Number(rack?.pesoMaximoProductoTerminado ?? rack?.["pesoMaximo-productoTerminado"] ?? 0)
 });
 
+const obtenerCapacidadTotalRack = (rack = {}) => {
+    const capacidadPorTipo = obtenerCapacidadPorTipo(rack);
+    return Object.values(capacidadPorTipo).reduce((sum, valor) => sum + Number(valor || 0), 0);
+};
+
+export const obtenerEspacioDisponibleRack = ({ rack = {}, tipoItem = "", stockItems = [], cantidad = 0 }) => {
+    const capacidadPorTipo = obtenerCapacidadPorTipo(rack);
+    const tipoNormalizado = normalizarTipo(tipoItem);
+    const capacidadMaxima = Number(capacidadPorTipo[tipoNormalizado] || 0);
+    const cantidadNumerica = Number(cantidad || 0);
+
+    const porcentajeOcupadoActual = Object.entries(capacidadPorTipo).reduce((sum, [tipo, capacidad]) => {
+        if (!Number(capacidad || 0)) {
+            return sum;
+        }
+
+        const stockTipo = (stockItems || [])
+            .filter(item => normalizarTipo(item?.tipoItem) === normalizarTipo(tipo))
+            .reduce((total, item) => total + Number(item?.cantidadActual || 0), 0);
+
+        return sum + ((stockTipo / Number(capacidad)) * 100);
+    }, 0);
+
+    const porcentajeSolicitud = capacidadMaxima > 0 ? ((cantidadNumerica / capacidadMaxima) * 100) : 0;
+    const porcentajeTotalFinal = porcentajeOcupadoActual + porcentajeSolicitud;
+    const espacioLibre = capacidadMaxima > 0 ? Math.max(0, capacidadMaxima * (1 - (porcentajeOcupadoActual / 100))) : 0;
+    const excedeCapacidad = capacidadMaxima > 0 && porcentajeTotalFinal > 100 + Number.EPSILON;
+
+    return {
+        tipo: tipoNormalizado,
+        capacidadMaxima,
+        stockActual: (stockItems || []).reduce((sum, item) => sum + Number(item?.cantidadActual || 0), 0),
+        cantidadSolicitada: cantidadNumerica,
+        espacioLibre,
+        porcentajeActual: Number(porcentajeOcupadoActual.toFixed(2)),
+        porcentajeTotal: Number((porcentajeTotalFinal).toFixed(2)),
+        excedeCapacidad,
+        mensaje: excedeCapacidad
+            ? `No hay espacio suficiente en el rack. Se dispone de ${espacioLibre.toFixed()} unidades libres para ${tipoNormalizado.replace(/_/g, " ")}.`
+            : ""
+    };
+};
+
+export const validarCapacidadRack = ({ rack = {}, tipoItem = "", cantidad = 0, stockItems = [] }) => {
+    const resumen = obtenerEspacioDisponibleRack({
+        rack,
+        tipoItem,
+        stockItems,
+        cantidad
+    });
+
+    return {
+        ...resumen,
+        valido: !resumen.excedeCapacidad
+    };
+};
+
 const calcularPorcentajeMovimiento = (rack = {}, tipoItem = "", cantidad = 0) => {
     const capacidadPorTipo = obtenerCapacidadPorTipo(rack);
     const tipoNormalizado = normalizarTipo(tipoItem);
@@ -42,10 +99,14 @@ const calcularPorcentajeMovimiento = (rack = {}, tipoItem = "", cantidad = 0) =>
 export const actualizarOcupacionRack = async ({ rackId, rack, tipoItem = "", cantidad = 0, operacion = "sumar" }) => {
     if (!rackId || !rack) return;
 
-    const porcentajeMovimiento = calcularPorcentajeMovimiento(rack, tipoItem, cantidad);
+    const capacidadPorTipo = obtenerCapacidadPorTipo(rack);
+    const tipoNormalizado = normalizarTipo(tipoItem);
+    const capacidadMaxima = Number(capacidadPorTipo[tipoNormalizado] || 0);
+    const cantidadNumerica = Number(cantidad || 0);
 
-    if (!porcentajeMovimiento) return;
+    if (!capacidadMaxima || !cantidadNumerica) return;
 
+    const porcentajeMovimiento = Number(((cantidadNumerica / capacidadMaxima) * 100).toFixed(2));
     const ocupacionActual = Number(rack?.espacioOcupado || 0);
     const ocupacionResultante = operacion === "restar"
         ? Math.max(0, ocupacionActual - porcentajeMovimiento)
@@ -59,18 +120,15 @@ export const actualizarOcupacionRack = async ({ rackId, rack, tipoItem = "", can
 export const actualizarOcupacionRackPorMovimientos = async ({ rackId, rack, movimientos = [], operacion = "sumar" }) => {
     if (!rackId || !rack) return;
 
-    const totalesPorTipo = (movimientos || []).reduce((acc, mov) => {
+    const capacidadPorTipo = obtenerCapacidadPorTipo(rack);
+    const porcentajeTotal = (movimientos || []).reduce((sum, mov) => {
         const tipo = normalizarTipo(mov?.tipoItem || "");
+        const capacidad = Number(capacidadPorTipo[tipo] || 0);
+        const cantidad = Number(mov?.cantidad || 0);
 
-        if (!tipo) return acc;
+        if (!capacidad || !cantidad) return sum;
 
-        acc[tipo] = (acc[tipo] || 0) + Number(mov?.cantidad || 0);
-        return acc;
-    }, {});
-
-    const porcentajeTotal = Object.entries(totalesPorTipo).reduce((acc, [tipo, cantidad]) => {
-        const porcentaje = calcularPorcentajeMovimiento(rack, tipo, cantidad);
-        return acc + porcentaje;
+        return sum + ((cantidad / capacidad) * 100);
     }, 0);
 
     if (!porcentajeTotal) return;
@@ -127,6 +185,24 @@ export const actualizarAsignacionRackPorStock = async (rackId, rack, stockItems 
 */
 
 export const crearStock = async (data) => {
+    if (data?.rackId && data?.tipoItem && Number(data?.cantidadActual || 0) > 0) {
+        const rackSnap = await getDoc(doc(db, "racks", data.rackId));
+        const rack = rackSnap.exists() ? { id: rackSnap.id, ...rackSnap.data() } : null;
+
+        if (rack) {
+            const stockActual = await obtenerStockPorRack(data.rackId);
+            const validacion = validarCapacidadRack({
+                rack,
+                tipoItem: data.tipoItem,
+                cantidad: Number(data.cantidadActual || 0),
+                stockItems: stockActual
+            });
+
+            if (!validacion.valido) {
+                throw new Error(validacion.mensaje || "No hay espacio suficiente en el rack para esta entrada");
+            }
+        }
+    }
 
     const stockRef = await addDoc(
         collection(db, COLLECTION),
@@ -444,6 +520,18 @@ export const trasladarStockPEPS = async ({
 
     usuario
 }) => {
+    const stockDestino = await obtenerStockPorRack(rackDestino.id);
+    const tipoItemDestino = (stockDestino || []).find(item => item.itemId === itemId)?.tipoItem || "";
+    const validacionDestino = validarCapacidadRack({
+        rack: rackDestino,
+        tipoItem: tipoItemDestino || rackOrigen?.tipoAsignacion || "",
+        cantidad,
+        stockItems: stockDestino
+    });
+
+    if (!validacionDestino.valido) {
+        throw new Error(validacionDestino.mensaje || "No hay espacio suficiente en el rack destino para esta transferencia");
+    }
 
     /*
     |--------------------------------------------------------------------------

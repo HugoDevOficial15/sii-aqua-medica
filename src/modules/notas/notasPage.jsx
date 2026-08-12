@@ -160,6 +160,11 @@ export default function NotasPage() {
                 justify-content: center;
                 box-shadow: 0 0px 20px var(--operator-primary-light);
                 }
+
+                .btn-primary:hover {
+                    background: var(--operator-primary);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                }
                 
             `}</style>
 

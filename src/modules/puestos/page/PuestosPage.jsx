@@ -101,6 +101,19 @@ export default function PuestosPage() {
 
             <style jsx>{`
 
+            /* PAGINA */
+
+            .container {
+                border-radius: 30px;
+                padding: 8px;
+            }
+
+            .card-body {
+                padding: 8px;
+            }
+
+            
+
             /* INPUTS DE LA PAGINA */
 
             .custom-input {
@@ -130,13 +143,18 @@ export default function PuestosPage() {
 
             }
 
+            .btn-primary:hover {
+                background: var(--operator-primary);
+                box-shadow: 0 0px 10px var(--operator-primary-light);
+            }
+
             .form-control{
 
                 height: 50px;
                 border-radius: 12px;
                 border: 1px solid var(--operator-border);
                 padding: 0 14px;
-                background: var(--operator-border);
+                background: var(--operator-card);
                 color: var(--operator-text);
                 font-size: 14px;
                 outline: none;

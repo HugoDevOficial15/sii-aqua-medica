@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 
 import {
     FaBell,
@@ -11,6 +12,7 @@ import {
     FaSyringe
 } from "react-icons/fa";
 
+import { db } from "../config/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { useLogout } from "../hooks/useLogout";
 
@@ -33,6 +35,8 @@ export default function Header({ toggleSidebar }) {
         `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.nombre || "Usuario")}&background=${fallbackBg}&color=${fallbackColor}&bold=true&size=256`;
 
     const [notifications, setNotifications] = useState([]);
+    const [staticNotifications, setStaticNotifications] = useState([]);
+    const [dynamicNotifications, setDynamicNotifications] = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -84,8 +88,7 @@ export default function Header({ toggleSidebar }) {
     };
 
     useEffect(() => {
-
-        const cargarNotificaciones = async () => {
+        const loadStaticNotifications = async () => {
             try {
                 const [solicitudes, medicamentos] = await Promise.all([
                     getPendingRequests(),
@@ -108,7 +111,6 @@ export default function Header({ toggleSidebar }) {
                     })
                     .filter(m => m.semaforo.color !== "verde")
                     .map(m => ({
-                        // 🔥 ID INTELIGENTE: Incluye el color para avisarte si empeora a rojo
                         id: `medicamento-${m.id}-${m.semaforo.color}`,
                         icon: <FaSyringe />,
                         title: m.semaforo.color === "rojo"
@@ -118,20 +120,50 @@ export default function Header({ toggleSidebar }) {
                         ruta: "/medicamento"
                     }));
 
-                const dismissed = getDismissedFromStorage();
-                const todas = [...notifsSolicitudes, ...notifsMedicamentos];
-                const visibles = todas.filter(n => !dismissed.includes(n.id));
-
-                setNotifications(visibles);
-
+                setStaticNotifications([...notifsSolicitudes, ...notifsMedicamentos]);
             } catch (error) {
                 console.error("Error al cargar notificaciones del administrador:", error);
             }
         };
 
-        cargarNotificaciones();
-
+        loadStaticNotifications();
     }, []);
+
+    useEffect(() => {
+        if (!user?.uid && !user?.id) {
+            setDynamicNotifications([]);
+            return;
+        }
+
+        const currentUserIds = [user?.uid, user?.id].filter(Boolean);
+        const q = query(collection(db, "notificaciones"), orderBy("fechaCreacion", "desc"));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const notifs = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(n => !n.IdUsuario || currentUserIds.includes(n.IdUsuario))
+                .filter(n => n.Accion === "usuario_bloqueado" || n.extra?.tipo === "usuario_bloqueado")
+                .map(n => ({
+                    id: n.id,
+                    icon: <FaUserCircle />,
+                    title: n.Titulo || "Cuenta bloqueada",
+                    subtitle: n.extra?.motivo || n.extra?.motivoBloqueo || n.Mensaje || "Usuario bloqueado por exceder los intentos de acceso.",
+                    ruta: n.Destino || "/usuarios",
+                    nomina: n.extra?.nomina ?? n.nomina ?? null,
+                    nombre: n.extra?.nombre ?? n.nombre ?? null
+                }));
+
+            setDynamicNotifications(notifs);
+        });
+
+        return () => unsubscribe();
+    }, [user?.uid, user?.id]);
+
+    useEffect(() => {
+        const dismissed = getDismissedFromStorage();
+        const allNotifications = [...staticNotifications, ...dynamicNotifications];
+        setNotifications(allNotifications.filter(n => !dismissed.includes(n.id)));
+    }, [staticNotifications, dynamicNotifications]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -149,15 +181,24 @@ export default function Header({ toggleSidebar }) {
         };
     }, [showDropdown]);
 
-    const handleNotificationClick = (id, ruta) => {
+    const handleNotificationClick = (notif) => {
+        const { id, ruta, nomina } = notif;
+
         try {
             addDismissedToStorage(id);
         } catch (err) {
             console.error("Error al persistir el descarte:", err);
         }
-        setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+
+        setNotifications((prev) => prev.filter((item) => item.id !== id));
         setShowDropdown(false);
-        navigate(ruta);
+
+        if (ruta === "/usuarios" && nomina) {
+            navigate(`/usuarios?search=${encodeURIComponent(String(nomina))}`);
+            return;
+        }
+
+        navigate(ruta || "/usuarios");
     };
 
     const handleDismissNotification = (event, id) => {
@@ -245,7 +286,7 @@ export default function Header({ toggleSidebar }) {
                                                 <div
                                                     key={n.id}
                                                     className="notification-dropdown-item"
-                                                    onClick={() => handleNotificationClick(n.id, n.ruta)}
+                                                    onClick={() => handleNotificationClick(n)}
                                                     role="button"
                                                     tabIndex={0}
                                                 >

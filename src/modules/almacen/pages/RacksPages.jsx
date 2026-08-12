@@ -411,11 +411,11 @@ export default function RacksPages() {
                     justify-content: center;
                     box-shadow: 0 0px 20px var(--operator-primary-light);
                 }
-
-                
-
-
-
+                    
+                .btn-primary:hover {
+                    background: var(--operator-primary);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                }
 
                 
                 /*  TABLA */
@@ -498,18 +498,22 @@ export default function RacksPages() {
                     max-width: 230px;
                     min-width: 100px;
 
+                }
 
+                .table thead th:nth-child(7){
+                    text-align: center;
                 }
 
 
                 /* MENU DESPLEGABLE */
 
-                .table td.rack-actions-cell {
+                .rack-actions-cell {
   
                     text-align: center;
                     overflow: visible;
                     justify-content: center;
                     isolation: auto;
+                    align-items: center;
 
 
                 }

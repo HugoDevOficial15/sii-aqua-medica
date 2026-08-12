@@ -416,8 +416,7 @@ export default function AgendaMedicaPage() {
                                             </td>
                                             <td>
                                                 <button 
-                                                    className="btn btn-sm btn-outline-secondary fw-semibold px-3"
-                                                    style={{ borderRadius: '6px' }}
+                                                    className="btn btn-outline-secondary "
                                                     onClick={() => handleCambiarEstatus(agenda.id, agenda.estado)}
                                                 >
                                                     {agenda.estado === 'activa' ? 'Desactivar' : 'Activar'}
@@ -541,6 +540,10 @@ export default function AgendaMedicaPage() {
                     min-width: 100px;
                 }
 
+                .agenda-medica-table thead th:nth-child(6) {
+                    text-align: center;
+                }
+
                 .agenda-medica-table > :not(caption) > * > * { background: var(--operator-card); color: var(--operator-text); border-color: var(--operator-border); }
                 
                 .agenda-medica-table tbody tr {
@@ -658,6 +661,12 @@ export default function AgendaMedicaPage() {
                     justify-content: center;
                     box-shadow: 0 0px 20px var(--operator-primary-light);
                 }
+
+                .btn-primary:hover {
+                    background: var(--operator-primary);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                }
+
 
 
             `}</style>

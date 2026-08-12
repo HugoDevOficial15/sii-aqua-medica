@@ -6,6 +6,8 @@ import { loginUser } from "../../services/authService";
 
 // User Service
 import { getUserData } from "../../services/userService";
+import { getPermissionsByRole } from "../../services/rolesService";
+import { registerFailedLoginAttempt, resetFailedLoginAttempts } from "../../services/usersService";
 
 // Loaders
 import Loader from "../../components/Loader";
@@ -63,7 +65,7 @@ export default function Login() {
 
         // 🔐 Usuario bloqueado
         if (blocked) {
-            setError("Usuario Bloqueado Temporalmente");
+            setError("Usuario Bloqueado, ponte en contacto con el departamento de sistemas.");
             return;
         }
 
@@ -77,6 +79,18 @@ export default function Login() {
         showLoader();
 
         try {
+            const userData = await getUserData(username);
+
+            if (!userData) {
+                setError("Usuario No Registrado En El Sistema");
+                return;
+            }
+
+            if (userData.bloqueado || !userData.activo) {
+                setError("Usuario bloqueado o desactivado. Ponte en contacto con el departamento de sistemas.");
+                return;
+            }
+
             const email = username + "@aquamedica.com";
             console.log("UserName: ", email);
 
@@ -84,10 +98,11 @@ export default function Login() {
             console.table("Resultado de Firebase:", result);
 
             if (!result.success) {
-                const newAttempts = attempts + 1;
+                const failedLoginResult = await registerFailedLoginAttempt(username);
+                const newAttempts = failedLoginResult?.attempts || attempts + 1;
                 setAttempts(newAttempts);
 
-                if (newAttempts >= 3) {
+                if (failedLoginResult?.blocked || newAttempts >= 3) {
                     setBlocked(true);
                     setError("Demasiados Intentos Fallidos. Usuario Bloqueado.");
                 } else {
@@ -96,6 +111,58 @@ export default function Login() {
 
                 return;
             }
+
+            await resetFailedLoginAttempts(username);
+
+            // 🔥 TRAER DATOS DE FIRESTORE
+            const freshUserData = await getUserData(username);
+
+            if (!freshUserData) {
+                setError("Usuario No Registrado En El Sistema");
+                return;
+            }
+
+            if (freshUserData.bloqueado || !freshUserData.activo) {
+                setError("Usuario bloqueado o desactivado. Ponte en contacto con el departamento de sistemas.");
+                return;
+            }
+
+            // 🔥 GUARDAR SESIÓN CON LOS PERMISOS REALES DEL ROL
+            const permisosUsuario = await getPermissionsByRole(freshUserData.rol);
+
+            await login({
+                ...freshUserData,
+                username: username,
+                mustChangePassword: freshUserData.mustChangePassword || false
+            }, permisosUsuario);
+
+            console.log("Usuario Guardado en sesión:", freshUserData, permisosUsuario);
+
+            // 🔐 CAMBIO DE PASSWORD (PRIORIDAD)
+            if (freshUserData.mustChangePassword === true) {
+                console.log("Redirigiendo a change-password");
+                navigate("/change-password", { replace: true });
+                return;
+            }
+
+            // 🔥 OPERADOR (NO SE TOCA)
+            if (freshUserData.rol === "operador") {
+                console.log("Redirigiendo a App Operador");
+                navigate("/app", { replace: true });
+                return;
+            }
+
+            // 🔥 TODOS LOS ADMINS
+            if (freshUserData.rol && freshUserData.rol.startsWith("admin")) {
+                console.log("Redirigiendo a Dashboard Admin");
+                navigate("/dashboard", { replace: true });
+                return;
+            }
+
+            // 🔥 FALLBACK (USUARIOS NORMALES)
+            // Corregido: Los enviamos a /noticias para que no entren en bucle en /dashboard
+            console.log("Rol de usuario normal, enviando a noticias");
+            navigate("/noticias", { replace: true });
 
         } catch (error) {
             console.log("Login Error:", error);
@@ -106,55 +173,9 @@ export default function Login() {
             setIsSubmitting(false);
         }
 
-        // 🔥 TRAER DATOS DE FIRESTORE
-        const userData = await getUserData(username);
-
-        if (!userData) {
-            setError("Usuario No Registrado En El Sistema");
-            return;
-        }
-
-        if (!userData.activo) {
-            setError("Usuario Desactivado");
-            return;
-        }
-
         console.table(userData);
 
-        // 🔥 GUARDAR SESIÓN
-        login({
-            ...userData,
-            username: username,
-            mustChangePassword: userData.mustChangePassword || false
-        });
 
-        console.log("Usuario Guardado en sesión:", userData);
-
-        // 🔐 CAMBIO DE PASSWORD (PRIORIDAD)
-        if (userData.mustChangePassword === true) {
-            console.log("Redirigiendo a change-password");
-            navigate("/change-password", { replace: true });
-            return;
-        }
-
-        // 🔥 OPERADOR (NO SE TOCA)
-        if (userData.rol === "operador") {
-            console.log("Redirigiendo a App Operador");
-            navigate("/app", { replace: true });
-            return;
-        }
-
-        // 🔥 TODOS LOS ADMINS
-        if (userData.rol && userData.rol.startsWith("admin")) {
-            console.log("Redirigiendo a Dashboard Admin");
-            navigate("/dashboard", { replace: true });
-            return;
-        }
-
-        // 🔥 FALLBACK (USUARIOS NORMALES)
-        // Corregido: Los enviamos a /noticias para que no entren en bucle en /dashboard
-        console.log("Rol de usuario normal, enviando a noticias");
-        navigate("/noticias", { replace: true });
     };
 
     // BLOQUEADOR VISO: Si Firebase sigue leyendo la memoria, mostramos pantalla en blanco

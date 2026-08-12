@@ -185,7 +185,7 @@ export default function News() {
             + Crear Noticia
           </button>
         ) : (
-          <button className="btn btn-outline-secondary px-4" onClick={() => setVistaActual("lista")}>Volver a la lista</button>
+          <button className="btn btn-outline-secondary" onClick={() => setVistaActual("lista")}>Volver a la lista</button>
         )}
       </div>
 
@@ -310,7 +310,8 @@ export default function News() {
                 </div>
               </div>
               <div className="d-flex justify-content-end gap-3 mt-2">
-                <button type="button" className="btn btn-outline-secondary" onClick={() => setVistaActual("lista")} disabled={loading}>Cancelar</button>                <button type="submit" className="btn btn-primary px-4" disabled={loading}>{loading ? "Guardando..." : (noticiaEditando ? "Guardar Cambios" : "Publicar Noticia")}</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setVistaActual("lista")} disabled={loading}>Cancelar</button>
+                <button type="submit" className="btn btn-primary " disabled={loading}>{loading ? "Guardando..." : (noticiaEditando ? "Guardar Cambios" : "Publicar Noticia")}</button>
               </div>
             </form>
           </div>
@@ -325,10 +326,16 @@ export default function News() {
 
         .contenedor {
           border-radius: 30px;
+          padding: 8px;
         }
 
         .card-body {
           padding: 10px;
+        }
+
+        .table-responsive {
+          padding: 6px;
+          border-radius: 18px;
         }
 
         /* BOTONES */
@@ -352,17 +359,74 @@ export default function News() {
           border-radius: 10px;
         }
 
+        .btn-secondary {
+          height: 50px;
+          padding: 0 24px;   
+          border: none;
+          border-radius: 14px;
+          background: var(--operator-border);
+          color: var(--operator-text);
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0px 20px var(--operator-shadow);
+       }
+
+       .btn-secondary:hover {
+          background: var(--operator-border);
+          color: var(--operator-danger);
+       }
+
+       .btn-primary:hover {
+          background: var(--operator-primary);
+          color: #fff;
+          box-shadow: 0 0px 10px var(--operator-primary-light);
+       }
+
+       .btn-outline-secondary {
+          height: 50px;
+          padding: 0 24px;   
+          border: none;
+          border-radius: 14px;
+          background: var(--operator-border);
+          color: var(--operator-text);
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0px 20px var(--operator-shadow);
+       }
+
+       .btn-outline-secondary:hover {
+          background: var(--operator-border);
+          color: var(--operator-danger);
+       }
+
         /* TABLA */
 
         .table-news {
           table-layout: fixed;
           width: 100%;
           border-collapse: separate !important;
-          border-spacing: 0 10px !important;
+          border-spacing: 0 14px !important;
         }
 
-        .table thead th {
-        
+        .table-news tbody tr {
+          background: #fff;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          transform-origin: center center;
+          box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.02);
+        }
+
+        .table-news tbody tr:hover {
+          transform: scale(1.01);
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .table-news thead th {
           border-bottom: 3px solid var(--operator-text) !important;
           font-size: 20px;
           font-weight: 900 !important;
@@ -377,12 +441,11 @@ export default function News() {
           min-width: 100px;
         }
 
-        .table tbody td {
-
+        .table-news tbody td {
           border-bottom: 3px solid var(--operator-border) !important;
           height: 50px;
           font-size: 14px;
-          padding: 5px 5px;
+          padding: 12px 10px;
           vertical-align: middle;
           border-top: none !important;
           white-space: wrap;
@@ -391,6 +454,10 @@ export default function News() {
           overflow-wrap: anywhere;
           max-width: 230px;
           min-width: 100px;
+        }
+          
+        .table thead th:nth-child(5) {
+          text-align: center;
         }
 
         /* ESTADOS */
@@ -418,17 +485,18 @@ export default function News() {
 
         .form-control::placeholder, .form-select::placeholder {
           color: var(--operator-text);
-          background: var(--operator-border);
+          background: transparent;
         }
 
         /*  MENU DE ACCIONES */
 
-        .table td .news-actions-cell {
+        .news-actions-cell {
           text-align: center;
           overflow: visible;
           justify-content: center;
           position: relative;
           z-index: 3;
+          align-items: center;
         }
 
         .news-actions-wrapper {
