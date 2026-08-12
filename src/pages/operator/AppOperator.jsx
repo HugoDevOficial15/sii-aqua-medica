@@ -64,22 +64,25 @@ export default function AppOperator() {
 
     // Listener en tiempo real para contar notificaciones del operador
     useEffect(() => {
-        const userId = user?.uid;
-        if (!userId) return;
+        if (!user?.uid && !user?.id) return;
 
-        const q = query(
-            collection(db, "notificaciones"),
-            where("IdUsuario", "==", userId)
-        );
+        // Contar TODAS las notificaciones (broadcast + personalizadas)
+        const q = query(collection(db, "notificaciones"));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            setNotificacionesCount(snapshot.size);
+            const userIds = [user?.uid, user?.id].filter(Boolean);
+            const count = snapshot.docs.filter(doc => {
+                const data = doc.data();
+                // Mostrar si no tiene IdUsuario (broadcast) O si el IdUsuario coincide
+                return !data.IdUsuario || userIds.includes(data.IdUsuario);
+            }).length;
+            setNotificacionesCount(count);
         }, (error) => {
             console.error("Error escuchando notificaciones del usuario:", error);
         });
 
         return () => unsubscribe();
-    }, [user?.uid]);
+    }, [user?.uid, user?.id]);
 
     // Sincronización en tiempo real del perfil propio
     useEffect(() => {
