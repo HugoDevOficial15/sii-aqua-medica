@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 
 // Excel
 import * as XLSX from "xlsx";
@@ -43,6 +44,7 @@ import { AREAS } from "../../catalogs/areas";
 import { getPuestos } from "../../services/puestos-service";
 
 export default function Users({onClose}) {
+    const location = useLocation();
 
     // Loading 
     const [loading, setLoading] = useState(true);
@@ -275,7 +277,9 @@ export default function Users({onClose}) {
         try {
 
             await updateUser(user.id, {
-                activo: newStatus
+                activo: newStatus,
+                bloqueado: !newStatus,
+                intentosFallidos: newStatus ? 0 : user.intentosFallidos || 0
             });
 
             notifySuccess(
@@ -492,6 +496,15 @@ export default function Users({onClose}) {
 
     }, []);
 
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const filtro = params.get("search") || params.get("nomina") || "";
+
+        if (filtro) {
+            setSearch(filtro);
+        }
+    }, [location.search]);
+
 
     // Loading
     if (loading) {
@@ -557,11 +570,11 @@ export default function Users({onClose}) {
 
                     <input
                         type="text"
-                        className="form-control"
+                        className="form-control-page"
                         placeholder="Nómina o nombre..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        style={{ width: "16rem" }}
+                        
                     />
 
                     {/* <button className="d-none" onClick={migrateNomina}>
@@ -914,6 +927,11 @@ export default function Users({onClose}) {
                     box-shadow: 0 0px 20px var(--operator-primary-light);
             }
 
+            .btn-primary:hover {
+                background: var(--operator-primary);
+                box-shadow: 0 0px 10px var(--operator-primary-light);
+            }
+
             .custom-users-card {
                 background: var(--operator-card);
                 border-radius: 30px; 
@@ -1141,6 +1159,26 @@ export default function Users({onClose}) {
             }
 
             .form-control::placeholder{
+                color: var(--operator-text);
+            }
+
+            .form-control-page {
+                height: 50px;
+                border-radius: 12px;
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+                background: var(--operator-card);
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
+            }
+
+            .form-control-page:focus {
+                border-color: #2563eb;
+                box-shadow: 0 0 0 4px rgba(37,99,235,0.10);
+            }
+
+            .form-control-page::placeholder{
                 color: var(--operator-text);
             }
 

@@ -378,6 +378,11 @@ export default function InventarioPage() {
                     box-shadow: 0 0px 20px var(--operator-primary-light);
                 }
 
+                .btn-primary:hover {
+                    background: var(--operator-primary);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                }
+
 
 
                 .custom-users-card {
@@ -407,6 +412,10 @@ export default function InventarioPage() {
                     border-bottom: 3px solid var(--operator-border);
                     height: 50px;
                     font-size: 14px;
+                }
+
+                .custom-table thead th:nth-child(6) {
+                    text-align: center;
                 }
 
                 .form-select, .form-control {
@@ -478,12 +487,12 @@ export default function InventarioPage() {
 
                     /* MENU DE ACCIONES */
 
-                .table td.inventario-actions-cell {
+                .inventario-actions-cell {
                     text-align: center;
                     overflow: visible;
                     justify-content: center;
                     isolation: auto;
-
+                    align-items: center;
 
                 }
 

@@ -245,8 +245,9 @@ export default function LogsEquipoModal({
                     />
 
                     <button
+                        className="btn btn-primary"
                         onClick={handleCreateLog}
-                        style={styles.saveBtn}
+                        
                     >
                         <FaPlus />
                         Agregar
@@ -310,6 +311,29 @@ export default function LogsEquipoModal({
                     )}
 
                 </div>
+
+                <style jsx>{`
+                    
+                    .btn-primary {
+                        height: 50px;
+                        padding: 0 24px;
+                        border-radius: 14px;
+                        border: none;
+                        background: var(--operator-primary);
+                        color: #fff;
+                        font-weight: 700;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 0px 20px var(--operator-primary-light);
+                    }
+
+                    .btn-primary:hover {
+                        background: var(--operator-primary);
+                        box-shadow: 0 0px 10px var(--operator-primary-light);
+                    }
+                `}</style>
 
             </div>
 

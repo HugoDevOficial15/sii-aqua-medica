@@ -15,7 +15,8 @@ import {
 import {
     suscribirStockPorRack,
     trasladarStockPEPS,
-    obtenerStockPorRack
+    obtenerStockPorRack,
+    validarCapacidadRack
 } from "../../../services/rackStockService";
 
 import {
@@ -271,6 +272,23 @@ export default function RackTransferModal({
                     );
                     return;
                 }
+
+            const stockDestino = await obtenerStockPorRack(rackDestino.id);
+            const tipoItemDestino = producto?.tipoItem || "";
+            const validacionDestino = validarCapacidadRack({
+                rack: rackDestino,
+                tipoItem: tipoItemDestino,
+                cantidad: Number(form.cantidad),
+                stockItems: stockDestino
+            });
+
+            if (!validacionDestino.valido) {
+                notifyError(
+                    "Espacio insuficiente",
+                    validacionDestino.mensaje || "No hay espacio suficiente en el rack destino para esta transferencia"
+                );
+                return;
+            }
 
             /*
             |--------------------------------------------------------------------------

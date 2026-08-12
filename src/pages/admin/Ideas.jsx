@@ -139,7 +139,14 @@ export default function IdeasAdmin() {
   }, [ideas]);
 
   return (
-    <div className="container-fluid p-4 fade-in" style={{ color: "var(--operator-text)" }}>
+    <>
+      <style>{`
+        .ideas-search-input::placeholder {
+          color: var(--operator-text);
+          opacity: 1;
+        }
+      `}</style>
+      <div className="container-fluid p-4 fade-in" style={{ color: "var(--operator-text)" }}>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h4 className="fw-bold mb-1" style={{ color: "var(--operator-text)" }}>Ideas</h4>
@@ -182,7 +189,7 @@ export default function IdeasAdmin() {
             <div className="col-12 col-md-4">
               <input
                 type="text"
-                className="form-control"
+                className="form-control ideas-search-input"
                 placeholder="Buscar por nombre, nómina, título o descripción..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
@@ -428,7 +435,8 @@ export default function IdeasAdmin() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

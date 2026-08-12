@@ -256,13 +256,41 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
 
                         {/* FOOTER */}
                         <div style={styles.footer}>
-                            <button type="submit" style={styles.saveButton}>
-                                <FaPlus style={{ marginRight: 6 }} />
+                            <button
+                                className="btn btn-primary" 
+                                type="submit"
+                                
+                            >
+                                <FaPlus/>
                                 {loading ? "Guardando..." : "Guardar"}
                             </button>
                         </div>
                     </form>
                 </div>
+
+                <style jsx>{`
+                    .btn-primary {
+                        height: 50px;
+                        padding: 0 24px;
+                        border-radius: 14px;
+                        border: none;
+                        background: var(--operator-primary);
+                        color: #fff;
+                        gap: 8px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 0px 20px var(--operator-primary-light);
+                    }
+
+                    .btn-primary:hover {
+                        background: var(--operator-primary);
+                        box-shadow: 0 0px 10px var(--operator-primary-light);
+                    }
+
+                `}</style>
             </div>
         </div>
     );

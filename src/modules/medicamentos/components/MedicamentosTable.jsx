@@ -208,7 +208,7 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
                     table-layout: fixed;
                     width: 100%;
                     border-collapse: separate !important;
-                    border-spacing: 0 10px !important;
+                    border-spacing: 0 14px !important;
                 }
 
                 .table thead th {
@@ -229,19 +229,21 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
                 .table tbody tr {
                     background: #ffffff;
                     transition: all 0.2s ease;
+                    transform-origin: center center;
+                    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.03);
                 }
 
                 .table tbody tr:hover {
                     transform: scale(1.02);
-                    transition: transform 0.2s;
+                    transition: transform 0.2s ease;
+                    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
                 }
 
-                .table tbody tr
-                .table td {
+                .table tbody tr td {
                     border-bottom: 3px solid var(--operator-border);
                     height: 60px;
                     font-size: 14px;
-                    padding: 5px 5px;
+                    padding: 12px 10px;
                     vertical-align: middle;
                     border-top: none !important;
                     white-space: normal;
@@ -251,14 +253,12 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
                     max-width: 230px;
                     min-width: 100px;
                 }
-
+                
                 .d-flex {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    white-space: wrap;
-
-                    
+                    white-space: wrap;    
                 }
 
                     /* MENU DE ACCIONES */

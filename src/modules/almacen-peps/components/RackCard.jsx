@@ -141,6 +141,40 @@ export default function RackCard({
     const status = getStatusConfig();
     const status2 = getStatusConfig2();
 
+    const getTipoLabel = (tipo) => {
+        switch (tipo) {
+            case "lote_en_uso":
+                return "Lote en uso";
+            case "ubicacion_temporal":
+                return "Ubicación temporal";
+            case "producto_terminado":
+                return "Producto terminado";
+            case "materia_prima":
+                return "Materia prima";
+            case "material_acondicionamiento":
+                return "Material de acondicionamiento";
+            default:
+                return "Sin asignación";
+        }
+    };
+
+    const tipoMaterialLabel = getTipoLabel(rack?.tipoAlmacenamiento);
+
+    const getTipoMaterialColor = (tipo) => {
+        switch (tipo) {
+            case "materia_prima":
+                return "#0dcaf0";
+            case "producto_terminado":
+                return "#dc3545";
+            case "material_acondicionamiento":
+                return "#6c757d";
+            default:
+                return "#475569";
+        }
+    };
+
+    const tipoMaterialColor = getTipoMaterialColor(rack?.tipoAlmacenamiento);
+
     return (
 
         <div
@@ -197,6 +231,13 @@ export default function RackCard({
 
                 <div className="rack-subtitle">
                     {getUbicacionTipoLabel(rack)} · Planta {rack.planta}
+                </div>
+
+                <div className="rack-detail-line">
+                    <span className="rack-detail-label">Tipo de material:</span>
+                    <span style={{ color: tipoMaterialColor, fontWeight: 700 }}>
+                        {tipoMaterialLabel}
+                    </span>
                 </div>
 
             </div>
@@ -394,6 +435,20 @@ export default function RackCard({
                     color: #6b7280;
 
                     font-size: 0.95rem;
+                }
+
+                .rack-detail-line {
+                    color: var(--operator-text);
+                    font-size: 0.83rem;
+                    line-height: 1.4;
+                    display: flex;
+                    gap: 6px;
+                    flex-wrap: wrap;
+                }
+
+                .rack-detail-label {
+                    font-weight: 700;
+                    color: var(--operator-text-soft);
                 }
 
                 .rack-metrics {

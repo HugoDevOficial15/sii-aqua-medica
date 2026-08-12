@@ -68,11 +68,27 @@ export function AuthProvider({ children }) {
     // ==========================================================
     // LOGIN
     // ==========================================================
-    const login = (userData, userPermisos = []) => {
-        setUser(userData);
-        setPermisos(userPermisos);
-        localStorage.setItem("user", JSON.stringify(userData));
-        setLoading(false); 
+    const login = async (userData, userPermisos) => {
+        let permisosActuales = Array.isArray(userPermisos) ? userPermisos : [];
+
+        if ((!Array.isArray(userPermisos) || userPermisos.length === 0) && userData?.rol) {
+            try {
+                permisosActuales = await getPermissionsByRole(userData.rol);
+            } catch (error) {
+                console.error("Error al cargar permisos del usuario:", error);
+                permisosActuales = [];
+            }
+        }
+
+        const usuarioCompleto = {
+            ...userData,
+            mustChangePassword: userData?.mustChangePassword || false
+        };
+
+        setUser(usuarioCompleto);
+        setPermisos(permisosActuales);
+        localStorage.setItem("user", JSON.stringify(usuarioCompleto));
+        setLoading(false);
     };
 
     // ==========================================================
