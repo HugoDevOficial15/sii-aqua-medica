@@ -29,6 +29,80 @@ export const atenderCita = async (id, observacion) => {
     });
 };
 
+// ======================================================
+// CANCELAR CITA INDIVIDUAL POR ADMINISTRADOR
+// ======================================================
+// Cancela UNA cita específica solicitada por admin con motivo obligatorio.
+// Si la cita tiene usuario asignado → notifica al usuario.
+// Si la cita NO tiene usuario → no genera notificación.
+export const cancelarCitaPorAdmin = async (citaId, motivo, adminUid, adminNombre) => {
+
+    // 1. Obtener la cita actual para verificar si tiene usuario asignado
+    const citaRef = doc(db, "citas_medicas", citaId);
+    const citaSnap = await getDoc(citaRef);
+
+    if (!citaSnap.exists()) {
+        throw new Error("La cita no existe");
+    }
+
+    const cita = citaSnap.data();
+    const tieneUsuario = !!(cita.userId || cita.usuarioId || cita.nominaUsuario);
+
+    // 2. Actualizar la cita en Firebase
+    // 🔥 IMPORTANTE: Solo guardar adminUid si existe, para evitar "undefined"
+    const updateData = {
+        estado: CITA_ESTADOS.CANCELADA_ADMIN,
+        motivoCancelacion: motivo,
+        fechaCancelacion: serverTimestamp(),
+        agendaId: cita.agendaId // Preservar para reagendamiento
+    };
+
+    // Solo agregar campos opcionales si tienen valor
+    if (adminUid) {
+        updateData.canceladaPor = adminUid;
+    }
+    if (adminNombre) {
+        updateData.nombreAdminCancelacion = adminNombre;
+    }
+
+    await updateDoc(citaRef, updateData);
+
+    // 3. Si tiene usuario asignado → notificar SOLO a ese usuario
+    if (tieneUsuario) {
+        const idUsuario = cita.userId || cita.usuarioId;
+        const nominaUsuario = cita.nominaUsuario;
+        const nombreUsuario = cita.usuarioNombre || cita.usuario || cita.nombre;
+        const fecha = cita.fecha;
+        const hora = cita.horaInicio || cita.hora;
+        const agendaNombre = cita.agendaNombre || "la campaña médica";
+        const agendaId = cita.agendaId;
+
+        try {
+            await createNotification({
+                IdUsuario: idUsuario,
+                Titulo: "📅 Cita Cancelada por Administrador",
+                Mensaje: `Tu cita del ${fecha} a las ${hora} en "${agendaNombre}" ha sido cancelada.\n\nMotivo: ${motivo}\n\nPuedes agendar un nuevo horario en la misma campaña.`,
+                Destino: "medical-appointments",
+                Accion: "cita_cancelada_admin",
+                extra: {
+                    citaId: citaId,
+                    agendaId: agendaId,
+                    motivo: motivo,
+                    fecha: fecha,
+                    hora: hora,
+                    permitirReagendar: true,
+                    // 🔥 LINK DIRECTO PARA REAGENDAR EN LA MISMA AGENDA
+                    enlaceReagendar: `/citas-medicas?reagendar=${agendaId}`
+                }
+            });
+        } catch (error) {
+            console.error(`Error notificando al usuario ${idUsuario}:`, error);
+            // No lanzar error: la cancelación ya se guardó
+        }
+    }
+};
+
+// Función antigua (mantener para compatibilidad)
 export const cancelarCita = async (id) => {
     await updateDoc(doc(db, "citas_medicas", id), {
         estado: "libre",
@@ -209,12 +283,13 @@ export const cancelAppointmentsByAgenda = async (agendaId, motivo, adminUid) => 
 };
 
 // ======================================================
-// DISPONIBILIDAD (Operador) — con restricción por nómina
+// DISPONIBILIDAD (Operador) — con restricción por nómina y admin
 // ======================================================
-// Un horario cancelado por un usuario vuelve a estar libre para
-// cualquier OTRO usuario, pero permanece oculto específicamente para la
-// nómina que lo canceló (no aparece en la lista, no se puede reservar).
-export const getAvailableSchedules = async ({ agendaId, fecha, bloquesPosibles, nominaUsuarioActual }) => {
+// 1. Si canceló el USUARIO: horario oculto solo para ESE usuario
+// 2. Si canceló el ADMIN: horario oculto solo para EL USUARIO AFECTADO
+//    (para que no reagende en el MISMO horario que le canceló)
+// 3. Otros usuarios ven el horario disponible
+export const getAvailableSchedules = async ({ agendaId, fecha, bloquesPosibles, nominaUsuarioActual, userIdActual }) => {
 
     const q = query(
         collection(db, "citas_medicas"),
@@ -234,6 +309,7 @@ export const getAvailableSchedules = async ({ agendaId, fecha, bloquesPosibles, 
 
         if (!hora) return;
 
+        // 🔥 CANCELADA POR USUARIO: Solo ocultar para esa nómina
         if (cita.estado === CITA_ESTADOS.CANCELADA_USUARIO) {
             if (String(cita.nominaCancelada) === String(nominaUsuarioActual)) {
                 horasOcultasParaNomina.add(hora);
@@ -241,10 +317,18 @@ export const getAvailableSchedules = async ({ agendaId, fecha, bloquesPosibles, 
             return;
         }
 
+        // 🔥 CANCELADA POR ADMIN: Ocultar SOLO para el usuario afectado
+        // Otros usuarios pueden agendar en ese horario
         if (cita.estado === CITA_ESTADOS.CANCELADA_ADMIN) {
+            const usuarioAfectado = cita.userId || cita.usuarioId;
+            // Si el usuario actual es el que tenía esa cita → bloquearle ese horario
+            if (userIdActual && String(usuarioAfectado) === String(userIdActual)) {
+                horasOcultasParaNomina.add(hora);
+            }
             return;
         }
 
+        // ACTIVA: Ocupada para todos
         horasOcupadas.add(hora);
 
     });
@@ -286,7 +370,8 @@ export const bookAppointment = async (appointmentData) => {
     // ======================================================
     // 1. AISLAMIENTO DE CAMPAÑA
     // ======================================================
-    // Verifica si el usuario ya tiene una cita en esta agenda específica.
+    // Verifica si el usuario ya tiene una cita ACTIVA en esta agenda específica.
+    // 🔥 IMPORTANTE: Las citas canceladas por admin NO bloquean reagendamiento
     const qCampana = query(
         collection(db, "citas_medicas"),
         where("agendaId", "==", agendaId),
@@ -295,15 +380,22 @@ export const bookAppointment = async (appointmentData) => {
 
     const snapCampana = await getDocs(qCampana);
 
-    if (!snapCampana.empty) {
+    // Filtrar: solo contar citas ACTIVAS (ignorar canceladas)
+    const citasActivas = snapCampana.docs.filter(doc => {
+        const cita = doc.data();
+        return cita.estado === CITA_ESTADOS.ACTIVA;
+    });
+
+    if (citasActivas.length > 0) {
         throw new Error("Ya tienes un turno asignado en esta campaña.");
     }
 
     // ======================================================
     // 2. BLOQUEO DE HORARIO
     // ======================================================
-    // Verifica si el usuario ya tiene una cita en la misma fecha y hora
+    // Verifica si el usuario ya tiene una cita ACTIVA en la misma fecha y hora
     // (sin importar la agenda/campaña).
+    // 🔥 IMPORTANTE: Las citas canceladas por admin NO bloquean reagendamiento
     const qHorario = query(
         collection(db, "citas_medicas"),
         where("userId", "==", userId),
@@ -314,6 +406,12 @@ export const bookAppointment = async (appointmentData) => {
 
     snapHorario.docs.forEach(doc => {
         const cita = doc.data();
+
+        // Solo contar citas ACTIVAS (ignorar canceladas)
+        if (cita.estado !== CITA_ESTADOS.ACTIVA) {
+            return;
+        }
+
         const horaExistente = cita.horaInicio || cita.hora || "";
 
         if (horaExistente === horaInicio) {

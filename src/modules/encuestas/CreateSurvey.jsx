@@ -197,7 +197,8 @@ export default function CreateSurvey() {
                 asignacion: construirAsignacion(data),
                 activa: true,
                 createdAt: new Date(),
-                userId: auth.currentUser.uid
+                userId: auth.currentUser.uid,
+                tipo: "encuesta"
             };
 
             if (editing) {

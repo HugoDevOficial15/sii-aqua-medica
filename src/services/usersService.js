@@ -137,6 +137,42 @@ export const findDuplicateNominas = async () => {
     return duplicates.sort((a, b) => a.nomina - b.nomina);
 };
 
+// Diagnóstico: detecta usuarios cuya email no coincide con su nomina (puede
+// indicar ediciones fallidas o corrupción de datos).
+export const findEmailNominaMismatch = async () => {
+    const snapshot = await getDocs(userCollection);
+    const mismatches = [];
+
+    snapshot.docs.forEach((d) => {
+        const data = d.data();
+        const email = data.email || "";
+        const nomina = data.nomina;
+
+        // Extrae la nómina esperada del email (ej: "104@aquamedica.com" → 104)
+        const expectedNomina = parseInt(email.split("@")[0], 10);
+
+        // Si la nómina en el email NO coincide con el campo nomina, hay un problema
+        if (!Number.isNaN(expectedNomina) && expectedNomina !== nomina) {
+            mismatches.push({
+                id: d.id,
+                email,
+                nominaInFile: nomina,
+                nominaInEmail: expectedNomina,
+                nombre: data.nombre
+            });
+        }
+    });
+
+    return mismatches;
+};
+
+// Herramienta para corregir usuarios cuya nomina no coincide con el email.
+// Actualiza el campo nomina al valor extraído del email.
+export const fixEmailNominaMismatch = async (userId, correctNomina) => {
+    const ref = doc(db, "users", userId);
+    await updateDoc(ref, { nomina: Number(correctNomina) });
+};
+
 export const resetFailedLoginAttempts = async (username) => {
     const email = `${username}@aquamedica.com`;
     const q = query(userCollection, where("email", "==", email));

@@ -14,7 +14,9 @@ import {
     updateUser,
     migrateNomina,
     nominaExists,
-    findDuplicateNominas
+    findDuplicateNominas,
+    findEmailNominaMismatch,
+    fixEmailNominaMismatch
 } from "../../services/usersService";
 
 // CSV (curp/rfc/nss pendientes)
@@ -184,7 +186,7 @@ export default function Users({onClose}) {
             const userData = {
                 ...data,
                 nomina: Number(data.nomina),
-                email: data.nomina + "@aquamediaca.com",
+                email: data.nomina + "@aquamedica.com",
                 activo: true
             }
 
@@ -403,6 +405,91 @@ export default function Users({onClose}) {
         }
     };
 
+    // Diagnóstico: detecta usuarios cuya nómina no coincide con su email
+    const handleCheckEmailNominaMismatch = async () => {
+        try {
+            Swal.fire({
+                title: "Buscando inconsistencias",
+                text: "Analizando email vs nómina guardada",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            const mismatches = await findEmailNominaMismatch();
+            Swal.close();
+
+            if (mismatches.length === 0) {
+                notifySuccess("Sin problemas", "Todos los emails coinciden con sus nóminas.");
+                return;
+            }
+
+            const rows = mismatches
+                .map((m) => `
+                    <tr>
+                        <td style="padding:6px 10px;text-align:left;">${m.nombre}</td>
+                        <td style="padding:6px 10px;text-align:left;">${m.email}</td>
+                        <td style="padding:6px 10px;text-align:center;">${m.nominaInEmail}</td>
+                        <td style="padding:6px 10px;text-align:center;color:#ef4444;font-weight:bold;">${m.nominaInFile}</td>
+                    </tr>
+                `)
+                .join("");
+
+            const confirmResult = await Swal.fire({
+                title: `Se encontraron ${mismatches.length} inconsistencia(s)`,
+                width: 700,
+                html: `
+                    <div style="text-align:left;font-size:13px;margin-bottom:16px;">
+                        <p>La nómina en el email NO coincide con la nómina guardada. Esto puede causar problemas de identificación.</p>
+                    </div>
+                    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                        <thead>
+                            <tr style="background:#f5f5f5;">
+                                <th style="padding:8px;text-align:left;">Nombre</th>
+                                <th style="padding:8px;text-align:left;">Email</th>
+                                <th style="padding:8px;text-align:center;">Nómina Email</th>
+                                <th style="padding:8px;text-align:center;">Nómina Archivo ❌</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                `,
+                showCancelButton: true,
+                confirmButtonText: "Reparar Automáticamente",
+                cancelButtonText: "Cancelar",
+                icon: "warning"
+            });
+
+            if (confirmResult.isConfirmed) {
+                // Reparar todos
+                Swal.fire({
+                    title: "Reparando...",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                for (const mismatch of mismatches) {
+                    await fixEmailNominaMismatch(mismatch.id, mismatch.nominaInEmail);
+                }
+
+                Swal.close();
+                notifySuccess(
+                    "Reparación completada",
+                    `Se corrigieron ${mismatches.length} usuario(s). Refresca la página.`
+                );
+
+                // Recargar usuarios
+                const usersData = await getUsers();
+                setUsers(usersData);
+            }
+        } catch (error) {
+            console.error("Error en diagnóstico de email/nomina:", error);
+            Swal.close();
+            notifyError("Error", "No se pudo completar el diagnóstico.");
+        }
+    };
+
     // Importar CSV (curp/rfc/nss pendientes)
     const handleImportCSVClick = () => {
         csvInputRef.current?.click();
@@ -592,6 +679,15 @@ export default function Users({onClose}) {
                     >
                         <FaSearch className="me-2" />
                         Buscar nóminas duplicadas
+                    </button>
+
+                    <button
+                        className="btn btn-sm btn-outline-warning"
+                        onClick={handleCheckEmailNominaMismatch}
+                        title="Verifica que el email coincida con la nómina guardada"
+                    >
+                        <FaCheckCircle className="me-2" />
+                        Verificar Email/Nómina
                     </button>
 
                     <button

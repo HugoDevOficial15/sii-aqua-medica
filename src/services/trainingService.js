@@ -6,7 +6,7 @@ import { createNotification } from "../utils/createNotification";
 
 const trainingCollection = collection(db, "capacitaciones");
 
-// Obtener capacitaciones
+// Obtener capacitaciones (del admin que las crea)
 export const getTrainings = async () => {
     const auth = getAuth();
 
@@ -25,7 +25,7 @@ export const getTrainings = async () => {
     return trainings;
 }
 
-// Crear
+// Crear capacitación y notificar a usuarios asignados
 export const createTraining = async (trainingData) => {
     const trainingRef = await addDoc(trainingCollection, trainingData);
 
@@ -35,6 +35,8 @@ export const createTraining = async (trainingData) => {
         const allUsers = usersSnapshot.docs.map(doc => ({
             id: doc.id,
             uid: doc.data().uid,
+            nomina: doc.data().nomina,
+            area: doc.data().area,
             ...doc.data()
         }));
 
@@ -59,14 +61,14 @@ export const createTraining = async (trainingData) => {
             );
         }
 
-        // Crear notificaciones para cada usuario
+        // Crear notificaciones para cada usuario con identificador único de capacitación
         for (const user of usersToNotify) {
             if (user.uid) {
                 await createNotification({
                     IdUsuario: user.uid,
                     Titulo: "📚 Nueva Capacitación",
                     Mensaje: `Se ha asignado una nueva capacitación: ${trainingData.titulo}`,
-                    Destino: "capacitaciones",
+                    Destino: "training",
                     Accion: "nueva_capacitacion",
                     extra: {
                         capacitacionId: trainingRef.id,

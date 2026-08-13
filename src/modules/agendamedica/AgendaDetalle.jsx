@@ -3,21 +3,31 @@ import { FaArrowLeft, FaCheck, FaTimes } from "react-icons/fa";
 
 import Loader from "../../components/Loader";
 import { notifyError, notifySuccess } from "../../utils/notify";
+import { CITA_ESTADOS } from "../../constants/citasMedicasStates";
+import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
+import { useAuth } from "../../hooks/useAuth";
+import { createNotification } from "../../utils/createNotification";
 
 import {
     getCitasPorAgenda,
     atenderCita,
-    cancelarCita
+    cancelarCita,
+    cancelarCitaPorAdmin
 } from "../../services/citasMedicasService";
 
 export default function AgendaDetalle({ agenda, onBack }) {
 
+    const { user } = useAuth();
     const [citas, setCitas] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    // 🔥 FECHA AUTOMÁTICA (HOY)
+    // 🔥 MODAL DE CANCELACIÓN CON MOTIVO
+    const [citaACancelar, setCitaACancelar] = useState(null);
+    const [procesandoCancelacion, setProcesandoCancelacion] = useState(false);
+
+    // 🔥 FECHA AUTOMÁTICA (vacío = mostrar todas las citas)
     const hoy = new Date().toISOString().split("T")[0];
-    const [fecha, setFecha] = useState(hoy);
+    const [fecha, setFecha] = useState("");
 
     // 🔹 Fetch
     const fetchData = async () => {
@@ -38,15 +48,107 @@ export default function AgendaDetalle({ agenda, onBack }) {
 
     // 🔹 Acciones
     const handleAtender = async (id) => {
-        await atenderCita(id, "Atendido");
-        notifySuccess("Cita atendida");
-        fetchData();
+        try {
+            const citaAtendida = citas.find(c => c.id === id);
+            await atenderCita(id, "Atendido");
+
+            // 🔥 NOTIFICAR AL ADMIN QUE ATENDIÓ LA CITA
+            if (user?.uid) {
+                try {
+                    const nombrePaciente = citaAtendida?.usuarioNombre || citaAtendida?.usuario || citaAtendida?.nombre || "Usuario";
+                    const fecha = citaAtendida?.fecha || "fecha desconocida";
+                    const hora = citaAtendida?.horaInicio || citaAtendida?.hora || "hora desconocida";
+
+                    await createNotification({
+                        IdUsuario: user.uid,
+                        Titulo: "✅ Cita Atendida",
+                        Mensaje: `${nombrePaciente} - ${fecha} a las ${hora}`,
+                        Destino: "medical-appointments",
+                        Accion: "cita_atendida"
+                    });
+                } catch (error) {
+                    console.error("Error al notificar cita atendida:", error);
+                }
+            }
+
+            // Recargar datos
+            const datosActualizados = await getCitasPorAgenda(agenda.id);
+            setCitas(datosActualizados);
+
+            // 🔥 VERIFICAR SI TODAS LAS CITAS FUERON ATENDIDAS
+            const citasPendientes = datosActualizados.filter(c =>
+                c.estado === CITA_ESTADOS.ACTIVA || c.estado === "libre" || c.estado === "pendiente"
+            );
+
+            if (citasPendientes.length === 0 && datosActualizados.length > 0) {
+                try {
+                    await createNotification({
+                        IdUsuario: user.uid,
+                        Titulo: "🎉 Todas las Citas Completadas",
+                        Mensaje: `Completaste todas las citas de la agenda "${agenda.nombre}" por hoy.`,
+                        Destino: "medical-appointments",
+                        Accion: "todas_citas_completadas"
+                    });
+                } catch (error) {
+                    console.error("Error al notificar citas completadas:", error);
+                }
+            }
+
+            notifySuccess("Cita atendida");
+        } catch (error) {
+            console.error("Error al atender cita:", error);
+            notifyError("Error", "No se pudo marcar la cita como atendida");
+        }
     };
 
-    const handleCancelar = async (id) => {
-        await cancelarCita(id);
-        notifySuccess("Cita cancelada");
-        fetchData();
+    // 🔥 ABRIR MODAL PARA SOLICITAR MOTIVO
+    const handleCancelar = (cita) => {
+        setCitaACancelar(cita);
+    };
+
+    // 🔥 PROCESAR CANCELACIÓN CON MOTIVO
+    const handleConfirmCancelacion = async (motivo) => {
+        if (!citaACancelar) return;
+
+        setProcesandoCancelacion(true);
+        try {
+            const tieneUsuario = !!(citaACancelar.userId || citaACancelar.usuarioId || citaACancelar.nominaUsuario);
+
+            // Usar el uid disponible (puede ser undefined, Firebase lo ignorará)
+            const adminUid = user?.uid || user?.id || null;
+            const adminNombre = user?.nombre || "Administrador";
+
+            await cancelarCitaPorAdmin(
+                citaACancelar.id,
+                motivo,
+                adminUid,
+                adminNombre
+            );
+
+            // Mensaje diferenciado según si tiene usuario o no
+            if (tieneUsuario) {
+                notifySuccess(
+                    "Cita cancelada",
+                    "La cita ha sido cancelada y el usuario ha sido notificado."
+                );
+            } else {
+                notifySuccess(
+                    "Cita cancelada",
+                    "El horario ha sido marcado como cancelado."
+                );
+            }
+
+            setCitaACancelar(null);
+            fetchData();
+        } catch (error) {
+            console.error("Error al cancelar cita:", error);
+            notifyError(
+                "Error",
+                error.message || "No se pudo cancelar la cita."
+            );
+        } finally {
+            setProcesandoCancelacion(false);
+        }
     };
 
     //  Filtro por fecha 
@@ -91,13 +193,25 @@ export default function AgendaDetalle({ agenda, onBack }) {
                     <h6 className="mb-0">{agenda.nombre}</h6>
                 </div>
 
-                <input
-                    type="date"
-                    className="form-control"
-                    style={{ width: "14rem" }}
-                    value={fecha}
-                    onChange={(e) => setFecha(e.target.value)}
-                />
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <input
+                        type="date"
+                        className="form-control"
+                        style={{ width: "14rem" }}
+                        value={fecha}
+                        onChange={(e) => setFecha(e.target.value)}
+                        placeholder="Selecciona una fecha"
+                    />
+                    {fecha && (
+                        <button
+                            className="btn btn-sm btn-outline-secondary"
+                            onClick={() => setFecha("")}
+                            title="Mostrar todas las citas"
+                        >
+                            Ver todas
+                        </button>
+                    )}
+                </div>
 
             </div>
 
@@ -140,34 +254,64 @@ export default function AgendaDetalle({ agenda, onBack }) {
                                         </td>
 
                                         <td>
-                                            {/* Ajustamos para minúsculas y mayúsculas por si acaso */}
-                                            {(c.estado?.toLowerCase() === "libre" || c.estado?.toLowerCase() === "pendiente") && (
+                                            {/* Estados modernos */}
+                                            {c.estado === CITA_ESTADOS.ACTIVA && (
+                                                <span className="badge-primary">Activa</span>
+                                            )}
+                                            {(c.estado === "libre" || c.estado === "pendiente") && (
                                                 <span className="badge-warning">Pendiente / Libre</span>
                                             )}
-
-                                            {c.estado?.toLowerCase() === "reservado" && (
-                                                <span className="badge-primary">Reservado</span>
+                                            {c.estado === CITA_ESTADOS.ATENDIDA && (
+                                                <span className="badge-success">Atendida</span>
                                             )}
-
-                                            {c.estado?.toLowerCase() === "atendido" && (
-                                                <span className="badge-success">Atendido</span>
+                                            {c.estado === CITA_ESTADOS.FINALIZADA && (
+                                                <span className="badge-success">Finalizada</span>
+                                            )}
+                                            {c.estado === CITA_ESTADOS.CANCELADA_USUARIO && (
+                                                <div>
+                                                    <span className="badge-danger">Cancelada (Usuario)</span>
+                                                    {c.motivoCancelacion && (
+                                                        <div style={{ marginTop: '4px', fontSize: '12px', color: '#ef4444', fontStyle: 'italic' }}>
+                                                            "{c.motivoCancelacion}"
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {c.estado === CITA_ESTADOS.CANCELADA_ADMIN && (
+                                                <div>
+                                                    <span className="badge-danger">Cancelada (Admin)</span>
+                                                    {c.motivoCancelacion && (
+                                                        <div style={{ marginTop: '4px', fontSize: '12px', color: '#ef4444', fontStyle: 'italic' }}>
+                                                            "{c.motivoCancelacion}"
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {c.estado === CITA_ESTADOS.EXPIRADA && (
+                                                <span className="badge-secondary">Expirada</span>
                                             )}
                                         </td>
 
                                         <td>
-                                            {/* Se muestran las acciones si está reservado o pendiente */}
-                                            {(c.estado?.toLowerCase() === "reservado" || c.estado?.toLowerCase() === "pendiente") && (
+                                            {/* Mostrar acciones solo para citas activas (no atendidas, no canceladas) */}
+                                            {(c.estado === CITA_ESTADOS.ACTIVA || c.estado === "libre" || c.estado === "pendiente" || c.estado === "reservado") && (
                                                 <>
-                                                    <button
-                                                        className="btn btn-sm btn-outline-success me-2 custom-btn"
-                                                        onClick={() => handleAtender(c.id)}
-                                                    >
-                                                        <FaCheck />
-                                                    </button>
+                                                    {/* Solo mostrar "Atender" si hay un usuario asignado */}
+                                                    {(c.usuarioNombre || c.usuario || c.nombre) && (
+                                                        <button
+                                                            className="btn btn-sm btn-outline-success me-2 custom-btn"
+                                                            onClick={() => handleAtender(c.id)}
+                                                            title="Marcar como atendido"
+                                                        >
+                                                            <FaCheck />
+                                                        </button>
+                                                    )}
 
+                                                    {/* Siempre mostrar cancelar (para liberar el horario o cancelar reserva) */}
                                                     <button
                                                         className="btn btn-sm btn-outline-danger custom-btn"
-                                                        onClick={() => handleCancelar(c.id)}
+                                                        onClick={() => handleCancelar(c)}
+                                                        title="Cancelar cita"
                                                     >
                                                         <FaTimes />
                                                     </button>
@@ -199,6 +343,18 @@ export default function AgendaDetalle({ agenda, onBack }) {
                 </div>
 
             </div>
+
+            {/* 🔥 MODAL PARA CANCELACIÓN CON MOTIVO */}
+            {citaACancelar && (
+                <ConfirmMotivoModal
+                    title="Cancelar cita médica"
+                    label="Motivo de cancelación"
+                    confirmText="Confirmar cancelación"
+                    loading={procesandoCancelacion}
+                    onCancel={() => setCitaACancelar(null)}
+                    onConfirm={handleConfirmCancelacion}
+                />
+            )}
 
             {/*  ESTILOS PRO (Con la corrección de JSX) */}
             <style jsx="true">{`

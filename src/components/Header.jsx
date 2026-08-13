@@ -142,16 +142,27 @@ export default function Header({ toggleSidebar }) {
             const notifs = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .filter(n => !n.IdUsuario || currentUserIds.includes(n.IdUsuario))
-                .filter(n => n.Accion === "usuario_bloqueado" || n.extra?.tipo === "usuario_bloqueado")
-                .map(n => ({
-                    id: n.id,
-                    icon: <FaUserCircle />,
-                    title: n.Titulo || "Cuenta bloqueada",
-                    subtitle: n.extra?.motivo || n.extra?.motivoBloqueo || n.Mensaje || "Usuario bloqueado por exceder los intentos de acceso.",
-                    ruta: n.Destino || "/usuarios",
-                    nomina: n.extra?.nomina ?? n.nomina ?? null,
-                    nombre: n.extra?.nombre ?? n.nombre ?? null
-                }));
+                .map(n => {
+                    // Determinar icono según tipo de notificación
+                    let icon = <FaUserCircle />;
+                    if (n.Titulo?.includes("📅")) icon = <FaUserCircle />;
+                    if (n.Titulo?.includes("❌")) icon = <FaUserCircle />;
+                    if (n.Titulo?.includes("✅")) icon = <FaUserCircle />;
+                    if (n.Titulo?.includes("🎉")) icon = <FaUserCircle />;
+                    if (n.Titulo?.includes("📋")) icon = <FaUserCircle />;
+                    if (n.Titulo?.includes("📚")) icon = <FaUserCircle />;
+                    if (n.Titulo?.includes("🚨")) icon = <FaUserCircle />;
+
+                    return {
+                        id: n.id,
+                        icon: icon,
+                        title: n.Titulo || "Nueva notificación",
+                        subtitle: n.Mensaje || n.extra?.motivo || "Sin detalles",
+                        ruta: n.Destino || "/",
+                        nomina: n.extra?.nomina ?? n.nomina ?? null,
+                        nombre: n.extra?.nombre ?? n.nombre ?? null
+                    };
+                });
 
             setDynamicNotifications(notifs);
         });
@@ -193,12 +204,18 @@ export default function Header({ toggleSidebar }) {
         setNotifications((prev) => prev.filter((item) => item.id !== id));
         setShowDropdown(false);
 
-        if (ruta === "/usuarios" && nomina) {
+        // Normalizar ruta: agregar barra diagonal si no la tiene
+        let rutaFinal = ruta;
+        if (rutaFinal && !rutaFinal.startsWith("/")) {
+            rutaFinal = "/" + rutaFinal;
+        }
+
+        if (rutaFinal === "/usuarios" && nomina) {
             navigate(`/usuarios?search=${encodeURIComponent(String(nomina))}`);
             return;
         }
 
-        navigate(ruta || "/usuarios");
+        navigate(rutaFinal || "/");
     };
 
     const handleDismissNotification = (event, id) => {

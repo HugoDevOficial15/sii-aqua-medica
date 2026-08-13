@@ -157,7 +157,8 @@ export default function CreateCapacitaciones() {
                 asignacion: construirAsignacion(data),
                 activa: true,
                 createdAt: new Date(),
-                userId: auth.currentUser.uid
+                userId: auth.currentUser.uid,
+                tipo: "capacitacion"
             };
 
             if (editing) {

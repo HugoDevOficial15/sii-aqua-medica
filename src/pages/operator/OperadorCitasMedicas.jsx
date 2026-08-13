@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
+import { useSearchParams } from "react-router-dom";
+import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import { FiArrowLeft, FiCalendar, FiList, FiX } from "react-icons/fi";
@@ -7,6 +8,7 @@ import { FiArrowLeft, FiCalendar, FiList, FiX } from "react-icons/fi";
 import Loader from "../../components/Loader";
 import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
 import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
+import { createNotification } from "../../utils/createNotification";
 
 import { CITA_ESTADOS } from "../../constants/citasMedicasStates";
 import {
@@ -18,8 +20,12 @@ import {
 
 export default function OperadorCitasMedicas() {
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
+    const agendaIdReagendamiento = searchParams.get("reagendar"); // ?reagendar=agendaId
+
     const [loading, setLoading] = useState(true);
     const [vista, setVista] = useState("lista"); // lista | agendar | mis-citas
+    const [esReagendamiento, setEsReagendamiento] = useState(false);
 
     const [agendas, setAgendas] = useState([]);
     const [agendaActiva, setAgendaActiva] = useState(null);
@@ -48,6 +54,19 @@ export default function OperadorCitasMedicas() {
                     id: doc.id, ...doc.data()
                 }));
                 setAgendas(agendasCargadas);
+
+                // 🔥 SI VIENE CON PARÁMETRO DE REAGENDAMIENTO
+                if (agendaIdReagendamiento) {
+                    setEsReagendamiento(true);
+                    const agendaAReagendar = agendasCargadas.find(a => a.id === agendaIdReagendamiento);
+                    if (agendaAReagendar) {
+                        setAgendaActiva(agendaAReagendar);
+                        setDiasValidos(calcularDiasDisponibles(agendaAReagendar));
+                        setVista("agendar");
+                    } else {
+                        notifyWarning("Advertencia", "No se encontró la agenda para reagendar.");
+                    }
+                }
             } catch (error) {
                 console.error("Error al cargar agendas:", error);
             } finally {
@@ -55,7 +74,7 @@ export default function OperadorCitasMedicas() {
             }
         };
         fetchAgendas();
-    }, []);
+    }, [agendaIdReagendamiento]);
 
     const cargarMisCitas = async () => {
         if (!user?.nomina) return;
@@ -141,7 +160,8 @@ export default function OperadorCitasMedicas() {
                 agendaId: agendaActiva.id,
                 fecha,
                 bloquesPosibles: bloquesDelDia,
-                nominaUsuarioActual: user?.nomina
+                nominaUsuarioActual: user?.nomina,
+                userIdActual: user?.uid  // 🔥 Pasar el userId para bloquear horarios cancelados por admin
             });
 
             setCitasOcupadas(ocupadas);
@@ -176,7 +196,49 @@ export default function OperadorCitasMedicas() {
                 paciente: nombreFinal
             });
 
-            notifySuccess("Cita agendada", "Tu cita fue registrada con éxito.");
+            // 🔥 NOTIFICAR A TODOS LOS ADMINS
+            try {
+                const usersSnapshot = await getDocs(collection(db, "users"));
+                const admins = usersSnapshot.docs
+                    .filter(doc => {
+                        const rol = doc.data().rol || "";
+                        return rol.startsWith("admin");
+                    })
+                    .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
+
+                for (const admin of admins) {
+                    if (admin.uid) {
+                        await createNotification({
+                            IdUsuario: admin.uid,
+                            Titulo: "📅 Nueva Cita Médica Agendada",
+                            Mensaje: `${nombreFinal} agendó una cita en: "${agendaActiva.nombre}" para el ${formatearFecha(fechaElegida)} a las ${horaElegida}`,
+                            Destino: "medical-appointments",
+                            Accion: "cita_agendada",
+                            extra: {
+                                agendaId: agendaActiva.id,
+                                agendaNombre: agendaActiva.nombre,
+                                usuarioNombre: nombreFinal,
+                                fecha: fechaElegida,
+                                hora: horaElegida
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error al notificar a admins sobre la cita agendada:", error);
+            }
+
+            // 🔥 MENSAJE DIFERENCIADO PARA REAGENDAMIENTO
+            if (esReagendamiento) {
+                notifySuccess(
+                    "Cita reagendada",
+                    "Tu nueva cita fue registrada con éxito en la misma campaña médica."
+                );
+                setEsReagendamiento(false);
+            } else {
+                notifySuccess("Cita agendada", "Tu cita fue registrada con éxito.");
+            }
+
             setFechaElegida("");
             setHoraElegida("");
             setHorariosDisponibles([]);
@@ -193,6 +255,39 @@ export default function OperadorCitasMedicas() {
         setProcesandoCancelacion(true);
         try {
             await cancelAppointmentByUser(citaACancelar.id, user, motivo);
+
+            // 🔥 NOTIFICAR A TODOS LOS ADMINS
+            try {
+                const usersSnapshot = await getDocs(collection(db, "users"));
+                const admins = usersSnapshot.docs
+                    .filter(doc => {
+                        const rol = doc.data().rol || "";
+                        return rol.startsWith("admin");
+                    })
+                    .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
+
+                for (const admin of admins) {
+                    if (admin.uid) {
+                        await createNotification({
+                            IdUsuario: admin.uid,
+                            Titulo: "❌ Cita Médica Cancelada",
+                            Mensaje: `${user?.nombre || "Un usuario"} canceló una cita para el ${formatearFecha(citaACancelar.fecha)}`,
+                            Destino: "medical-appointments",
+                            Accion: "cita_cancelada",
+                            extra: {
+                                citaId: citaACancelar.id,
+                                usuarioNombre: user?.nombre,
+                                fecha: citaACancelar.fecha,
+                                hora: citaACancelar.horaInicio || citaACancelar.hora,
+                                motivo: motivo
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error al notificar a admins sobre la cancelación:", error);
+            }
+
             notifySuccess("Cita cancelada", "Tu cancelación fue registrada correctamente.");
             setCitaACancelar(null);
             cargarMisCitas();

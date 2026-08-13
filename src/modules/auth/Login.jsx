@@ -133,6 +133,7 @@ export default function Login() {
             await login({
                 ...freshUserData,
                 username: username,
+                uid: result.user.uid,
                 mustChangePassword: freshUserData.mustChangePassword || false
             }, permisosUsuario);
 

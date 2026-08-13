@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { collection, addDoc, getDocs, query, orderBy, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, orderBy, doc, updateDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi";
+import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiTrash } from "react-icons/fi";
 
 import { useAuth } from "../../hooks/useAuth";
 
@@ -75,7 +75,7 @@ export default function SoporteAdmin() {
         await addDoc(collection(db, "notificaciones"), {
           Titulo: "Actualización de tu reporte",
           Mensaje: `Tu problema "${selectedProblema.asunto}" cambió a: ${nuevoEstado}.${comentario ? ` Comentario: ${comentario}` : ""}`,
-          Destino: "ProblemaActualizado",
+          Destino: "soporte",
           IdUsuario: selectedProblema.idUsuario,
           fechaCreacion: serverTimestamp()
         });
@@ -90,6 +90,35 @@ export default function SoporteAdmin() {
     } catch (error) {
       console.error("Error al actualizar el estado:", error);
       alert("No se pudo actualizar el estado del problema.");
+    } finally {
+      setActualizando(false);
+    }
+  };
+
+  // Eliminar un problema de la base de datos
+  const handleEliminarProblema = async (problema) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el reporte de "${problema.asunto}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    setActualizando(true);
+    try {
+      const docRef = doc(db, "Problemas reportados", problema.id);
+      await deleteDoc(docRef);
+
+      // Eliminar de la lista local
+      setProblemas(problemas.filter((p) => p.id !== problema.id));
+
+      // Cerrar el modal si el problema eliminado era el seleccionado
+      if (selectedProblema?.id === problema.id) {
+        setModalOpen(false);
+        setSelectedProblema(null);
+      }
+
+      alert("Reporte eliminado correctamente.");
+    } catch (error) {
+      console.error("Error al eliminar el reporte:", error);
+      alert("No se pudo eliminar el reporte.");
     } finally {
       setActualizando(false);
     }
@@ -291,11 +320,19 @@ export default function SoporteAdmin() {
                         </td>
                         <td className="px-4 py-3 align-middle text-center">
                           <button
-                            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 px-3"
+                            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 px-3 me-2"
                             style={{ borderRadius: "20px" }}
                             onClick={() => handleVerProblema(item)}
                           >
                             <FiEye /> Ver
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 px-3"
+                            style={{ borderRadius: "20px" }}
+                            onClick={() => handleEliminarProblema(item)}
+                            title="Eliminar reporte"
+                          >
+                            <FiTrash /> Eliminar
                           </button>
                         </td>
                       </tr>

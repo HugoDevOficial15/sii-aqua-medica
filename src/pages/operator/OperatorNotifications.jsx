@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, doc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, doc, deleteDoc, writeBatch } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { FaTrash } from "react-icons/fa";
 
@@ -18,12 +18,14 @@ const RUTA_POR_DESTINO = {
     "Aniversario": "home",
     "SolicitudAprobada": "profile",
     "SolicitudRechazada": "profile",
-    "ProblemaActualizado": "support",
+    "soporte": "soporte",
+    "ProblemaActualizado": "soporte",
     "CitaCancelada": "citas-medicas",
     "CitaCanceladaConfirmacion": "citas-medicas",
     "/solicitudes": "solicitudes",
     "capacitaciones": "capacitaciones",
-    "surveys": "surveys"
+    "surveys": "surveys",
+    "medical-appointments": "citas-medicas"
 };
 
 export default function OperatorNotifications({ onNavigate }) {
@@ -35,10 +37,18 @@ export default function OperatorNotifications({ onNavigate }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchNotificaciones = async () => {
+        if (!user?.uid && !user?.id) {
+            setLoading(false);
+            return;
+        }
+
+        const q = query(collection(db, "notificaciones"), orderBy("fechaCreacion", "desc"));
+
+        // 🔥 LISTENER EN TIEMPO REAL: Se dispara cuando cambian los datos en Firebase
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
             try {
-                const q = query(collection(db, "notificaciones"), orderBy("fechaCreacion", "desc"));
-                const querySnapshot = await getDocs(q);
+                const currentUserIds = [user?.uid, user?.id].filter(Boolean);
+                console.log("🔔 Listener ejecutado. User IDs:", currentUserIds);
 
                 const notifs = querySnapshot.docs
                     .map(doc => ({
@@ -46,26 +56,37 @@ export default function OperatorNotifications({ onNavigate }) {
                         ...doc.data()
                     }))
                     .filter(n => {
-                    // Mostrar notificaciones de broadcast (sin IdUsuario) y notificaciones dirigidas al usuario actual
-                    const currentUserIds = [user?.uid, user?.id].filter(Boolean);
-                    const shouldShow = !n.IdUsuario || currentUserIds.includes(n.IdUsuario);
-                    return shouldShow;
-                });
+                        // Mostrar notificaciones de broadcast (sin IdUsuario) y notificaciones dirigidas al usuario actual
+                        const shouldShow = !n.IdUsuario || currentUserIds.includes(n.IdUsuario);
 
-                console.log("Notificaciones cargadas:", notifs.length, notifs);
+                        if (!shouldShow) {
+                            console.log("  ❌ Notificación descartada:", {
+                                titulo: n.Titulo,
+                                idUsuarioNotif: n.IdUsuario,
+                                currentUserIds
+                            });
+                        }
+
+                        return shouldShow;
+                    });
+
+                console.log("📬 Notificaciones actualizadas (tiempo real):", notifs.length, "de", querySnapshot.docs.length);
+                if (notifs.length > 0) {
+                    console.log("   Notificaciones:", notifs.map(n => ({ titulo: n.Titulo, destino: n.Destino })));
+                }
                 setNotificaciones(notifs);
             } catch (error) {
-                console.error("Error al cargar notificaciones:", error);
+                console.error("Error procesando notificaciones:", error);
             } finally {
                 setLoading(false);
             }
-        };
-
-        if (user?.uid || user?.id) {
-            fetchNotificaciones();
-        } else {
+        }, (error) => {
+            console.error("Error al escuchar notificaciones:", error);
             setLoading(false);
-        }
+        });
+
+        // Limpiar listener cuando el componente se desmonta
+        return () => unsubscribe();
     }, [user?.uid, user?.id]);
 
     //  FUNCIÓN PARA BORRAR Y NAVEGAR

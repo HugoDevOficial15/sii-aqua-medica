@@ -6,6 +6,7 @@ import { AuthContext } from "./AuthContext";
 
 import { getUserData } from "../services/userService";
 import { getPermissionsByRole } from "../services/rolesService";
+import { verificarYCrearFelicitaciones } from "../utils/felicitaciones";
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
@@ -52,6 +53,13 @@ export function AuthProvider({ children }) {
                 setUser(usuarioCompleto);
                 setPermisos(permisosDB);
                 localStorage.setItem("user", JSON.stringify(usuarioCompleto));
+
+                // 🎂 Verificar y crear notificaciones de cumpleaños/aniversario
+                try {
+                    await verificarYCrearFelicitaciones(usuarioCompleto);
+                } catch (error) {
+                    console.error("Error al verificar felicitaciones:", error);
+                }
 
             } catch (error) {
                 console.error("Error al restaurar la sesión:", error);

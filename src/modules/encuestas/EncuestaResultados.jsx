@@ -15,6 +15,7 @@ import {
 import Loader from "../../components/Loader";
 
 import { getResponsesForSurvey } from "../../services/servicesOperator/operatorSurveyResponseService";
+import { getResponsesForTraining } from "../../services/servicesOperator/operatorTrainingResponseService";
 import { getUsers } from "../../services/usersService";
 
 import { AREAS } from "../../catalogs/areas";
@@ -58,11 +59,20 @@ export default function EncuestaResultados({ survey, onBack }) {
 
             try {
 
+                // Detectar si es encuesta o capacitación usando campo explícito "tipo"
+                const esCapacitacion = survey.tipo === "capacitacion";
+
                 // 1 consulta de respuestas + 1 consulta de usuarios (ya
                 // existente, reutilizada). El cruce nómina→perfil se
                 // hace en memoria, nunca una consulta por respuesta.
+                const getResponses = esCapacitacion ? getResponsesForTraining : getResponsesForSurvey;
+
+                if (import.meta.env.DEV) {
+                    console.log(`[EncuestaResultados] Tipo detectado: ${esCapacitacion ? 'Capacitación' : 'Encuesta'}`, survey.tipo);
+                }
+
                 const [responsesData, usersData] = await Promise.all([
-                    getResponsesForSurvey(survey.id),
+                    getResponses(survey.id),
                     getUsers()
                 ]);
 

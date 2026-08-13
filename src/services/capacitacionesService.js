@@ -2,36 +2,36 @@ import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "../config/firebase";
 
 // ============================================================
-// CONSULTA DE ENCUESTAS DISPONIBLES PARA UN USUARIO
+// CONSULTA DE CAPACITACIONES DISPONIBLES PARA UN USUARIO
 // ============================================================
-// Filtra encuestas según el rol del usuario y la asignación:
+// Filtra capacitaciones según el rol del usuario y la asignación:
 // 1. Globales: visibles para todos
 // 2. Por área: solo si user.area está en asignacion.valores
 // 3. Por usuario: solo si user.nomina está en asignacion.valores
-// Además, cruza con la colección "respuestas" para determinar
+// Además, cruza con la colección "respuestasCapacitaciones" para determinar
 // si ya respondió y otros estados.
-export const getEncuestasDisponibles = async (usuario) => {
+export const getCapacitacionesDisponibles = async (usuario) => {
     if (!usuario) return [];
 
     try {
-        // Traer todas las encuestas (sin filtro de activa para mejor compatibilidad)
+        // Traer todas las capacitaciones (sin filtro de activa para mejor compatibilidad)
         const q = query(
-            collection(db, "encuestas"),
+            collection(db, "capacitaciones"),
             orderBy("fechaInicio", "desc")
         );
 
         const snapshot = await getDocs(q);
-        const encuestas = snapshot.docs.map(doc => ({
+        const capacitaciones = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
 
         // Filtrar: solo activas (o que no tengan el campo activa definido)
-        const encuestasActivas = encuestas.filter(e => e.activa !== false);
+        const capacitacionesActivas = capacitaciones.filter(e => e.activa !== false);
 
         // Filtrar por acceso (según asignacion)
-        const encuestasAccesibles = encuestasActivas.filter(encuesta => {
-            const asignacion = encuesta.asignacion || { tipo: "global", valores: [] };
+        const capacitacionesAccesibles = capacitacionesActivas.filter(capacitacion => {
+            const asignacion = capacitacion.asignacion || { tipo: "global", valores: [] };
 
             switch (asignacion.tipo) {
                 case "global":
@@ -51,38 +51,37 @@ export const getEncuestasDisponibles = async (usuario) => {
             }
         });
 
-        // Traer respuestas del usuario para este conjunto de encuestas
-        // NOTA: Usar la colección centralizada "respuestasEncuestas"
-        const idsEncuestas = encuestasAccesibles.map(e => e.id);
+        // Traer respuestas del usuario para este conjunto de capacitaciones
+        const idsCapacitaciones = capacitacionesAccesibles.map(e => e.id);
         let respuestasUsuario = [];
 
-        if (idsEncuestas.length > 0) {
+        if (idsCapacitaciones.length > 0) {
             // IMPORTANTE: Usar usuario.uid (UID de Firebase), NO usuario.id (ID del documento)
             const qRespuestas = query(
-                collection(db, "respuestasEncuestas"),
+                collection(db, "respuestasCapacitaciones"),
                 where("userId", "==", usuario.uid),
-                where("encuestaId", "in", idsEncuestas)
+                where("capacitacionId", "in", idsCapacitaciones)
             );
             const snapshotRespuestas = await getDocs(qRespuestas);
             respuestasUsuario = snapshotRespuestas.docs.map(doc => doc.data());
         }
 
-        // Enriquecer encuestas con información calculada
+        // Enriquecer capacitaciones con información calculada
         const hoy = new Date();
-        const encuestasEnriquecidas = encuestasAccesibles.map(encuesta => {
-            const respondida = respuestasUsuario.some(r => r.encuestaId === encuesta.id);
+        const capacitacionesEnriquecidas = capacitacionesAccesibles.map(capacitacion => {
+            const respondida = respuestasUsuario.some(r => r.capacitacionId === capacitacion.id);
 
             // Parsear fechas (pueden venir como Timestamp o string)
-            const fechaInicio = encuesta.fechaInicio?.toDate?.()
-                || new Date(encuesta.fechaInicio);
-            const fechaFin = encuesta.fechaFin?.toDate?.()
-                || new Date(encuesta.fechaFin);
+            const fechaInicio = capacitacion.fechaInicio?.toDate?.()
+                || new Date(capacitacion.fechaInicio);
+            const fechaFin = capacitacion.fechaFin?.toDate?.()
+                || new Date(capacitacion.fechaFin);
 
             const vencida = hoy > fechaFin;
             const disponible = !vencida && !respondida;
 
             // Buscar respuesta para extraer puntaje y estado
-            const miRespuesta = respuestasUsuario.find(r => r.encuestaId === encuesta.id);
+            const miRespuesta = respuestasUsuario.find(r => r.capacitacionId === capacitacion.id);
             const miPuntaje = miRespuesta?.puntuacionObtenida || miRespuesta?.puntajeFinal || null;
             const miEstado = miRespuesta?.estadoActual || null;
 
@@ -93,24 +92,24 @@ export const getEncuestasDisponibles = async (usuario) => {
             }
 
             return {
-                id: encuesta.id,
-                titulo: encuesta.titulo || "",
-                descripcion: encuesta.descripcion || "",
-                instructor: encuesta.instructor || "",
-                modalidad: encuesta.modalidad || "",
-                fechaCurso: encuesta.fechaCurso || "",
+                id: capacitacion.id,
+                titulo: capacitacion.titulo || "",
+                descripcion: capacitacion.descripcion || "",
+                instructor: capacitacion.instructor || "",
+                modalidad: capacitacion.modalidad || "",
+                fechaCurso: capacitacion.fechaCurso || "",
                 fechaInicio: fechaInicio.toISOString().split("T")[0],
                 fechaFin: fechaFin.toISOString().split("T")[0],
-                horaInicio: encuesta.horaInicio || "",
-                horaFin: encuesta.horaFin || "",
-                duracion: encuesta.duracionHoras || "0",
-                tipoCurso: encuesta.tipoCurso || "",
-                formaEvaluacion: encuesta.formaEvaluacion || "",
+                horaInicio: capacitacion.horaInicio || "",
+                horaFin: capacitacion.horaFin || "",
+                duracion: capacitacion.duracionHoras || "0",
+                tipoCurso: capacitacion.tipoCurso || "",
+                formaEvaluacion: capacitacion.formaEvaluacion || "",
 
-                // Preguntas (IMPORTANTE: no debe faltar)
-                preguntas: encuesta.preguntas || [],
-                duracionHoras: encuesta.duracionHoras || "0",
-                duracionMinutos: encuesta.duracionMinutos || "0",
+                // Preguntas
+                preguntas: capacitacion.preguntas || [],
+                duracionHoras: capacitacion.duracionHoras || "0",
+                duracionMinutos: capacitacion.duracionMinutos || "0",
                 intentos: miRespuesta?.intentos || 0,
 
                 // Calculados
@@ -123,20 +122,20 @@ export const getEncuestasDisponibles = async (usuario) => {
             };
         });
 
-        return encuestasEnriquecidas;
+        return capacitacionesEnriquecidas;
 
     } catch (error) {
-        console.error("Error al obtener encuestas disponibles:", error);
+        console.error("Error al obtener capacitaciones disponibles:", error);
         return [];
     }
 };
 
 // ============================================================
-// CONTAR ENCUESTAS PENDIENTES
+// CONTAR CAPACITACIONES PENDIENTES
 // ============================================================
-// Devuelve el número de encuestas que el usuario aún no ha
+// Devuelve el número de capacitaciones que el usuario aún no ha
 // respondido y que no están vencidas.
-export const contarEncuestasPendientes = async (usuario) => {
-    const encuestas = await getEncuestasDisponibles(usuario);
-    return encuestas.filter(e => e.disponible).length;
+export const contarCapacitacionesPendientes = async (usuario) => {
+    const capacitaciones = await getCapacitacionesDisponibles(usuario);
+    return capacitaciones.filter(e => e.disponible).length;
 };

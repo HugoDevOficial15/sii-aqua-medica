@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi";
 import AppLoader from "../operator/components/AppLoader";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -10,7 +10,8 @@ const ESTADO_LABEL = {
     vencida: "Fuera de tiempo",
     completada: "Completada",
     reprobada: "Reprobada",
-    bloqueada: "Bloqueada"
+    bloqueada: "Bloqueada",
+    pendiente_validacion: "En revisión"
 };
 
 const ESTADO_BADGE_CLASS = {
@@ -18,14 +19,14 @@ const ESTADO_BADGE_CLASS = {
     vencida: "badge expired",
     completada: "badge approved",
     reprobada: "badge expired", 
-    bloqueada: "badge expired"  
+    bloqueada: "badge expired",
+    pendiente_validacion: "badge pending"
 };
 
 export default function OperatorSurveys({
     onNavigate,
     onSelectSurvey,
     surveys = [],
-    metrics = { disponibles: 0, respondidas: 0, reprobadas: 0 },
     loading = false,
     error = null
 }) {
@@ -33,31 +34,26 @@ export default function OperatorSurveys({
     const [transitioning, setTransitioning] = useState(false);
     const [activeTab, setActiveTab] = useState("Disponibles");
     
-    // 🔥 NUEVO: Estado para guardar el progreso real del usuario
+    // 🔥 ESTADO REACTIVO PARA RESPUESTAS (Garantiza que se muevan de pestaña en tiempo real)
     const [userResponses, setUserResponses] = useState({});
-    const [fetchingResponses, setFetchingResponses] = useState(true);
 
     useEffect(() => {
-        const fetchResponses = async () => {
-            if (!user?.uid) return;
-            try {
-                // Buscamos si el usuario ya contestó algo en Firebase
-                const q = query(collection(db, "encuestas_respuestas"), where("userId", "==", user.uid));
-                const snap = await getDocs(q);
-                const responsesMap = {};
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    responsesMap[data.idEncuesta || data.encuestaId] = data;
-                });
-                setUserResponses(responsesMap);
-            } catch (err) {
-                console.error("Error fetching survey responses:", err);
-            } finally {
-                setFetchingResponses(false);
-            }
-        };
-        fetchResponses();
-    }, [user?.uid, surveys]);
+        if (!user?.uid) return;
+
+        // Escuchamos la colección en tiempo real
+        // NOTA: Usar "respuestasEncuestas" como fuente centralizada
+        const q = query(collection(db, "respuestasEncuestas"), where("userId", "==", user.uid));
+        const unsubscribe = onSnapshot(q, (snap) => {
+            const map = {};
+            snap.forEach(doc => {
+                const d = doc.data();
+                map[d.encuestaId || d.idEncuesta] = d;
+            });
+            setUserResponses(map);
+        });
+
+        return () => unsubscribe();
+    }, [user?.uid]);
 
     const handleStartSurvey = (survey) => {
         setTransitioning(true);
@@ -68,22 +64,37 @@ export default function OperatorSurveys({
         }, 800);
     };
 
-    // 🔥 CRUCE INTELIGENTE: Mezcla la encuesta virgen con la respuesta del usuario
+    // 🔥 CRUCE INTELIGENTE EN TIEMPO REAL
     const encuestasCorregidas = surveys.map(survey => {
         const userResp = userResponses[survey.id];
         let estadoCorregido = survey.estadoActual || "pendiente";
+        let puntaje = survey.miPuntaje;
+        let intentos = survey.intentos || 1;
 
-        // Si ya hay respuesta en BD, usamos el estado guardado
         if (userResp) {
-            estadoCorregido = userResp.estadoActual || "completada";
-            return { 
-                ...survey, 
-                estadoActual: estadoCorregido, 
-                miPuntaje: userResp.calificacion || userResp.puntuacionObtenida,
-                intentos: userResp.intentos || 1
-            };
+            puntaje = userResp.calificacion ?? userResp.puntuacionObtenida;
+            intentos = userResp.intentos || 1;
+            
+            if (userResp.estadoActual === "pendiente_validacion" || userResp.tieneRespuestasAbiertas) {
+                estadoCorregido = "pendiente_validacion";
+            } else {
+                estadoCorregido = userResp.estadoActual || "completada";
+            }
+        } else if (estadoCorregido === "pendiente" && puntaje !== undefined && puntaje !== null) {
+            const puntajeNum = Number(puntaje);
+            if (puntajeNum < 80) {
+                estadoCorregido = intentos >= 3 ? "bloqueada" : "reprobada";
+            } else {
+                estadoCorregido = "completada";
+            }
         }
-        return { ...survey, estadoActual: estadoCorregido };
+
+        return { 
+            ...survey, 
+            estadoActual: estadoCorregido, 
+            miPuntaje: puntaje,
+            intentos: intentos 
+        };
     });
 
     const contadores = {
@@ -99,7 +110,7 @@ export default function OperatorSurveys({
         return true;
     });
 
-    if (fetchingResponses || loading || transitioning) return <AppLoader text="Cargando encuestas..." />;
+    if (loading || transitioning) return <AppLoader text="Cargando encuestas..." />;
 
     return (
         <div className="surveys-v2">
@@ -133,7 +144,9 @@ export default function OperatorSurveys({
                 {encuestasAMostrar.map(survey => (
                     <div key={survey.id} className="survey-card-v2">
                         <div className="survey-card-top">
-                            <span className={ESTADO_BADGE_CLASS[survey.estadoActual] || "badge default"}>{ESTADO_LABEL[survey.estadoActual] || survey.estadoActual}</span>
+                            <span className={ESTADO_BADGE_CLASS[survey.estadoActual] || "badge default"}>
+                                {ESTADO_LABEL[survey.estadoActual] || survey.estadoActual}
+                            </span>
                         </div>
 
                         <h3>{survey.titulo}</h3>
@@ -144,7 +157,7 @@ export default function OperatorSurveys({
                         <p><strong>Duración:</strong> {survey.duracionHoras}h {survey.duracionMinutos}m</p>
 
                         {survey.estadoActual === "completada" && <p style={{ color: "#10b981", marginTop:"10px" }}><strong>Puntaje obtenido:</strong> {survey.miPuntaje}/100 ✔️</p>}
-                        {survey.estadoActual === "pendiente_validacion" && <p style={{ color: "#3b82f6", marginTop:"10px" }}><strong>Estado:</strong> Pendiente de validación manual ⏱️</p>}
+                        {survey.estadoActual === "pendiente_validacion" && <p style={{ color: "#3b82f6", marginTop:"10px" }}><strong>Estado:</strong> Pendiente de revisión ⏱️</p>}
 
                         {(survey.estadoActual === "reprobada" || survey.estadoActual === "bloqueada") && (
                             <div style={{ marginTop:"10px" }}>

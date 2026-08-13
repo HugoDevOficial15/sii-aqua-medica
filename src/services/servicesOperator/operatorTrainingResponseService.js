@@ -36,10 +36,11 @@ export const getMyTrainingResponses = async (nominaUsuario) => {
 // ======================
 // RESPUESTAS DE UNA CAPACITACIÓN (panel de Administrador)
 // ======================
+// Busca por capacitacionId (también verifica idCapacitacion para compatibilidad)
 export const getResponsesForTraining = async (idCapacitacion) => {
     const q = query(
         responseCollection,
-        where("idCapacitacion", "==", idCapacitacion)
+        where("capacitacionId", "==", idCapacitacion)
     );
 
     const snapshot = await getDocs(q);

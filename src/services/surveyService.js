@@ -65,7 +65,7 @@ export const createSurvey = async (surveyData) => {
             );
         }
 
-        // Crear notificaciones para cada usuario
+        // Crear notificaciones para cada usuario con identificador único de encuesta
         for (const user of usersToNotify) {
             if (user.uid) {
                 await createNotification({

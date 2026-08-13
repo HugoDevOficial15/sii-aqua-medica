@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { FaEdit, FaEllipsisV } from "react-icons/fa";
+import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa"; // 🔥 Agregado FaTrash
 
 // 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
@@ -35,7 +35,6 @@ export default function News() {
 
   const [openActionsId, setOpenActionsId] = useState(null);
 
-
   // Cerrar menú de acciones al hacer clic fuera
   useEffect(() => {
     const closeMenu = (event) => {
@@ -44,10 +43,10 @@ export default function News() {
         }
     };
 
-        document.addEventListener("mousedown", closeMenu);
-
-        return () => document.removeEventListener("mousedown", closeMenu);
-    }, []);
+    document.addEventListener("mousedown", closeMenu);
+    return () => document.removeEventListener("mousedown", closeMenu);
+  }, []);
+  
   const [noticias, setNoticias] = useState([]);
 
   const cargarNoticias = async () => {
@@ -64,8 +63,6 @@ export default function News() {
   useEffect(() => {
     cargarNoticias();
   }, []);
-
-
 
   const handleArchivoChange = (e) => {
     if (e.target.files && e.target.files[0]) setArchivoSeleccionado(e.target.files[0]);
@@ -86,6 +83,20 @@ export default function News() {
     setFechaLimite(noticia.fechaLimite || ""); setAreaDestino(noticia.areaDestino || "Todas");
     setImagen(null); setArchivoSeleccionado(null); setNoticiaEditando(noticia);
     setVistaActual("formulario");
+  };
+
+  //  NUEVA FUNCIÓN: Eliminar Noticia
+  const handleEliminar = async (id, tituloNoticia) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar la noticia "${tituloNoticia}"? Esta acción no se puede deshacer.`)) {
+      try {
+        await deleteDoc(doc(db, "noticias", id));
+        alert("Noticia eliminada correctamente.");
+        cargarNoticias(); // Recargar la lista
+      } catch (error) {
+        console.error("Error al eliminar la noticia:", error);
+        alert("Hubo un error al eliminar la noticia.");
+      }
+    }
   };
 
   const convertirABase64 = (file) => {
@@ -248,12 +259,25 @@ export default function News() {
                                 className="news-action-menu-item-editar"
                                 onClick={() => {
                                   setOpenActionsId(null);
-                                  handleEditarNoticia(noticia);
+                                  abrirFormularioEditar(noticia); // Corrección: antes decía handleEditarNoticia
                                 }}
                                 onMouseDown={(event) => event.stopPropagation()}
                               >
                                 <FaEdit className="me-2" /> Editar
                               </button>
+                              
+                              {/* 🔥 BOTÓN DE BORRAR CORREGIDO */}
+                              <button
+                                type="button"
+                                className="news-action-menu-item-borrar"
+                                onClick={() => { 
+                                    setOpenActionsId(null);
+                                    handleEliminar(noticia.id, noticia.titulo); 
+                                }}
+                              >
+                                <FaTrash className="me-2" /> Borrar
+                              </button>
+
                             </div>
                           )}
 
@@ -569,6 +593,24 @@ export default function News() {
           color: var(--operator-primary);
         }
 
+        /* CSS PARA EL BOTÓN BORRAR */
+        .news-action-menu-item-borrar {
+          border: none;
+          background: var(--operator-card);
+          padding: 8px 10px;
+          display: flex;
+          text-align: center;
+          align-items: center;
+          font-size: 12px;
+          font-weight: 800;
+          border-radius: 8px;
+          color: #dc2626; /* Rojo de alerta */
+          cursor: pointer;
+        }
+
+        .news-action-menu-item-borrar:hover {
+          background: rgba(239, 68, 68, 0.1);
+        }
 
 `}</style>
     </div>

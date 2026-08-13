@@ -8,6 +8,11 @@ import {
     where
 } from "firebase/firestore";
 
+// ============================================================
+// COLECCIÓN ÚNICA DE RESPUESTAS DE ENCUESTAS
+// ============================================================
+// Todas las respuestas se guardan y consultan en "respuestasEncuestas"
+// para evitar inconsistencias de nombres en diferentes partes del código.
 const responseCollection =
     collection(
         db,
@@ -17,7 +22,9 @@ const responseCollection =
 // ======================
 // GUARDAR RESPUESTA
 // ======================
-
+// Guarda la respuesta del usuario con todos los metadatos necesarios
+// para poder reconstruir el resultado posteriormente sin depender de
+// cálculos en tiempo real.
 export const saveSurveyResponse =
     async (data) => {
 
@@ -29,13 +36,35 @@ export const saveSurveyResponse =
     };
 
 // ======================
-// RESPUESTAS DEL USUARIO (por nómina)
+// RESPUESTAS DEL USUARIO (por userId)
 // ======================
-// Descarga, en una sola consulta, todas las respuestas del usuario
-// autenticado. Se usa para cruzar en memoria contra las encuestas
-// asignadas, en vez de consultar una vez por cada encuesta.
+// Descarga todas las respuestas del usuario autenticado.
+// Se usa para cruzar en memoria contra las encuestas asignadas.
 
 export const getMyResponses =
+    async (userId) => {
+
+        const q = query(
+            responseCollection,
+            where(
+                "userId",
+                "==",
+                userId
+            )
+        );
+
+        const snapshot =
+            await getDocs(q);
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+    };
+
+// Alias para búsqueda por nómina (algunos componentes antiguos pueden usarlo)
+export const getMyResponsesByNomina =
     async (nominaUsuario) => {
 
         const q = query(
@@ -60,19 +89,13 @@ export const getMyResponses =
 // ======================
 // RESPUESTAS DE UNA ENCUESTA (panel de Administrador)
 // ======================
-// Una sola consulta trae todas las respuestas de esa encuesta; el cruce
-// con el perfil del usuario (área, género, puesto) se hace en memoria en
-// el componente, contra los datos de "users" ya cargados (getUsers()),
-// para no depender de que la respuesta guarde una copia embebida del
-// perfil (que quedaría desactualizada si el usuario cambia de área/puesto).
-
 export const getResponsesForSurvey =
     async (idEncuesta) => {
 
         const q = query(
             responseCollection,
             where(
-                "idEncuesta",
+                "encuestaId",
                 "==",
                 idEncuesta
             )
