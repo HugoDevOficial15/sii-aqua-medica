@@ -6,6 +6,7 @@ import { collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where, ser
 import { createNotification } from "../utils/createNotification";
 
 const userCollection = collection(db, "users");
+const incapacidadesCollection = collection(db, "incapacidades");
 
 // Data Users
 export const getUsers = async () => {
@@ -63,6 +64,75 @@ export const updateUser = async (id, data) => {
 
 }
 
+export const createIncapacidad = async ({
+    userId,
+    nomina,
+    nombre,
+    genero,
+    tipo,
+    fechaInicio,
+    fechaFin,
+    nota
+}) => {
+    const normalizedTipo = tipo || "incapacidad";
+    const payload = {
+        userId: userId || null,
+        nomina: nomina ? Number(nomina) : null,
+        nombre: nombre || "",
+        genero: genero || "",
+        tipo: normalizedTipo,
+        fechaInicio: fechaInicio || null,
+        fechaFin: fechaFin || null,
+        nota: nota?.trim() || "",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+    };
+
+    const docRef = await addDoc(incapacidadesCollection, payload);
+
+    if (userId) {
+        await updateDoc(doc(db, "users", userId), {
+            estado: "incapacidad",
+            tipoIncapacidad: normalizedTipo,
+            fechaInicioIncapacidad: fechaInicio || null,
+            fechaFinIncapacidad: fechaFin || null,
+            notaIncapacidad: nota?.trim() || "",
+            updatedAt: serverTimestamp()
+        });
+    }
+
+    return { id: docRef.id, ...payload };
+};
+
+export const getIncapacidadesByUser = async (userId, nomina = null) => {
+    if (!userId && (nomina === null || nomina === undefined || nomina === "")) {
+        return [];
+    }
+
+    const queryFilters = [];
+
+    if (userId) {
+        queryFilters.push(where("userId", "==", userId));
+    }
+
+    if (nomina !== null && nomina !== undefined && nomina !== "") {
+        queryFilters.push(where("nomina", "==", Number(nomina)));
+    }
+
+    const q = query(incapacidadesCollection, ...queryFilters);
+    const snapshot = await getDocs(q);
+
+    const incapacidades = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data()
+    }));
+
+    return incapacidades.sort((a, b) => {
+        const aDate = a.fechaInicio ? new Date(a.fechaInicio).getTime() : 0;
+        const bDate = b.fechaInicio ? new Date(b.fechaInicio).getTime() : 0;
+        return bDate - aDate;
+    });
+};
 
 // Aplica cambios ya aprobados por un administrador a un usuario existente.
 // Localiza el documento por número de nómina (nunca por uid) y aplica una

@@ -91,7 +91,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                     </button>
 
                     <button
-                        className="btn btn-success custom-btn d-flex align-items-center gap-1"
+                        className="btn btn-success custom-btn"
                         onClick={handleSave}
                         disabled={loading}
                     >
@@ -120,7 +120,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
             }
 
             .custom-modal {
-                background: #fff;
+                background: var(--operator-card);
                 border-radius: 16px;
                 width: 420px;
                 max-width: 95%;
@@ -131,16 +131,26 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
 
             .custom-modal-header {
                 padding: 14px 18px;
-                border-bottom: 1px solid #eee;
-                background: #f9fafb;
+                background: var(--operator-card);
             }
 
             .btn-close-custom {
-                border: none;
-                background: transparent;
+                width: 36px;
+                height: 36px;
+                border: none; 
+                border-radius: 10px;
+                background: var(--operator-card); 
+                color: var(--operator-text); 
+                font-size: 20px;
                 cursor: pointer;
-                font-size: 14px;
-                color: #6b7280;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-close-custom:hover {
+                background: var(--operator-border);
+                color: var(--operator-primary);
             }
 
             .custom-modal-body {
@@ -151,7 +161,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
             }
 
             .info-box {
-                background: #f3f4f6;
+                background: var(--operator-card);
                 padding: 10px;
                 border-radius: 8px;
                 font-size: 13px;
@@ -159,7 +169,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
 
             .custom-textarea {
                 border-radius: 10px;
-                border: 1px solid #e5e7eb;
+                border: 1px solid var(--operator-border);
                 min-height: 100px;
                 font-size: 13px;
                 transition: all 0.2s ease;
@@ -172,11 +182,11 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
 
             .custom-modal-footer {
                 padding: 14px 18px;
-                border-top: 1px solid #eee;
+                border-top: 1px solid var(--operator-border);
                 display: flex;
                 justify-content: flex-end;
                 gap: 10px;
-                background: #fafafa;
+                background: var(--operator-card);
             }
 
             .custom-btn {
@@ -199,6 +209,44 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                 }
             }
 
+            .btn-light.custom-btn {
+                height: 50px;
+                padding: 0 24px;   
+                border: none;
+                border-radius: 14px;
+                background: var(--operator-border);
+                color: var(--operator-text);
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-shadow);
+            }
+
+            .btn-light.custom-btn:hover {
+                color: var(--operator-danger);
+            }
+
+            .btn-success.custom-btn {
+                height: 50px;
+                padding: 0 24px;
+                border-radius: 14px;
+                border: none;
+                background: var(--operator-primary);
+                color: #fff;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                gap:6px;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-primary-light);
+            }
+
+            .btn-success.custom-btn:hover {
+                box-shadow: 0 0px 10px var(--operator-primary-light);
+            }
         `}</style>
 
         </div>

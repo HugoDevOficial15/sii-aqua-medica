@@ -17,7 +17,7 @@ import {
     FaClosedCaptioning, FaCalendarMinus, FaCalendarDay,
     FaBuilding, FaSearch, FaFilePdf,
     FaFileExport, FaEyeSlash, FaLock, FaChartPie,
-    FaChartBar, FaCalendarPlus, FaTrashAlt
+    FaChartBar, FaCalendarPlus, FaTrashAlt, FaEllipsisV
 } from "react-icons/fa";
 
 import { notifySuccess, notifyError } from "../../utils/notify";
@@ -64,6 +64,22 @@ export default function ListaServiciosPage() {
     const [horaInicioBloqueo, setHoraInicioBloqueo] = useState("");
     const [horaFinBloqueo, setHoraFinBloqueo] = useState("");
     const [motivoHorario, setMotivoHorario] = useState("");
+
+    const [openActionsId, setOpenActionsId] = useState(null);
+
+    // CERRAR EL ACTION MENU AL HACER CLICK FUERA
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (!event.target.closest(".servicios-actions-cell")) {
+                setOpenActionsId(null);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    
+    }, []);
 
     const fetchData = async () => {
         setLoading(true);
@@ -540,45 +556,69 @@ export default function ListaServiciosPage() {
                                 <th>Hora</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
-                                <th>Eliminar</th>
                             </tr>
                         </thead>
 
                         <tbody>
                             {serviciosFiltrados.map(s => (
-                                <tr key={s.id}>
+                                <tr key={s.id}
+                                    className={openActionsId === s.id ? "servicio-row-active user-row-open" : ""}
+                                    >
+
                                     <td>{s.equipoCodigo}</td>
                                     <td>{s.areaId.toUpperCase()}</td>
                                     <td>{s.usuarioNombre}</td>
                                     <td>{s.fecha}</td>
                                     <td>{s.horaInicio}</td>
                                     <td>{s.estado.toUpperCase()}</td>
-                                    <td>
-
-                                        <button
-                                            className={`btn btn-sm ${s.estado === "realizado" ? "btn-primary" : "btn-danger"}`}
-                                            onClick={() => {
-                                                if (s.estado !== "realizado") {
-                                                    setSelected(s);
-                                                }
-                                            }}
-                                            disabled={s.estado === "realizado"}
+                                    <td className="servicios-actions-cell">
+                                        <div
+                                            className="servicios-actions-wrapper"
+                                            onMouseDown={(e) => e.stopPropagation()}
                                         >
-                                            {s.estado === "realizado" ? <FaCheck className="me-2" /> : <FaClosedCaptioning className="me-2" />}
+                                            <button
+                                                className="servicios-actions-button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setOpenActionsId(openActionsId === s.id ? null : s.id);
+                                                }}
+                                            >
+                                                <FaEllipsisV />
+                                            </button>
 
-                                            {s.estado === "realizado" ? "Realizado" : "Finalizar"}
-                                        </button>
+                                            {openActionsId === s.id && (
+                                                <div className="servicios-actions-menu">
+                                                    <button
+                                                        type="button"
+                                                        className={`btn ${s.estado === "realizado" ? "realizado" : "finalizar"}`}
+                                                        onClick={() => {
+                                                            if (s.estado !== "realizado") {
+                                                                setSelected(s);
+                                                            }
+                                                        }}
+                                                        disabled={s.estado === "realizado"}
+                                                    >
+                                                        {s.estado === "realizado" ? <FaCheck className="me-2" /> : <FaClosedCaptioning className="me-2" />}
 
-                                    </td>
-                                    <td>
-                                    {s.estado === "pendiente" && (
-                                        <button
-                                            className="btn btn-sm btn-outline-danger ms-2"
-                                            onClick={() => setServicioEliminar(s)}
-                                        >
-                                            <FaTrashAlt className="me-2" /> Eliminar
-                                        </button>
-                                    )}
+                                                        {s.estado === "realizado" ? "Realizado" : "Finalizar"}
+                                                    </button>
+                                                    
+                                                    {s.estado === "pendiente" && (
+                                                        <button
+                                                            type="button"
+                                                            className="eliminar"
+                                                            onClick={() => setServicioEliminar(s)}
+                                                        >
+                                                            <FaTrashAlt className="me-2" /> Eliminar
+                                                        </button>
+                                                    )}
+
+
+                                                </div>
+                                            )}
+
+                                        </div>
+
                                     </td>
                                 </tr>
                             ))}
@@ -743,7 +783,11 @@ export default function ListaServiciosPage() {
                 /* CONTAINER */
             .card-body-table-responsive-container {
                 display: flex;
-                
+                overflow: visible;
+            }
+
+            .table-responsive-container {
+                overflow: visible !important;
             }
                 /* TABLA */
 
@@ -752,6 +796,7 @@ export default function ListaServiciosPage() {
                 width: 100%;
                 border-collapse: collapse;
                 border-spacing: 0 10px !important;    
+                overflow: visible;
             }
 
             .table thead th {
@@ -777,6 +822,7 @@ export default function ListaServiciosPage() {
                 vertical-align: middle;
                 border-top: none !important;
                 white-space: wrap;
+                position: relative;
 
                 word-break: break-word;
                 overflow-wrap: anywhere;
@@ -784,11 +830,31 @@ export default function ListaServiciosPage() {
                 min-width: 100px;
             }
 
+            .table tbody tr {
+                position: relative;
+                z-index: 1;
+                isolation: isolate;
+            }
+
             .table tbody tr:hover {
                 transform: scale(1.02);
                 transition: transform 0.2s;
-        }
+                z-index: 2;
+            }
 
+            .table tbody tr.servicio-row-open {
+                z-index: 50;
+            }
+
+            .table tbody tr.servicio-row-active {
+                transform: none !important;
+                box-shadow: none !important;
+                z-index: 50;
+            }
+
+            .table thead th:nth-child(7){
+                text-align: center;
+            }
 
 
                 /* LABELS, FORMS y SELECTS */
@@ -878,6 +944,103 @@ export default function ListaServiciosPage() {
                     background: var(--operator-primary);
                     box-shadow: 0 0px 10px var(--operator-primary-light);
                 }
+
+                /*  MENU DE ACCIONES */
+
+                .servicios-actions-cell {
+                    text-align: center;
+                    overflow: visible;
+                    justify-content: center;
+                    position: relative;
+                    z-index: 60;
+                }
+
+                .servicios-actions-wrapper {
+                    position: relative;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    max-width: 36px;
+                    min-width: 36px;
+                    z-index: 70;
+                    isolation: isolate;
+                }
+
+                .servicios-actions-button {
+                    width: 36px;
+                    height: 36px;
+                    border: 1px solid var(--operator-border);
+                    border-radius: 999px;
+                    background: var(--operator-card);
+                    color: var(--operator-text);
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    padding: 10px;
+                }
+
+                .servicios-actions-button:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-primary);
+                }
+
+                .servicios-actions-menu {
+                    position: absolute;
+                    min-width: 180px;
+                    overflow: visible;
+                    background: var(--operator-background);
+                    border: 1px solid var(--operator-background);
+                    border-radius: 10px;
+                    box-shadow: 0 10px 24px var(--operator-shadow);
+                    padding: 8px 10px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    z-index: 99999;
+                }
+                
+                .finalizar,
+                .eliminar {
+                    border: none;
+                    background: var(--operator-card);
+                    padding: 8px 10px;
+                    display: flex;
+                    text-align: center;
+                    align-items: center;
+                    font-size: 12px;
+                    font-weight: 800;
+                    border-radius: 8px;
+                    color: var(--operator-text);
+                    cursor: pointer;    
+                }
+
+                .realizado {
+                    border: none;
+                    background: var(--operator-border);
+                    padding: 8px 10px;
+                    display: flex;
+                    text-align: center;
+                    align-items: center;
+                    font-size: 12px;
+                    font-weight: 800;
+                    border-radius: 8px;
+                    color: var(--operator-primary) !important;
+                    cursor: pointer;
+                    opacity: 1;
+                }
+
+                
+                .finalizar:hover {
+                    background: var(--operator-card);
+                    color: var(--operator-primary);
+                }
+
+                .eliminar:hover {
+                    background: var(--operator-card);
+                    color: var(--operator-danger);
+                }
+
             `}</style>
         </div>
     );

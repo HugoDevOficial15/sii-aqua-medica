@@ -52,7 +52,6 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
         { to: "/almacen/materiales", icon: <FaBoxes />, label: "Agregar Material", permiso: "peps.ver" },
         { to: "/citas-medicas", icon: <FaAmbulance />, label: "Citas Médicas", permiso: "citas.ver" },
         { to: "/notas", icon: <FaStickyNote />, label: "Notas", permiso: "notas.ver" },
-        { to: "/herramientas", icon: <FaTools />, label: "Herramientas", permiso: "herramientas.ver" },
         { to: "/configuracion", icon: <FaCog />, label: "Configuración", permiso: "config.ver" },
         { to: "/soporte", icon: <FaHeadset />, label: "Soporte" },
         { to: "/reporte-problemas", icon: <FaHandHoldingHeart />, label: "Reporte de Problemas" },

@@ -74,9 +74,9 @@ export default function AniversarioMesesPage() {
                 .agenda-card {
                     position: relative;
                     overflow: hidden;
-                    height: 180px;
+                    height: 260px;
                     padding: 22px;
-                    border-radius: 28px;
+                    border-radius: 16px;
                     cursor: pointer;
                     display: flex;
                     flex-direction: column;

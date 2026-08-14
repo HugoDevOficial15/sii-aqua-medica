@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
+import { exportInformacionUserPDF } from "../../utils/exportInformacionUser";
+
 // Excel
 import * as XLSX from "xlsx";
 
@@ -12,6 +14,8 @@ import {
     getUsers,
     createUser,
     updateUser,
+    createIncapacidad,
+    getIncapacidadesByUser,
     migrateNomina,
     nominaExists,
     findDuplicateNominas,
@@ -37,7 +41,7 @@ import { userSchema } from "../../schemas/userSchema";
 // import { resetPasswordByAdmin } from "../../services/adminAuthService";
 
 // Icons
-import { FaUserCheck, FaEdit, FaUserEdit, FaUserPlus, FaUserSlash, FaFileExcel, FaKey, FaCheckCircle, FaFileImport, FaSearch, FaEllipsisV } from "react-icons/fa";
+import { FaUserCheck, FaEdit, FaUserEdit, FaUserPlus, FaUserSlash, FaFileExcel, FaKey, FaCheckCircle, FaFileImport, FaSearch, FaEllipsisV, FaHouseUser, FaAddressCard } from "react-icons/fa";
 
 // Areas
 import { AREAS } from "../../catalogs/areas";
@@ -53,6 +57,10 @@ export default function Users({onClose}) {
 
     // Modal
     const [showModal, setShowModal] = useState(false);
+
+    // Modal Información
+    const [infoModal, setInfoModal] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
 
     // Busqueda
     const [search, setSearch] = useState("");
@@ -80,6 +88,46 @@ export default function Users({onClose}) {
 
     // Acciones abiertas
     const [openActionsId, setOpenActionsId] = useState(null);
+
+    // Incapacidades
+    const [incapacidadModal, setIncapacidadModal] = useState(false);
+    const [selectedIncapacidadUser, setSelectedIncapacidadUser] = useState(null);
+    const [expandedUserId, setExpandedUserId] = useState(null);
+    const [userIncapacidades, setUserIncapacidades] = useState({});
+    const [incapacidadForm, setIncapacidadForm] = useState({
+        tipo: "incapacidad",
+        fechaInicio: "",
+        fechaFin: "",
+        nota: ""
+    });
+
+    const isWoman = (user) => {
+        const genero = String(user?.Genero || user?.genero || "").trim().toUpperCase();
+        return ["M", "MUJER", "F", "FEMENINO"].includes(genero);
+    };
+
+    const getUserStatusBadge = (user) => {
+        const estado = String(user?.estado || "").trim().toLowerCase();
+
+        if (estado === "incapacidad") {
+            return {
+                label: "Incapacidad",
+                className: "custom-badge-warning"
+            };
+        }
+
+        if (user?.activo === false) {
+            return {
+                label: "Baja",
+                className: "custom-badge-danger"
+            };
+        }
+
+        return {
+            label: "Activo",
+            className: "custom-badge-success"
+        };
+    };
 
     // Form React Hook Form
     const {
@@ -187,7 +235,10 @@ export default function Users({onClose}) {
                 ...data,
                 nomina: Number(data.nomina),
                 email: data.nomina + "@aquamedica.com",
-                activo: true
+                activo: true,
+                curp: (data.curp || "").trim().replace(/[\s\-_/\\]+/g, "").toUpperCase(),
+                rfc: (data.rfc || "").trim().replace(/[\s\-_/\\]+/g, "").toUpperCase(),
+                nss: (data.nss || "").trim().replace(/[^\d]/g, "")
             }
 
             if (editing) {
@@ -250,7 +301,10 @@ export default function Users({onClose}) {
             rol: user.rol,
             fechaIngreso: user.fechaIngreso,
             cumpleanos: user.cumpleanos,
-            puesto: user.puesto
+            puesto: user.puesto,
+            curp: user.curp || "",
+            rfc: user.rfc || "",
+            nss: user.nss || ""
         });
 
         setCurrentId(user.id);
@@ -488,6 +542,98 @@ export default function Users({onClose}) {
             Swal.close();
             notifyError("Error", "No se pudo completar el diagnóstico.");
         }
+    };  
+        {/* INCAPACIDADES */}
+
+    const getTodayDate = () => new Date().toISOString().split("T")[0];
+
+    const handleToggleUserIncapacidades = async (user) => {
+        const isExpanded = expandedUserId === user.id;
+        setExpandedUserId(isExpanded ? null : user.id);
+
+        if (isExpanded) {
+            return;
+        }
+
+        try {
+            const incapacidades = await getIncapacidadesByUser(user.id, user.nomina);
+            setUserIncapacidades((prev) => ({
+                ...prev,
+                [user.id]: incapacidades
+            }));
+        } catch (error) {
+            console.error("Error cargando incapacidades del usuario:", error);
+            setUserIncapacidades((prev) => ({
+                ...prev,
+                [user.id]: []
+            }));
+        }
+    };
+
+    const handleOpenIncapacidad = (user) => {
+        setSelectedIncapacidadUser(user);
+        setIncapacidadForm({
+            tipo: isWoman(user) ? "incapacidad" : "incapacidad",
+            fechaInicio: "",
+            fechaFin: "",
+            nota: ""
+        });
+        setIncapacidadModal(true);
+    };
+
+    const handleOpenUserInfo = (user) => {
+        setSelectedUser(user);
+        setInfoModal(true);
+    };
+
+    const handleSaveIncapacidad = async (event) => {
+        event.preventDefault();
+
+        if (!selectedIncapacidadUser) return;
+
+        if (!incapacidadForm.fechaInicio || !incapacidadForm.fechaFin) {
+            notifyError("Datos incompletos", "Debes indicar la fecha de inicio y la fecha de fin.");
+            return;
+        }
+
+        if (new Date(incapacidadForm.fechaFin) < new Date(incapacidadForm.fechaInicio)) {
+            notifyError("Fechas inválidas", "La fecha de término no puede ser menor que la de inicio.");
+            return;
+        }
+
+        try {
+            const tipo = isWoman(selectedIncapacidadUser)
+                ? incapacidadForm.tipo
+                : "incapacidad";
+
+            await createIncapacidad({
+                userId: selectedIncapacidadUser.id,
+                nomina: selectedIncapacidadUser.nomina,
+                nombre: selectedIncapacidadUser.nombre,
+                genero: selectedIncapacidadUser.Genero || selectedIncapacidadUser.genero || "",
+                tipo,
+                fechaInicio: incapacidadForm.fechaInicio,
+                fechaFin: incapacidadForm.fechaFin,
+                nota: incapacidadForm.nota
+            });
+
+            notifySuccess(
+                "Incapacidad registrada",
+                `Se guardó correctamente la ${tipo} para ${selectedIncapacidadUser.nombre}.`
+            );
+
+            setIncapacidadModal(false);
+            setSelectedIncapacidadUser(null);
+            setIncapacidadForm({
+                tipo: "incapacidad",
+                fechaInicio: "",
+                fechaFin: "",
+                nota: ""
+            });
+        } catch (error) {
+            console.error("Error guardando incapacidad:", error);
+            notifyError("Error", "No se pudo guardar la incapacidad.");
+        }
     };
 
     // Importar CSV (curp/rfc/nss pendientes)
@@ -717,7 +863,10 @@ export default function Users({onClose}) {
                                 puesto: "",
                                 fechaIngreso: "",
                                 cumpleanos: "",
-                                rol: ""
+                                rol: "",
+                                curp: "",
+                                rfc: "",
+                                nss: ""
                             });
                             setEditing(false);
                             setShowModal(true);
@@ -751,105 +900,168 @@ export default function Users({onClose}) {
 
                         <tbody>
 
-                            {currentUsers.map((user) => (
+                            {currentUsers.map((user) => {
+                                const isExpanded = expandedUserId === user.id;
+                                const incapacidades = userIncapacidades[user.id] || [];
 
-                                <tr
-                                    key={user.id}
-                                    className={openActionsId === user.id ? "user-row-active user-row-open" : ""}
-                                >
-
-                                    <td>{user.nomina}</td>
-                                    <td>{user.nombre}</td>
-                                    <td>{user.area.toUpperCase()}</td>
-                                    <td>{user.puesto}</td>
-
-                                    <td>
-                                        {user.activo ? (
-                                            <span className="custom-badge-success">
-                                                Activo</span>
-                                        ) : (
-                                            <span className="custom-badge-danger">
-                                                Baja</span>
-                                        )}
-                                    </td>
-
-                                    <td className="users-actions-cell">
-                                        <div
-                                            className="users-actions-wrapper"
-                                            onMouseDown={(event) => event.stopPropagation()}
+                                return (
+                                    <>
+                                        <tr
+                                            key={user.id}
+                                            className={openActionsId === user.id ? "user-row-active user-row-open" : ""}
+                                            onClick={() => handleToggleUserIncapacidades(user)}
+                                            style={{ cursor: "pointer" }}
                                         >
-                                            <button 
-                                                type="button"
-                                                className="user-action-menu-button"
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    setOpenActionsId(openActionsId === user.id ? null : user.id);
-                                                }}
-                                                aria-label="Abrir menú de acciones"
-                                            >
-                                                <FaEllipsisV />
-                                            </button>
 
-                                            {openActionsId === user.id && (
+                                            <td>{user.nomina}</td>
+                                            <td>{user.nombre}</td>
+                                            <td>{user.area.toUpperCase()}</td>
+                                            <td>{user.puesto}</td>
+
+                                            <td>
+                                                {(() => {
+                                                    const status = getUserStatusBadge(user);
+                                                    return <span className={status.className}>{status.label}</span>;
+                                                })()}
+                                            </td>
+
+                                            <td className="users-actions-cell">
                                                 <div
-                                                    className="user-action-menu"
+                                                    className="users-actions-wrapper"
                                                     onMouseDown={(event) => event.stopPropagation()}
                                                 >
-                                                    <button
+                                                    <button 
                                                         type="button"
-                                                        className="user-action-menu-editar"
-                                                        onClick={() => {
-                                                            setOpenActionsId(null);
-                                                            handleEdit(user);
+                                                        className="user-action-menu-button"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            setOpenActionsId(openActionsId === user.id ? null : user.id);
                                                         }}
-                                                        onMouseDown={(event) => event.stopPropagation()}
+                                                        aria-label="Abrir menú de acciones"
                                                     >
-                                                        <FaEdit className="me-1" />
-                                                        Editar
+                                                        <FaEllipsisV />
                                                     </button>
 
-                                                    <button
-                                                        type="button"
-                                                        className={`user-action-menu-${user.activo ? "baja" : "activar"}`}
-                                                        onClick={() => {
-                                                            setOpenActionsId(null);
-                                                            toggleUserStatus(user);
-                                                        }}
-                                                        onMouseDown={(event) => event.stopPropagation()}
-                                                    >
-                                                        {user.activo ? (
-                                                            <>
-                                                                <FaUserSlash className="me-1" />
-                                                                Baja
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <FaUserCheck className="me-1" />
-                                                                Activar
-                                                            </>
-                                                        )}
-                                                    </button>
+                                                    {openActionsId === user.id && (
+                                                        <div
+                                                            className="user-action-menu"
+                                                            onMouseDown={(event) => event.stopPropagation()}
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                className="user-action-menu-editar"
+                                                                onClick={() => {
+                                                                    setOpenActionsId(null);
+                                                                    handleEdit(user);
+                                                                }}
+                                                                onMouseDown={(event) => event.stopPropagation()}
+                                                            >
+                                                                <FaEdit className="me-1" />
+                                                                Editar
+                                                            </button>
 
-                                                    <button
-                                                        type="button"
-                                                        className="user-action-menu-reset"
-                                                        onClick={() => {
-                                                            setOpenActionsId(null);
-                                                            handleResetPassword(user);
-                                                        }}
-                                                        onMouseDown={(event) => event.stopPropagation()}
-                                                    >
-                                                        <FaKey className="me-1" />
-                                                        Reset
-                                                    </button>
+                                                            <button
+                                                                type="button"
+                                                                className={`user-action-menu-${user.activo ? "baja" : "activar"}`}
+                                                                onClick={() => {
+                                                                    setOpenActionsId(null);
+                                                                    toggleUserStatus(user);
+                                                                }}
+                                                                onMouseDown={(event) => event.stopPropagation()}
+                                                            >
+                                                                {user.activo ? (
+                                                                    <>
+                                                                        <FaUserSlash className="me-1" />
+                                                                        Baja
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <FaUserCheck className="me-1" />
+                                                                        Activar
+                                                                    </>
+                                                                )}
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="user-action-menu-reset"
+                                                                onClick={() => {
+                                                                    setOpenActionsId(null);
+                                                                    handleResetPassword(user);
+                                                                }}
+                                                                onMouseDown={(event) => event.stopPropagation()}
+                                                            >
+                                                                <FaKey className="me-1" />
+                                                                Reset
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="user-action-menu-incapacidad"
+                                                                onClick={() => {
+                                                                    setOpenActionsId(null);
+                                                                    handleOpenIncapacidad(user);
+                                                                }}
+                                                                onMouseDown={(event) => event.stopPropagation()}
+                                                            >
+                                                                <FaHouseUser className="me-1" />
+                                                                Incapacidad
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="user-action-menu-informacion"
+                                                                onClick={() => {
+                                                                    setOpenActionsId(null);
+                                                                    handleOpenUserInfo(user);
+                                                                }}
+                                                                onMouseDown={(event) => event.stopPropagation()}
+                                                            >
+                                                                <FaAddressCard className="me-1" />
+                                                                Información
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    </td>
+                                            </td>
 
-                                </tr>
+                                        </tr>
 
-                            ))}
+                                        {isExpanded && (
+                                            <tr key={`${user.id}-incapacidades`} className="user-incapacidades-row">
+                                                <td colSpan="6" className="user-incapacidades-cell">
+                                                    <div className="user-incapacidades-box">
+                                                        {incapacidades.length > 0 ? (
+                                                            <table className="user-incapacidades-table">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Tipo</th>
+                                                                        <th>Inicio</th>
+                                                                        <th>Término</th>
+                                                                        <th>Nota</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {incapacidades.map((incapacidad) => (
+                                                                        <tr key={incapacidad.id}>
+                                                                            <td>{incapacidad.tipo || "Incapacidad"}</td>
+                                                                            <td>{incapacidad.fechaInicio || "-"}</td>
+                                                                            <td>{incapacidad.fechaFin || "-"}</td>
+                                                                            <td>{incapacidad.nota || "-"}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        ) : (
+                                                            <div className="user-incapacidad-empty">No hay ninguna incapacidad registrada.</div>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </>
+                                );
+                            })}
 
                         </tbody>
 
@@ -883,6 +1095,164 @@ export default function Users({onClose}) {
                 </div>
 
             </div>
+
+            {/* MODAL INCAPACIDAD */}
+
+            {incapacidadModal && selectedIncapacidadUser && (
+                <div className="modal-backdrop-custom custom-modal-backdrop">
+                    <div className="modal-card custom-modal incapacidad-modal-card">
+                        <div className="modal-header custom-modal-header">
+                            <h5>Registrar incapacidad</h5>
+                            <button
+                                type="button"
+                                className="custom-close-btn"
+                                onClick={() => {
+                                    setIncapacidadModal(false);
+                                    setSelectedIncapacidadUser(null);
+                                }}
+                                aria-label="Cerrar"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveIncapacidad}>
+                            <div className="modal-body">
+                                <div className="row g-3">
+                                    <div className="col-md-12">
+                                        <label>Empleado</label>
+                                        <input
+                                            className="form-control"
+                                            value={`${selectedIncapacidadUser.nombre} (${selectedIncapacidadUser.nomina})`}
+                                            readOnly
+                                        />
+                                    </div>
+
+                                    {isWoman(selectedIncapacidadUser) && (
+                                        <div className="col-md-12">
+                                            <label>Tipo</label>
+                                            <select
+                                                className="form-select"
+                                                value={incapacidadForm.tipo}
+                                                onChange={(event) => setIncapacidadForm((prev) => ({ ...prev, tipo: event.target.value }))}
+                                            >
+                                                <option value="incapacidad">Incapacidad</option>
+                                                <option value="maternidad">Maternidad</option>
+                                                <option value="lactancia">Lactancia</option>
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <div className="col-md-6">
+                                        <label>Inicio</label>
+                                        <input
+                                            type="date"
+                                            className="form-control"
+                                            min={getTodayDate()}
+                                            value={incapacidadForm.fechaInicio}
+                                            onChange={(event) => setIncapacidadForm((prev) => ({ ...prev, fechaInicio: event.target.value }))}
+                                        />
+                                    </div>
+
+                                    <div className="col-md-6">
+                                        <label>Término</label>
+                                        <input
+                                            type="date"
+                                            className="form-control"
+                                            min={incapacidadForm.fechaInicio || getTodayDate()}
+                                            value={incapacidadForm.fechaFin}
+                                            onChange={(event) => setIncapacidadForm((prev) => ({ ...prev, fechaFin: event.target.value }))}
+                                        />
+                                    </div>
+
+                                    <div className="col-md-12">
+                                        <label>Nota</label>
+                                        <textarea
+                                            className="form-control custom-textarea"
+                                            rows="4"
+                                            value={incapacidadForm.nota}
+                                            onChange={(event) => setIncapacidadForm((prev) => ({ ...prev, nota: event.target.value }))}
+                                            placeholder="Comentarios o detalles adicionales..."
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-sm btn-secondary custom-btn"
+                                    onClick={() => {
+                                        setIncapacidadModal(false);
+                                        setSelectedIncapacidadUser(null);
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button type="submit" className="btn btn-primary">
+                                    Guardar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL INFORMACION */}
+
+            {infoModal && selectedUser && (
+                <div className="modal-backdrop-custom custom-modal-backdrop">
+                    <div className="modal-card custom-modal">
+                        <div className="modal-header custom-modal-header">
+                            <h5>Información del Usuario</h5>
+                            <button
+                                type="button"
+                                className="custom-close-btn"
+                                onClick={() => {
+                                    setInfoModal(false);
+                                    setSelectedUser(null);
+                                }}
+                                aria-label="Cerrar"
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <p><strong>Nombre:</strong> {selectedUser.nombre}</p>
+                            <p><strong>Nómina:</strong> {selectedUser.nomina}</p>
+                            <p><strong>Área:</strong> {selectedUser.area}</p>
+                            <p><strong>CURP:</strong> {selectedUser.curp || "-"}</p>
+                            <p><strong>RFC:</strong> {selectedUser.rfc || "-"}</p>
+                            <p><strong>NSS:</strong> {selectedUser.nss || "-"}</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-secondary custom-btn"
+                                onClick={() => {
+                                    setInfoModal(false);
+                                    setSelectedUser(null);
+                                }}
+                            >
+                                Cerrar
+                            </button>
+
+                            <button
+                                type="button"
+                                className="btn-infoPDF"
+                                onClick={async () => {
+                                    await exportInformacionUserPDF({ usuario: selectedUser });
+                                }}
+                            >
+                                PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
 
             {/* MODAL */}
             {showModal && (
@@ -962,6 +1332,20 @@ export default function Users({onClose}) {
                                         </select>
                                     </div>
 
+                                    <div className="col-md-6">
+                                        <label>CURP</label>
+                                        <input className="form-control" {...register("curp")} />
+                                    </div>
+
+                                    <div className="col-md-6">
+                                        <label>RFC</label>
+                                        <input className="form-control" {...register("rfc")} />
+                                    </div>
+
+                                    <div className="col-md-6">
+                                        <label>NSS</label>
+                                        <input className="form-control" {...register("nss")} />
+                                    </div>
                                 </div>
 
                             </div>
@@ -1037,6 +1421,10 @@ export default function Users({onClose}) {
 
             .card-body.table-responsive-container {
                 overflow: visible;
+            }
+
+            .btn-outline-warning {
+                height: 50px;
             }
             /* TABLA */
 
@@ -1155,8 +1543,38 @@ export default function Users({onClose}) {
                 font-size: 0.8rem;
             }
 
+            .custom-badge-warning {
+                background: #edc7fe;
+                color: #730e92;
+                padding: 6px 12px;
+                border-radius: 999px;
+                font-size: 0.8rem;
+            }
+
             .custom-btn {
                 border-radius: 10px;
+            }
+
+            .btn-infoPDF {
+                height: 50px;
+                padding: 0 20px;
+                border-radius: 10px;
+                border: none;
+                background: var(--operator-danger);
+                color: #fff;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 15px var(--operator-danger);    
+            }
+
+            .btn-infoPDF:hover {
+                background: var(--operator-danger);
+                box-shadow: 0 0px 10px var(--operator-danger);
+                transition: all 0.2s ease-in-out;
+                scale: 1.02;
             }
 
             /* MODAL MEJORADO */
@@ -1207,6 +1625,15 @@ export default function Users({onClose}) {
                 display: flex;
                 justify-content: flex-end;
                 background: var(--operator-card);
+            }
+
+            .modal-footer .btn,
+            .modal-footer .btn-secondary,
+            .modal-footer .btn-primary,
+            .modal-footer .btn-infoPDF {
+                flex: 0 0 auto;
+                width: auto;
+                min-width: fit-content;
             }
                 
             .modal-body {
@@ -1278,7 +1705,12 @@ export default function Users({onClose}) {
                 color: var(--operator-text);
             }
 
-            .modal-footer .btn-secondary {
+            .modal-footer{
+                justify-content: flex-end;
+                
+            }
+
+            .btn-secondary {
                 height: 50px;
                 padding: 0 24px;   
                 border: none;
@@ -1291,7 +1723,6 @@ export default function Users({onClose}) {
                 align-items: center;
                 justify-content: center;
                 box-shadow: 0 0px 20px var(--operator-shadow);
-                
             }
 
             .btn-secondary:hover {
@@ -1354,6 +1785,20 @@ export default function Users({onClose}) {
                 --bs-gutter-y: 20px;
 
                 --bs-gutter-x: 20px;
+            }
+
+            .incapacidad-modal-card {
+                width: 560px;
+            }
+
+            .custom-textarea {
+                min-height: 110px;
+                resize: vertical;
+                border-radius: 12px;
+                border: 1px solid var(--operator-border);
+                background: var(--operator-border);
+                color: var(--operator-text);
+                padding: 12px 14px;
             }
 
             .custom-modal {
@@ -1435,7 +1880,9 @@ export default function Users({onClose}) {
             .user-action-menu-editar,
             .user-action-menu-baja,
             .user-action-menu-activar,
-            .user-action-menu-reset {
+            .user-action-menu-reset,
+            .user-action-menu-incapacidad,
+            .user-action-menu-informacion {
                 border: none;
                 background: var(--operator-card);
                 padding: 8px 10px;
@@ -1445,6 +1892,7 @@ export default function Users({onClose}) {
                 font-size: 12px;
                 font-weight: 800;
                 border-radius: 8px;
+                gap: 4px;
                 color: var(--operator-text);
                 cursor: pointer;
             }
@@ -1468,21 +1916,106 @@ export default function Users({onClose}) {
                 background: var(--operator-border);
                 color: var(--operator-warning);
             }
+
+            .user-action-menu-incapacidad:hover {
+                background: var(--operator-border);
+                color: rgba(143, 83, 253, 0.8);
+            }
+
+            .user-action-menu-informacion:hover {
+                background: var(--operator-border);
+                color: rgba(24, 184, 24, 0.96);
+            }
+
+
+            /* TABLA DE USUARIOS */
+
+            .user-incapacidades-row td {
+                background: rgba(255, 255, 255, 0.02);
+                padding: 0;
+                border: none;
+            }
+
+            .user-incapacidades-cell {
+                padding: 0 !important;
+            }
+
+            .user-incapacidades-box {
+                background: var(--operator-card);
+                border: 1px solid var(--operator-border);
+                border-radius: 12px;
+                overflow: hidden;
+                margin: 0 0 12px;
+            }
+
+            .user-incapacidades-table {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+                margin: 0;
+            }
+
+            .user-incapacidades-table thead th,
+            .user-incapacidades-table tbody td {
+                padding: 10px 12px;
+                text-align: left;
+                border-bottom: 1px solid var(--operator-border);
+                background: transparent;
+                color: var(--operator-text);
+                font-size: 12px;
+                position: static;
+            }
+
+            .user-incapacidades-table thead th {
+                font-weight: 800;
+                background: rgba(148, 163, 184, 0.06);
+            }
+
+            .user-incapacidades-table tbody tr,
+            .user-incapacidades-table thead tr,
+            .user-incapacidades-table tbody tr:hover,
+            .user-incapacidades-table thead tr:hover {
+                background: transparent !important;
+                box-shadow: none !important;
+                transform: none !important;
+            }
+
+            .user-incapacidades-empty {
+                padding: 16px 18px;
+                color: var(--operator-text);
+                font-size: 13px;
+                font-weight: 600;
+                background: var(--operator-card);
+            }
                 
             .btn-success {
                 height: 50px;
                 padding: 0 20px;
-                }
+                break-word: break-word;
+                min-width: 125px;
+            }
 
             .btn-outline-secondary {
                 height: 50px;
                 padding: 0 20px;
+                min-width: 180px;
             }
 
             .btn-outline-primary {
                 height: 50px;
                 padding: 0 20px;
+                break-word: break-word;
+                min-width: 125px;
             }
+
+            .badge-title {
+                min-width: 400px;
+            }
+
+            .mb-3{
+                min-width: 120px;
+            }
+
 
 
 
