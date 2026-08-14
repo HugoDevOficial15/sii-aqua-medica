@@ -2,8 +2,14 @@ import { z } from "zod";
 
 import { normalizeName } from "../utils/textFormat";
 
-export const userSchema = z.object({
+const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/;
+const RFC_REGEX = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/;
+const NSS_REGEX = /^\d{11}$/;
 
+const normalizeUpper = (value) => (value ?? "").trim().replace(/[\s\-_/\\]+/g, "").toUpperCase();
+const normalizeDigits = (value) => (value ?? "").trim().replace(/[^\d]/g, "");
+
+export const userSchema = z.object({
 
     nomina: z
         .string()
@@ -35,5 +41,23 @@ export const userSchema = z.object({
     cumpleanos: z
         .string()
         .min(1, "El cumpleamos es obligatorio"),
+
+    curp: z
+        .string()
+        .optional()
+        .transform((value) => normalizeUpper(value))
+        .refine((value) => !value || CURP_REGEX.test(value), { message: "CURP inválida" }),
+
+    rfc: z
+        .string()
+        .optional()
+        .transform((value) => normalizeUpper(value))
+        .refine((value) => !value || RFC_REGEX.test(value), { message: "RFC inválido" }),
+
+    nss: z
+        .string()
+        .optional()
+        .transform((value) => normalizeDigits(value))
+        .refine((value) => !value || NSS_REGEX.test(value), { message: "NSS inválido, debe tener 11 dígitos" }),
 
 })

@@ -8,6 +8,7 @@ import { useState } from "react"
 import { FaPlus } from "react-icons/fa";
 
 import Loader from "../../components/Loader";
+import { exportMedicamentosPDF } from "../../utils/exportMedicamentosPDF";
 
 
 export default function MedicamentosPage() {
@@ -43,6 +44,14 @@ export default function MedicamentosPage() {
         fetchData()
     }
 
+    const handleExportPdf = async () => {
+        await exportMedicamentosPDF({
+            medicamentos: data,
+            filtroSemaforo,
+            filtroEstado
+        })
+    }
+
     // Loading
     if (loading) {
         return <Loader text="Cargando medicamentos..." />;
@@ -76,6 +85,7 @@ export default function MedicamentosPage() {
                 setFiltroSemaforo={setFiltroSemaforo}
                 filtroEstado={filtroEstado}
                 setFiltroEstado={setFiltroEstado}
+                onExportPdf={handleExportPdf}
             />
 
             {/* TABLA */}
