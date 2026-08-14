@@ -77,20 +77,39 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
                             onClick={() => {
                                 setDescargandoArchivo(true);
                                 try {
-                                    // Crear un elemento temporal para descargar
-                                    const link = document.createElement('a');
-                                    link.href = noticia.archivo;
-                                    link.download = noticia.archivoNombre || "documento_aqua";
-                                    link.style.display = 'none';
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
+                                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
+                                    if (isMobile) {
+                                        // En móvil: convertir base64 a blob y descargar
+                                        const arr = noticia.archivo.split(',');
+                                        const mime = arr[0].match(/:(.*?);/)[1];
+                                        const bstr = atob(arr[1]);
+                                        const n = bstr.length;
+                                        const u8arr = new Uint8Array(n);
+                                        for (let i = 0; i < n; i++) {
+                                            u8arr[i] = bstr.charCodeAt(i);
+                                        }
+                                        const blob = new Blob([u8arr], { type: mime });
+                                        const url = URL.createObjectURL(blob);
+                                        const link = document.createElement('a');
+                                        link.href = url;
+                                        link.download = noticia.archivoNombre || "documento_aqua";
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                        URL.revokeObjectURL(url);
+                                    } else {
+                                        // En PC: descargar directamente
+                                        const link = document.createElement('a');
+                                        link.href = noticia.archivo;
+                                        link.download = noticia.archivoNombre || "documento_aqua";
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    }
                                     setTimeout(() => setDescargandoArchivo(false), 1000);
                                 } catch (error) {
                                     console.error("Error al descargar:", error);
-                                    // Fallback: abrir en nueva pestaña
-                                    window.open(noticia.archivo, '_blank');
                                     setDescargandoArchivo(false);
                                 }
                             }}
