@@ -78,9 +78,16 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
                                 setDescargandoArchivo(true);
                                 try {
                                     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                                    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-                                    if (isMobile) {
-                                        // En móvil: convertir base64 a blob y descargar
+                                    if (isIOS) {
+                                        // iOS: Abrir en nueva pestaña (es más confiable para guardar)
+                                        const newWindow = window.open(noticia.archivo, '_blank');
+                                        if (!newWindow) {
+                                            alert('Por favor, permite ventanas emergentes. Mantén presionado el archivo y selecciona "Guardar"');
+                                        }
+                                    } else if (isMobile) {
+                                        // Android: Intentar descargar con blob
                                         const arr = noticia.archivo.split(',');
                                         const mime = arr[0].match(/:(.*?);/)[1];
                                         const bstr = atob(arr[1]);
@@ -91,15 +98,20 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
                                         }
                                         const blob = new Blob([u8arr], { type: mime });
                                         const url = URL.createObjectURL(blob);
-                                        const link = document.createElement('a');
-                                        link.href = url;
-                                        link.download = noticia.archivoNombre || "documento_aqua";
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                        URL.revokeObjectURL(url);
+
+                                        // Crear un elemento de descarga invisible
+                                        const element = document.createElement('a');
+                                        element.setAttribute('href', url);
+                                        element.setAttribute('download', noticia.archivoNombre || 'documento');
+                                        element.style.display = 'none';
+                                        document.body.appendChild(element);
+                                        element.click();
+                                        document.body.removeChild(element);
+
+                                        // Limpiar
+                                        setTimeout(() => URL.revokeObjectURL(url), 100);
                                     } else {
-                                        // En PC: descargar directamente
+                                        // PC: Descargar normalmente
                                         const link = document.createElement('a');
                                         link.href = noticia.archivo;
                                         link.download = noticia.archivoNombre || "documento_aqua";
@@ -107,9 +119,11 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
                                         link.click();
                                         document.body.removeChild(link);
                                     }
-                                    setTimeout(() => setDescargandoArchivo(false), 1000);
+                                    setTimeout(() => setDescargandoArchivo(false), 500);
                                 } catch (error) {
                                     console.error("Error al descargar:", error);
+                                    // Fallback: abrir en nueva pestaña
+                                    window.open(noticia.archivo, '_blank');
                                     setDescargandoArchivo(false);
                                 }
                             }}
@@ -122,7 +136,7 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
                                 opacity: descargandoArchivo ? 0.7 : 1
                             }}
                         >
-                            {descargandoArchivo ? 'Descargando...' : 'Ver / Descargar'}
+                            {descargandoArchivo ? 'Abriendo...' : 'Ver / Descargar'}
                         </button>
                     </div>
                 )}
