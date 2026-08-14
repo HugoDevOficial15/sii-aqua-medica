@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { collection, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, getDocs, query, orderBy, where } from "firebase/firestore";
-import { db, storage } from "../../config/firebase";
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { db } from "../../config/firebase";
 import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa";
 import { AREAS } from "../../catalogs/areas";
 
@@ -101,12 +100,48 @@ export default function News() {
     }
   };
 
-  const uploadToStorage = async (file, folder) => {
-    if (!file) return "";
-    const timestamp = Date.now();
-    const fileRef = ref(storage, `${folder}/${timestamp}_${file.name}`);
-    await uploadBytes(fileRef, file);
-    return await getDownloadURL(fileRef);
+  const convertirABase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const comprimirImagen = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const maxWidth = 1200;
+          const maxHeight = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height *= maxWidth / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width *= maxHeight / height;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/webp", 0.8));
+        };
+        img.src = e.target.result;
+      };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -120,13 +155,13 @@ export default function News() {
     try {
       let imagenUrl = noticiaEditando?.imagen || "";
       if (imagen) {
-        imagenUrl = await uploadToStorage(imagen, "noticias/imagenes");
+        imagenUrl = await comprimirImagen(imagen);
       }
 
       let archivoUrl = noticiaEditando?.archivo || "";
       let archivoNombre = noticiaEditando?.archivoNombre || "";
       if (archivoSeleccionado) {
-        archivoUrl = await uploadToStorage(archivoSeleccionado, "noticias/archivos");
+        archivoUrl = await convertirABase64(archivoSeleccionado);
         archivoNombre = archivoSeleccionado.name;
       }
 
