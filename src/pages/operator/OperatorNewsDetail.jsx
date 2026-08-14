@@ -1,6 +1,8 @@
 import MobileBackButton from "./components/MobileBackButton";
+import { useState } from "react";
 
 export default function OperatorNewsDetail({ onBack, noticia }) {
+    const [descargandoArchivo, setDescargandoArchivo] = useState(false);
     
     if (!noticia) {
         return (
@@ -54,11 +56,11 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
 
                 {/* SECCIÓN DE ARCHIVO ADJUNTO 100% ADAPTATIVA */}
                 {noticia.archivo && (
-                    <div 
+                    <div
                         className="mt-4 p-3 d-flex align-items-center justify-content-between border shadow-sm"
                         style={{
                             borderRadius: '12px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.07)', // Fondo traslúcido elegante
+                            backgroundColor: 'rgba(255, 255, 255, 0.07)',
                             borderColor: 'rgba(255, 255, 255, 0.15)',
                         }}
                     >
@@ -71,16 +73,38 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
                                 <small className="opacity-75" style={{ color: 'inherit' }}>{noticia.archivoNombre || "Archivo descargable"}</small>
                             </div>
                         </div>
-                        <a
-                            href={noticia.archivo}
-                            download={noticia.archivoNombre || "documento_aqua"}
+                        <button
+                            onClick={() => {
+                                setDescargandoArchivo(true);
+                                try {
+                                    // Crear un elemento temporal para descargar
+                                    const link = document.createElement('a');
+                                    link.href = noticia.archivo;
+                                    link.download = noticia.archivoNombre || "documento_aqua";
+                                    link.style.display = 'none';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+
+                                    setTimeout(() => setDescargandoArchivo(false), 1000);
+                                } catch (error) {
+                                    console.error("Error al descargar:", error);
+                                    // Fallback: abrir en nueva pestaña
+                                    window.open(noticia.archivo, '_blank');
+                                    setDescargandoArchivo(false);
+                                }
+                            }}
+                            disabled={descargandoArchivo}
                             className="btn btn-primary btn-sm px-3 shadow-sm"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ borderRadius: '8px' }}
+                            style={{
+                                borderRadius: '8px',
+                                border: 'none',
+                                cursor: descargandoArchivo ? 'wait' : 'pointer',
+                                opacity: descargandoArchivo ? 0.7 : 1
+                            }}
                         >
-                            Ver / Descargar
-                        </a>
+                            {descargandoArchivo ? 'Descargando...' : 'Ver / Descargar'}
+                        </button>
                     </div>
                 )}
             </div>
