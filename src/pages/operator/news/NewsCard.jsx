@@ -21,6 +21,9 @@ export default function NewsCard({
             <img
                 src={image}
                 alt=""
+                onError={(e) => {
+                    e.target.src = "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800";
+                }}
             />
 
             <div className="news-card-content">

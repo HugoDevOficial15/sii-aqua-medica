@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
-import { db } from "../../config/firebase"; 
+import { db } from "../../config/firebase";
 import NewsCard from "./news/NewsCard";
+import { getCurrentUser } from "../../utils/session";
 
 export default function OperatorNews({ onNavigate }) {
-    const [news, setNews] = useState([]); 
+    const [news, setNews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
-        // Consultamos la colección "noticias" de Firebase ordenadas de la más nueva a la más vieja
         const q = query(collection(db, "noticias"), orderBy("fechaCreacion", "desc"));
 
-        // 1. Obtener fecha actual (la movemos arriba para que esté lista para usarse)
         const getHoy = () => {
             const d = new Date();
             const year = d.getFullYear();
@@ -22,8 +21,9 @@ export default function OperatorNews({ onNavigate }) {
         };
         const fechaHoy = getHoy();
 
+        const usuarioActual = getCurrentUser();
+
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            // Mapeamos los datos de Firebase
             const fetchedNews = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
@@ -32,20 +32,25 @@ export default function OperatorNews({ onNavigate }) {
                     summary: data.contenido || "",
                     date: data.fechaLimite ? `Vigente hasta: ${data.fechaLimite}` : "Reciente",
                     image: data.imagen ? data.imagen : "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800",
-                    ...data 
+                    ...data
                 };
             });
-            
-            // 2. Filtrar para desaparecer las caducadas (Usamos fetchedNews, que es lo que acabamos de descargar)
-            const noticiasVigentes = fetchedNews.filter((noticia) => {
+
+            let noticiasVigentes = fetchedNews.filter((noticia) => {
                 if (!noticia.fechaLimite) return true;
-                return noticia.fechaLimite >= fechaHoy; 
+                return noticia.fechaLimite >= fechaHoy;
             });
-            
-            // 3. Guardamos ÚNICAMENTE las noticias vigentes en el estado
+
+            // Filtrar noticias por área del usuario
+            if (usuarioActual?.area) {
+                noticiasVigentes = noticiasVigentes.filter((noticia) => {
+                    return noticia.areaDestino === "Todas" || noticia.areaDestino === usuarioActual.area;
+                });
+            }
+
             setNews(noticiasVigentes);
             setLoading(false);
-            
+
         }, (error) => {
             console.error("Error al escuchar las noticias en tiempo real:", error);
             setLoading(false);

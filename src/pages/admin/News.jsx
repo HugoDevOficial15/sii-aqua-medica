@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { collection, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, getDocs, query, orderBy } from "firebase/firestore";
-import { db } from "../../config/firebase";
-import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa"; // 🔥 Agregado FaTrash
+import { collection, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, getDocs, query, orderBy, where } from "firebase/firestore";
+import { db, storage } from "../../config/firebase";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa";
+import { AREAS } from "../../catalogs/areas";
 
 // 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
@@ -99,13 +101,12 @@ export default function News() {
     }
   };
 
-  const convertirABase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
+  const uploadToStorage = async (file, folder) => {
+    if (!file) return "";
+    const timestamp = Date.now();
+    const fileRef = ref(storage, `${folder}/${timestamp}_${file.name}`);
+    await uploadBytes(fileRef, file);
+    return await getDownloadURL(fileRef);
   };
 
   const handleSubmit = async (e) => {
@@ -119,53 +120,66 @@ export default function News() {
     try {
       let imagenUrl = noticiaEditando?.imagen || "";
       if (imagen) {
-        imagenUrl = await convertirABase64(imagen);
+        imagenUrl = await uploadToStorage(imagen, "noticias/imagenes");
       }
 
       let archivoUrl = noticiaEditando?.archivo || "";
       let archivoNombre = noticiaEditando?.archivoNombre || "";
       if (archivoSeleccionado) {
-        archivoUrl = await convertirABase64(archivoSeleccionado);
+        archivoUrl = await uploadToStorage(archivoSeleccionado, "noticias/archivos");
         archivoNombre = archivoSeleccionado.name;
       }
 
       if (noticiaEditando) {
-        const idNoticia = noticiaEditando.id; 
+        const idNoticia = noticiaEditando.id;
         await updateDoc(doc(db, "noticias", idNoticia), {
-          titulo, 
-          contenido, 
-          fechaLimite, 
+          titulo,
+          contenido,
+          fechaLimite,
           areaDestino: areaDestino || "Todas",
           imagen: imagenUrl,
-          archivo: archivoUrl, 
+          archivo: archivoUrl,
           archivoNombre: archivoNombre,
-          estado: "Activa" 
+          estado: "Activa"
         });
       } else {
-        await addDoc(collection(db, "noticias"), {
-          titulo, 
-          contenido, 
-          fechaLimite, 
+        const docRef = await addDoc(collection(db, "noticias"), {
+          titulo,
+          contenido,
+          fechaLimite,
           areaDestino: areaDestino || "Todas",
           imagen: imagenUrl,
-          archivo: archivoUrl, 
-          archivoNombre: archivoNombre, 
-          fechaCreacion: serverTimestamp(), 
+          archivo: archivoUrl,
+          archivoNombre: archivoNombre,
+          fechaCreacion: serverTimestamp(),
           estado: "Activa"
         });
 
-        await addDoc(collection(db, "notificaciones"), {
-          Titulo: "AQUA News",
-          Mensaje: `Nueva noticia: "${titulo}". ¡Léela ahora!`, 
-          fechaCreacion: serverTimestamp(),
-          Destino: "Noticias", 
-          NomAgenda: "noticias_general" 
+        // Crear notificaciones solo para usuarios del área destino
+        const q = areaDestino === "Todas"
+          ? query(collection(db, "usuarios"))
+          : query(collection(db, "usuarios"), where("area", "==", areaDestino));
+
+        const usersSnapshot = await getDocs(q);
+
+        usersSnapshot.docs.forEach(userDoc => {
+          addDoc(collection(db, "notificaciones"), {
+            IdUsuario: userDoc.id,
+            Titulo: "📰 Nueva noticia",
+            Mensaje: `Nueva noticia: "${titulo}"`,
+            fechaCreacion: serverTimestamp(),
+            Destino: "/news",
+            extra: {
+              tipo: "news",
+              noticiaId: docRef.id
+            }
+          });
         });
       }
-      
+
       alert(noticiaEditando ? "¡Noticia actualizada con éxito!" : "¡Noticia publicada con éxito!");
       setVistaActual("lista");
-      cargarNoticias(); 
+      cargarNoticias();
     } catch (error) {
       console.error("Error en Firebase:", error);
       alert("Hubo un error al procesar la noticia.");

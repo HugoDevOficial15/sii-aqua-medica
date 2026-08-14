@@ -21,11 +21,16 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
         <div className="news-detail">
             <MobileBackButton onBack={onBack} />
 
-            <img
-                className="news-detail-image"
-                src={noticia.imagen || noticia.image || "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200"}
-                alt={noticia.titulo || noticia.title}
-            />
+            <div className="news-detail-image-container">
+                <img
+                    className="news-detail-image"
+                    src={noticia.imagen || noticia.image || "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200"}
+                    alt={noticia.titulo || noticia.title}
+                    onError={(e) => {
+                        e.target.src = "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200";
+                    }}
+                />
+            </div>
 
             <div className="news-detail-content">
                 <span className="badge bg-primary text-white mb-2 px-3 py-1">
