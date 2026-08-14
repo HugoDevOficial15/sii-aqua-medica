@@ -60,7 +60,7 @@ export const requestProfileChange = async (user, changes) => {
     });
 
     const docRef = await addDoc(requestCollection, {
-        idUsuario: user.id,
+        idUsuario: user.uid,  // ✅ Usar Firebase UID (no user.id)
         uid: user.uid || null,
         nominaActual: user.nomina,
         nombreActual: user.nombre || "",

@@ -3,8 +3,9 @@
 // Maneja notificaciones push incluso cuando la app está cerrada
 // ============================================================
 
-// Escuchar notificaciones push desde Firebase Cloud Messaging
+// Escuchar eventos push del navegador (fallback)
 self.addEventListener("push", (event) => {
+    console.log("Push event recibido:", event);
 
     if (!event.data) {
         console.log("Push recibido sin datos");
@@ -12,7 +13,6 @@ self.addEventListener("push", (event) => {
     }
 
     try {
-
         const data = event.data.json();
 
         const options = {
@@ -39,15 +39,42 @@ self.addEventListener("push", (event) => {
         console.log("✓ Notificación push mostrada:", title);
 
     } catch (error) {
-
         console.error("Error procesando push notification:", error);
-
     }
+});
 
+// Escuchar mensajes de la página (Firebase FCM)
+self.addEventListener("message", (event) => {
+    console.log("Message event recibido en SW:", event.data);
+
+    if (event.data?.type === "SHOW_NOTIFICATION") {
+        const payload = event.data.payload;
+
+        const options = {
+            body: payload.notification?.body || "Tienes un nuevo aviso",
+            icon: "/logo.png",
+            badge: "/logosmall.svg",
+            tag: payload.data?.tag || "notification",
+            requireInteraction: true,
+            vibrate: [300, 100, 400, 100, 400],
+            silent: false,
+            data: {
+                destino: payload.data?.destino || null,
+                accion: payload.data?.accion || null,
+                url: "/"
+            }
+        };
+
+        const title = payload.notification?.title || "SII AQUA Médica";
+
+        self.registration.showNotification(title, options);
+        console.log("✓ Notificación FCM mostrada:", title);
+    }
 });
 
 // Escuchar cuando el usuario interactúa con la notificación
 self.addEventListener("notificationclick", (event) => {
+    console.log("Notificación clickeada:", event.notification.tag);
 
     event.notification.close();
 
@@ -56,7 +83,6 @@ self.addEventListener("notificationclick", (event) => {
 
     event.waitUntil(
         clients.matchAll({ type: "window" }).then((clientList) => {
-
             // Si ya hay una ventana abierta, enfocarla y navegar
             for (let client of clientList) {
                 if (client.url === urlAbrir && "focus" in client) {
@@ -68,10 +94,8 @@ self.addEventListener("notificationclick", (event) => {
             if (clients.openWindow) {
                 return clients.openWindow(urlAbrir);
             }
-
         })
     );
-
 });
 
 // Escuchar cierres de notificaciones

@@ -20,7 +20,7 @@ export async function createSupportTicket({
     const imagenBase64 = typeof capturas === 'string' ? capturas : "";
 
     const docRef = await addDoc(reportesCollection, {
-        idUsuario: user?.id || null,
+        idUsuario: user?.uid || null,  // ✅ Usar Firebase UID (no user.id)
         uid: user?.uid || null,
         solicitante: user?.nombre || "ANÓNIMO",
         nomina: user?.nomina || "N/A",
