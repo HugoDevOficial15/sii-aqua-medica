@@ -46,8 +46,5 @@ firebase-debug.log
 .DS_Store
 Thumbs.db
 
-src/config/firebase.js
-
 node_modules/
-src/config/firebase.js
 .env
