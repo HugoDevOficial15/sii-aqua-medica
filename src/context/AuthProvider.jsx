@@ -7,6 +7,7 @@ import { AuthContext } from "./AuthContext";
 import { getUserData } from "../services/userService";
 import { getPermissionsByRole } from "../services/rolesService";
 import { verificarYCrearFelicitaciones } from "../utils/felicitaciones";
+import { canAccessPersonalSection } from "../services/personalConfig";
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
@@ -131,10 +132,13 @@ export function AuthProvider({ children }) {
     const can = (permiso) => {
         if (!user) return false;
 
-        // Solo los usuarios con rol "admin_sistemas" tienen acceso a todo, sin importar los permisos asignados.
-
         const esAdminSistemas = user?.rol === "admin_sistemas";
         if (esAdminSistemas) return true;
+
+        // Regla especial para el módulo Personal: quien es jefe de departamento o zona puede entrar.
+        if (permiso === "personal.ver" && canAccessPersonalSection(user)) {
+            return true;
+        }
 
         if (!Array.isArray(permisos)) return false;
         return permisos.includes("*") || permisos.includes(permiso);

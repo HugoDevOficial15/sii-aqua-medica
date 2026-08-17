@@ -33,6 +33,7 @@ import ReporteProblem from "../pages/admin/ReporteProblem";
 import Solicitudes from "../pages/admin/Solicitudes";
 import PrivacyPolicyPage from "../pages/PrivacyPolicyPage";
 import Ideas from "../pages/admin/Ideas";
+import Personal from "../modules/personal/personal";
 
 import MaintenancePage from "../components/MaintenancePage";
 import Capacitaciones from "../pages/admin/Capacitaciones";
@@ -84,6 +85,16 @@ export default function AppRouter() {
                         element={
                             <ProtectedRoute permiso="dashboard.ver">
                                 <Dashboard />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/* PERSONAL */}
+                    <Route
+                        path="/personal"
+                        element={
+                            <ProtectedRoute permiso="personal.ver">
+                                <Personal />
                             </ProtectedRoute>
                         }
                     />

@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { canAccessPersonalSection } from "../services/personalConfig";
 
 import {
     FaHome,
@@ -24,17 +25,21 @@ import {
     FaGraduationCap,
     FaHeadset,
     FaHandHoldingHeart,
-    FaMedapps
+    FaMedapps,
+    FaUserFriends
+
 } from "react-icons/fa";
 
 import { FaMattressPillow } from "react-icons/fa6";
+import { Label } from "recharts";
 
 export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMenu }) {
 
-    const { can } = useAuth();
+    const { can, user } = useAuth();
 
     const menu = [
         { to: "/dashboard", icon: <FaHome />, label: "Dashboard", permiso: "dashboard.ver" },
+        { to: "/personal", icon: <FaUserFriends />, label: "Personal", permiso: "personal.ver" },
         { to: "/usuarios", icon: <FaUsers />, label: "Usuarios", permiso: "usuarios.ver" },
         { to: "/puestos", icon: <FaUserTie />, label: "Puestos", permiso: "puestos.ver" },
         { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
@@ -106,7 +111,15 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
                 <nav className="sidebar-menu">
 
                     {menu
-                        .filter(item => !item.permiso || can(item.permiso))
+                        .filter(item => {
+                            if (!item.permiso) return true;
+
+                            if (item.to === "/personal") {
+                                return canAccessPersonalSection(user) || can(item.permiso);
+                            }
+
+                            return can(item.permiso);
+                        })
                         .map((item, index) => (
 
                             <NavLink
