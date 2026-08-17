@@ -4,10 +4,13 @@ import {
     FiTarget,
     FiStar
 } from "react-icons/fi";
+import MobileBackButton from "./components/MobileBackButton";
 
-export default function OperatorPoints() {
+export default function OperatorPoints({ onBack }) {
     return (
         <div className="points-screen">
+
+            <MobileBackButton onBack={onBack} />
 
             <div className="points-hero">
 

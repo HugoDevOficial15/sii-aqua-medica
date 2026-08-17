@@ -3,7 +3,7 @@ import { collection, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, getDocs
 import { db } from "../../config/firebase";
 import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa";
 import { AREAS } from "../../catalogs/areas";
-import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
+import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
 
 // 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
@@ -89,7 +89,8 @@ export default function News() {
 
   //  NUEVA FUNCIÓN: Eliminar Noticia
   const handleEliminar = async (id, tituloNoticia) => {
-    if (window.confirm(`¿Estás seguro de que deseas eliminar la noticia "${tituloNoticia}"? Esta acción no se puede deshacer.`)) {
+    const result = await confirmDelete("¿Eliminar noticia?", "Esta acción no se puede deshacer.");
+    if (result.isConfirmed) {
       try {
         await deleteDoc(doc(db, "noticias", id));
         notifySuccess("Noticia eliminada", "La noticia ha sido eliminada correctamente.");

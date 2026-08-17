@@ -4,6 +4,7 @@ import AppLoader from "../operator/components/AppLoader";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
+import MobileBackButton from "./components/MobileBackButton";
 
 const ESTADO_LABEL = {
     pendiente: "Pendiente",
@@ -28,7 +29,8 @@ export default function OperatorSurveys({
     onSelectSurvey,
     surveys = [],
     loading = false,
-    error = null
+    error = null,
+    onBack
 }) {
     const { user } = useAuth();
     const [transitioning, setTransitioning] = useState(false);
@@ -114,6 +116,8 @@ export default function OperatorSurveys({
 
     return (
         <div className="surveys-v2">
+            <MobileBackButton onBack={onBack} />
+
             <div className="surveys-hero">
                 <div className="surveys-hero-icon">📝</div>
                 <h1>Encuestas</h1>

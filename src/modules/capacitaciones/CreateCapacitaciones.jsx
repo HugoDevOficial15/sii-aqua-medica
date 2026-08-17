@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaSave, FaTrash, FaChartBar, FaEllipsisV, FaFileUpload } from "react-icons/fa";
 import { createTraining, getTrainings, updateTraining, deleteTraining } from "../../services/trainingService";
-import { notifySuccess, notifyError } from "../../utils/notify";
+import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
 import Loader from "../../components/Loader";
 import FloatingAlert from "../../components/FloatingAlert";
 import { AREAS } from "../../catalogs/areas";
@@ -217,12 +217,13 @@ export default function CreateCapacitaciones() {
     };
 
     const handleDeleteTraining = async (training) => {
-        if (window.confirm("¿Estás seguro de que deseas eliminar esta capacitación? Esta acción no se puede deshacer.")) {
+        const result = await confirmDelete("¿Eliminar capacitación?", "Esta acción no se puede deshacer.");
+        if (result.isConfirmed) {
             try {
                 await deleteTraining(training.id);
                 const data = await getTrainings();
                 setTrainings(data);
-                notifySuccess("Capacitación Eliminada", "La capacitación fue eliminada correctamente");
+                notifySuccess("Capacitación eliminada", "La capacitación fue eliminada correctamente");
             } catch (error) {
                 console.error("Error eliminando capacitación:", error);
                 notifyError("Error", "No se pudo eliminar la capacitación");

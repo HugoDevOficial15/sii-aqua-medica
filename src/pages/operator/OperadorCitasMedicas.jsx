@@ -9,6 +9,7 @@ import Loader from "../../components/Loader";
 import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
 import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
 import { createNotification } from "../../utils/createNotification";
+import MobileBackButton from "./components/MobileBackButton";
 
 import { CITA_ESTADOS } from "../../constants/citasMedicasStates";
 import {
@@ -18,7 +19,7 @@ import {
     bookAppointment
 } from "../../services/citasMedicasService";
 
-export default function OperadorCitasMedicas() {
+export default function OperadorCitasMedicas({ onBack }) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
     const agendaIdReagendamiento = searchParams.get("reagendar"); // ?reagendar=agendaId
@@ -308,6 +309,8 @@ export default function OperadorCitasMedicas() {
 
     return (
         <div className="container-fluid p-4 citas-op-page fade-in">
+            <MobileBackButton onBack={onBack} />
+
             <div className="mb-4 d-flex justify-content-between align-items-start flex-wrap gap-3">
                 <div>
                     <h2 className="fw-bold mb-1">Servicio Médico</h2>

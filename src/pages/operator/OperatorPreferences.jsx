@@ -5,16 +5,17 @@ import {
     FiSmartphone,
     FiType,
     FiCheck,
-    FiCamera, 
-    FiUpload, 
+    FiCamera,
+    FiUpload,
     FiUser
 } from "react-icons/fi";
 
 import { doc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../../config/firebase"; // Asegúrate de que esta ruta sea correcta
+import { db } from "../../config/firebase";
 
 import MobileBackButton from "./components/MobileBackButton";
 import { usePreferences } from "../../hooks/usePreferences";
+import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
 
 const THEME_OPTIONS = [
     { id: "light", label: "Claro", icon: <FiSun /> },
@@ -59,14 +60,14 @@ export default function OperatorPreferences({ onBack, usuarioActual, adminMode =
 
     const handleSubirFoto = async () => {
         if (!archivoFoto) {
-            alert("Por favor selecciona una imagen primero.");
+            notifyWarning("Imagen requerida", "Por favor selecciona una imagen primero.");
             return;
         }
 
         const uidABuscar = usuarioActual?.uid || usuarioActual?.id;
 
         if (!uidABuscar) {
-            alert("Error del sistema: No se recibió el ID del usuario.");
+            notifyError("Error del sistema", "No se recibió el ID del usuario.");
             return;
         }
 
@@ -74,7 +75,7 @@ export default function OperatorPreferences({ onBack, usuarioActual, adminMode =
 
         try {
             const base64Img = await convertirABase64(archivoFoto);
-            
+
             // 1. Buscamos en la colección "users" el documento que contenga este uid
             const q = query(collection(db, "users"), where("uid", "==", uidABuscar));
             const querySnapshot = await getDocs(q);
@@ -83,24 +84,24 @@ export default function OperatorPreferences({ onBack, usuarioActual, adminMode =
                 // ¡Lo encontró! Extraemos el ID real (ej. EIfT4912...)
                 const idRealDelDocumento = querySnapshot.docs[0].id;
                 const refReal = doc(db, "users", idRealDelDocumento);
-                
+
                 await updateDoc(refReal, { fotoPerfil: base64Img });
             } else if (usuarioActual?.id) {
                 // Plan B: Si no lo encontró por el campo uid, intentamos usar el ID directo
                 const refDirecto = doc(db, "users", usuarioActual.id);
                 await updateDoc(refDirecto, { fotoPerfil: base64Img });
             } else {
-                alert("No se encontró tu perfil en la base de datos.");
+                notifyError("Error", "No se encontró tu perfil en la base de datos.");
                 setSubiendoFoto(false);
                 return;
             }
 
-            alert("¡Foto de perfil actualizada con éxito!");
-            setArchivoFoto(null); 
+            notifySuccess("Perfil actualizado", "Tu foto de perfil ha sido actualizada correctamente.");
+            setArchivoFoto(null);
 
         } catch (error) {
             console.error("Error al actualizar la foto en Firebase:", error);
-            alert("Hubo un error al subir la imagen a la base de datos.");
+            notifyError("Error", "Hubo un error al subir la imagen a la base de datos.");
         } finally {
             setSubiendoFoto(false);
         }
@@ -136,12 +137,13 @@ export default function OperatorPreferences({ onBack, usuarioActual, adminMode =
                     </div>
 
                     {/* Controles de subida */}
-                    <div style={{ flex: 1, minWidth: '200px' }}>
-                        <input 
-                            type="file" 
-                            accept="image/jpeg, image/png, image/webp" 
+                    <div style={{ flex: 1, minWidth: '0', width: '100%' }}>
+                        <input
+                            type="file"
+                            accept="image/jpeg, image/png, image/webp"
                             onChange={handleFileChange}
                             className="adaptive-input"
+                            style={{ width: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}
                         />
                         
                         {archivoFoto && (

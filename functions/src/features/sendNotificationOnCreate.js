@@ -34,6 +34,12 @@ exports.sendNotificationOnCreate = onDocumentCreated("notificaciones/{notifId}",
                 title: notif.Titulo || "SII AQUA Médica",
                 body: notif.Mensaje || "Tienes un nuevo aviso."
             },
+            android: {
+                notification: {
+                    sound: "default", 
+                    channelId: "sii_aqua_canal_v4" // <-- Fíjate en este valor
+                }
+            },
             data: {
                 destino: String(notif.Destino || ""),
                 accion: String(notif.Accion || "")

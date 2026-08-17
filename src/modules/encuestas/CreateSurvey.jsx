@@ -7,7 +7,7 @@ import { createSurvey, getSurveys, updateSurvey, deleteSurvey } from "../../serv
 // Resultados/respuestas
 import EncuestaResultados from "./EncuestaResultados";
 // Notificaciones
-import { notifySuccess, notifyError } from "../../utils/notify";
+import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
 import Loader from "../../components/Loader";
 import FloatingAlert from "../../components/FloatingAlert";
 import { AREAS } from "../../catalogs/areas";
@@ -283,12 +283,13 @@ export default function CreateSurvey() {
     };
 
     const handleDeleteSurvey = async (survey) => {
-        if (window.confirm("¿Estás seguro de que deseas eliminar esta encuesta? Esta acción no se puede deshacer.")) {
+        const result = await confirmDelete("¿Eliminar encuesta?", "Esta acción no se puede deshacer.");
+        if (result.isConfirmed) {
             try {
                 await deleteSurvey(survey.id);
                 const data = await getSurveys();
                 setSurveys(data);
-                notifySuccess("Encuesta Eliminada", "La encuesta fue eliminada correctamente");
+                notifySuccess("Encuesta eliminada", "La encuesta fue eliminada correctamente");
             } catch (error) {
                 console.error("Error eliminando encuesta:", error);
                 notifyError("Error", "No se pudo eliminar la encuesta");

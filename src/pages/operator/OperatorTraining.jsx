@@ -7,7 +7,8 @@ import Loader from "../../components/Loader";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { createNotification } from "../../utils/createNotification";
-import { notifyInfo, notifySuccess, notifyError } from "../../utils/notify";
+import { notifyInfo, notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
+import MobileBackButton from "./components/MobileBackButton";
 
 const MIN_APROBATORIO = 80;
 
@@ -27,7 +28,7 @@ const ESTADO_BADGE_CLASS = {
     bloqueada: "badge expired"
 };
 
-export default function OperatorTraining({ onTrainingComplete }) {
+export default function OperatorTraining({ onTrainingComplete, onBack }) {
     const { user } = useAuth();
     const [trainings, setTrainings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -166,9 +167,9 @@ export default function OperatorTraining({ onTrainingComplete }) {
         setOngoingTraining(training);
     };
 
-    const handleCloseModal = () => {
-        const confirmSalir = window.confirm("⚠️ ¿Estás seguro de que deseas salir?\n\nTu progreso y tiempo se quedarán pausados.");
-        if (confirmSalir) setOngoingTraining(null);
+    const handleCloseModal = async () => {
+        const result = await confirmDelete("¿Deseas salir?", "Tu progreso y tiempo se quedarán pausados.");
+        if (result.isConfirmed) setOngoingTraining(null);
     };
 
     const handleAnswerChange = (preguntaId, respuesta) => {
@@ -299,6 +300,8 @@ export default function OperatorTraining({ onTrainingComplete }) {
 
     return (
         <div className="surveys-v2">
+            <MobileBackButton onBack={onBack} />
+
             <div className="surveys-hero" style={{ background: "linear-gradient(135deg, #0f172a, #334155)" }}>
                 <div className="surveys-hero-icon">🎓</div>
                 <h1>Mis Capacitaciones</h1>

@@ -11,16 +11,16 @@ import {
     FiAward
 } from "react-icons/fi";
 
-import MobileBackButton from "./components/MobileBackButton";
 import { useAuth } from "../../hooks/useAuth";
 import { createIdea, getIdeasByUser } from "../../services/ideasService";
 import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
-import "../../styles/operator/operator-suggestions.css"; 
+import MobileBackButton from "./components/MobileBackButton";
+import "../../styles/operator/operator-suggestions.css";
 
 export default function OperatorSuggestionCreate({ onBack }) {
     const { user } = useAuth();
     
-    // 🔑 MÁQUINA DE ESTADOS DE VISTA: "list" (Img 1/3) | "create" (Img 2) | "detail" (Img 4)
+    //  MÁQUINA DE ESTADOS DE VISTA: "list" (Img 1/3) | "create" (Img 2) | "detail" (Img 4)
     const [view, setView] = useState("list"); 
     const [selectedIdea, setSelectedIdea] = useState(null); 
 

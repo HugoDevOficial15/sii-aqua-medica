@@ -44,6 +44,11 @@
             </intent-filter>
         </service>
 
+        <!-- Configuración por defecto para notificaciones FCM -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="sii_aqua_canal_v4" />
+
     </application>
 
     <!-- Permissions -->

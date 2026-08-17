@@ -5,6 +5,8 @@ import { FaTrash } from "react-icons/fa";
 
 import { useAuth } from "../../hooks/useAuth";
 import NotificationCard from "../../components/operator/NotificationCard";
+import MobileBackButton from "./components/MobileBackButton";
+import { confirmDelete } from "../../utils/notify";
 
 // Ruta a la que navega cada tipo de notificación dinámica al completarla.
 // Los tipos festivos (Cumpleaños/Aniversario) no tienen pantalla propia:
@@ -28,7 +30,7 @@ const RUTA_POR_DESTINO = {
     "medical-appointments": "citas-medicas"
 };
 
-export default function OperatorNotifications({ onNavigate }) {
+export default function OperatorNotifications({ onNavigate, onBack }) {
 
     const { user } = useAuth();
 
@@ -107,7 +109,8 @@ export default function OperatorNotifications({ onNavigate }) {
 
     //  FUNCIÓN PARA BORRAR TODAS LAS NOTIFICACIONES
     const handleBorrarTodas = async () => {
-        if (!window.confirm("¿Estás seguro de que deseas eliminar todas las notificaciones? Esta acción no se puede deshacer.")) {
+        const result = await confirmDelete("¿Eliminar todas las notificaciones?", "Esta acción no se puede deshacer.");
+        if (!result.isConfirmed) {
             return;
         }
 
@@ -126,6 +129,8 @@ export default function OperatorNotifications({ onNavigate }) {
     return (
         <> {/* 🔥 AQUÍ INICIA EL FRAGMENTO (CAJA INVISIBLE) */}
             <div className="notifications-screen">
+                <MobileBackButton onBack={onBack} />
+
                 <div className="notifications-hero">
                     <div className="notifications-icon">🔔</div>
                     <h1>Notificaciones</h1>

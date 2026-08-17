@@ -21,7 +21,7 @@ export const crearCanalDeNotificacion = async () => {
 
     // Crear el canal con todas las propiedades necesarias
     await LocalNotifications.createChannel({
-      id: 'sii_aqua_canal_v3',
+      id: 'sii_aqua_canal_v4',
       name: 'Avisos Urgentes SII AQUA',
       description: 'Canal para notificaciones importantes y solicitudes de cambios',
       importance: 5,           // Máxima importancia (IMPORTANCE_MAX)
@@ -32,7 +32,7 @@ export const crearCanalDeNotificacion = async () => {
     });
 
     console.log("✅ Canal de notificación CREADO exitosamente");
-    console.log("   - ID: sii_aqua_canal_v3");
+    console.log("   - ID: sii_aqua_canal_v4");
     console.log("   - Sonido: default ✓");
     console.log("   - Vibración: true ✓");
     console.log("   - Importancia: 5 (máxima) ✓");
@@ -121,7 +121,7 @@ export function usePushNotifications(user) {
                 title: notification.title || 'SII AQUA Médica',
                 body: notification.body || 'Tienes un nuevo aviso importante.',
                 id: Date.now(),
-                channelId: 'sii_aqua_canal_v3',
+                channelId: 'sii_aqua_canal_v4',
                 sound: 'default',
                 vibration: true,
                 extra: notification.data || {}

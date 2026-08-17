@@ -4,10 +4,13 @@ import {
     FiCalendar,
     FiAward
 } from "react-icons/fi";
+import MobileBackButton from "./components/MobileBackButton";
 
-export default function OperatorCertificates() {
+export default function OperatorCertificates({ onBack }) {
     return (
         <div className="certificates-screen">
+
+            <MobileBackButton onBack={onBack} />
 
             <div className="certificates-hero">
 

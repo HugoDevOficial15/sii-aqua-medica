@@ -4,10 +4,13 @@ import {
     FiShield,
     FiTrendingUp
 } from "react-icons/fi";
+import MobileBackButton from "./components/MobileBackButton";
 
-export default function OperatorRecognitions() {
+export default function OperatorRecognitions({ onBack }) {
     return (
         <div className="recognitions-screen">
+
+            <MobileBackButton onBack={onBack} />
 
             <div className="recognitions-hero">
 

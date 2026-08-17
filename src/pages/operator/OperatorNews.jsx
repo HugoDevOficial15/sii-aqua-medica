@@ -3,8 +3,9 @@ import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import NewsCard from "./news/NewsCard";
 import { getCurrentUser } from "../../utils/session";
+import MobileBackButton from "./components/MobileBackButton";
 
-export default function OperatorNews({ onNavigate }) {
+export default function OperatorNews({ onNavigate, onBack }) {
     const [news, setNews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -67,6 +68,8 @@ export default function OperatorNews({ onNavigate }) {
 
     return (
         <div className="news-screen">
+            <MobileBackButton onBack={onBack} />
+
             <div className="news-hero">
                 <div className="news-hero-icon">📰</div>
                 <h1>AQUA News</h1>

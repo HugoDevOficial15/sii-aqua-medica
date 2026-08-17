@@ -18,7 +18,7 @@ import java.util.Map;
  */
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
-    private static final String CHANNEL_ID = "sii_aqua_canal_v3";
+    private static final String CHANNEL_ID = "sii_aqua_canal_v4";
 
     /**
      * Llamado cuando llega una notificación (app cerrada, background, foreground)
@@ -88,15 +88,11 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
      */
     private void showNotification(String title, String body, Map<String, String> data) {
         Context context = getApplicationContext();
-
-        // Generar ID único basado en timestamp para evitar reemplazar notificaciones
         int notificationId = (int) System.currentTimeMillis();
 
-        // Intent para cuando el usuario toca la notificación
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
-        // Pasar datos adicionales
         if (data != null && !data.isEmpty()) {
             if (data.containsKey("destino")) {
                 intent.putExtra("destino", data.get("destino"));
@@ -104,7 +100,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             if (data.containsKey("accion")) {
                 intent.putExtra("accion", data.get("accion"));
             }
-            android.util.Log.d("FCM_SERVICE", "Datos extras: " + data.toString());
         }
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -114,39 +109,47 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        // Obtener sonido por defecto del sistema
         Uri defaultSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // Construir la notificación con TODAS las propiedades
+        // 🔥 ESTA ES LA MAGIA QUE FALTABA: Crear el canal en Android 8.0+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Nombre visible para el usuario en los ajustes
+            CharSequence name = "Avisos Urgentes SII AQUA";
+            String description = "Canal principal para alertas con sonido";
+            
+            // IMPORTANCE_HIGH es OBLIGATORIO para que suene y salga la alerta flotante
+            android.app.NotificationChannel channel = new android.app.NotificationChannel(CHANNEL_ID, name, NotificationManager.IMPORTANCE_HIGH);
+            channel.setDescription(description);
+            
+            // Forzar el sonido y la vibración en el canal
+            android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                    .build();
+            channel.setSound(defaultSound, audioAttributes);
+            channel.enableVibration(true);
+            channel.setVibrationPattern(new long[]{0, 250, 250, 250});
+
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+
         NotificationCompat.Builder builder =
             new NotificationCompat.Builder(context, CHANNEL_ID)
-                // ✅ Ícono visible en la barra de estado
                 .setSmallIcon(getApplicationContext().getApplicationInfo().icon)
-                // ✅ Título y contenido
                 .setContentTitle(title)
                 .setContentText(body)
-                // ✅ Descripción larga
-                .setStyle(new NotificationCompat.BigTextStyle()
-                    .bigText(body)
-                    .setBigContentTitle(title))
-                // ✅ Sonido explícito
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(body).setBigContentTitle(title))
                 .setSound(defaultSound)
-                // ✅ Vibración
                 .setVibrate(new long[]{0, 250, 250, 250})
-                // ✅ Prioridad alta (importante para Android < 8)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                // ✅ LED y otras propiedades
                 .setLights(0xFF0000FF, 1000, 1000)
-                // ✅ Intent cuando toca la notificación
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
-                // ✅ Acción de cerrar también disponible
                 .setDeleteIntent(pendingIntent);
-
-        // Mostrar la notificación
-        NotificationManager notificationManager =
-            (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (notificationManager != null) {
             try {
@@ -155,8 +158,6 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             } catch (Exception e) {
                 android.util.Log.e("FCM_SERVICE", "✗ Error al mostrar notificación: " + e.getMessage(), e);
             }
-        } else {
-            android.util.Log.e("FCM_SERVICE", "✗ NotificationManager es null");
         }
     }
 }

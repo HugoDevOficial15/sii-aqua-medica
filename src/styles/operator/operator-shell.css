@@ -1698,6 +1698,16 @@ POINTS
     gap: 12px;
 
     padding: 12px 0;
+
+    flex-wrap: wrap;
+}
+
+.goal-item span,
+.achievement-item span {
+
+    min-width: 0;
+
+    word-break: break-word;
 }
 
 .goal-item svg {

@@ -3,6 +3,47 @@ import { useState } from "react";
 
 export default function OperatorNewsDetail({ onBack, noticia }) {
     const [descargandoArchivo, setDescargandoArchivo] = useState(false);
+
+    const handleDescargarArchivo = async () => {
+        setDescargandoArchivo(true);
+        try {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+            if (isIOS) {
+                const newWindow = window.open(noticia.archivo, '_blank');
+                if (!newWindow) {
+                    alert('Por favor, permite ventanas emergentes. Mantén presionado el archivo y selecciona "Guardar"');
+                }
+            } else if (isMobile && noticia.archivo.startsWith('data:')) {
+                const response = await fetch(noticia.archivo);
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+
+                const element = document.createElement('a');
+                element.setAttribute('href', url);
+                element.setAttribute('download', noticia.archivoNombre || 'documento');
+                element.style.display = 'none';
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            } else {
+                const link = document.createElement('a');
+                link.href = noticia.archivo;
+                link.download = noticia.archivoNombre || "documento_aqua";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        } catch (error) {
+            console.error("Error al descargar:", error);
+            window.open(noticia.archivo, '_blank');
+        } finally {
+            setDescargandoArchivo(false);
+        }
+    };
     
     if (!noticia) {
         return (
@@ -74,59 +115,7 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
                             </div>
                         </div>
                         <button
-                            onClick={() => {
-                                setDescargandoArchivo(true);
-                                try {
-                                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                                    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-                                    if (isIOS) {
-                                        // iOS: Abrir en nueva pestaña (es más confiable para guardar)
-                                        const newWindow = window.open(noticia.archivo, '_blank');
-                                        if (!newWindow) {
-                                            alert('Por favor, permite ventanas emergentes. Mantén presionado el archivo y selecciona "Guardar"');
-                                        }
-                                    } else if (isMobile) {
-                                        // Android: Intentar descargar con blob
-                                        const arr = noticia.archivo.split(',');
-                                        const mime = arr[0].match(/:(.*?);/)[1];
-                                        const bstr = atob(arr[1]);
-                                        const n = bstr.length;
-                                        const u8arr = new Uint8Array(n);
-                                        for (let i = 0; i < n; i++) {
-                                            u8arr[i] = bstr.charCodeAt(i);
-                                        }
-                                        const blob = new Blob([u8arr], { type: mime });
-                                        const url = URL.createObjectURL(blob);
-
-                                        // Crear un elemento de descarga invisible
-                                        const element = document.createElement('a');
-                                        element.setAttribute('href', url);
-                                        element.setAttribute('download', noticia.archivoNombre || 'documento');
-                                        element.style.display = 'none';
-                                        document.body.appendChild(element);
-                                        element.click();
-                                        document.body.removeChild(element);
-
-                                        // Limpiar
-                                        setTimeout(() => URL.revokeObjectURL(url), 100);
-                                    } else {
-                                        // PC: Descargar normalmente
-                                        const link = document.createElement('a');
-                                        link.href = noticia.archivo;
-                                        link.download = noticia.archivoNombre || "documento_aqua";
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                    }
-                                    setTimeout(() => setDescargandoArchivo(false), 500);
-                                } catch (error) {
-                                    console.error("Error al descargar:", error);
-                                    // Fallback: abrir en nueva pestaña
-                                    window.open(noticia.archivo, '_blank');
-                                    setDescargandoArchivo(false);
-                                }
-                            }}
+                            onClick={handleDescargarArchivo}
                             disabled={descargandoArchivo}
                             className="btn btn-primary btn-sm px-3 shadow-sm"
                             style={{

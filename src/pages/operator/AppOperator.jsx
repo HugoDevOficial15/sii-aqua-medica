@@ -130,29 +130,30 @@ export default function AppOperator() {
                         metrics={metrics}
                         loading={surveysLoading}
                         error={surveysError}
+                        onBack={() => setScreen("more")}
                     />
                 );
             case "suggestions":
-                return <OperatorSuggestions onNavigate={setScreen} />;
-            
+                return <OperatorSuggestions onNavigate={setScreen} onBack={() => setScreen("more")} />;
+
             // 👇 AQUÍ ESTÁ EL PERFIL YA CORREGIDO
             case "profile":
-                return <OperatorProfile usuarioActual={user} />;
+                return <OperatorProfile usuarioActual={user} onBack={() => setScreen("more")} onNavigate={setScreen} />;
             
             case "more":
                 return <OperatorMore onNavigate={setScreen} />;
             case "points":
-                return <OperatorPoints />;
+                return <OperatorPoints onBack={() => setScreen("more")} />;
             case "recognitions":
-                return <OperatorRecognitions />;
+                return <OperatorRecognitions onBack={() => setScreen("more")} />;
             case "training":
-                return <OperatorTraining onTrainingComplete={refetchTrainings} />;
+                return <OperatorTraining onTrainingComplete={refetchTrainings} onBack={() => setScreen("more")} />;
             case "certificates":
-                return <OperatorCertificates />;
+                return <OperatorCertificates onBack={() => setScreen("more")} />;
             case "notifications":
-                return <OperatorNotifications onNavigate={handleNavigate} />;
+                return <OperatorNotifications onNavigate={handleNavigate} onBack={() => setScreen("more")} />;
             case "news":
-                return <OperatorNews onNavigate={handleNavigate} />;
+                return <OperatorNews onNavigate={handleNavigate} onBack={() => setScreen("more")} />;
             case "news-detail":
                 return <OperatorNewsDetail onBack={() => setScreen("news")} noticia={selectedNews} />;
             case "preferences":
@@ -166,9 +167,9 @@ export default function AppOperator() {
             case "about":
                 return <OperatorAbout onBack={() => setScreen("support")} />;
             case "citas-medicas":
-                return <OperadorCitasMedicas onBack={() => setScreen("home")} />;
+                return <OperadorCitasMedicas onBack={() => setScreen("more")} />;
             case "suggestion-create":
-                return <OperatorSuggestionCreate onBack={() => setScreen("home")} />;
+                return <OperatorSuggestionCreate onBack={() => setScreen("more")} />;
             case "suggestion-detail":
                 return <OperatorSuggestionDetail onBack={() => setScreen("suggestions")} />;
             case "survey-detail":

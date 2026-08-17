@@ -5,13 +5,17 @@ import {
     FiXCircle,
     FiPlus
 } from "react-icons/fi";
+import MobileBackButton from "./components/MobileBackButton";
 
 export default function OperatorSuggestions({
-    onNavigate
+    onNavigate,
+    onBack
 }) {
     return (
 
         <div className="suggestions-v2">
+
+            <MobileBackButton onBack={onBack} />
 
             <div className="suggestions-hero">
 

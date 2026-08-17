@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import RequestChangeModal from "../../components/ui/RequestChangeModal";
 import { getUserRequests } from "../../services/solicitudesCambiosService";
+import MobileBackButton from "./components/MobileBackButton";
 
 const ESTADO_ICON = {
     Pendiente: <FiClock />,
@@ -35,7 +36,7 @@ const formatFecha = (timestamp) => {
     return timestamp.toDate().toLocaleDateString("es-MX");
 };
 
-export default function OperatorProfile({ usuarioActual }) {
+export default function OperatorProfile({ usuarioActual, onBack, onNavigate }) {
     const { user } = useAuth();
     const [showChangeModal, setShowChangeModal] = useState(false);
     const [misSolicitudes, setMisSolicitudes] = useState([]);
@@ -64,9 +65,11 @@ export default function OperatorProfile({ usuarioActual }) {
 
     return (
         <div className="profile-v2">
+            <MobileBackButton onBack={onBack} />
+
             <div className="profile-hero-v2">
-                
-                {/* 👇 AQUÍ ESTÁ EL AVATAR PRINCIPAL CORREGIDO 👇 */}
+
+                {/*  AQUÍ ESTÁ EL AVATAR PRINCIPAL CORREGIDO  */}
                 <div className="profile-avatar-v2" style={{ overflow: 'hidden' }}>
                     {datosUsuario?.fotoPerfil ? (
                         <img
@@ -201,7 +204,7 @@ export default function OperatorProfile({ usuarioActual }) {
                 <FiChevronRight />
             </div>
 
-            <div className="profile-action-card">
+            <div className="profile-action-card" onClick={() => onNavigate && onNavigate("certificates")} style={{ cursor: "pointer" }}>
                 <div>
                     <h4>Certificados</h4>
                     <small>Cursos aprobados</small>
