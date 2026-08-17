@@ -17,13 +17,9 @@ import {
     PieChart,
     Pie,
     Cell,
+    Sector,
     Tooltip,
     ResponsiveContainer,
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid
 } from "recharts";
 
 import { motion } from "framer-motion";
@@ -55,6 +51,8 @@ export default function Dashboard() {
 
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState([]);
+    const [selectedArea, setSelectedArea] = useState(null);
+    const [activeAreaIndex, setActiveAreaIndex] = useState(null);
 
     useEffect(() => {
 
@@ -135,6 +133,68 @@ export default function Dashboard() {
         };
 
     }).filter(a => a.total > 0);
+
+    const pieChartColors = [
+        "#2563EB",
+        "#10B981",
+        "#F59E0B",
+        "#8B5CF6",
+        "#EF4444",
+        "#14B8A6",
+        "#F97316",
+        "#0EA5E9",
+        "#A855F7",
+        "#84CC16",
+        "#EC4899",
+        "#06B6D4",
+        "#64748B",
+        "#22C55E",
+        "#EAB308",
+        "#FB7185"
+    ];
+
+    const renderActiveAreaShape = (props) => {
+        const {
+            cx,
+            cy,
+            midAngle,
+            innerRadius,
+            outerRadius,
+            startAngle,
+            endAngle,
+            fill
+        } = props;
+
+        const RADIAN = Math.PI / 180;
+        const sin = Math.sin(-RADIAN * midAngle);
+        const cos = Math.cos(-RADIAN * midAngle);
+        const mx = cx + (outerRadius + 20) * cos;
+        const my = cy + (outerRadius + 20) * sin;
+
+        return (
+            <g>
+                <Sector
+                    cx={cx}
+                    cy={cy}
+                    innerRadius={innerRadius}
+                    outerRadius={outerRadius + 18}
+                    startAngle={startAngle}
+                    endAngle={endAngle}
+                    fill={fill}
+                    stroke="#ffffff"
+                    strokeWidth={3}
+                />
+                <circle
+                    cx={mx}
+                    cy={my}
+                    r={7}
+                    fill={fill}
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                />
+            </g>
+        );
+    };
 
     const leftCards = [
         {
@@ -429,81 +489,94 @@ export default function Dashboard() {
 
                 <div className="chart-title">
                     <FaChartBar />
-                    <h3>Operadores por Área</h3>
+                    <h3>Usuarios por Área</h3>
                 </div>
 
-                <ResponsiveContainer width="100%" height={usuariosPorArea.length * 35}>
+                <div className="area-chart-wrapper">
+                    <ResponsiveContainer width="100%" height={420}>
+                        <PieChart>
+                            <defs>
+                                <filter id="areaHoverGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                    <feDropShadow dx="0" dy="0" stdDeviation="8" floodColor="#0F172A" floodOpacity="0.22" />
+                                </filter>
+                            </defs>
 
-                    <BarChart
-                        data={usuariosPorArea}
-                        layout="vertical"
-                        margin={{
-                            top: 10,
-                            right: 5,
-                            left: 5,
-                            bottom: 10
-                        }}
-                    >
+                            <Pie
+                                data={usuariosPorArea}
+                                dataKey="total"
+                                nameKey="area"
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={95}
+                                outerRadius={150}
+                                paddingAngle={3}
+                                labelLine={false}
+                                isAnimationActive={true}
+                                activeIndex={activeAreaIndex}
+                                activeShape={renderActiveAreaShape}
+                                onClick={(data) => setSelectedArea(data)}
+                                onMouseEnter={(data, index) => {
+                                    setSelectedArea(data);
+                                    setActiveAreaIndex(index);
+                                }}
+                                onMouseLeave={() => setActiveAreaIndex(null)}
+                                label={({ name, percent }) =>
+                                    percent > 0.08 ? `${name} ${(percent * 100).toFixed(0)}%` : ""
+                                }
+                            >
+                                {usuariosPorArea.map((entry, index) => (
+                                    <Cell
+                                        key={`${entry.area}-${index}`}
+                                        fill={pieChartColors[index % pieChartColors.length]}
+                                        stroke={activeAreaIndex === index ? "rgba(255,255,255,0.9)" : "transparent"}
+                                        strokeWidth={activeAreaIndex === index ? 3 : 0}
+                                        filter={activeAreaIndex === index ? "url(#areaHoverGlow)" : "none"}
+                                        cursor="pointer"
+                                    />
+                                ))}
+                            </Pie>
 
-                        <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke={chartGridColor}
-                        />
+                            <Tooltip
+                                formatter={(value) => [`${value} usuarios`, "Total"]}
+                                contentStyle={{
+                                    borderRadius: "14px",
+                                    border: "none",
+                                    boxShadow: "0 10px 30px rgba(15,23,42,.12)"
+                                }}
+                            />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
 
-                        <XAxis
-                            type="number"
-                            stroke={chartMutedColor}
-                        />
+                <div className="area-summary">
+                    {selectedArea ? (
+                        <>
+                            <span className="summary-label">Área seleccionada</span>
+                            <strong>{selectedArea.area}</strong>
+                            <span>{selectedArea.total} usuarios</span>
+                        </>
+                    ) : (
+                        <>
+                            <span className="summary-label">Selecciona un área</span>
+                            <strong>{usuariosPorArea[0]?.area || "Sin áreas"}</strong>
+                            <span>{usuariosPorArea[0]?.total || 0} usuarios</span>
+                        </>
+                    )}
+                </div>
 
-                        <YAxis
-                            type="category"
-                            dataKey="area"
-                            stroke={chartMutedColor}
-                            width={240}
-                        />
-
-                        <Tooltip />
-
-                        <Bar
-                            dataKey="total"
-                            radius={[0, 12, 12, 0]}
-                        >
-
-                            {usuariosPorArea.map((entry, index) => (
-
-                                <Cell
-                                    key={index}
-                                    fill={
-                                        [
-                                            "#ffff00",
-                                            "#DC4A00",
-                                            "#6aff81",
-                                            "#ec61e0",
-                                            "#cc05ab",
-                                            "#1600a5",
-                                            "#747474",
-                                            "#4a9ce4",
-                                            "#d4d4d4",
-                                            "#ecff95",
-                                            "#010101",
-                                            "#007f4a",
-                                            "#0d56cb",
-                                            "#e48b50",
-                                            "#000000",
-                                            "#3fc7d3",
-                                        ][index % 16]
-                                    }
-                                />
-
-                            ))}
-
-                        </Bar>
-
-                    </BarChart>
-
-                </ResponsiveContainer>
-
+                <div className="chart-legend">
+                    {usuariosPorArea.map((item, index) => (
+                        <div key={`${item.area}-${index}`} className="legend-item">
+                            <span
+                                className="legend-dot"
+                                style={{ background: pieChartColors[index % pieChartColors.length] }}
+                            />
+                            <span>{item.area}</span>
+                        </div>
+                    ))}
+                </div>
             </motion.div>
+
 
             <style>{`
 
@@ -751,6 +824,82 @@ export default function Dashboard() {
 
                     box-shadow:
                     0 20px 40px rgba(15,23,42,.10);
+                }
+
+                .area-chart-wrapper{
+                    width:100%;
+                    height:420px;
+                    margin-top:18px;
+                }
+
+                .area-chart-wrapper svg,
+                .area-chart-wrapper .recharts-wrapper,
+                .area-chart-wrapper .recharts-pie-sector,
+                .area-chart-wrapper .recharts-pie-sector:focus,
+                .area-chart-wrapper .recharts-pie-sector:active {
+                    outline: none !important;
+                    box-shadow: none !important;
+                    stroke: transparent !important;
+                    filter: none !important;
+                }
+
+                .area-summary{
+                    display:flex;
+                    flex-direction:column;
+                    align-items:center;
+                    justify-content:center;
+                    gap:4px;
+                    margin-top:10px;
+                    padding:14px 18px;
+                    border-radius:18px;
+                    background: var(-operator-card);
+                    border:1px solid #e2e8f0;
+                    color:var(--operator-text);
+                    text-align:center;
+                }
+
+                .summary-label{
+                    font-size:12px;
+                    color: var(--operator-text-soft);
+                    text-transform:uppercase;
+                    letter-spacing:0.08em;
+                }
+
+                .area-summary strong{
+                    font-size:20px;
+                }
+
+                .area-summary span:last-child{
+                    font-size:14px;
+                    color: var(--operator-text-soft);
+                }
+
+                .chart-legend{
+                    display:flex;
+                    flex-wrap:wrap;
+                    gap:10px 16px;
+                    margin-top:14px;
+                    justify-content:center;
+                    color: var(--operator-text);
+                    font-size:14px;
+                }
+
+                .legend-item{
+                    display:inline-flex;
+                    align-items:center;
+                    border: 1px solid var(--operator-border);
+                    gap:8px;
+                    background: var(--operator-card);
+                    border-radius:999px;
+                    padding:6px 10px;
+                    color: var(--operator-text);
+                }
+
+                .legend-dot{
+                    display:inline-block;
+                    width:10px;
+                    height:10px;
+                    border-radius:50%;
                 }
 
                 .recharts-default-tooltip{

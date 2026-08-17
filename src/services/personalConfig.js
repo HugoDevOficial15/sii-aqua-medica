@@ -1,0 +1,126 @@
+const normalizeText = (value) =>
+  (value ?? "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const AREA_ALIASES = {
+  "contabilidad": "contabilidad",
+  "recursos humanos": "recursos humanos",
+  "recursos humanos": "recursos humanos",
+  "recursos_humanos": "recursos humanos",
+  "rrhh": "recursos humanos",
+  "produccion": "produccion",
+  "producción": "produccion",
+  "almacen": "almacen",
+  "almacén": "almacen",
+  "mantenimiento": "mantenimiento",
+  "seguridad": "seguridad",
+  "salud ocupacional": "salud ocupacional",
+  "salud_ocupacional": "salud ocupacional",
+  "validaciones": "validaciones",
+  "comite tecnico": "comite tecnico",
+  "comite tecnico": "comite tecnico",
+  "comité técnico": "comite tecnico",
+  "sistemas": "sistemas",
+};
+
+const normalizeArea = (value) => AREA_ALIASES[normalizeText(value)] || normalizeText(value);
+
+export const ZONAS_POR_DEPARTAMENTO = {
+  "salud ocupacional": ["norte", "sur", "centro"],
+  vigilancia: ["norte"],
+  servicios: ["sur"],
+  almacen: ["norte", "sur", "centro"],
+};
+
+export const JEFE_DEPARTAMENTO = {
+  contabilidad: [],
+  "recursos humanos": [],
+  produccion: [],
+  almacen: [],
+  mantenimiento: [],
+  seguridad: [],
+  "salud ocupacional": ["101", "102"],
+  validaciones: [],
+  "comite tecnico": [],
+  sistemas: [],
+};
+
+export const JEFE_DE_ZONA = {
+  norte: ["101"],
+  sur: ["301"],
+  centro: ["102"],
+};
+
+const isJefeArea = (usuario, areaEsperada) => {
+  if (!usuario) return false;
+
+  const area = normalizeArea(usuario.area);
+  const rol = normalizeText(usuario.rol);
+  const puesto = normalizeText(usuario.puesto);
+  const nomina = String(usuario.nomina ?? "");
+
+  const esJefePorNomina = (JEFE_DEPARTAMENTO[areaEsperada] || []).some((n) => String(n) === nomina);
+  const esJefePorTitulo =
+    area === areaEsperada &&
+    (rol.includes("jefe") ||
+      rol.includes("coordinador") ||
+      puesto.includes("jefe") ||
+      puesto.includes("responsable de recursos humanos") ||
+      puesto.includes("responsable de importacion") ||
+      puesto.includes("coordinador"));
+
+  return esJefePorNomina || esJefePorTitulo;
+};
+
+export const canAccessPersonalSection = (usuario) => {
+  if (!usuario) return false;
+  if (usuario.rol === "admin_sistemas") return true;
+
+  const nomina = String(usuario.nomina ?? "");
+  const area = normalizeArea(usuario.area);
+  const zona = normalizeText(usuario.zona || usuario.areaZona || "");
+
+  const esJefeDepartamento = isJefeArea(usuario, area);
+  const esJefeZona = Object.entries(JEFE_DE_ZONA).some(([zonaKey, jefes]) => {
+    return normalizeText(zonaKey) === zona && jefes.some((n) => String(n) === nomina);
+  });
+
+  if (esJefeDepartamento || esJefeZona) return true;
+
+  const zonasPermitidas = ZONAS_POR_DEPARTAMENTO[area] || [];
+  return zonasPermitidas.some((z) => normalizeText(z) === zona);
+};
+
+export const getAllowedUsersForPersonal = (usuarios = [], usuarioActual) => {
+  if (!usuarioActual) return [];
+
+  const areaActual = normalizeArea(usuarioActual.area);
+  const zonaActual = normalizeText(usuarioActual.zona || usuarioActual.areaZona || "");
+  const nominaActual = String(usuarioActual.nomina ?? "");
+
+  const esJefeDepartamento = isJefeArea(usuarioActual, areaActual);
+  const esJefeZona = Object.entries(JEFE_DE_ZONA).some(([zonaKey, jefes]) => {
+    return normalizeText(zonaKey) === zonaActual && jefes.some((n) => String(n) === nominaActual);
+  });
+
+  return usuarios.filter((usuario) => {
+    if (!usuario || usuario.activo === false) return false;
+
+    const area = normalizeArea(usuario.area);
+    const zona = normalizeText(usuario.zona || usuario.areaZona || "");
+
+    if (esJefeDepartamento) {
+      return area === areaActual;
+    }
+
+    if (esJefeZona) {
+      return area === areaActual && zona === zonaActual;
+    }
+
+    return area === areaActual && zona === zonaActual;
+  });
+};

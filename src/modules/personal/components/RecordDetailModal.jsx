@@ -1,0 +1,272 @@
+import { FaFilePdf } from "react-icons/fa";
+
+const formatRecordDate = (value) => {
+  if (!value) return "Sin fecha";
+
+  if (typeof value.toDate === "function") {
+    return value.toDate().toLocaleDateString("es-MX", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Sin fecha";
+
+  return parsed.toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const getRecordDetails = (record) => {
+  if (!record) return [];
+
+  const rawDate = record.fecha || record.createdAt;
+
+  return [
+    { label: "Tipo", value: record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia" },
+    { label: "Título", value: record.titulo || "Sin título" },
+    { label: "Descripción", value: record.descripcion || "Sin descripción" },
+    { label: "Prioridad", value: record.prioridad || "No especificada" },
+    { label: "Estado", value: record.estado || "No especificado" },
+    { label: "Empleado", value: record.empleadoNombre || "Sin empleado" },
+    { label: "Nómina", value: record.empleadoNomina || "Sin nómina" },
+    { label: "Área", value: record.empleadoArea || "Sin área" },
+    {
+      label: record.type === "reconocimiento" ? "Emitido por" : "Reportado por",
+      value: record.emitidoPor || record.reportadoPor || "Sin información",
+    },
+    {
+      label: record.type === "reconocimiento" ? "Nómina del emisor" : "Nómina del reportante",
+      value: record.emitidoPorNomina || record.reportadoPorNomina || "Sin información",
+    },
+    { label: "Fecha", value: formatRecordDate(rawDate) },
+    { label: "Tipo específico", value: record.tipo || "Sin tipo" },
+  ].filter((field) => field.value !== null && field.value !== undefined && field.value !== "");
+};
+
+export default function RecordDetailModal({ record, onClose }) {
+  if (!record) return null;
+
+  return (
+    <div className="personal-modal-backdrop" onClick={onClose}>
+      <div className="personal-modal-card" onClick={(event) => event.stopPropagation()}>
+        <div className="personal-modal-header">
+          <div>
+            <p className="personal-modal-kicker">Personal</p>
+            <h3>{record.titulo || "Sin título"}</h3>
+          </div>
+          <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
+            ×
+          </button>
+        </div>
+
+        <div className="personal-record-modal-body">
+          <div className="personal-record-modal-badge-wrap">
+            <span className={`personal-record-badge ${record.type}`}>
+              {record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia"}
+            </span>
+          </div>
+
+          <div className="personal-record-detail-grid">
+            {getRecordDetails(record).map((field) => (
+              <div key={`${record.id || record.titulo}-${field.label}`} className="personal-record-detail-item">
+                <span className="personal-record-detail-label">{field.label}</span>
+                <p className="personal-record-detail-value">{field.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="personal-modal-actions">
+          <button type="button" className="personal-modal-pdf">
+            <FaFilePdf /> PDF
+          </button>
+
+          <button type="button" className="personal-modal-primary" onClick={onClose}>
+            Cerrar
+          </button>
+        </div>
+      </div>
+
+      <style>{`
+        .personal-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.55);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1200;
+          padding: 20px;
+        }
+
+        .personal-modal-card {
+          width: min(680px, 100%);
+          background: var(--operator-card, #ffffff);
+          color: var(--operator-text, #0f172a);
+          border-radius: 22px;
+          box-shadow: 0 22px 48px rgba(15, 23, 42, 0.2);
+          overflow: hidden;
+        }
+
+        .personal-modal-header {
+          display: flex;
+          border: none;
+          justify-content: space-between;
+          align-items: center;
+          padding: 24px 30px;
+          background: var(--operator-card);
+        }
+
+        .personal-modal-kicker {
+          margin: 0 0 4px;
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--operator-text-soft);
+          font-weight: 700;
+        }
+
+        .personal-modal-header h3 {
+          margin: 0;
+          font-size: 1.5rem;
+          font-weight: 800;
+          color: var(--operator-text);
+        }
+
+        .personal-modal-close {
+          width: 36px;
+          height: 36px;
+          border: none;
+          border-radius: 10px;
+          background: var(--operator-card);
+          color: var(--operator-text);
+          font-size: 30px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .personal-modal-close:hover {
+          background: var(--operator-border);
+          color: var(--operator-primary);
+        }
+
+        .personal-record-modal-body {
+          padding: 20px 24px 10px;
+        }
+
+        .personal-record-modal-badge-wrap {
+          margin-bottom: 18px;
+        }
+
+        .personal-record-detail-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 14px;
+        }
+
+        .personal-record-detail-item {
+          background: rgba(148, 163, 184, 0.05);
+          border: 1px solid var(--operator-border, #dfe7f1);
+          border-radius: 12px;
+          padding: 12px 14px;
+        }
+
+        .personal-record-detail-label {
+          display: block;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: var(--operator-text-soft, #64748b);
+          margin-bottom: 6px;
+        }
+
+        .personal-record-detail-value {
+          margin: 0;
+          color: var(--operator-text, #1f2937);
+          font-size: 13px;
+          line-height: 1.5;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+
+        .personal-record-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 10px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .personal-record-badge.reconocimiento {
+          background: rgba(67, 241, 131, 0.34) !important;
+          color: #30fc7e !important;
+        }
+
+        .personal-record-badge.incidencia {
+          background: rgba(239, 68, 68, 0.32) !important;
+          color: #f33030 !important;
+        }
+
+        .personal-modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          margin-top: 8px;
+          padding: 0 24px 24px;
+        }
+
+        .personal-modal-primary {
+          height: 50px;
+          padding: 0 24px;
+          border: none;
+          border-radius: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0px 20px var(--operator-shadow);
+          background: linear-gradient(135deg, #ef4444, #dc2626);
+          color: white;
+          box-shadow: 0 0px 20px rgba(239, 68, 68, 0.35);
+        }
+
+        .personal-modal-primary:hover {
+          filter: brightness(1.05);
+          scale: 1.02;
+        }
+
+        .personal-modal-pdf {
+          height: 50px;
+          padding: 0 24px;
+          border-radius: 14px;
+          border: none;
+          background: var(--operator-border);
+          color: var(--operator-text);
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0px 20px var(--operator-shadow);
+        }
+
+        .personal-modal-pdf:hover {
+          scale: 1.02;
+          filter: brightness(1.05);
+          color: var(--operator-danger);
+        }
+      `}</style>
+    </div>
+  );
+}
