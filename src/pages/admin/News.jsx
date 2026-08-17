@@ -3,6 +3,7 @@ import { collection, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, getDocs
 import { db } from "../../config/firebase";
 import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa";
 import { AREAS } from "../../catalogs/areas";
+import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
 
 // 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
@@ -91,11 +92,11 @@ export default function News() {
     if (window.confirm(`¿Estás seguro de que deseas eliminar la noticia "${tituloNoticia}"? Esta acción no se puede deshacer.`)) {
       try {
         await deleteDoc(doc(db, "noticias", id));
-        alert("Noticia eliminada correctamente.");
-        cargarNoticias(); // Recargar la lista
+        notifySuccess("Noticia eliminada", "La noticia ha sido eliminada correctamente.");
+        cargarNoticias();
       } catch (error) {
         console.error("Error al eliminar la noticia:", error);
-        alert("Hubo un error al eliminar la noticia.");
+        notifyError("Error", "Hubo un error al eliminar la noticia.");
       }
     }
   };
@@ -147,7 +148,7 @@ export default function News() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!titulo || !contenido || !fechaLimite) {
-      alert("El título, el contenido y la fecha límite son obligatorios");
+      notifyWarning("Campos requeridos", "El título, el contenido y la fecha límite son obligatorios");
       return;
     }
 
@@ -212,12 +213,15 @@ export default function News() {
         });
       }
 
-      alert(noticiaEditando ? "¡Noticia actualizada con éxito!" : "¡Noticia publicada con éxito!");
+      notifySuccess(
+        noticiaEditando ? "Noticia actualizada" : "Noticia publicada",
+        noticiaEditando ? "Los cambios han sido guardados correctamente." : "La noticia ha sido publicada con éxito."
+      );
       setVistaActual("lista");
       cargarNoticias();
     } catch (error) {
       console.error("Error en Firebase:", error);
-      alert("Hubo un error al procesar la noticia.");
+      notifyError("Error", "Hubo un error al procesar la noticia.");
     } finally {
       setLoading(false);
     }
