@@ -7,6 +7,7 @@ import Loader from "../../components/Loader";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { createNotification } from "../../utils/createNotification";
+import { notifyInfo, notifySuccess, notifyError } from "../../utils/notify";
 
 const MIN_APROBATORIO = 80;
 
@@ -153,12 +154,12 @@ export default function OperatorTraining({ onTrainingComplete }) {
         const fechaFin = training.fechaFin;
 
         if (hoy < fechaInicio) {
-            alert(`⏰ Esta capacitación estará disponible a partir del ${fechaInicio}`);
+            notifyInfo("Capacitación no disponible", `Esta capacitación estará disponible a partir del ${fechaInicio}`);
             return;
         }
 
         if (hoy > fechaFin) {
-            alert(`⏰ El plazo para responder esta capacitación venció el ${fechaFin}`);
+            notifyInfo("Plazo vencido", `El plazo para responder esta capacitación venció el ${fechaFin}`);
             return;
         }
 
@@ -262,8 +263,11 @@ export default function OperatorTraining({ onTrainingComplete }) {
                 console.error("Error al notificar a admins sobre respuesta de capacitación:", error);
             }
 
-            alert(`Capacitación enviada correctamente.\n${result.tieneRespuestasAbiertas ? 'Tu respuesta será revisada por el administrador.' : `Puntaje: ${result.calificacion}/100`
-                }`);
+            const mensaje = result.tieneRespuestasAbiertas
+                ? 'Tu respuesta será revisada por el administrador.'
+                : `Puntaje: ${result.calificacion}/100`;
+
+            notifySuccess("Capacitación enviada", mensaje);
 
             // Limpiar memoria
             localStorage.removeItem(timerKey);
@@ -285,7 +289,7 @@ export default function OperatorTraining({ onTrainingComplete }) {
             if (typeof onTrainingComplete === 'function') onTrainingComplete();
         } catch (error) {
             console.error("Error al guardar respuesta:", error);
-            alert("Error al enviar la capacitación. Intenta nuevamente.");
+            notifyError("Error", "No se pudo enviar la capacitación. Intenta nuevamente.");
         } finally {
             setIsSubmitting(false);
         }

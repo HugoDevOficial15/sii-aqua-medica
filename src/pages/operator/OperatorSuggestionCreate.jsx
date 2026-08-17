@@ -14,6 +14,7 @@ import {
 import MobileBackButton from "./components/MobileBackButton";
 import { useAuth } from "../../hooks/useAuth";
 import { createIdea, getIdeasByUser } from "../../services/ideasService";
+import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
 import "../../styles/operator/operator-suggestions.css"; 
 
 export default function OperatorSuggestionCreate({ onBack }) {
@@ -101,14 +102,14 @@ export default function OperatorSuggestionCreate({ onBack }) {
 
     const handleSubmit = async () => {
         if (!titulo.trim() || !descripcion.trim()) {
-            alert("Por favor completa título y descripción.");
+            notifyWarning("Campos requeridos", "Por favor completa título y descripción.");
             return;
         }
         setSubmitting(true);
         try {
             let base64 = "";
             if (archivo) base64 = await fileToBase64(archivo);
-            
+
             const res = await createIdea({
                 user: user || {},
                 titulo: titulo.trim(),
@@ -118,15 +119,15 @@ export default function OperatorSuggestionCreate({ onBack }) {
                 pantalla: "Ideas"
             });
             if (res && res.success) {
-                alert("Idea enviada correctamente.");
+                notifySuccess("Idea enviada", "Tu idea ha sido enviada correctamente.");
                 setTitulo(""); setDescripcion(""); setArchivo(null); setArchivoName("");
                 setView("list");
             } else {
-                alert("Ocurrió un error al enviar la idea.");
+                notifyError("Error", "Ocurrió un error al enviar la idea.");
             }
         } catch (error) {
             console.error(error);
-            alert("Error al enviar la idea.");
+            notifyError("Error", "No se pudo enviar la idea. Intenta nuevamente.");
         } finally {
             setSubmitting(false);
         }
