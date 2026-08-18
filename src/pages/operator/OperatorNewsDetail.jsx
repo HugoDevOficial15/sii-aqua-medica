@@ -1,5 +1,6 @@
 import MobileBackButton from "./components/MobileBackButton";
 import { useState } from "react";
+import { notifyInfo } from "../../utils/notify";
 
 export default function OperatorNewsDetail({ onBack, noticia }) {
     const [descargandoArchivo, setDescargandoArchivo] = useState(false);
@@ -13,7 +14,7 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
             if (isIOS) {
                 const newWindow = window.open(noticia.archivo, '_blank');
                 if (!newWindow) {
-                    alert('Por favor, permite ventanas emergentes. Mantén presionado el archivo y selecciona "Guardar"');
+                    notifyInfo('Bloqueo de ventanas', 'Mantén presionado el archivo y selecciona "Guardar"');
                 }
             } else if (isMobile && noticia.archivo.startsWith('data:')) {
                 const response = await fetch(noticia.archivo);

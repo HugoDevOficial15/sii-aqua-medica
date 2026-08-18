@@ -115,7 +115,7 @@ export default function OperatorPreferences({ onBack, usuarioActual, adminMode =
             <div className={adminMode ? "preferences-hero admin-mode" : "preferences-hero"}>
                 
                 <h6><strong>Configuración</strong></h6>
-                <span class="badge-tittle">AQUA Médica</span>
+                <span className="badge-title">AQUA Médica</span>
             </div>
 
             {/*  NUEVA SECCIÓN: Tarjeta de Foto de Perfil  */}

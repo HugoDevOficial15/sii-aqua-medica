@@ -39,7 +39,7 @@ import OperatorReportProblem from "./OperatorReportProblem";
 import OperatorLegal from "./OperatorLegal";
 import OperatorAbout from "./OperatorAbout";
 import OperadorCitasMedicas from "./OperadorCitasMedicas";
-
+import ExpedienteClinico from "./ExpedienteClinico";
 import { useOperatorSurveys } from "../../hooks/hooksOperator/useOperatorSurveys";
 import { useOperatorTrainings } from "../../hooks/hooksOperator/useOperatorTrainings";
 
@@ -168,6 +168,8 @@ export default function AppOperator() {
                 return <OperatorAbout onBack={() => setScreen("support")} />;
             case "citas-medicas":
                 return <OperadorCitasMedicas onBack={() => setScreen("more")} />;
+            case "expediente-clinico":
+                return <ExpedienteClinico onBack={() => setScreen("more")} />;
             case "suggestion-create":
                 return <OperatorSuggestionCreate onBack={() => setScreen("more")} />;
             case "suggestion-detail":
@@ -191,6 +193,7 @@ export default function AppOperator() {
 
     //  5. Sumamos las notificaciones de Firebase + Encuestas + Capacitaciones pendientes
     const totalNotificaciones = notificacionesCount;
+        notificacionesCount +
         (metrics?.pendientesCount || 0) +
         (trainingMetrics?.pendientesCount || 0) +
         notificacionesCount;

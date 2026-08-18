@@ -6,7 +6,7 @@ import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "fi
 import Loader from "../../components/Loader";
 
 import { useAuth } from "../../hooks/useAuth";
-import { notifySuccess, notifyError } from "../../utils/notify";
+import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
 import { updateAgendaWithBatch } from "../../services/agendaMedicaService";
 import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
 
@@ -96,24 +96,25 @@ export default function AgendaMedicaPage() {
 
     // 🗑️ ELIMINAR AGENDA Y SUS NOTIFICACIONES EN CADENA
     const handleEliminar = async (id, nombre) => {
-        if (window.confirm(`¿Estás seguro de eliminar la campaña "${nombre}"?`)) {
-            try {
-                await deleteDoc(doc(db, "agendas_medicas", id));
+        const result = await confirmDelete("¿Eliminar campaña?", `La campaña "${nombre}" se eliminará permanentemente.`);
+        if (!result.isConfirmed) return;
 
-                const qNotif = query(collection(db, "notificaciones"), where("NomAgenda", "==", nombre));
-                const snapshotNotif = await getDocs(qNotif);
-                
-                const deletePromises = snapshotNotif.docs.map(docNotif => 
-                    deleteDoc(doc(db, "notificaciones", docNotif.id))
-                );
-                await Promise.all(deletePromises);
+        try {
+            await deleteDoc(doc(db, "agendas_medicas", id));
 
-                alert("Agenda y notificaciones eliminadas del sistema.");
-                cargarAgendas();
-            } catch (error) {
-                console.error("Error al eliminar:", error);
-                alert("Hubo un error al eliminar.");
-            }
+            const qNotif = query(collection(db, "notificaciones"), where("NomAgenda", "==", nombre));
+            const snapshotNotif = await getDocs(qNotif);
+
+            const deletePromises = snapshotNotif.docs.map(docNotif =>
+                deleteDoc(doc(db, "notificaciones", docNotif.id))
+            );
+            await Promise.all(deletePromises);
+
+            notifySuccess("Eliminado", "Agenda y notificaciones eliminadas del sistema.");
+            cargarAgendas();
+        } catch (error) {
+            console.error("Error al eliminar:", error);
+            notifyError("Error", "Hubo un error al eliminar.");
         }
     };
 

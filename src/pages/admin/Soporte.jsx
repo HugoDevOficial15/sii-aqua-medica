@@ -4,6 +4,7 @@ import { db } from "../../config/firebase";
 import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiTrash } from "react-icons/fi";
 
 import { useAuth } from "../../hooks/useAuth";
+import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
 
 export default function SoporteAdmin() {
   const { user } = useAuth();
@@ -89,7 +90,7 @@ export default function SoporteAdmin() {
       setSelectedProblema({ ...selectedProblema, estado: nuevoEstado, comentarioAdmin: comentario });
     } catch (error) {
       console.error("Error al actualizar el estado:", error);
-      alert("No se pudo actualizar el estado del problema.");
+      notifyError("Error", "No se pudo actualizar el estado del problema.");
     } finally {
       setActualizando(false);
     }
@@ -97,9 +98,8 @@ export default function SoporteAdmin() {
 
   // Eliminar un problema de la base de datos
   const handleEliminarProblema = async (problema) => {
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar el reporte de "${problema.asunto}"? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+    const result = await confirmDelete("¿Eliminar reporte?", `El reporte de "${problema.asunto}" se eliminará permanentemente.`);
+    if (!result.isConfirmed) return;
 
     setActualizando(true);
     try {
@@ -115,10 +115,10 @@ export default function SoporteAdmin() {
         setSelectedProblema(null);
       }
 
-      alert("Reporte eliminado correctamente.");
+      notifySuccess("Eliminado", "Reporte eliminado correctamente.");
     } catch (error) {
       console.error("Error al eliminar el reporte:", error);
-      alert("No se pudo eliminar el reporte.");
+      notifyError("Error", "No se pudo eliminar el reporte.");
     } finally {
       setActualizando(false);
     }

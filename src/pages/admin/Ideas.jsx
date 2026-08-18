@@ -6,6 +6,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { addDoc } from "firebase/firestore";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { createNotification } from "../../utils/createNotification";
+import { notifyError } from "../../utils/notify";
 
 export default function IdeasAdmin() {
   const { user } = useAuth();
@@ -77,7 +78,7 @@ export default function IdeasAdmin() {
       setSelectedIdea({ ...selectedIdea, estado: nuevoEstado, comentarioAdmin: comentario });
     } catch (error) {
       console.error("Error al actualizar el estado de la idea:", error);
-      alert("No se pudo actualizar el estado de la idea.");
+      notifyError("Error", "No se pudo actualizar el estado de la idea.");
     } finally {
       setActualizando(false);
     }

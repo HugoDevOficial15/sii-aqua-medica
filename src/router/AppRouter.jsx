@@ -16,6 +16,7 @@ import AniversariosMesesPage from "../modules/aniversarios/AniversarioMesesPage"
 import ListaServiciosPage from "../modules/listaservicios/ListaServiciosPage";
 import MedicamentosPage from "../modules/medicamentos/MedicamentosPaje";
 import AgendaMedicaPage from "../modules/agendamedica/AgendaMedicaPage";
+import DetalleOrdenMedica from "../pages/admin/DetalleOrdenMedico";
 import NotasPage from "../modules/notas/notasPage";
 import RacksPage from "../modules/almacen/pages/RacksPages";
 import MaterialesPage from "../modules/almacen/pages/MaterialesPages";
@@ -37,6 +38,8 @@ import Personal from "../modules/personal/personal";
 
 import MaintenancePage from "../components/MaintenancePage";
 import Capacitaciones from "../pages/admin/Capacitaciones";
+import MisCitasMedicas from "../pages/operator/MisCitasMedicas";
+import ExpedienteClinico from "../pages/operator/ExpedienteClinico";
 import { useAuth } from "../hooks/useAuth";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { initPushNotifications, stopPushNotifications } from "../services/pushNotificationService";
@@ -47,7 +50,7 @@ export default function AppRouter() {
     const { user } = useAuth();
     usePushNotifications(user);
 
-    // 🔥 INICIALIZAR LISTENER DE NOTIFICACIONES EN TIEMPO REAL
+    //  INICIALIZAR LISTENER DE NOTIFICACIONES EN TIEMPO REAL
     // Detecta nuevas notificaciones en Firestore y las envía vía FCM
     useEffect(() => {
         const userId = user?.uid;
@@ -70,7 +73,7 @@ export default function AppRouter() {
                 {/* CAMBIO PASSWORD */}
                 <Route path="/change-password" element={<ChangePassword />} />
 
-                {/* 🔥 BLOQUE PROTEGIDO GENERAL */}
+                {/*  BLOQUE PROTEGIDO GENERAL */}
                 <Route
                     element={
                         <ProtectedRoute>
@@ -154,7 +157,6 @@ export default function AppRouter() {
                         path="/noticias"
                         element={
                             <ProtectedRoute permiso="noticias.ver">
-                                {/* 🔥 AHORA SÍ LLAMAMOS A News */}
                                 <News />
                             </ProtectedRoute>
                         }
@@ -179,7 +181,8 @@ export default function AppRouter() {
                             </ProtectedRoute>
                         }
                     />
-
+                    
+                    {/*SERVICIOS */}
                     <Route
                         path="/agenda/:mes"
                         element={
@@ -198,7 +201,8 @@ export default function AppRouter() {
                             </ProtectedRoute>
                         }
                     />
-
+                    
+                    {/*ANIVERSARIOS*/}
                     <Route
                         path="/aniversarios/:mes"
                         element={
@@ -234,6 +238,16 @@ export default function AppRouter() {
                         element={
                             <ProtectedRoute permiso="citas.ver">
                                 <AgendaMedicaPage />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/*ORDEN MÉDICA*/}
+                    <Route
+                        path="/detalle-orden-medico"
+                        element={
+                            <ProtectedRoute permiso="ordenes.ver">
+                                <DetalleOrdenMedica />
                             </ProtectedRoute>
                         }
                     />
@@ -345,6 +359,26 @@ export default function AppRouter() {
                     element={
                         <ProtectedRoute role="operador">
                             <AppOperator />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/*MIS CITAS MÉDICAS (USUARIO)*/}
+                <Route
+                    path="/mis-citas"
+                    element={
+                        <ProtectedRoute role="operador">
+                            <MisCitasMedicas />
+                        </ProtectedRoute>
+                    }
+                />   
+
+                {/*EXPEDIENTE MÉDICO PARA EMPLEADOS */} 
+                <Route
+                    path="/expediente-clinico"
+                    element={
+                        <ProtectedRoute role="operador">
+                            <ExpedienteClinico />
                         </ProtectedRoute>
                     }
                 />

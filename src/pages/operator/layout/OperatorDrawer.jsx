@@ -11,7 +11,8 @@ import {
     FiHelpCircle,
     FiLogOut,
     FiChevronRight,
-    FiX
+    FiX,
+    FiHeart
 } from "react-icons/fi";
 
 import { useAuth } from "../../../hooks/useAuth";
@@ -63,6 +64,12 @@ export default function OperatorDrawer({
             id: "citas-medicas", 
             icon: <FiActivity />,
             label: "Citas Médicas"
+        },
+
+        {
+            id: "expediente-clinico",
+            icon: <FiHeart />,
+            label: "Mi expediente Médico"            
         },
 
         {
