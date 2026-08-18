@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 
 import {
     FaBell,
@@ -22,7 +22,7 @@ import { getSemaforo } from "../utils/getSemaforo";
 
 export default function Header({ toggleSidebar }) {
 
-    const { user } = useAuth();
+    const { user, can } = useAuth();
     const handleLogout = useLogout();
     const navigate = useNavigate();
     const themeAttr = (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme')) || 'light';
@@ -39,6 +39,29 @@ export default function Header({ toggleSidebar }) {
     const [dynamicNotifications, setDynamicNotifications] = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef(null);
+
+    const normalizeText = (value) =>
+        (value ?? "")
+            .toString()
+            .trim()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+
+    const isSaludOcupacionalCoordinator = (usuario) => {
+        if (!usuario) return false;
+
+        const area = normalizeText(usuario.area);
+        const rol = normalizeText(usuario.rol);
+        const puesto = normalizeText(usuario.puesto);
+
+        return area === "salud ocupacional" && (
+            rol.includes("coordinador") ||
+            rol.includes("jefe") ||
+            puesto.includes("coordinador") ||
+            puesto.includes("jefe")
+        );
+    };
 
     const DISMISSED_NOTIFS_KEY = "dismissed_admin_notifications";
 
@@ -100,25 +123,32 @@ export default function Header({ toggleSidebar }) {
                     icon: <FaClipboardCheck />,
                     title: "Nueva solicitud pendiente",
                     subtitle: `${s.nombreActual || "Operador"} — Nómina ${s.nominaActual}`,
-                    ruta: "/solicitudes"
+                    ruta: "/solicitudes",
+                    source: "solicitud",
+                    persistedInDb: false
                 }));
 
-                const notifsMedicamentos = medicamentos
-                    .filter(m => m.estado !== "inactivo")
-                    .map(m => {
-                        const fecha = m.fechaCaducidad?.toDate?.() || m.fechaCaducidad;
-                        return { ...m, semaforo: getSemaforo(fecha) };
-                    })
-                    .filter(m => m.semaforo.color !== "verde")
-                    .map(m => ({
-                        id: `medicamento-${m.id}-${m.semaforo.color}`,
-                        icon: <FaSyringe />,
-                        title: m.semaforo.color === "rojo"
-                            ? "Medicamento por vencer / vencido"
-                            : "Medicamento próximo a vencer",
-                        subtitle: `${m.nombreMedicamento} — ${m.semaforo.label}`,
-                        ruta: "/medicamento"
-                    }));
+                const shouldShowMedicamentoNotifications = isSaludOcupacionalCoordinator(user);
+                const notifsMedicamentos = shouldShowMedicamentoNotifications
+                    ? medicamentos
+                        .filter(m => m.estado !== "inactivo")
+                        .map(m => {
+                            const fecha = m.fechaCaducidad?.toDate?.() || m.fechaCaducidad;
+                            return { ...m, semaforo: getSemaforo(fecha) };
+                        })
+                        .filter(m => m.semaforo.color !== "verde")
+                        .map(m => ({
+                            id: `medicamento-${m.id}-${m.semaforo.color}`,
+                            icon: <FaSyringe />,
+                            title: m.semaforo.color === "rojo"
+                                ? "Medicamento por vencer / vencido"
+                                : "Medicamento próximo a vencer",
+                            subtitle: `${m.nombreMedicamento} — ${m.semaforo.label}`,
+                            ruta: "/medicamento",
+                            source: "medicamento",
+                            persistedInDb: false
+                        }))
+                    : [];
 
                 setStaticNotifications([...notifsSolicitudes, ...notifsMedicamentos]);
             } catch (error) {
@@ -127,7 +157,7 @@ export default function Header({ toggleSidebar }) {
         };
 
         loadStaticNotifications();
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         if (!user?.uid && !user?.id) {
@@ -160,7 +190,9 @@ export default function Header({ toggleSidebar }) {
                         subtitle: n.Mensaje || n.extra?.motivo || "Sin detalles",
                         ruta: n.Destino || "/",
                         nomina: n.extra?.nomina ?? n.nomina ?? null,
-                        nombre: n.extra?.nombre ?? n.nombre ?? null
+                        nombre: n.extra?.nombre ?? n.nombre ?? null,
+                        source: "firebase",
+                        persistedInDb: true
                     };
                 });
 
@@ -170,10 +202,14 @@ export default function Header({ toggleSidebar }) {
         return () => unsubscribe();
     }, [user?.uid, user?.id]);
 
+    const isPersistentNotification = (notif) => {
+        return notif?.persistedInDb !== false && notif?.source !== "medicamento" && notif?.source !== "solicitud";
+    };
+
     useEffect(() => {
         const dismissed = getDismissedFromStorage();
         const allNotifications = [...staticNotifications, ...dynamicNotifications];
-        setNotifications(allNotifications.filter(n => !dismissed.includes(n.id)));
+        setNotifications(allNotifications.filter(n => !dismissed.includes(n.id) || !isPersistentNotification(n)));
     }, [staticNotifications, dynamicNotifications]);
 
     useEffect(() => {
@@ -192,19 +228,28 @@ export default function Header({ toggleSidebar }) {
         };
     }, [showDropdown]);
 
-    const handleNotificationClick = (notif) => {
-        const { id, ruta, nomina } = notif;
+    const handleNotificationClick = async (notif) => {
+        const { id, ruta, nomina, persistedInDb, source } = notif;
 
-        try {
-            addDismissedToStorage(id);
-        } catch (err) {
-            console.error("Error al persistir el descarte:", err);
+        if (isPersistentNotification(notif)) {
+            try {
+                await deleteDoc(doc(db, "notificaciones", id));
+            } catch (err) {
+                console.error("Error al borrar la notificación de Firestore:", err);
+            }
+        }
+
+        if (isPersistentNotification(notif)) {
+            try {
+                addDismissedToStorage(id);
+            } catch (err) {
+                console.error("Error al persistir el descarte:", err);
+            }
         }
 
         setNotifications((prev) => prev.filter((item) => item.id !== id));
         setShowDropdown(false);
 
-        // Normalizar ruta: agregar barra diagonal si no la tiene
         let rutaFinal = ruta;
         if (rutaFinal && !rutaFinal.startsWith("/")) {
             rutaFinal = "/" + rutaFinal;
@@ -215,17 +260,33 @@ export default function Header({ toggleSidebar }) {
             return;
         }
 
+        const rutaRequierePermiso = rutaFinal === "/personal" || rutaFinal === "personal";
+        if (rutaRequierePermiso && typeof can === "function" && !can("personal.ver")) {
+            return;
+        }
+
         navigate(rutaFinal || "/");
     };
 
-    const handleDismissNotification = (event, id) => {
+    const handleDismissNotification = async (event, id, notif) => {
         event.stopPropagation();
-        try {
-            addDismissedToStorage(id);
-        } catch (err) {
-            console.error("Error al persistir el descarte:", err);
+
+        if (isPersistentNotification(notif)) {
+            try {
+                await deleteDoc(doc(db, "notificaciones", id));
+            } catch (err) {
+                console.error("Error al borrar la notificación de Firestore:", err);
+            }
         }
-        setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+
+        if (isPersistentNotification(notif)) {
+            try {
+                addDismissedToStorage(id);
+            } catch (err) {
+                console.error("Error al persistir el descarte:", err);
+            }
+        }
+        setNotifications((prev) => prev.filter((notification) => notification.id !== id));
     };
 
     return (
@@ -319,7 +380,7 @@ export default function Header({ toggleSidebar }) {
                                                     <button
                                                         type="button"
                                                         className="notification-dismiss-btn"
-                                                        onClick={(event) => handleDismissNotification(event, n.id)}
+                                                        onClick={(event) => handleDismissNotification(event, n.id, n)}
                                                         aria-label="Descartar notificación"
                                                     >
                                                         <FaTimes />

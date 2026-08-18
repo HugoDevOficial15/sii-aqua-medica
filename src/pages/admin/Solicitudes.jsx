@@ -600,14 +600,14 @@ export default function Solicitudes() {
     background: var(--operator-card);
 }
 
-.form-select, .form-control-date {
+.form-select {
     background: var(--operator-border);
     color: var(--operator-text) !important;
     border-color:var(--operator-border);
     border-radius: 10px;
 }
 
-.form-select:focus, .form-control-date:focus {
+.form-select:focus {
     box-shadow: 0 0 0 0.25rem var(--operator-focus);
     border-color: var(--operator-primary);
     background: var(--operator-border);
@@ -631,6 +631,19 @@ export default function Solicitudes() {
     color: var(--operator-text);
     background: transparent;
     
+}
+
+.form-control-date {
+    background: var(--operator-border);
+    color: var(--operator-text) !important;
+    border: 1px solid var(--operator-border);
+    border-radius: 10px;
+}
+
+.form-control-date:focus {
+    border-color: var(--operator-primary) !important;
+    background: var(--operator-border);
+
 }
 
 

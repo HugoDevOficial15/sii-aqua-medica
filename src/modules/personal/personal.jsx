@@ -3,10 +3,12 @@ import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { FaEllipsisV, FaMedal, FaUserTimes, FaFilePdf } from "react-icons/fa";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
+import Loader from "../../components/Loader";
 import { getAllowedUsersForPersonal, canAccessPersonalSection } from "../../services/personalConfig";
 import ReconocimientoModal from "./components/reconocimiento";
 import IncidenciaModal from "./components/incidencia";
 import RecordDetailModal from "./components/RecordDetailModal";
+import PdfGeneralModal from "./components/pdfGeneralModal";
 
 const getRecordTimestamp = (item) => {
   if (!item) return 0;
@@ -59,6 +61,13 @@ export default function Personal() {
   const [actionModal, setActionModal] = useState({ type: null, usuario: null });
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [filtro, setFiltro] = useState("");
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfTargetUser, setPdfTargetUser] = useState(null);
+
+  const openPdfModal = (usuario = null) => {
+    setPdfTargetUser(usuario);
+    setShowPdfModal(true);
+  };
 
   // Cerrar menu de acciones al hacer click fuera del mismo
   useEffect(() => {
@@ -177,7 +186,7 @@ export default function Personal() {
     }
   };
 
-  if (loading) return <div style={{ padding: 24 }}>Cargando personal...</div>;
+  if (loading) return <Loader text="Cargando personal..." />;
   if (!accesoPermitido) {
     return (
       <div style={{ padding: 24 }}>
@@ -194,7 +203,7 @@ export default function Personal() {
       <span className="badge-title">AQUA Médica</span>
       </div>
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+      <div className= "filter-container" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <span className="badge-departamento">
           Departamento: {user?.area || "Sin área"}
         </span>
@@ -206,9 +215,12 @@ export default function Personal() {
             placeholder="Buscar por nombre o nómina"
             aria-label="Buscar por nombre o nómina"
           />
-          <button className="personal-pdf-button">
-
-            <FaFilePdf className="personal-pdf-icon" /> Generar PDF
+          <button
+            type="button"
+            className="personal-pdf-button"
+            onClick={() => openPdfModal()}
+          >
+            <FaFilePdf className="personal-pdf-icon" /> PDF
           </button>
           
       </div>
@@ -391,7 +403,12 @@ export default function Personal() {
         <ReconocimientoModal
           empleado={actionModal.usuario}
           onClose={closeActionModal}
-          onSuccess={closeActionModal}
+          onSuccess={async () => {
+            if (actionModal.usuario) {
+              await loadUserRecords(actionModal.usuario);
+            }
+            closeActionModal();
+          }}
         />
       )}
 
@@ -399,13 +416,29 @@ export default function Personal() {
         <IncidenciaModal
           empleado={actionModal.usuario}
           onClose={closeActionModal}
-          onSuccess={closeActionModal}
+          onSuccess={async () => {
+            if (actionModal.usuario) {
+              await loadUserRecords(actionModal.usuario);
+            }
+            closeActionModal();
+          }}
+        />
+      )}
+
+      {showPdfModal && (
+        <PdfGeneralModal
+          usuarios={allowedUsers}
+          selectedUser={pdfTargetUser}
+          onClose={() => {
+            setShowPdfModal(false);
+            setPdfTargetUser(null);
+          }}
         />
       )}
 
       <style>{`
 
-        /* HEADER PAGINA */
+/* HEADER PAGINA */
 
         .header-pagina {
         align-items: center;
@@ -414,10 +447,8 @@ export default function Personal() {
         }
         
         .badge-departamento {
-        
-        background-color: #7693f3;
-        color: #0a3069f1;
-        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(161, 186, 241, 0.24) 0%, rgba(103, 148, 245, 0.2) 100%);
+        border-radius: 12px;
         padding: 4px 12px;
         display: flex;
         gap: 8px;
@@ -426,7 +457,7 @@ export default function Personal() {
         }
 
         .personal-pdf-button {
-          height: 40px;
+          height: 50px;
           padding: 0 20px;
           border-radius: 10px;
           border: none;
@@ -446,7 +477,39 @@ export default function Personal() {
           box-shadow: 0 0px 10px var(--operator-danger);
         }
 
-        /* CONTAINER  */
+        .filter-container {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-bottom: 16px;
+          justify-content: end;
+        }
+
+        .filter-container .badge-departamento {
+          margin-right: auto;
+        }
+
+          .personal-filter-input {
+          width: min(100%, 320px);
+          border: 1px solid var(--operator-border, #dfe7f1);
+          border-radius: 12px;
+          padding: 10px 12px;
+          font-size: 14px;
+          background: var(--operator-card, #ffffff);
+          color: var(--operator-text, #1f2937);
+          outline: none;
+        }
+
+        .personal-filter-input:focus {
+          border-color: var(--operator-primary, #3b82f6);
+          box-shadow: 0 0 0 3px rgba(118, 147, 243, 0.15);
+        }
+
+        .personal-filter-input::placeholder {
+          color: var(--operator-text);
+        }
+
+/* CONTAINER  */
 
         .card {
         overflow-x: auto;
@@ -460,23 +523,7 @@ export default function Personal() {
           margin-bottom: 16px;
         }
 
-        .personal-filter-input {
-          width: min(100%, 320px);
-          border: 1px solid var(--operator-border, #dfe7f1);
-          border-radius: 12px;
-          padding: 10px 12px;
-          font-size: 14px;
-          background: var(--operator-card, #ffffff);
-          color: var(--operator-text, #1f2937);
-          outline: none;
-        }
-
-        .personal-filter-input:focus {
-          border-color: rgba(118, 147, 243, 0.8);
-          box-shadow: 0 0 0 3px rgba(118, 147, 243, 0.15);
-        }
-
-        /*  Tabla */
+/*  TABLA */
 
         .tabla-personal {
         table-layout: fixed;
@@ -533,7 +580,7 @@ export default function Personal() {
           text-align: center;
         }
 
-        /*  MENU ACCIONES */
+/*  MENU ACCIONES */
 
         .personal-actions-cell {
           text-align: center;
@@ -614,8 +661,13 @@ export default function Personal() {
           color: var(--operator-danger);
         }
 
+        .personal-action-menu-item.reporte:hover {
+          background: var(--operator-border);
+          color: var(--operator-danger);
+        }
 
-        /* TABLA DESPLEGABLE */
+
+/* TABLA DESPLEGABLE */
 
         .personal-details-row td {
           background: rgba(255, 255, 255, 0.02);

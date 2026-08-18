@@ -1,4 +1,5 @@
 import { FaFilePdf } from "react-icons/fa";
+import { generatePersonalRecordPDF } from "./pdf-generator";
 
 const formatRecordDate = (value) => {
   if (!value) return "Sin fecha";
@@ -82,12 +83,17 @@ export default function RecordDetailModal({ record, onClose }) {
         </div>
 
         <div className="personal-modal-actions">
-          <button type="button" className="personal-modal-pdf">
-            <FaFilePdf /> PDF
-          </button>
 
           <button type="button" className="personal-modal-primary" onClick={onClose}>
             Cerrar
+          </button>
+                    
+          <button
+            type="button"
+            className="personal-modal-pdf"
+            onClick={() => generatePersonalRecordPDF(record)}
+          >
+            <FaFilePdf /> PDF
           </button>
         </div>
       </div>
@@ -227,30 +233,9 @@ export default function RecordDetailModal({ record, onClose }) {
 
         .personal-modal-primary {
           height: 50px;
-          padding: 0 24px;
+          padding: 0 24px;   
           border: none;
           border-radius: 14px;
-          font-weight: 700;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 0px 20px var(--operator-shadow);
-          background: linear-gradient(135deg, #ef4444, #dc2626);
-          color: white;
-          box-shadow: 0 0px 20px rgba(239, 68, 68, 0.35);
-        }
-
-        .personal-modal-primary:hover {
-          filter: brightness(1.05);
-          scale: 1.02;
-        }
-
-        .personal-modal-pdf {
-          height: 50px;
-          padding: 0 24px;
-          border-radius: 14px;
-          border: none;
           background: var(--operator-border);
           color: var(--operator-text);
           font-weight: 700;
@@ -261,10 +246,31 @@ export default function RecordDetailModal({ record, onClose }) {
           box-shadow: 0 0px 20px var(--operator-shadow);
         }
 
+        .personal-modal-primary:hover {
+          filter: brightness(1.05);
+          scale: 1.02;
+          color: var(--operator-danger);
+        }
+
+        .personal-modal-pdf {
+          height: 50px;
+          padding: 0 24px;
+          border-radius: 14px;
+          border: none;
+          background: var(--operator-danger);
+          color: white;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0px 20px rgba(239, 68, 68, 0.35);
+        }
+
         .personal-modal-pdf:hover {
           scale: 1.02;
           filter: brightness(1.05);
-          color: var(--operator-danger);
+          color: white;
         }
       `}</style>
     </div>

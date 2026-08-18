@@ -3,6 +3,7 @@ import { addDoc, collection, getDocs, serverTimestamp } from "firebase/firestore
 import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
 import { createNotification } from "../../../utils/createNotification";
+import { notifyError } from "../../../utils/notify";
 
 export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -28,7 +29,7 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
     const descripcion = form.descripcion.trim();
 
     if (!titulo || !descripcion) {
-      setError("Completa el título y la descripción de la incidencia.");
+      notifyError("Completa el título y la descripción de la incidencia.");
       return;
     }
 
@@ -55,47 +56,27 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
 
       const docRef = await addDoc(collection(db, "incidencias_personal"), payload);
 
-      const uidDestino = empleado.uid || empleado.uidFirebase || null;
-      if (uidDestino) {
-        await createNotification({
-          IdUsuario: uidDestino,
-          Titulo: "⚠️ Incidencia registrada",
-          Mensaje: `${user?.nombre || "Tu líder"} registró una incidencia para ti: "${titulo}".`,
-          Destino: "personal",
-          Accion: "incidencia",
-          extra: {
-            incidenciaId: docRef.id,
-            empleadoId: payload.empleadoId,
-            prioridad: form.prioridad,
-          },
-        });
+      const uidDestino = empleado?.uid || empleado?.uidFirebase || empleado?.firebaseUid || null;
+
+      if (!uidDestino) {
+        console.warn("No se pudo identificar al destinatario de la incidencia; no se envió la notificación.");
+        onSuccess?.();
+        onClose?.();
+        return;
       }
 
-      const adminsSnapshot = await getDocs(collection(db, "users"));
-      const adminUids = adminsSnapshot.docs
-        .filter((doc) => {
-          const rol = (doc.data().rol || "").toLowerCase();
-          return rol.includes("admin");
-        })
-        .map((doc) => doc.data().uid)
-        .filter(Boolean);
-
-      for (const adminUid of adminUids) {
-        if (adminUid !== user?.uid) {
-          await createNotification({
-            IdUsuario: adminUid,
-            Titulo: "📣 Nueva incidencia de personal",
-            Mensaje: `${payload.empleadoNombre} recibió una incidencia: ${titulo}`,
-            Destino: "personal",
-            Accion: "incidencia",
-            extra: {
-              incidenciaId: docRef.id,
-              empleadoId: payload.empleadoId,
-              prioridad: form.prioridad,
-            },
-          });
-        }
-      }
+      await createNotification({
+        IdUsuario: uidDestino,
+        Titulo: "⚠️ Incidencia registrada",
+        Mensaje: `${user?.nombre || "Tu líder"} registró una incidencia para ti: "${titulo}".`,
+        Destino: "personal",
+        Accion: "incidencia",
+        extra: {
+          incidenciaId: docRef.id,
+          empleadoId: payload.empleadoId,
+          prioridad: form.prioridad,
+        },
+      });
 
       onSuccess?.();
       onClose?.();

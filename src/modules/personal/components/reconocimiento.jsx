@@ -3,6 +3,7 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
 import { createNotification } from "../../../utils/createNotification";
+import { notifyError } from "../../../utils/notify";
 
 export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -27,7 +28,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
     const descripcion = form.descripcion.trim();
 
     if (!titulo || !descripcion) {
-      setError("Completa el título y la descripción del reconocimiento.");
+      notifyError("Completa el título y la descripción del reconocimiento.");
       return;
     }
 
@@ -53,21 +54,26 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
 
       await addDoc(collection(db, "reconocimientos"), payload);
 
-      const uidDestino = empleado.uid || empleado.uidFirebase || null;
-      if (uidDestino) {
-        await createNotification({
-          IdUsuario: uidDestino,
-          Titulo: "🏆 Reconocimiento recibido",
-          Mensaje: `${user?.nombre || "Tu líder"} te otorgó el reconocimiento "${titulo}".`,
-          Destino: "personal",
-          Accion: "reconocimiento",
-          extra: {
-            empleadoId: payload.empleadoId,
-            tipo: form.tipo,
-            titulo,
-          },
-        });
+      const uidDestino = empleado?.uid || empleado?.uidFirebase || empleado?.firebaseUid || null;
+      if (!uidDestino) {
+        console.warn("No se pudo identificar al destinatario del reconocimiento; no se envió la notificación.");
+        onSuccess?.();
+        onClose?.();
+        return;
       }
+
+      await createNotification({
+        IdUsuario: uidDestino,
+        Titulo: "🏆 Reconocimiento recibido",
+        Mensaje: `${user?.nombre || "Tu líder"} te otorgó el reconocimiento "${titulo}".`,
+        Destino: "personal",
+        Accion: "reconocimiento",
+        extra: {
+          empleadoId: payload.empleadoId,
+          tipo: form.tipo,
+          titulo,
+        },
+      });
 
       onSuccess?.();
       onClose?.();

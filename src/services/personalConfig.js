@@ -6,6 +6,8 @@ const normalizeText = (value) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
+// Filtro de campos que no sean nulos, indefinidos o vacíos
+
 const AREA_ALIASES = {
   "contabilidad": "contabilidad",
   "recursos humanos": "recursos humanos",
@@ -30,10 +32,10 @@ const AREA_ALIASES = {
 const normalizeArea = (value) => AREA_ALIASES[normalizeText(value)] || normalizeText(value);
 
 export const ZONAS_POR_DEPARTAMENTO = {
-  "salud ocupacional": ["norte", "sur", "centro"],
-  vigilancia: ["norte"],
-  servicios: ["sur"],
-  almacen: ["norte", "sur", "centro"],
+  "salud ocupacional": [],
+  vigilancia: [],
+  servicios: [],
+  almacen: [],
 };
 
 export const JEFE_DEPARTAMENTO = {
@@ -43,16 +45,16 @@ export const JEFE_DEPARTAMENTO = {
   almacen: [],
   mantenimiento: [],
   seguridad: [],
-  "salud ocupacional": ["101", "102"],
+  "salud ocupacional": [], 
   validaciones: [],
   "comite tecnico": [],
   sistemas: [],
 };
 
 export const JEFE_DE_ZONA = {
-  norte: ["101"],
-  sur: ["301"],
-  centro: ["102"],
+  norte: [], // 
+  sur: [],
+  centro: [],
 };
 
 const isJefeArea = (usuario, areaEsperada) => {
@@ -62,6 +64,8 @@ const isJefeArea = (usuario, areaEsperada) => {
   const rol = normalizeText(usuario.rol);
   const puesto = normalizeText(usuario.puesto);
   const nomina = String(usuario.nomina ?? "");
+
+// Filtro de jefes por nómina y por título, considerando el área esperada y el área del usuario.
 
   const esJefePorNomina = (JEFE_DEPARTAMENTO[areaEsperada] || []).some((n) => String(n) === nomina);
   const esJefePorTitulo =

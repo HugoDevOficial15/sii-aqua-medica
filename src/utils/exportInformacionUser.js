@@ -76,18 +76,18 @@ export const exportInformacionUserPDF = async ({ usuario }) => {
 
     doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
-    doc.text(`Información de Usuario:`, 105, 33, { align: "center" });
-    doc.text(`(${usuario.nombre || "-"})`, 105, 40, { align: "center" });
+    doc.text(`Información de Usuario:`, 105, 36, { align: "center" });
+    doc.text(`(${usuario.nombre || "-"})`, 105, 43, { align: "center" });
 
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text(`Nómina: ${usuario.nomina || "-"}`, 14, 48);
-    doc.text(`Área: ${usuario.area || "-"}`, 14, 55);
-    doc.text(`Puesto: ${usuario.puesto || "-"}`, 14, 62);
-    doc.text(`Fecha: ${new Date().toLocaleDateString("es-MX")}`, 14, 69);
+    doc.text(`Nómina: ${usuario.nomina || "-"}`, 78, 64);
+    doc.text(`Área: ${usuario.area || "-"}`, 14, 64);
+    doc.text(`Puesto: ${usuario.puesto || "-"}`, 14, 69);
+    doc.text(`Fecha: ${new Date().toLocaleDateString("es-MX")}`, 14 , 59);
 
     doc.setDrawColor(40, 40, 40);
-    doc.line(14, 76, 196, 76);
+    doc.line(14, 72, 196, 72);
 
     autoTable(doc, {
         startY: 82,

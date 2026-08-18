@@ -106,10 +106,93 @@ export default function Users({onClose}) {
         return ["M", "MUJER", "F", "FEMENINO"].includes(genero);
     };
 
-    const getUserStatusBadge = (user) => {
+    const dateMatchesToday = (dateValue, endOfDay = false) => {
+        if (!dateValue) return false;
+
+        const date = new Date(dateValue);
+
+        if (Number.isNaN(date.getTime())) return false;
+
+        if (endOfDay) {
+            date.setHours(23, 59, 59, 999);
+        } else {
+            date.setHours(0, 0, 0, 0);
+        }
+
+        const today = new Date();
+        today.setHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+
+        return date.getTime() === today.getTime();
+    };
+
+    const hasActiveIncapacidad = (user, incapacidades = []) => {
+        if (!user || user.activo === false) return false;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const active = incapacidades.some((incapacidad) => {
+            const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+            const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+
+            const startOk = !fechaInicio || fechaInicio <= today;
+            const endOk = !fechaFin || fechaFin >= today;
+
+            return startOk && endOk;
+        });
+
+        return active || String(user?.estado || "").trim().toLowerCase() === "incapacidad";
+    };
+
+    const syncUserIncapacidadStatus = async (user, incapacidades = []) => {
+        if (!user || user.activo === false) return false;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const activeIncapacidad = incapacidades.find((incapacidad) => {
+            const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+            const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+
+            const startOk = !fechaInicio || fechaInicio <= today;
+            const endOk = !fechaFin || fechaFin >= today;
+
+            return startOk && endOk;
+        });
+
+        const hasStaleStatus = String(user?.estado || "").trim().toLowerCase() === "incapacidad" && !activeIncapacidad;
+
+        if (activeIncapacidad && String(user?.estado || "").trim().toLowerCase() !== "incapacidad") {
+            await updateUser(user.id, {
+                estado: "incapacidad",
+                activo: true,
+                tipoIncapacidad: activeIncapacidad.tipo || "incapacidad",
+                fechaInicioIncapacidad: activeIncapacidad.fechaInicio || null,
+                fechaFinIncapacidad: activeIncapacidad.fechaFin || null,
+                notaIncapacidad: activeIncapacidad.nota || ""
+            });
+            return true;
+        }
+
+        if (hasStaleStatus) {
+            await updateUser(user.id, {
+                estado: "activo",
+                activo: true,
+                tipoIncapacidad: "",
+                fechaInicioIncapacidad: null,
+                fechaFinIncapacidad: null,
+                notaIncapacidad: ""
+            });
+            return true;
+        }
+
+        return false;
+    };
+
+    const getUserStatusBadge = (user, hasActive = false) => {
         const estado = String(user?.estado || "").trim().toLowerCase();
 
-        if (estado === "incapacidad") {
+        if (estado === "incapacidad" || hasActive) {
             return {
                 label: "Incapacidad",
                 className: "custom-badge-warning"
@@ -127,6 +210,89 @@ export default function Users({onClose}) {
             label: "Activo",
             className: "custom-badge-success"
         };
+    };
+
+    const syncUsersWithIncapacidades = async (usersData = users) => {
+        if (!Array.isArray(usersData) || usersData.length === 0) {
+            setUsers([]);
+            return [];
+        }
+
+        const syncedUsers = await Promise.all(usersData.map(async (user) => {
+            try {
+                const incapacidades = await getIncapacidadesByUser(user.id, user.nomina);
+                const activeIncapacidad = incapacidades.some((incapacidad) => {
+                    const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+                    const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const startOk = !fechaInicio || fechaInicio <= today;
+                    const endOk = !fechaFin || fechaFin >= today;
+                    return startOk && endOk;
+                });
+
+                const currentState = String(user?.estado || "").trim().toLowerCase();
+                const isExpiredIncapacidad = currentState === "incapacidad" && !activeIncapacidad;
+
+                if (activeIncapacidad && currentState !== "incapacidad") {
+                    await updateUser(user.id, {
+                        estado: "incapacidad",
+                        activo: true,
+                        tipoIncapacidad: incapacidades.find((incapacidad) => {
+                            const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+                            const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
+                        })?.tipo || "incapacidad",
+                        fechaInicioIncapacidad: incapacidades.find((incapacidad) => {
+                            const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+                            const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
+                        })?.fechaInicio || null,
+                        fechaFinIncapacidad: incapacidades.find((incapacidad) => {
+                            const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+                            const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
+                        })?.fechaFin || null,
+                        notaIncapacidad: incapacidades.find((incapacidad) => {
+                            const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+                            const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
+                        })?.nota || ""
+                    });
+                }
+
+                if (isExpiredIncapacidad) {
+                    await updateUser(user.id, {
+                        estado: "activo",
+                        activo: true,
+                        tipoIncapacidad: "",
+                        fechaInicioIncapacidad: null,
+                        fechaFinIncapacidad: null,
+                        notaIncapacidad: ""
+                    });
+                }
+
+                return {
+                    ...user,
+                    estado: activeIncapacidad ? "incapacidad" : isExpiredIncapacidad ? "activo" : user.estado,
+                    activo: user.activo === false ? false : true
+                };
+            } catch (error) {
+                console.error("Error sincronizando incapacidad del usuario:", error);
+                return user;
+            }
+        }));
+
+        setUsers(syncedUsers);
+        return syncedUsers;
     };
 
     // Form React Hook Form
@@ -312,6 +478,8 @@ export default function Users({onClose}) {
         setEditing(true);
 
         setShowModal(true);
+
+        
     };
 
     // ACTIVAR / DESACTIVAR USUARIO
@@ -561,6 +729,13 @@ export default function Users({onClose}) {
                 ...prev,
                 [user.id]: incapacidades
             }));
+
+            const updated = await syncUserIncapacidadStatus(user, incapacidades);
+
+            if (updated) {
+                const refreshedUsers = await getUsers();
+                setUsers(refreshedUsers);
+            }
         } catch (error) {
             console.error("Error cargando incapacidades del usuario:", error);
             setUserIncapacidades((prev) => ({
@@ -616,6 +791,9 @@ export default function Users({onClose}) {
                 fechaFin: incapacidadForm.fechaFin,
                 nota: incapacidadForm.nota
             });
+
+            const refreshedUsers = await getUsers();
+            setUsers(refreshedUsers);
 
             notifySuccess(
                 "Incapacidad registrada",
@@ -702,6 +880,7 @@ export default function Users({onClose}) {
             try {
 
                 const usersData = await getUsers();
+                const syncedUsers = await syncUsersWithIncapacidades(usersData);
 
                 const puestosData = await getPuestos();
 
@@ -709,7 +888,7 @@ export default function Users({onClose}) {
                     a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
                 );
 
-                setUsers(usersData);
+                setUsers(syncedUsers);
 
                 setPuestos(ordenados);
 
@@ -737,6 +916,16 @@ export default function Users({onClose}) {
             setSearch(filtro);
         }
     }, [location.search]);
+
+    useEffect(() => {
+        if (loading || users.length === 0) return;
+
+        const interval = setInterval(async () => {
+            await syncUsersWithIncapacidades(users);
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [loading, users]);
 
 
     // Loading
@@ -920,7 +1109,8 @@ export default function Users({onClose}) {
 
                                             <td>
                                                 {(() => {
-                                                    const status = getUserStatusBadge(user);
+                                                    const activeIncapacidad = hasActiveIncapacidad(user, userIncapacidades[user.id] || []);
+                                                    const status = getUserStatusBadge(user, activeIncapacidad);
                                                     return <span className={status.className}>{status.label}</span>;
                                                 })()}
                                             </td>
@@ -998,6 +1188,8 @@ export default function Users({onClose}) {
                                                             <button
                                                                 type="button"
                                                                 className="user-action-menu-incapacidad"
+                                                                disabled={hasActiveIncapacidad(user, userIncapacidades[user.id] || []) || String(user?.estado || "").trim().toLowerCase() === "incapacidad"}
+                                                                title={hasActiveIncapacidad(user, userIncapacidades[user.id] || []) || String(user?.estado || "").trim().toLowerCase() === "incapacidad" ? "Este usuario ya tiene una incapacidad vigente." : "Registrar incapacidad"}
                                                                 onClick={() => {
                                                                     setOpenActionsId(null);
                                                                     handleOpenIncapacidad(user);
@@ -1381,6 +1573,7 @@ export default function Users({onClose}) {
             {/* 🎨 ESTILOS */}
             <style jsx>{`
 
+/* PAGINA */
             .custom-users-header input {
                 height: 50px;
                 border-radius: 12px;
@@ -1426,7 +1619,8 @@ export default function Users({onClose}) {
             .btn-outline-warning {
                 height: 50px;
             }
-            /* TABLA */
+            
+/* TABLA */
 
             .table.custom-table {
                 
@@ -1577,7 +1771,8 @@ export default function Users({onClose}) {
                 scale: 1.02;
             }
 
-            /* MODAL MEJORADO */
+/* MODAL: CREAR Y EDITAR */
+
             .custom-modal-backdrop {
 
                 position: fixed;
@@ -1672,7 +1867,7 @@ export default function Users({onClose}) {
             }
 
             .form-control:focus {
-                background: var(--operator-card);
+                background: var(--operator-border);
                 color: var(--operator-text);
             }
 
@@ -1819,7 +2014,7 @@ export default function Users({onClose}) {
                 }
             }
 
-                /* MENU ACCIONES */
+/* MENU ACCIONES */
 
             .table td.users-actions-cell {
 
@@ -1919,6 +2114,17 @@ export default function Users({onClose}) {
 
             .user-action-menu-incapacidad:hover {
                 background: var(--operator-border);
+                color: rgba(143, 83, 253, 0.8);
+            }
+
+            .user-action-menu-incapacidad:disabled {
+                border: 1px solid var(--operator-border);
+                color: var(--operator-text);
+                opacity: 0.5;
+                
+            }
+
+            .user-action-menu-incapacidad:disabled:hover {
                 color: rgba(143, 83, 253, 0.8);
             }
 
