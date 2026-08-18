@@ -652,58 +652,36 @@ export default function DetalleOrdenMedica() {
             margin: 4px 0 0 0;
         }
 
-        /* TABLE & DROPDOWN MENU */
+        /* TABLE & DROPDOWN MENU FIX */
         .table-responsive-container {
-            overflow: visible;
+            overflow: visible !important;
         }
 
         .table-responsive-inner {
-            overflow: auto;
+            overflow: visible !important;
             border-radius: 0 0 20px 20px;
         }
 
         .table {
             color: var(--operator-text);
+            overflow: visible !important;
         }
 
-        .table thead th {
-            border-bottom: 2px solid var(--operator-border);
-            color: var(--operator-text-soft);
-            font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            padding: 14px 20px;
+        .table tbody {
+            overflow: visible !important;
         }
 
         .table tbody tr {
             border-bottom: 1px solid var(--operator-border);
             transition: background-color 0.2s;
-        }
-
-        .table tbody tr:hover {
-            background: rgba(59, 130, 246, 0.05);
-        }
-
-        .table tbody td {
-            padding: 14px 20px;
-            vertical-align: middle;
-        }
-
-        .badge-warning {
-            background: #f59e0b;
-            color: #000;
-        }
-
-        .badge-info {
-            background: #3b82f6;
-            color: #fff;
+            overflow: visible !important;
         }
 
         .ordenes-actions-cell {
             text-align: right;
-            overflow: visible;
             position: relative;
-            z-index: 5;
+            overflow: visible !important;
+            z-index: 999;
         }
 
         .ordenes-actions-wrapper {
@@ -711,7 +689,7 @@ export default function DetalleOrdenMedica() {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            z-index: 6;
+            overflow: visible !important;
         }
 
         .orden-action-menu-button {
@@ -736,24 +714,25 @@ export default function DetalleOrdenMedica() {
         .orden-action-menu {
             position: absolute;
             right: 0;
-            top: 42px;
-            min-width: 150px;
+            top: 100%;
+            margin-top: 6px;
+            min-width: 160px;
             background: var(--operator-card);
             border: 1px solid var(--operator-border);
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
             padding: 6px;
             display: flex;
             flex-direction: column;
             gap: 4px;
-            z-index: 9999;
+            z-index: 999999 !important;
         }
 
         .orden-action-menu-atender,
         .orden-action-menu-eliminar {
             border: none;
             background: transparent;
-            padding: 8px 12px;
+            padding: 9px 12px;
             display: flex;
             align-items: center;
             font-size: 13px;
@@ -776,7 +755,6 @@ export default function DetalleOrdenMedica() {
             background: rgba(239, 68, 68, 0.1);
             color: #ef4444;
         }
-
         .btn-success {
             background: #10b981;
             color: #fff;
