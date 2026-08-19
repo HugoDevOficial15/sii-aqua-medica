@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, addDoc, deleteDoc } from "firebase/firestore";
+import React, { useState, useEffect, useRef } from "react";
+import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, addDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { FaSearch, FaUserInjured, FaFingerprint, FaCheckCircle, FaClock, FaHeartbeat, FaCheckDouble, FaTrash, FaEllipsisV } from "react-icons/fa";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function DetalleOrdenMedica() {
+  const { user } = useAuth();
   const [busqueda, setBusqueda] = useState("");
   const [ordenCargada, setOrdenCargada] = useState(null);
   const [buscando, setBuscando] = useState(false);
@@ -16,6 +18,13 @@ export default function DetalleOrdenMedica() {
   const [medicamentos, setMedicamentos] = useState("");
   const [loadingGuardar, setLoadingGuardar] = useState(false);
   const [openActionsId, setOpenActionsId] = useState(null);
+
+  const [tipoSangre, setTipoSangre] = useState("");
+  const [peso, setPeso] = useState("");
+  const [estatura, setEstatura] = useState("");
+  const [alergias, setAlergias] = useState("");
+  const [enfermedadesCrónicas, setEnfermedadesCronica] = useState("");
+  const [telefonoEmergencia, setTelefonoEmergencia] = useState("");
 
   // 0. CARGAR TODAS LAS ÓRDENES
   const cargarOrdenes = async () => {
@@ -46,6 +55,7 @@ export default function DetalleOrdenMedica() {
     return () => document.removeEventListener("mousedown", closeMenu);
   }, []);
 
+
   // CALCULAR KPIs
   const kpis = {
     pendientes: ordenes.filter(o => o.estado === "Pendiente").length,
@@ -75,9 +85,39 @@ export default function DetalleOrdenMedica() {
   }
 
   // CARGAR PACIENTE DESDE LA TABLA
-  const cargarPacienteDesdeTabla = (orden) => {
+  const cargarPacienteDesdeTabla = async (orden) => {
     setOrdenCargada(orden);
     setBusqueda(orden.nominaPaciente || orden.nominaPAciente || "");
+
+    const docId = orden.docIdPaciente || orden.idPaciente;
+
+    // Intentar cargar datos de la orden primero
+    setTipoSangre(orden.tipoSangre || "");
+    setPeso(orden.peso || "");
+    setEstatura(orden.estatura || "");
+    setAlergias(orden.alergias || "");
+    setEnfermedadesCronica(orden.enfermedadesCrónicas || "");
+    setTelefonoEmergencia(orden.telefonoEmergencia || "");
+
+    // Si no hay datos en la orden, intentar cargar del usuario en Firestore
+    if (!orden.tipoSangre && !orden.peso && docId) {
+      try {
+        const userDocRef = doc(db, "users", docId);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          setTipoSangre(userData.tipoSangre || "");
+          setPeso(userData.peso || "");
+          setEstatura(userData.estatura || "");
+          setAlergias(userData.alergias || "");
+          setEnfermedadesCronica(userData.enfermedadesCrónicas || "");
+          setTelefonoEmergencia(userData.telefonoEmergencia || "");
+        }
+      } catch (error) {
+        console.error("Error al cargar datos del usuario:", error);
+      }
+    }
   };
 
   // ELIMINAR ORDEN MÉDICA
@@ -174,26 +214,82 @@ export default function DetalleOrdenMedica() {
       };
 
       const ordenRef = doc(db, "ordenes_medicas", ordenCargada.id);
-      
+
       await updateDoc(ordenRef, {
         revisiones: arrayUnion(nuevaRevision),
         estado: esAltaMedica ? "Cerrada" : "En Tratamiento",
+        tipoSangre,
+        peso,
+        estatura,
+        alergias,
+        enfermedadesCrónicas,
+        telefonoEmergencia,
         ...(esAltaMedica && { fechaCierre: new Date().toISOString() })
       });
 
+      // Actualizar datos del usuario en la BD
+      const docIdUsuario = ordenCargada.docIdPaciente || ordenCargada.idPaciente;
+      if (docIdUsuario) {
+        try {
+          const usuarioRef = doc(db, "users", docIdUsuario);
+          await updateDoc(usuarioRef, {
+            tipoSangre,
+            peso,
+            estatura,
+            alergias,
+            enfermedadesCrónicas,
+            telefonoEmergencia
+          });
+        } catch (error) {
+          console.error("Error al actualizar datos del usuario:", error);
+        }
+      }
+
+      if (ordenCargada?.idPaciente) {
+        try {
+          await addDoc(collection(db, "notificaciones"), {
+            IdUsuario: ordenCargada.idPaciente,
+            Titulo: esAltaMedica ? "¡Alta Médica Aprobada! 🩺" : "Actualización en tu Consulta",
+            Mensaje: esAltaMedica
+            ? "El médico ha concluido tu orden médica y te ha dado de alta."
+            : `Nuevo diagnóstico o receta agregada: "${comentarios.substring(0, 40)}..."`,
+            Destino: "detalle-orden-medico",
+            leida: false,
+            fechaCreacion: new Date().toISOString(),
+            tipo: "medico"
+          });
+        } catch(notifError){
+          console.error("Error al enviar notificaciones push", notifError);
+        }
+      }
+
+      // Enviar notificación a admin_medico, admin_sistemas y admin_sist
       try {
-        await addDoc(collection(db, "notificaciones"), {
-          IdUsuaio: ordenCargada.idPaciente,
-          titulo: esAltaMedica ? "¡Alta Médica Aprobada! 🩺" : "Actualización en tu Consulta",
-          mensaje: esAltaMedica
-          ? "El médico ha concluido tu orden médica y te ha dado de alta."
-          : `Nuevo diagnóstico o receta agregada: "${comentarios.substring(0, 40)}..."`,
-          leida: false, 
-          fecha: new Date().toISOString(),
-          tipo: "medico"
-        });
-      } catch(notifError){
-        console.error("Error al enviar notificaciones push", notifError);
+        const usersSnapshot = await getDocs(collection(db, "users"));
+        const admins = usersSnapshot.docs
+          .filter(doc => {
+            const rol = doc.data().rol || "";
+            return rol === "admin_medico" || rol === "admin_sistemas" || rol === "admin_sist";
+          })
+          .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
+
+        for (const admin of admins) {
+          if (admin.uid) {
+            await addDoc(collection(db, "notificaciones"), {
+              IdUsuario: admin.uid,
+              Titulo: esAltaMedica ? "Paciente Dado de Alta" : "Orden Médica Actualizada",
+              Mensaje: esAltaMedica
+                ? `Paciente ${ordenCargada.nombrePaciente} ha sido dado de alta.`
+                : `Se ha actualizado la orden médica del paciente ${ordenCargada.nombrePaciente}.`,
+              Destino: "detalle-orden-medico",
+              leida: false,
+              fechaCreacion: new Date().toISOString(),
+              tipo: "medico"
+            });
+          }
+        }
+      } catch(error){
+        console.error("Error al enviar notificaciones a admins", error);
       }
 
       notifySuccess(
@@ -203,10 +299,14 @@ export default function DetalleOrdenMedica() {
 
       setComentarios("");
       setMedicamentos("");
-      if(esAltaMedica) {
-          setOrdenCargada(null);
-          setBusqueda("");
-      }
+      setTipoSangre("");
+      setPeso("");
+      setEstatura("");
+      setAlergias("");
+      setEnfermedadesCronica("");
+      setTelefonoEmergencia("");
+      setOrdenCargada(null);
+      setBusqueda("");
 
     } catch (error) {
       console.error("Error al guardar:", error);
@@ -333,7 +433,6 @@ export default function DetalleOrdenMedica() {
                       <td className="ordenes-actions-cell text-end">
                         <div
                           className="ordenes-actions-wrapper"
-                          onMouseDown={(event) => event.stopPropagation()}
                         >
                           <button
                             type="button"
@@ -350,7 +449,6 @@ export default function DetalleOrdenMedica() {
                           {openActionsId === orden.id && (
                             <div
                               className="orden-action-menu shadow"
-                              onMouseDown={(event) => event.stopPropagation()}
                             >
                               <button
                                 type="button"
@@ -359,7 +457,6 @@ export default function DetalleOrdenMedica() {
                                   cargarPacienteDesdeTabla(orden);
                                   setOpenActionsId(null);
                                 }}
-                                onMouseDown={(event) => event.stopPropagation()}
                               >
                                 Atender
                               </button>
@@ -421,39 +518,83 @@ export default function DetalleOrdenMedica() {
 
           <div className="card-body p-4">
             {/* DATOS GENERALES DEL PACIENTE */}
+            <h6 className="mb-3 text-white">Datos Generales</h6>
             <div className="row mb-4">
-              {ordenCargada.tipoSangre && (
-                <div className="col-md-6 mb-3">
-                  <div className="p-3 rounded" style={{ background: "rgba(59, 130, 246, 0.1)" }}>
-                    <small className="text-white-50 d-block mb-1">Tipo de Sangre</small>
-                    <strong className="text-white">{ordenCargada.tipoSangre}</strong>
-                  </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium text-white-50">Tipo de Sangre</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={tipoSangre}
+                  onChange={(e) => setTipoSangre(e.target.value)}
+                  placeholder="Ej: O+"
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium text-white-50">Peso </label>
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={peso}
+                    onChange={(e) => setPeso(e.target.value)}
+                    placeholder="Ej: 72"
+                  />
+                  <span className="input-group-text" style={{ background: "var(--operator-card)", color: "var(--operator-text)", border: "1px solid var(--operator-border)" }}>kg</span>
                 </div>
-              )}
-              {ordenCargada.peso && (
-                <div className="col-md-6 mb-3">
-                  <div className="p-3 rounded" style={{ background: "rgba(59, 130, 246, 0.1)" }}>
-                    <small className="text-white-50 d-block mb-1">Peso</small>
-                    <strong className="text-white">{ordenCargada.peso}</strong>
-                  </div>
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium text-white-50">Estatura </label>
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={estatura}
+                    onChange={(e) => {
+                      let valor = e.target.value;
+                      if (valor && !valor.includes(".") && valor.length > 2) {
+                        valor = (parseInt(valor) / 100).toString();
+                      }
+                      setEstatura(valor);
+                    }}
+                    placeholder="Ej: 1.75 o 175"
+                  />
+                  <span className="input-group-text" style={{ background: "var(--operator-card)", color: "var(--operator-text)", border: "1px solid var(--operator-border)" }}>m</span>
                 </div>
-              )}
-              {ordenCargada.alergias && (
-                <div className="col-md-6 mb-3">
-                  <div className="p-3 rounded" style={{ background: "rgba(245, 158, 11, 0.1)" }}>
-                    <small className="text-white-50 d-block mb-1">Alergias</small>
-                    <strong className="text-white">{ordenCargada.alergias}</strong>
-                  </div>
-                </div>
-              )}
-              {ordenCargada.enfermedadesCrónicas && (
-                <div className="col-md-6 mb-3">
-                  <div className="p-3 rounded" style={{ background: "rgba(245, 158, 11, 0.1)" }}>
-                    <small className="text-white-50 d-block mb-1">Enfermedades Crónicas</small>
-                    <strong className="text-white">{ordenCargada.enfermedadesCrónicas}</strong>
-                  </div>
-                </div>
-              )}
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium text-white-50">Teléfono de Emergencia</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={telefonoEmergencia}
+                  onChange={(e) => {
+                    const soloNumeros = e.target.value.replace(/[^0-9]/g, "");
+                    setTelefonoEmergencia(soloNumeros);
+                  }}
+                  placeholder="Ej: 1234567890"
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium text-white-50">Alergias</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={alergias}
+                  onChange={(e) => setAlergias(e.target.value)}
+                  placeholder="Ej: Penicilina, Lactosa"
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label fw-medium text-white-50">Enfermedades Crónicas</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={enfermedadesCrónicas}
+                  onChange={(e) => setEnfermedadesCronica(e.target.value)}
+                  placeholder="Ej: Diabetes, Hipertensión"
+                />
+              </div>
             </div>
 
             <hr className="opacity-25" />
@@ -677,11 +818,21 @@ export default function DetalleOrdenMedica() {
             overflow: visible !important;
         }
 
-        .ordenes-actions-cell {
-            text-align: right;
-            position: relative;
+        /* TABLE RESPONSIVE */
+        .table-responsive-container {
             overflow: visible !important;
-            z-index: 999;
+        }
+
+        .table-responsive-inner {
+            overflow: visible !important;
+        }
+
+        .ordenes-actions-cell {
+            text-align: center;
+            position: relative;
+            width: 100px;
+            min-width: 100px;
+            max-width: 100px;
         }
 
         .ordenes-actions-wrapper {
@@ -689,7 +840,8 @@ export default function DetalleOrdenMedica() {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            overflow: visible !important;
+            max-width: 36px;
+            min-width: 36px;
         }
 
         .orden-action-menu-button {
@@ -712,48 +864,44 @@ export default function DetalleOrdenMedica() {
         }
 
         .orden-action-menu {
-            position: absolute;
-            right: 0;
-            top: 100%;
-            margin-top: 6px;
+            position: fixed;
             min-width: 160px;
-            background: var(--operator-card);
-            border: 1px solid var(--operator-border);
+            background: var(--operator-background);
+            border: 1px solid var(--operator-background);
             border-radius: 12px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
-            padding: 6px;
+            box-shadow: 0 10px 24px var(--operator-shadow);
+            padding: 10px;
             display: flex;
             flex-direction: column;
             gap: 4px;
-            z-index: 999999 !important;
+            z-index: 99999 !important;
+            overflow: visible;
+        }
+
+        .table tbody tr {
+            overflow: visible !important;
+            z-index: 0;
         }
 
         .orden-action-menu-atender,
         .orden-action-menu-eliminar {
-            border: none;
-            background: transparent;
-            padding: 9px 12px;
+            width: 100%;
             display: flex;
             align-items: center;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 8px;
-            gap: 8px;
+            justify-content: flex-start;
+            padding: 8px 10px;
+            border: none;
+            border-radius: 10px;
+            background: var(--operator-card);
             color: var(--operator-text);
-            cursor: pointer;
-            width: 100%;
-            text-align: left;
-            transition: background 0.2s;
+            font-size: 12px;
+            font-weight: 800;
+            text-align: center;
         }
 
-        .orden-action-menu-atender:hover {
-            background: rgba(59, 130, 246, 0.1);
-            color: var(--operator-primary);
-        }
-
+        .orden-action-menu-atender:hover,
         .orden-action-menu-eliminar:hover {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
+            background: var(--operator-background);
         }
         .btn-success {
             background: #10b981;

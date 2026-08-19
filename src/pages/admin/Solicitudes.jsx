@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
 import { FiEye, FiCheck, FiX, FiArrowLeft, FiTrash2 } from "react-icons/fi";
+import { FaEllipsisV } from "react-icons/fa";
 
 import Loader from "../../components/Loader";
 import { notifySuccess, notifyError } from "../../utils/notify";
@@ -51,6 +52,7 @@ export default function Solicitudes() {
 
     const [vista, setVista] = useState("lista");
     const [seleccionada, setSeleccionada] = useState(null);
+    const [openActionsId, setOpenActionsId] = useState(null);
 
     const [filtroEstado, setFiltroEstado] = useState("");
     const [filtroArea, setFiltroArea] = useState("");
@@ -71,6 +73,16 @@ export default function Solicitudes() {
 
     useEffect(() => {
         cargar();
+    }, []);
+
+    useEffect(() => {
+        const closeMenu = (event) => {
+            if (!event.target.closest(".solicitudes-actions-cell")) {
+                setOpenActionsId(null);
+            }
+        };
+        document.addEventListener("mousedown", closeMenu);
+        return () => document.removeEventListener("mousedown", closeMenu);
     }, []);
 
     const filtradas = useMemo(() => {
@@ -494,8 +506,10 @@ export default function Solicitudes() {
                                 </tr>
                             )}
 
-                            {filtradas.map(s => (
-                                <tr key={s.id}>
+                            {filtradas.map(s => {
+                                const isMenuOpen = openActionsId === s.id;
+                                return (
+                                <tr key={s.id} className={isMenuOpen ? "solicitud-row-menu-open" : ""}>
                                     <td>{s.nombreActual}</td>
                                     <td>{s.nominaActual}</td>
                                     <td>{formatFecha(s.fechaSolicitud)}</td>
@@ -505,53 +519,81 @@ export default function Solicitudes() {
                                         </span>
                                     </td>
                                     <td>
-                                        <div className="d-flex gap-2">
-
+                                        <div className="solicitudes-actions-cell">
                                             <button
-                                                className="btn btn-sm btn-outline-primary"
-                                                onClick={() => handleVer(s)}
+                                                type="button"
+                                                className="btn btn-sm btn-outline-secondary solicitudes-actions-toggle"
+                                                onClick={() => setOpenActionsId(openActionsId === s.id ? null : s.id)}
                                             >
-                                                <FiEye className="me-1" />
-                                                Ver
+                                                <FaEllipsisV />
                                             </button>
 
-                                            {s.estado === "Pendiente" && (
-                                                <>
+                                            {openActionsId === s.id && (
+                                                <div className="solicitudes-actions-menu">
                                                     <button
-                                                        className="btn btn-sm btn-success"
-                                                        disabled={procesando}
-                                                        onClick={() => handleAprobar(s)}
+                                                        type="button"
+                                                        className="solicitudes-action-item"
+                                                        onClick={() => {
+                                                            handleVer(s);
+                                                            setOpenActionsId(null);
+                                                        }}
                                                     >
-                                                        <FiCheck className="me-1" />
-                                                        Aceptar
+                                                        <FiEye className="me-2" />
+                                                        Ver
                                                     </button>
 
-                                                    <button
-                                                        className="btn btn-sm btn-danger"
-                                                        disabled={procesando}
-                                                        onClick={() => handleRechazar(s)}
-                                                    >
-                                                        <FiX className="me-1" />
-                                                        Rechazar
-                                                    </button>
-                                                </>
+                                                    {s.estado === "Pendiente" && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                className="solicitudes-action-item text-success"
+                                                                disabled={procesando}
+                                                                onClick={() => {
+                                                                    handleAprobar(s);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                <FiCheck className="me-2" />
+                                                                Aceptar
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="solicitudes-action-item text-danger"
+                                                                disabled={procesando}
+                                                                onClick={() => {
+                                                                    handleRechazar(s);
+                                                                    setOpenActionsId(null);
+                                                                }}
+                                                            >
+                                                                <FiX className="me-2" />
+                                                                Rechazar
+                                                            </button>
+                                                        </>
+                                                    )}
+
+                                                    {s.estado !== "Pendiente" && (
+                                                        <button
+                                                            type="button"
+                                                            className="solicitudes-action-item text-danger"
+                                                            disabled={procesando}
+                                                            onClick={() => {
+                                                                handleEliminar(s);
+                                                                setOpenActionsId(null);
+                                                            }}
+                                                            onMouseDown={(event) => event.stopPropagation()}
+                                                        >
+                                                            <FiTrash2 className="me-2" />
+                                                            Eliminar
+                                                        </button>
+                                                    )}
+                                                </div>
                                             )}
-
-                                                                    {s.estado !== "Pendiente" && (
-                                                                        <button
-                                                                            className="btn btn-sm btn-outline-danger"
-                                                                            disabled={procesando}
-                                                                            onClick={() => handleEliminar(s)}
-                                                                        >
-                                                                            <FiTrash2 className="me-1" />
-                                                                            Eliminar
-                                                                        </button>
-                                                                    )}
-
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
 
                         </tbody>
 
@@ -562,6 +604,90 @@ export default function Solicitudes() {
             </div>
 
             <style>{`
+
+/* TABLE RESPONSIVE */
+.table-responsive-container {
+    overflow: visible !important;
+}
+
+.table-responsive-inner {
+    overflow: visible !important;
+}
+
+/* CONTENEDOR DE ACCIONES */
+.solicitudes-actions-cell {
+    position: relative;
+    text-align: center;
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+}
+
+.solicitudes-actions-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10 !important;
+    border: 1px solid var(--operator-border) !important;
+    background: var(--operator-card) !important;
+    color: var(--operator-text) !important;
+    cursor: pointer;
+}
+
+.solicitudes-actions-toggle:hover {
+    background: var(--operator-background) !important;
+    color: var(--operator-primary) !important;
+}
+
+.solicitudes-actions-menu {
+    position: absolute;
+    right: -50px;
+    top: 100%;
+    min-width: 180px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 99999 !important;
+    border: 1px solid var(--operator-background);
+    border-radius: 10px;
+    background: var(--operator-background);
+    box-shadow: 0 10px 24px var(--operator-shadow);
+    margin-top: 5px;
+    overflow: visible;
+}
+
+.table-sol tbody tr {
+    overflow: visible !important;
+    z-index: 0;
+}
+
+.table-sol tbody tr.solicitud-row-menu-open {
+    transform: none !important;
+    transition: none !important;
+}
+
+.solicitudes-action-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 10px;
+    background: var(--operator-card);
+    color: var(--operator-text);
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.solicitudes-action-item:hover {
+    background: var(--operator-background);
+}
 
 .solicitudes-filter-grid {
     display: grid;

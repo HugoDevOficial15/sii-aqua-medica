@@ -169,9 +169,16 @@ export default function Header({ toggleSidebar }) {
         const q = query(collection(db, "notificaciones"), orderBy("fechaCreacion", "desc"));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
+            console.log("📬 Header: Total notificaciones en DB:", snapshot.docs.length);
+            console.log("📬 Header: Current User IDs:", currentUserIds);
+
             const notifs = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(n => !n.IdUsuario || currentUserIds.includes(n.IdUsuario))
+                .filter(n => {
+                    const shouldShow = !n.IdUsuario || currentUserIds.includes(n.IdUsuario);
+                    console.log("📬 Header: Notif titulo:", n.Titulo, "IdUsuario:", n.IdUsuario, "shouldShow:", shouldShow);
+                    return shouldShow;
+                })
                 .map(n => {
                     // Determinar icono según tipo de notificación
                     let icon = <FaUserCircle />;
@@ -196,6 +203,7 @@ export default function Header({ toggleSidebar }) {
                     };
                 });
 
+            console.log("📬 Header: Notificaciones filtradas:", notifs.length);
             setDynamicNotifications(notifs);
         });
 

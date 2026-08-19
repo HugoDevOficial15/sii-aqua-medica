@@ -13,12 +13,12 @@ export default function ExpedienteClinico({ onBack }) {
     const { user } = useAuth();
 
     const [datosVitales] = useState({
-        tipoSangre: user?.tipoSangre || "O+",
-        peso: user?.peso || "72 kg",
-        estatura: user?.estatura || "1.75 m",
-        alergias: user?.alergias || "Ninguna",
-        enfermedadesCrónicas: user?.enfermedadesCrónicas || "Ninguna reportada",
-        contactoEmergencia: user?.contactoEmergencia || "No registrado",
+        tipoSangre: user?.tipoSangre || "NO REGISTRADO",
+        peso: user?.peso || " kg",
+        estatura: user?.estatura || " m",
+        alergias: user?.alergias || "NINGUNA REGISTRADA",
+        enfermedadesCrónicas: user?.enfermedadesCrónicas || "NINGUNA REPORTADA",
+        contactoEmergencia: user?.contactoEmergencia || "",
         telefonoEmergencia: user?.telefonoEmergencia || "---"
     });
 

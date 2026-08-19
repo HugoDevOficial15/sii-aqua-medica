@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, deleteDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi";
+import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiTrash } from "react-icons/fi";
+import { FaEllipsisV } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { addDoc } from "firebase/firestore";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { createNotification } from "../../utils/createNotification";
-import { notifyError } from "../../utils/notify";
+import { notifyError, notifySuccess, confirmDelete } from "../../utils/notify";
 
 export default function IdeasAdmin() {
   const { user } = useAuth();
@@ -24,6 +25,7 @@ export default function IdeasAdmin() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedIdea, setSelectedIdea] = useState(null);
   const [actualizando, setActualizando] = useState(false);
+  const [openActionsId, setOpenActionsId] = useState(null);
 
   const cargarIdeas = async () => {
     try {
@@ -43,10 +45,37 @@ export default function IdeasAdmin() {
     cargarIdeas();
   }, []);
 
+  useEffect(() => {
+    const closeMenu = (event) => {
+      if (!event.target.closest(".ideas-actions-cell")) {
+        setOpenActionsId(null);
+      }
+    };
+    document.addEventListener("click", closeMenu);
+    return () => document.removeEventListener("click", closeMenu);
+  }, []);
+
   const handleVerIdea = (idea) => {
     setSelectedIdea(idea);
     setComentario(idea.comentarioAdmin || "");
     setModalOpen(true);
+  };
+
+  const handleEliminarIdea = async (idea) => {
+    const result = await confirmDelete("¿Eliminar idea?", `La idea "${idea.titulo}" se eliminará permanentemente.`);
+    if (!result.isConfirmed) return;
+
+    setActualizando(true);
+    try {
+      await deleteDoc(doc(db, "Ideas", idea.id));
+      setIdeas(ideas.filter((i) => i.id !== idea.id));
+      notifySuccess("Eliminado", "La idea fue eliminada correctamente.");
+    } catch (error) {
+      console.error("Error al eliminar idea:", error);
+      notifyError("Error", "No se pudo eliminar la idea.");
+    } finally {
+      setActualizando(false);
+    }
   };
 
   const cambiarEstado = async (nuevoEstado) => {
@@ -145,6 +174,77 @@ export default function IdeasAdmin() {
         .ideas-search-input::placeholder {
           color: var(--operator-text);
           opacity: 1;
+        }
+
+        .ideas-actions-cell {
+          position: relative;
+          text-align: center;
+          width: 100px;
+          min-width: 100px;
+          max-width: 100px;
+        }
+
+        .ideas-actions-toggle {
+          width: 36px;
+          height: 36px;
+          border-radius: 999px !important;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 10 !important;
+          border: 1px solid var(--operator-border) !important;
+          background: var(--operator-card) !important;
+          color: var(--operator-text) !important;
+          cursor: pointer;
+          position: relative;
+          z-index: 100;
+        }
+
+        .ideas-actions-toggle:hover {
+          background: var(--operator-background) !important;
+          color: var(--operator-primary) !important;
+        }
+
+        .ideas-actions-menu {
+          position: absolute;
+          right: -50px;
+          top: 100%;
+          min-width: 180px;
+          padding: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          z-index: 999999 !important;
+          border: 1px solid var(--operator-background);
+          border-radius: 10px;
+          background: var(--operator-background);
+          box-shadow: 0 10px 24px var(--operator-shadow);
+          margin-top: 5px;
+          overflow: visible;
+        }
+
+        .ideas-action-item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          padding: 8px 10px;
+          border: none;
+          border-radius: 10px;
+          background: var(--operator-card);
+          color: var(--operator-text);
+          font-size: 12px;
+          font-weight: 800;
+          text-align: center;
+        }
+
+        .ideas-action-item:hover {
+          background: var(--operator-background);
+        }
+
+        .table tbody tr {
+          overflow: visible !important;
+          z-index: 0;
         }
       `}</style>
       <div className="container-fluid p-4 fade-in" style={{ color: "var(--operator-text)" }}>
@@ -294,13 +394,44 @@ export default function IdeasAdmin() {
                           </span>
                         </td>
                         <td className="px-4 py-3 align-middle text-center">
-                          <button
-                            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 px-3"
-                            style={{ borderRadius: "20px" }}
-                            onClick={() => handleVerIdea(item)}
-                          >
-                            <FiEye /> Ver
-                          </button>
+                          <div className="ideas-actions-cell">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary ideas-actions-toggle"
+                              onClick={() => setOpenActionsId(openActionsId === item.id ? null : item.id)}
+                            >
+                              <FaEllipsisV />
+                            </button>
+
+                            {openActionsId === item.id && (
+                              <div className="ideas-actions-menu">
+                                <button
+                                  type="button"
+                                  className="ideas-action-item"
+                                  onClick={() => {
+                                    handleVerIdea(item);
+                                    setOpenActionsId(null);
+                                  }}
+                                >
+                                  <FiEye className="me-2" />
+                                  Ver
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="ideas-action-item text-danger"
+                                  disabled={actualizando}
+                                  onClick={() => {
+                                    handleEliminarIdea(item);
+                                    setOpenActionsId(null);
+                                  }}
+                                >
+                                  <FiTrash className="me-2" />
+                                  Eliminar
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

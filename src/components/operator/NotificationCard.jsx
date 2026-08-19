@@ -8,7 +8,8 @@ import {
     FiTrendingUp,
     FiAward,
     FiBookOpen,
-    FiHelpCircle
+    FiHelpCircle,
+    FiHeart
 } from "react-icons/fi";
 
 // Config visual (icono/colores) por tipo de notificación. "icono" puede
@@ -147,6 +148,17 @@ export function getConfigEstilo(destino) {
                 color: "#1971c2",
                 borderColor: "#1971c2",
                 tituloDefault: "Cambio de perfil"
+            };
+
+        case "medico":
+        case "Orden Médico":
+        case "Actualización en tu Consulta":
+            return {
+                icono: FiHeart,
+                bg: "#fee2e2",
+                color: "#dc2626",
+                borderColor: "#dc2626",
+                tituloDefault: "Actualización Médica"
             };
 
         default:

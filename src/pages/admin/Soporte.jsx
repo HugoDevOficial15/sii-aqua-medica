@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { collection, addDoc, getDocs, query, orderBy, doc, updateDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiTrash } from "react-icons/fi";
+import { FaEllipsisV } from "react-icons/fa";
 
 import { useAuth } from "../../hooks/useAuth";
 import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
@@ -24,6 +25,7 @@ export default function SoporteAdmin() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProblema, setSelectedProblema] = useState(null);
   const [actualizando, setActualizando] = useState(false);
+  const [openActionsId, setOpenActionsId] = useState(null);
 
   // Cargar reportes desde "Problemas reportados" en Firebase
   const cargarProblemas = async () => {
@@ -48,6 +50,16 @@ export default function SoporteAdmin() {
 
   useEffect(() => {
     cargarProblemas();
+  }, []);
+
+  useEffect(() => {
+    const closeMenu = (event) => {
+      if (!event.target.closest(".soporte-actions-cell")) {
+        setOpenActionsId(null);
+      }
+    };
+    document.addEventListener("mousedown", closeMenu);
+    return () => document.removeEventListener("mousedown", closeMenu);
   }, []);
 
   // Abrir el modal con los datos del usuario (Img 3)
@@ -183,6 +195,85 @@ export default function SoporteAdmin() {
 
   return (
     <div className="container-fluid p-4 fade-in" style={{ color: "var(--operator-text)" }}>
+      <style>{`
+        .table-responsive {
+          overflow: visible !important;
+        }
+
+        .soporte-actions-cell {
+          position: relative;
+          text-align: center;
+          width: 100px;
+          min-width: 100px;
+          max-width: 100px;
+        }
+
+        .soporte-actions-toggle {
+          width: 36px;
+          height: 36px;
+          border-radius: 999px !important;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 10 !important;
+          border: 1px solid var(--operator-border) !important;
+          background: var(--operator-card) !important;
+          color: var(--operator-text) !important;
+          cursor: pointer;
+        }
+
+        .soporte-actions-toggle:hover {
+          background: var(--operator-background) !important;
+          color: var(--operator-primary) !important;
+        }
+
+        .soporte-actions-menu {
+          position: absolute;
+          right: -50px;
+          top: 100%;
+          min-width: 180px;
+          padding: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          z-index: 99999 !important;
+          border: 1px solid var(--operator-background);
+          border-radius: 10px;
+          background: var(--operator-background);
+          box-shadow: 0 10px 24px var(--operator-shadow);
+          margin-top: 5px;
+          overflow: visible;
+        }
+
+        .table tbody tr {
+          overflow: visible !important;
+          z-index: 0;
+        }
+
+        .soporte-action-item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          padding: 8px 10px;
+          border: none;
+          border-radius: 10px;
+          background: var(--operator-card);
+          color: var(--operator-text);
+          font-size: 12px;
+          font-weight: 800;
+          text-align: center;
+        }
+
+        .soporte-action-item:hover {
+          background: var(--operator-background);
+        }
+
+        .table tbody tr.soporte-row-menu-open {
+          transform: none !important;
+          transition: none !important;
+        }
+      `}</style>
       {/* HEADER */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -283,8 +374,9 @@ export default function SoporteAdmin() {
                   {problemasFiltrados.map((item) => {
                     const badge = getBadgeStyle(item.estado);
                     const origen = getOrigenBadge(item.tipoRemitente);
+                    const isMenuOpen = openActionsId === item.id;
                     return (
-                      <tr key={item.id} style={{ borderBottom: "1px solid var(--operator-border)" }}>
+                      <tr key={item.id} className={isMenuOpen ? "soporte-row-menu-open" : ""} style={{ borderBottom: "1px solid var(--operator-border)" }}>
                         <td className="px-4 py-3 align-middle">
                           <span
                             className="px-3 py-1 fw-semibold"
@@ -319,21 +411,45 @@ export default function SoporteAdmin() {
                           </span>
                         </td>
                         <td className="px-4 py-3 align-middle text-center">
-                          <button
-                            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 px-3 me-2"
-                            style={{ borderRadius: "20px" }}
-                            onClick={() => handleVerProblema(item)}
-                          >
-                            <FiEye /> Ver
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1 px-3"
-                            style={{ borderRadius: "20px" }}
-                            onClick={() => handleEliminarProblema(item)}
-                            title="Eliminar reporte"
-                          >
-                            <FiTrash /> Eliminar
-                          </button>
+                          <div className="soporte-actions-cell">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary soporte-actions-toggle"
+                              onClick={() => setOpenActionsId(openActionsId === item.id ? null : item.id)}
+                            >
+                              <FaEllipsisV />
+                            </button>
+
+                            {openActionsId === item.id && (
+                              <div className="soporte-actions-menu">
+                                <button
+                                  type="button"
+                                  className="soporte-action-item"
+                                  onClick={() => {
+                                    handleVerProblema(item);
+                                    setOpenActionsId(null);
+                                  }}
+                                >
+                                  <FiEye className="me-2" />
+                                  Ver
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="soporte-action-item text-danger"
+                                  disabled={actualizando}
+                                  onClick={() => {
+                                    handleEliminarProblema(item);
+                                    setOpenActionsId(null);
+                                  }}
+                                  onMouseDown={(event) => event.stopPropagation()}
+                                >
+                                  <FiTrash className="me-2" />
+                                  Eliminar
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

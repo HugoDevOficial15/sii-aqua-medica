@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 // 👇 Agregamos deleteDoc y doc para poder borrar
-import { collection, addDoc, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 // 👇 Agregamos FaTrash para el ícono de eliminar
@@ -51,17 +51,64 @@ export default function MisCitasMedicas() {
         setAgendando(true);
         try {
             const nominaPaciente = String(user?.nomina ?? user?.id ?? user?.uid ?? "").trim();
+
+            // Obtener el docId del usuario de Firestore
+            let docId = user?.id; // Intentar usar el id del contexto primero
+            if (!docId) {
+                const usersRef = collection(db, "users");
+                const q = query(usersRef, where("uid", "==", user.uid));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    docId = snap.docs[0].id;
+                }
+            }
+
             const nuevaOrden = {
                 idPaciente: user.uid,
+                docIdPaciente: docId || user.uid,
                 nominaPaciente,
                 nominaPacienteNum: nominaPaciente && /^\d+$/.test(nominaPaciente) ? Number(nominaPaciente) : null,
                 nombrePaciente: user.displayName || user.nombre || "Usuario AQUA",
                 fechaApertura: new Date().toISOString(),
                 estado: "Pendiente",
+                tipoSangre: user.tipoSangre || "",
+                peso: user.peso || "",
+                estatura: user.estatura || "",
+                alergias: user.alergias || "",
+                enfermedadesCrónicas: user.enfermedadesCrónicas || "",
+                telefonoEmergencia: user.telefonoEmergencia || "",
                 revisiones: []
             };
 
             await addDoc(collection(db, "ordenes_medicas"), nuevaOrden);
+
+            // Enviar notificación a admin_medico y admin_sistemas
+            try {
+                const usersSnapshot = await getDocs(collection(db, "users"));
+                const admins = usersSnapshot.docs
+                    .filter(doc => {
+                        const rol = doc.data().rol || "";
+                        return rol === "admin_medico" || rol === "admin_sistemas" || rol === "admin_sist";
+                    })
+                    .map(doc => ({ docId: doc.id, ...doc.data() }));
+
+                for (const admin of admins) {
+                    if (admin.docId) {
+                        await addDoc(collection(db, "notificaciones"), {
+                            IdUsuario: admin.docId,
+                            Titulo: "Nueva Orden Médica",
+                            Mensaje: `${nuevaOrden.nombrePaciente} (Nómina: ${nominaPaciente}) solicita consulta médica.`,
+                            Destino: "detalle-orden-medico",
+                            leida: false,
+                            fechaCreacion: new Date().toISOString(),
+                            tipo: "medico"
+                        });
+                    }
+                }
+            } catch(error){
+                console.error("Error al enviar notificaciones:", error);
+            }
+
             fetchMisCitas(); 
 
         } catch (error) {

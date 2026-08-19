@@ -27,7 +27,10 @@ const RUTA_POR_DESTINO = {
     "/solicitudes": "solicitudes",
     "capacitaciones": "capacitaciones",
     "surveys": "surveys",
-    "medical-appointments": "citas-medicas"
+    "medical-appointments": "citas-medicas",
+    "medico": "detalle-orden-medico",
+    "/medico": "detalle-orden-medico",
+    "Orden Médico": "detalle-orden-medico"
 };
 
 export default function OperatorNotifications({ onNavigate, onBack }) {
