@@ -132,7 +132,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                 height: 50px;
                 padding: 0 24px;   
                 border: none;
-                border-radius: 14px;
+                border-radius: 12px;
                 background: var(--operator-border);
                 color: var(--operator-text);
                 font-weight: 700;
@@ -145,7 +145,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                 
             .btn-secondary:hover {
                 background: var(--operator-border);
-                color: var(--operator-danger);
+                color: var(--operator-danger) !important;
             }
 
             .btn-primary {

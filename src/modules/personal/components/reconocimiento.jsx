@@ -85,12 +85,13 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
     }
   };
 
+  // VISTA DEL MODAL DE RECONOCIMIENTO
   return (
-    <div className="personal-modal-backdrop" onClick={onClose}>
+
+    <div className="personal-modal-backdrop">
       <div className="personal-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
           <div>
-            <p className="personal-modal-kicker">Personal</p>
             <h3>Nuevo reconocimiento</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
@@ -138,7 +139,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
               value={form.descripcion}
               onChange={(event) => handleChange("descripcion", event.target.value)}
               placeholder="Describe por qué merece este reconocimiento."
-              maxLength={500}
+              maxLength={300}
             />
           </div>
 
@@ -186,14 +187,6 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
           background: var(--operator-card);
         }
 
-        .personal-modal-kicker {
-          margin: 0 0 4px;
-          font-size: 11px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--operator-text-soft);
-          font-weight: 700;
-        }
 
         .personal-modal-header h3 {
           margin: 0;
@@ -222,7 +215,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
         
         }
         .personal-modal-form {
-          padding: 20px 24px 24px;
+          padding: 24px 30px;
           display: flex;
           flex-direction: column;
           gap: 16px;
@@ -247,7 +240,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
           height: 50px;
           border-radius: 12px;
           border: 1px solid var(--operator-border);
-          padding: 0 14px;
+          padding: 15px 14px;
           background: var(--operator-border);
           color: var(--operator-text);
           font-size: 14px;
@@ -267,13 +260,14 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
         }
 
         .personal-employee-pill {
-          background: rgba(37, 99, 235, 0.08);
-          border: 1px solid rgba(37, 99, 235, 0.15);
-          color: #1d4ed8;
-          border-radius: 999px;
+          background: rgba(37, 100, 235, 0.27);
+          border: 1px solid rgba(37, 100, 235, 0.37);
+          color: var(--operator-primary);
+          border-radius: 12px;
           padding: 10px 14px;
+          text-align: center;
           font-weight: 700;
-        }
+        } 
 
         .personal-modal-error {
           background: rgba(239, 68, 68, 0.08);
@@ -303,7 +297,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0px 20px var(--operator-shadow);
+            box-shadow: 0 0px 10px var(--operator-shadow);
         }
 
         .personal-modal-secondary {
@@ -320,7 +314,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
         .personal-modal-primary {
           background: var(--operator-primary);
           color: white;
-          box-shadow: 0 0px 20px var(--operator-primary);
+          box-shadow: 0 0px 10px var(--operator-primary);
         }
 
         .personal-modal-primary:hover {

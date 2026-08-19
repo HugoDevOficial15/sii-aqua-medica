@@ -436,7 +436,7 @@ export default function News() {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0px 24px var(--operator-primary-light);
+          box-shadow: 0 0px 10px var(--operator-primary-light);
         }
 
         .px-3 {
@@ -466,7 +466,7 @@ export default function News() {
        .btn-primary:hover {
           background: var(--operator-primary);
           color: #fff;
-          box-shadow: 0 0px 10px var(--operator-primary-light);
+          box-shadow: 0 0px 20px var(--operator-primary-light);
        }
 
        .btn-outline-secondary {

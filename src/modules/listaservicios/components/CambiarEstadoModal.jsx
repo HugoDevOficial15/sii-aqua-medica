@@ -241,11 +241,11 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                 gap:6px;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 0px 20px var(--operator-primary-light);
+                box-shadow: 0 0px 10px var(--operator-primary-light);
             }
 
             .btn-success.custom-btn:hover {
-                box-shadow: 0 0px 10px var(--operator-primary-light);
+                box-shadow: 0 0px 20px var(--operator-primary-light);
             }
         `}</style>
 

@@ -649,7 +649,7 @@ export default function AgendaMedicaPage() {
                 }
                 
                 .btn-primary {       
-                    height: 40px;
+                    height: 50px;
                     padding: 0 20px;
                     border-radius: 10px;
                     border: none;
@@ -660,12 +660,12 @@ export default function AgendaMedicaPage() {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
                 }
 
                 .btn-primary:hover {
                     background: var(--operator-primary);
-                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
                 }
 
 

@@ -94,6 +94,7 @@ export default function Users({onClose}) {
     const [selectedIncapacidadUser, setSelectedIncapacidadUser] = useState(null);
     const [expandedUserId, setExpandedUserId] = useState(null);
     const [userIncapacidades, setUserIncapacidades] = useState({});
+    const [loadingIncapacidades, setLoadingIncapacidades] = useState({});
     const [incapacidadForm, setIncapacidadForm] = useState({
         tipo: "incapacidad",
         fechaInicio: "",
@@ -723,14 +724,25 @@ export default function Users({onClose}) {
             return;
         }
 
+        if (!user || !user.id) {
+            return;
+        }
+
+        setLoadingIncapacidades((prev) => ({
+            ...prev,
+            [user.id]: true
+        }));
+
         try {
             const incapacidades = await getIncapacidadesByUser(user.id, user.nomina);
+            const validIncapacidades = Array.isArray(incapacidades) ? incapacidades.filter(Boolean) : [];
+
             setUserIncapacidades((prev) => ({
                 ...prev,
-                [user.id]: incapacidades
+                [user.id]: validIncapacidades
             }));
 
-            const updated = await syncUserIncapacidadStatus(user, incapacidades);
+            const updated = await syncUserIncapacidadStatus(user, validIncapacidades);
 
             if (updated) {
                 const refreshedUsers = await getUsers();
@@ -741,6 +753,11 @@ export default function Users({onClose}) {
             setUserIncapacidades((prev) => ({
                 ...prev,
                 [user.id]: []
+            }));
+        } finally {
+            setLoadingIncapacidades((prev) => ({
+                ...prev,
+                [user.id]: false
             }));
         }
     };
@@ -1091,14 +1108,21 @@ export default function Users({onClose}) {
 
                             {currentUsers.map((user) => {
                                 const isExpanded = expandedUserId === user.id;
-                                const incapacidades = userIncapacidades[user.id] || [];
+                                const incapacidades = Array.isArray(userIncapacidades[user.id]) ? userIncapacidades[user.id] : [];
+                                const isValidatingIncapacidades = !!loadingIncapacidades[user.id];
+                                const hasLoadedIncapacidades = Object.prototype.hasOwnProperty.call(userIncapacidades, user.id);
 
                                 return (
                                     <>
                                         <tr
                                             key={user.id}
                                             className={openActionsId === user.id ? "user-row-active user-row-open" : ""}
-                                            onClick={() => handleToggleUserIncapacidades(user)}
+                                            onClick={(event) => {
+                                                if (event.target.closest(".users-actions-cell") || event.target.closest(".user-action-menu") || event.target.closest(".user-action-menu-button")) {
+                                                    return;
+                                                }
+                                                handleToggleUserIncapacidades(user);
+                                            }}
                                             style={{ cursor: "pointer" }}
                                         >
 
@@ -1136,11 +1160,13 @@ export default function Users({onClose}) {
                                                         <div
                                                             className="user-action-menu"
                                                             onMouseDown={(event) => event.stopPropagation()}
+                                                            onClick={(event) => event.stopPropagation()}
                                                         >
                                                             <button
                                                                 type="button"
                                                                 className="user-action-menu-editar"
-                                                                onClick={() => {
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
                                                                     setOpenActionsId(null);
                                                                     handleEdit(user);
                                                                 }}
@@ -1153,7 +1179,8 @@ export default function Users({onClose}) {
                                                             <button
                                                                 type="button"
                                                                 className={`user-action-menu-${user.activo ? "baja" : "activar"}`}
-                                                                onClick={() => {
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
                                                                     setOpenActionsId(null);
                                                                     toggleUserStatus(user);
                                                                 }}
@@ -1175,7 +1202,8 @@ export default function Users({onClose}) {
                                                             <button
                                                                 type="button"
                                                                 className="user-action-menu-reset"
-                                                                onClick={() => {
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
                                                                     setOpenActionsId(null);
                                                                     handleResetPassword(user);
                                                                 }}
@@ -1190,7 +1218,8 @@ export default function Users({onClose}) {
                                                                 className="user-action-menu-incapacidad"
                                                                 disabled={hasActiveIncapacidad(user, userIncapacidades[user.id] || []) || String(user?.estado || "").trim().toLowerCase() === "incapacidad"}
                                                                 title={hasActiveIncapacidad(user, userIncapacidades[user.id] || []) || String(user?.estado || "").trim().toLowerCase() === "incapacidad" ? "Este usuario ya tiene una incapacidad vigente." : "Registrar incapacidad"}
-                                                                onClick={() => {
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
                                                                     setOpenActionsId(null);
                                                                     handleOpenIncapacidad(user);
                                                                 }}
@@ -1203,7 +1232,8 @@ export default function Users({onClose}) {
                                                             <button
                                                                 type="button"
                                                                 className="user-action-menu-informacion"
-                                                                onClick={() => {
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
                                                                     setOpenActionsId(null);
                                                                     handleOpenUserInfo(user);
                                                                 }}
@@ -1223,7 +1253,9 @@ export default function Users({onClose}) {
                                             <tr key={`${user.id}-incapacidades`} className="user-incapacidades-row">
                                                 <td colSpan="6" className="user-incapacidades-cell">
                                                     <div className="user-incapacidades-box">
-                                                        {incapacidades.length > 0 ? (
+                                                        {!isValidatingIncapacidades && hasLoadedIncapacidades && incapacidades.length === 0 ? (
+                                                            <div className="user-incapacidad-empty">No hay ninguna incapacidad registrada.</div>
+                                                        ) : incapacidades.length > 0 ? (
                                                             <table className="user-incapacidades-table">
                                                                 <thead>
                                                                     <tr>
@@ -1244,9 +1276,7 @@ export default function Users({onClose}) {
                                                                     ))}
                                                                 </tbody>
                                                             </table>
-                                                        ) : (
-                                                            <div className="user-incapacidad-empty">No hay ninguna incapacidad registrada.</div>
-                                                        )}
+                                                        ) : null}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1395,7 +1425,7 @@ export default function Users({onClose}) {
 
             {infoModal && selectedUser && (
                 <div className="modal-backdrop-custom custom-modal-backdrop">
-                    <div className="modal-card custom-modal">
+                    <div className="modal-card-info custom-modal">
                         <div className="modal-header custom-modal-header">
                             <h5>Información del Usuario</h5>
                             <button
@@ -1410,10 +1440,11 @@ export default function Users({onClose}) {
                                 ×
                             </button>
                         </div>
-                        <div className="modal-body">
+                        <div className="modal-body-info">
                             <p><strong>Nombre:</strong> {selectedUser.nombre}</p>
                             <p><strong>Nómina:</strong> {selectedUser.nomina}</p>
                             <p><strong>Área:</strong> {selectedUser.area}</p>
+                            <p><strong>Puesto:</strong> {selectedUser.puesto}</p>
                             <p><strong>CURP:</strong> {selectedUser.curp || "-"}</p>
                             <p><strong>RFC:</strong> {selectedUser.rfc || "-"}</p>
                             <p><strong>NSS:</strong> {selectedUser.nss || "-"}</p>
@@ -1597,12 +1628,13 @@ export default function Users({onClose}) {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
             }
 
             .btn-primary:hover {
                 background: var(--operator-primary);
-                box-shadow: 0 0px 10px var(--operator-primary-light);
+                transition: all 0.2s ease-in-out;
+                box-shadow: 0 0px 20px var(--operator-primary-light);
             }
 
             .custom-users-card {
@@ -1629,6 +1661,7 @@ export default function Users({onClose}) {
                 border-collapse: separate !important;
                 border-spacing: 0 10px !important;
             }
+
 
 
             .custom-table tbody tr:hover {
@@ -1660,6 +1693,7 @@ export default function Users({onClose}) {
                 padding: 5px 5px;
                 vertical-align: middle;
                 border-top: none !important;
+                border-bottom: 1px solid var(--operator-border);
                 white-space: wrap;
 
                 word-break: break-word;
@@ -1738,8 +1772,8 @@ export default function Users({onClose}) {
             }
 
             .custom-badge-warning {
-                background: #edc7fe;
-                color: #730e92;
+                background: #ca56ff48;
+                color: #c12fee;
                 padding: 6px 12px;
                 border-radius: 999px;
                 font-size: 0.8rem;
@@ -1836,6 +1870,7 @@ export default function Users({onClose}) {
                 background: var(--operator-card);
             }
 
+
             .modal-body label {
                 display: flex;
                 align-items: center;
@@ -1909,8 +1944,8 @@ export default function Users({onClose}) {
                 height: 50px;
                 padding: 0 24px;   
                 border: none;
-                border-radius: 14px;
-                background: var(--operator-border);
+                border-radius: 12px;
+                background: var(--operator-border) !important;
                 color: var(--operator-text);
                 font-weight: 700;
                 cursor: pointer;
@@ -1921,8 +1956,9 @@ export default function Users({onClose}) {
             }
 
             .btn-secondary:hover {
-                background: var(--operator-border);
-                color: var(--operator-danger);
+                background: var(--operator-border) !important;
+                color: var(--operator-danger) !important;
+                scale: 1.02 !important;
             }
 
 
@@ -1931,7 +1967,7 @@ export default function Users({onClose}) {
                 height: 50px;
                 padding: 0 24px;
                 border: none;
-                border-radius: 14px;
+                border-radius: 12px;
                 background: var(--operator-primary);
                 color: #fff;
                 font-weight: 700;
@@ -1939,8 +1975,9 @@ export default function Users({onClose}) {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 0px 20px var(--operator-primary-light);
+                box-shadow: 0 0px 10px var(--operator-primary-light);
             }
+                
 
             .col-md-4 label,
             .col-md-6 label,
@@ -1982,6 +2019,8 @@ export default function Users({onClose}) {
                 --bs-gutter-x: 20px;
             }
 
+
+
             .incapacidad-modal-card {
                 width: 560px;
             }
@@ -2012,6 +2051,57 @@ export default function Users({onClose}) {
                     opacity: 1;
                     transform: translateY(0) scale(1);
                 }
+            }
+
+/* MODAL DE INFORMACION */
+
+            .modal-card-info {
+                overflow: hidden;
+                background: var(--operator-card);
+                backdrop-filter: blur(12px);
+                border-radius: 20px;
+                border: 1px solid var(--operator-border);
+                box-shadow: 0 24px 48px var(--operator-shadow);
+                max-width: 25%;
+                max-height: 60%;
+            }
+
+            .modal-header-info {
+                background: var(--operator-card);
+                border: none;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 24px 30px;
+            }
+
+            .modal-header-info h5 {
+                margin: 0;
+                font-size: 1.1rem;
+                font-weight: 800;
+                color: var(--operator-text);
+            }
+
+            .modal-body-info {
+                padding: 10px 30px;
+                background: var(--operator-card);
+                font-size: 14px;
+                color: var(--operator-text);
+                gap: 12px;
+            }
+
+            .modal-body-info p {
+                justify-content: center;
+                background: var(--operator-card);
+                border-radius: 6px;
+                padding: 4px 30px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+                color: var(--operator-text);
+                border: 1px solid var(--operator-border);
+
             }
 
 /* MENU ACCIONES */
@@ -2134,7 +2224,7 @@ export default function Users({onClose}) {
             }
 
 
-            /* TABLA DE USUARIOS */
+/* TABLA DE USUARIOS */
 
             .user-incapacidades-row td {
                 background: rgba(255, 255, 255, 0.02);
@@ -2144,6 +2234,9 @@ export default function Users({onClose}) {
 
             .user-incapacidades-cell {
                 padding: 0 !important;
+                transform-origin: top center;
+                animation: personalDetailsOpen 0.5s ease-out both;
+                overflow: hidden;
             }
 
             .user-incapacidades-box {
@@ -2152,13 +2245,37 @@ export default function Users({onClose}) {
                 border-radius: 12px;
                 overflow: hidden;
                 margin: 0 0 12px;
+                transform-origin: top center;
+                animation: personalDetailsOpen 0.5s ease-out both;
+                overflow: hidden;
             }
+
+            @keyframes personalDetailsOpen {
+                0% {
+                    transform: scaleY(0);
+                    opacity: 0;
+                }
+
+                18% {
+                    transform: scaleY(0.1);
+                    opacity: 0.3;
+                }
+                100% {
+                    transform: scaleY(1);
+                    opacity: 1;
+                }
+            }
+            
 
             .user-incapacidades-table {
                 width: 100%;
                 border-collapse: collapse;
                 table-layout: fixed;
                 margin: 0;
+            }
+
+            .user-incapacidades-box {
+                scale: none !important;
             }
 
             .user-incapacidades-table thead th,
@@ -2175,6 +2292,10 @@ export default function Users({onClose}) {
             .user-incapacidades-table thead th {
                 font-weight: 800;
                 background: rgba(148, 163, 184, 0.06);
+            }
+
+            .user-incapacidades-row:hover {
+                transform: none !important;
             }
 
             .user-incapacidades-table tbody tr,

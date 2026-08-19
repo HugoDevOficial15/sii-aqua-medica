@@ -88,12 +88,12 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
     }
   };
 
+  // VISTA DEL MODAL DE INCIDENCIA
   return (
-    <div className="personal-modal-backdrop" onClick={onClose}>
+    <div className="personal-modal-backdrop">
       <div className="personal-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
           <div>
-            <p className="personal-modal-kicker">Personal</p>
             <h3>Nueva incidencia</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
@@ -175,6 +175,9 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
       </div>
 
       <style>{`
+
+/* MODAL */
+
         .personal-modal-backdrop {
           position: fixed;
           inset: 0;
@@ -195,6 +198,8 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
           overflow: hidden;
         }
 
+/* HEADER */
+
         .personal-modal-header {
           display: flex;
           border: none;
@@ -202,15 +207,6 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
           align-items: center;
           padding: 24px 30px;
           background: var(--operator-card);
-        }
-
-        .personal-modal-kicker {
-          margin: 0 0 4px;
-          font-size: 11px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--operator-text-soft);
-          font-weight: 700;
         }
 
         .personal-modal-header h3 {
@@ -239,8 +235,10 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
           color: var(--operator-primary);
         }
 
+/* BODY */
+
         .personal-modal-form {
-          padding: 20px 24px 24px;
+          padding: 24px 30px;
           display: flex;
           flex-direction: column;
           gap: 16px;
@@ -286,12 +284,13 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
         }
 
         .personal-employee-pill {
-          background: rgba(239, 68, 68, 0.08);
+          background: rgba(239, 68, 68, 0.2);
           border: 1px solid rgba(239, 68, 68, 0.15);
-          color: #b91c1c;
-          border-radius: 999px;
+          color: #df1e1e;
+          border-radius: 12px;
           padding: 10px 14px;
           font-weight: 700;
+          text-align: center;
         }
 
         .personal-modal-error {
@@ -303,6 +302,8 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
           font-size: 14px;
           font-weight: 600;
         }
+
+/* BOTONES FOOTER */
 
         .personal-modal-actions {
           display: flex;
@@ -322,7 +323,7 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0px 20px var(--operator-shadow);
+          box-shadow: 0 0px 10px var(--operator-shadow);
         }
 
         .personal-modal-secondary {

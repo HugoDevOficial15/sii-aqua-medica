@@ -282,57 +282,132 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
             }
 
             .custom-modal {
-                background: #fff;
-                border-radius: 16px;
-                width: 420px;
-                max-width: 95%;
-                box-shadow: 0 20px 50px rgba(0,0,0,0.2);
                 overflow: hidden;
-                animation: fadeIn 0.2s ease;
+                background: var(--operator-card);
+                backdrop-filter: blur(12px);
+                border-radius: 20px;
+                border: 1px solid var(--operator-border);
+                box-shadow: 0 24px 48px var(--operator-shadow);
             }
 
             .custom-modal-header {
-                padding: 14px 18px;
-                border-bottom: 1px solid #eee;
-                background: #f9fafb;
+                display: flex;
+                border: none;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px 20px;
+                background: var(--operator-card);
+            }
+
+            .custom-modal-header h6 {
+                margin: 0;
+                font-size: 1.1rem;
+                font-weight: 800;
+                color: var(--operator-text);
             }
 
             .btn-close-custom {
-                border: none;
-                background: transparent;
+                width: 36px;
+                height: 36px;
+                border: none; 
+                border-radius: 10px;
+                background: var(--operator-card); 
+                color: var(--operator-text); 
+                font-size: 20px;
                 cursor: pointer;
-                font-size: 14px;
-                color: #6b7280;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-close-custom:hover {
+                background: var(--operator-border);
+                color: var(--operator-primary);
             }
 
             .custom-modal-body {
-                padding: 18px;
+                border: none;
+                padding: 20px 30px;
+                background: var(--operator-card);
             }
 
             .info-box {
-                background: #f3f4f6;
+                background: var(--operator-card);
+                border: 1px solid var(--operator-border);
                 padding: 10px;
                 border-radius: 8px;
                 font-size: 13px;
             }
 
             .custom-input {
-                border-radius: 10px;
-                border: 1px solid #e5e7eb;
-                font-size: 13px;
-                padding: 8px;
-                transition: all 0.2s ease;
+                height: 50px;
+                border-radius: 12px;
+                border: 1px solid var(--operator-border);
+                padding: 0 14px;
+                background: var(--operator-border);
+                color: var(--operator-text);
+                font-size: 14px;
+                outline: none;
             }
 
             .custom-input:focus {
+                background: var(--operator-card);
                 border-color: #2563eb;
+                color: var(--operator-text);
                 box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+            }
+
+            .custom-input::placeholder {
+                color: var(--operator-text);
+                background: transparent;
+                opacity: 0.6;
             }
 
             .custom-modal-footer {
                 display: flex;
                 justify-content: flex-end;
                 gap: 10px;
+            }
+
+            .btn-light {
+                height: 50px;
+                padding: 0 24px;   
+                border: none;
+                border-radius: 14px;
+                background: var(--operator-border);
+                color: var(--operator-text);
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 20px var(--operator-shadow);
+            }
+
+            .btn-light:hover {
+                background: var(--operator-border);
+                color: var(--operator-danger) !important;
+            }
+
+            .btn-primary {
+                height: 50px;
+                padding: 0 24px;
+                border-radius: 14px;
+                border: none;
+                background: var(--operator-primary);
+                color: #fff;
+                font-weight: 700;   
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0px 10px var(--operator-primary-light);
+            }
+
+            .btn-primary:hover {
+                background: var(--operator-primary);
+                color: #fff;
+                box-shadow: 0 0px 15px var(--operator-primary-light);
             }
 
             .custom-btn {

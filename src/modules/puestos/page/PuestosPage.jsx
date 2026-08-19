@@ -136,16 +136,17 @@ export default function PuestosPage() {
                 color: #fff;
                 font-weight: 700;
                 cursor: pointer;
+                gap: 8px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 0px 20px var(--operator-primary-light);
+                box-shadow: 0 0px 10px var(--operator-primary-light);
 
             }
 
             .btn-primary:hover {
                 background: var(--operator-primary);
-                box-shadow: 0 0px 10px var(--operator-primary-light);
+                box-shadow: 0 0px 20px var(--operator-primary-light);
             }
 
             .form-control{
