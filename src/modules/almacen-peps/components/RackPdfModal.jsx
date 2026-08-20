@@ -557,7 +557,7 @@ export default function RackPdfModal({
 
                 padding: 0 14px;
 
-                background: var(--operator-border);
+                background: var(--operator-form);
                 color: var(--operator-text);
                 transition: 0.2s ease;
             }

@@ -342,9 +342,9 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
             .custom-input {
                 height: 50px;
                 border-radius: 12px;
-                border: 1px solid var(--operator-border);
+                border: 1px solid var(--operator-border) !important;
                 padding: 0 14px;
-                background: var(--operator-border);
+                background: var(--operator-form) !important;
                 color: var(--operator-text);
                 font-size: 14px;
                 outline: none;

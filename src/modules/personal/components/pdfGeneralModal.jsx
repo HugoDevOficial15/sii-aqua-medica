@@ -49,9 +49,29 @@ const getRegistroTipoLabel = (record) => {
   if (!record) return "Sin tipo";
 
   if (record.type === "reconocimiento") return "Reconocimiento";
-  if (record.type === "incidencia") return getIncidenciaTipoLabel(record.tipo || record.categoria || "incidencia");
+  if (record.type === "incidencia")
+    return getIncidenciaTipoLabel(
+      record.tipo || record.categoria || "incidencia",
+    );
+  if (record.type === "incapacidad") return record?.tipo || "Incapacidad";
 
   return "General";
+};
+
+const getIncapacidadTipoLabel = (value) => {
+  const map = {
+    incapacidad: "Incapacidad",
+    maternidad: "Maternidad",
+    lactancia: "Lactancia",
+  };
+
+  return (
+    map[
+      String(value || "")
+        .trim()
+        .toLowerCase()
+    ] || safeValue(value, "Incapacidad")
+  );
 };
 
 const loadLogo = async () => {
@@ -107,7 +127,9 @@ const buildPdfFooter = (doc) => {
     doc.setPage(i);
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Página ${i} de ${totalPages}`, pageWidth - 14, pageHeight - 10, { align: "right" });
+    doc.text(`Página ${i} de ${totalPages}`, pageWidth - 14, pageHeight - 10, {
+      align: "right",
+    });
   }
 };
 
@@ -131,7 +153,11 @@ const openPdfPreview = (doc, fileName) => {
   };
 };
 
-export default function PdfGeneralModal({ usuarios = [], selectedUser = null, onClose }) {
+export default function PdfGeneralModal({
+  usuarios = [],
+  selectedUser = null,
+  onClose,
+}) {
   const [tipoReporte, setTipoReporte] = useState("general");
   const [nomina, setNomina] = useState("");
   const [categoria, setCategoria] = useState("general");
@@ -158,7 +184,9 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
     if (selectedUser) return selectedUser;
     if (!employeeOptions.length) return null;
 
-    const fallback = employeeOptions.find((item) => item.value === nomina) || employeeOptions[0];
+    const fallback =
+      employeeOptions.find((item) => item.value === nomina) ||
+      employeeOptions[0];
     return fallback?.usuario || null;
   }, [selectedUser, employeeOptions, nomina]);
 
@@ -225,13 +253,20 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
     try {
       setLoading(true);
 
-      if (fechaInicio && fechaFin && new Date(`${fechaInicio}T00:00:00`) > new Date(`${fechaFin}T23:59:59.999`)) {
+      if (
+        fechaInicio &&
+        fechaFin &&
+        new Date(`${fechaInicio}T00:00:00`) >
+          new Date(`${fechaFin}T23:59:59.999`)
+      ) {
         notifyError("La fecha de inicio no puede ser mayor a la fecha final.");
         return;
       }
 
       if (!fechaInicio && !fechaFin) {
-        notifyError("Debes seleccionar una fecha de inicio y una fecha final para generar el reporte.");
+        notifyError(
+          "Debes seleccionar una fecha de inicio y una fecha final para generar el reporte.",
+        );
         return;
       }
 
@@ -240,62 +275,105 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
         return;
       }
 
-      const targetUsers = tipoReporte === "nomina"
-        ? usuarios.filter((usuario) => {
-            const texto = nomina.trim().toLowerCase();
-            if (!texto) return false;
-            const nominaUsuario = String(usuario?.nomina || "").toLowerCase();
-            const nombreUsuario = String(usuario?.nombre || "").toLowerCase();
-            return nominaUsuario.includes(texto) || nombreUsuario.includes(texto);
-          })
-        : usuarios;
+      const targetUsers =
+        tipoReporte === "nomina"
+          ? usuarios.filter((usuario) => {
+              const texto = nomina.trim().toLowerCase();
+              if (!texto) return false;
+              const nominaUsuario = String(usuario?.nomina || "").toLowerCase();
+              const nombreUsuario = String(usuario?.nombre || "").toLowerCase();
+              return (
+                nominaUsuario.includes(texto) || nombreUsuario.includes(texto)
+              );
+            })
+          : usuarios;
 
       if (tipoReporte === "nomina" && targetUsers.length === 0) {
         notifyError("No se encontró ningún usuario con esa nómina o nombre.");
         return;
       }
 
-      const [reconocimientosSnap, incidenciasSnap] = await Promise.all([
-        getDocs(collection(db, "reconocimientos")),
-        getDocs(collection(db, "incidencias_personal")),
-      ]);
+      const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap] =
+        await Promise.all([
+          getDocs(collection(db, "reconocimientos")),
+          getDocs(collection(db, "incidencias_personal")),
+          getDocs(collection(db, "incapacidades")),
+        ]);
 
       const matchesUser = (record, usuario) => {
         const empleadoId = String(usuario?.id || usuario?.uid || "").trim();
-        const recordEmpleadoId = String(record?.empleadoId || record?.empleadoUid || "").trim();
-        const recordNomina = String(record?.empleadoNomina || "").trim();
+        const recordEmpleadoId = String(
+          record?.empleadoId || record?.empleadoUid || record?.userId || "",
+        ).trim();
+        const recordNomina = String(
+          record?.empleadoNomina || record?.nomina || "",
+        ).trim();
         const userNomina = String(usuario?.nomina || "").trim();
-        const recordNombre = String(record?.empleadoNombre || "").trim().toLowerCase();
-        const userNombre = String(usuario?.nombre || "").trim().toLowerCase();
+        const recordNombre = String(
+          record?.empleadoNombre || record?.nombre || "",
+        )
+          .trim()
+          .toLowerCase();
+        const userNombre = String(usuario?.nombre || "")
+          .trim()
+          .toLowerCase();
 
         return (
-          (empleadoId && recordEmpleadoId && recordEmpleadoId.toLowerCase() === empleadoId.toLowerCase()) ||
-          (userNomina && recordNomina && recordNomina.toLowerCase() === userNomina.toLowerCase()) ||
+          (empleadoId &&
+            recordEmpleadoId &&
+            recordEmpleadoId.toLowerCase() === empleadoId.toLowerCase()) ||
+          (userNomina &&
+            recordNomina &&
+            recordNomina.toLowerCase() === userNomina.toLowerCase()) ||
           (userNombre && recordNombre && recordNombre === userNombre)
         );
       };
 
       const rawRecords = [
-        ...reconocimientosSnap.docs.map((doc) => ({ id: doc.id, type: "reconocimiento", ...doc.data() })),
-        ...incidenciasSnap.docs.map((doc) => ({ id: doc.id, type: "incidencia", ...doc.data() })),
+        ...reconocimientosSnap.docs.map((doc) => ({
+          id: doc.id,
+          type: "reconocimiento",
+          ...doc.data(),
+        })),
+        ...incidenciasSnap.docs.map((doc) => ({
+          id: doc.id,
+          type: "incidencia",
+          ...doc.data(),
+        })),
+        ...incapacidadesSnap.docs.map((doc) => ({
+          id: doc.id,
+          type: "incapacidad",
+          ...doc.data(),
+        })),
       ];
 
       const records = rawRecords
-        .filter((record) => targetUsers.some((usuario) => matchesUser(record, usuario)))
+        .filter((record) =>
+          targetUsers.some((usuario) => matchesUser(record, usuario)),
+        )
         .filter((record) => matchesDateRange(record))
         .filter((record) => {
           if (categoria === "general") return true;
           if (categoria === "incidencias") return record.type === "incidencia";
-          if (categoria === "reconocimientos") return record.type === "reconocimiento";
+          if (categoria === "reconocimientos")
+            return record.type === "reconocimiento";
+          if (categoria === "incapacidades")
+            return record.type === "incapacidad";
           return true;
         })
         .sort((a, b) => {
-          const aTime = a.createdAt && typeof a.createdAt.toDate === "function"
-            ? a.createdAt.toDate().getTime()
-            : new Date(a.fecha || a.createdAt || 0).getTime();
-          const bTime = b.createdAt && typeof b.createdAt.toDate === "function"
-            ? b.createdAt.toDate().getTime()
-            : new Date(b.fecha || b.createdAt || 0).getTime();
+          const aTime =
+            a.createdAt && typeof a.createdAt.toDate === "function"
+              ? a.createdAt.toDate().getTime()
+              : new Date(
+                  a.fecha || a.fechaInicio || a.createdAt || 0,
+                ).getTime();
+          const bTime =
+            b.createdAt && typeof b.createdAt.toDate === "function"
+              ? b.createdAt.toDate().getTime()
+              : new Date(
+                  b.fecha || b.fechaInicio || b.createdAt || 0,
+                ).getTime();
           return bTime - aTime;
         });
 
@@ -306,32 +384,51 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
         month: "2-digit",
         year: "numeric",
       });
-      const titleText = categoria === "general"
-        ? "Reporte general de personal"
-        : categoria === "incidencias"
-          ? "Reporte de incidencias"
-          : "Reporte de reconocimientos";
+      const titleText =
+        categoria === "general"
+          ? "Reporte general de personal"
+          : categoria === "incidencias"
+            ? "Reporte de incidencias"
+            : categoria === "reconocimientos"
+              ? "Reporte de reconocimientos"
+              : "Reporte de incapacidades";
 
-      const subtitleBase = tipoReporte === "nomina"
-        ? ` ${nomina.trim() || "Sin dato"}`
-        : "Todo el personal";
+      const subtitleBase =
+        tipoReporte === "nomina"
+          ? ` ${nomina.trim() || "Sin dato"}`
+          : "Todo el personal";
 
-      const subtitle = fechaInicio || fechaFin
-        ? `${subtitleBase} • ${fechaInicio || "Sin inicio"} al ${fechaFin || "Sin fin"}`
-        : subtitleBase;
+      const subtitle =
+        fechaInicio || fechaFin
+          ? `${subtitleBase} • ${fechaInicio || "Sin inicio"} al ${fechaFin || "Sin fin"}`
+          : subtitleBase;
 
       await buildPdfHeader(doc, titleText, subtitle, fechaActual);
 
       const rows = records.length
         ? records.map((record) => {
-            const usuario = targetUsers.find((item) => matchesUser(record, item)) || {};
+            const usuario =
+              targetUsers.find((item) => matchesUser(record, item)) || {};
             return [
-              safeValue(usuario?.nombre || record?.empleadoNombre, "Sin nombre"),
-              safeValue(usuario?.nomina || record?.empleadoNomina, "Sin nómina"),
+              safeValue(
+                usuario?.nombre || record?.empleadoNombre || record?.nombre,
+                "Sin nombre",
+              ),
+              safeValue(
+                usuario?.nomina || record?.empleadoNomina || record?.nomina,
+                "Sin nómina",
+              ),
               safeValue(getRegistroTipoLabel(record), "Sin tipo"),
-              safeValue(record?.titulo, "Sin título"),
-              safeValue(record?.descripcion, "Sin descripción"),
-              normalizeDate(record?.fecha || record?.createdAt),
+              safeValue(
+                record?.titulo || getIncapacidadTipoLabel(record?.tipo),
+                "Sin título",
+              ),
+              safeValue(
+                record?.descripcion || record?.nota || "Sin descripción",
+              ),
+              normalizeDate(
+                record?.fecha || record?.fechaInicio || record?.createdAt,
+              ),
             ];
           })
         : [["Sin resultados", "—", "—", "—", "—", "—"]];
@@ -391,25 +488,39 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
   // VISTA DEL MODAL DE REPORTE PDF GENERAL
   return (
     <div className="personal-modal-backdrop">
-      <div className="personal-modal-card personal-pdf-modal-card" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="personal-modal-card personal-pdf-modal-card"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="personal-modal-header">
           <div>
             <h3>Generar reporte PDF</h3>
           </div>
-          <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
+          <button
+            type="button"
+            className="personal-modal-close"
+            onClick={onClose}
+            aria-label="Cerrar modal"
+          >
             ×
           </button>
         </div>
 
         <div className="personal-pdf-filter-block">
           <label className="personal-field-label">Tipo de filtro</label>
-          <select value={tipoReporte} onChange={(event) => setTipoReporte(event.target.value)}>
+          <select
+            value={tipoReporte}
+            onChange={(event) => setTipoReporte(event.target.value)}
+          >
             <option value="general">General</option>
             <option value="nomina">Nómina</option>
           </select>
 
           {tipoReporte === "nomina" && (
-            <div className="personal-field" style={{ marginTop: 12, position: "relative" }}>
+            <div
+              className="personal-field"
+              style={{ marginTop: 12, position: "relative" }}
+            >
               <label className="personal-field-label">Nómina o nombre</label>
               <input
                 type="text"
@@ -436,8 +547,12 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
                         setShowSuggestions(false);
                       }}
                     >
-                      <span className="personal-pdf-suggestion-name">{coincidencia.nombre}</span>
-                      <span className="personal-pdf-suggestion-nomina">{coincidencia.nomina}</span>
+                      <span className="personal-pdf-suggestion-name">
+                        {coincidencia.nombre}
+                      </span>
+                      <span className="personal-pdf-suggestion-nomina">
+                        {coincidencia.nomina}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -477,6 +592,7 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
               { key: "general", label: "General" },
               { key: "incidencias", label: "Incidencias" },
               { key: "reconocimientos", label: "Reconocimientos" },
+              { key: "incapacidades", label: "Incapacidades" },
             ].map((option) => (
               <button
                 key={option.key}
@@ -491,10 +607,19 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
         </div>
 
         <div className="personal-modal-actions">
-          <button type="button" className="personal-modal-btn secondary" onClick={onClose}>
+          <button
+            type="button"
+            className="personal-modal-btn secondary"
+            onClick={onClose}
+          >
             Cancelar
           </button>
-          <button type="button" className="personal-modal-btn primary" onClick={handleGenerate} disabled={loading}>
+          <button
+            type="button"
+            className="personal-modal-btn primary"
+            onClick={handleGenerate}
+            disabled={loading}
+          >
             {loading ? "Generando..." : "Generar PDF"}
           </button>
         </div>
@@ -628,7 +753,7 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
           border-radius: 10px;
           padding: 10px 12px;
           font-size: 0.95rem;
-          background: var(--operator-border);
+          background: var(--operator-form);
           color: var(--operator-text);
           border: 1px solid var(--operator-border);
         }
@@ -666,7 +791,7 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
           border-radius: 10px;
           padding: 10px 12px;
           font-size: 0.95rem;
-          background: var(--operator-border);
+          background: var(--operator-form);
           color: var(--operator-text);
           border: 1px solid var(--operator-border);
         }
@@ -755,4 +880,3 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
     </div>
   );
 }
-

@@ -8,6 +8,8 @@
 
     --operator-card: #FFFFFF;
 
+    --operator-form: #f7f7f7;
+
     --operator-text: #1E293B;
 
     --operator-text-soft: #64748B;
@@ -39,6 +41,8 @@ html[data-theme="dark"] {
     --operator-primary-light: #60A5FA;
 
     --operator-background: #0F172A;
+
+    --operator-form: #35476165;
 
     --operator-card: #1E293B;
 

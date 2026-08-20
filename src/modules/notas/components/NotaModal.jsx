@@ -198,7 +198,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     height: 50px;
                     border-radius: 12px;
                     border: 1px solid var(--operator-border);
-                    background: var(--operator-border);
+                    background: var(--operator-form);
                     color: var(--operator-text);
                     font-size: 14px;
                     outline: none;
@@ -221,7 +221,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     border-radius: 12px;
                     padding: 10px;
                     border: 1px solid var(--operator-border);
-                    background: var(--operator-border);
+                    background: var(--operator-form);
                     color: var(--operator-text);
                     font-size: 14px;
                     outline: none;

@@ -691,7 +691,7 @@ export default function RackSalidaModal({
 
                 padding: 0 14px;
 
-                background: var(--operator-border);
+                background: var(--operator-form);
                 color: var(--operator-text);
             }
 
@@ -875,90 +875,3 @@ export default function RackSalidaModal({
         </div>
     );
 }
-
-// const styles = {
-
-//     backdrop: {
-//         position: "fixed",
-//         top: 0,
-//         left: 0,
-//         width: "100%",
-//         height: "100%",
-//         background:
-//             "rgba(0,0,0,0.5)",
-
-//         display: "flex",
-
-//         justifyContent: "center",
-
-//         alignItems: "center",
-
-//         zIndex: 9999
-//     },
-
-//     modal: {
-
-//         width: 420,
-
-//         background: "#fff",
-
-//         borderRadius: 16,
-
-//         padding: 20
-//     },
-
-//     header: {
-
-//         display: "flex",
-
-//         justifyContent:
-//             "space-between",
-
-//         marginBottom: 20
-//     },
-
-//     form: {
-
-//         display: "flex",
-
-//         flexDirection: "column",
-
-//         gap: 14
-//     },
-
-//     input: {
-
-//         height: 48,
-
-//         borderRadius: 10,
-
-//         border:
-//             "1px solid #d1d5db",
-
-//         padding: "0 12px"
-//     },
-
-//     button: {
-
-//         height: 48,
-
-//         border: "none",
-
-//         borderRadius: 10,
-
-//         background: "#dc2626",
-
-//         color: "#fff",
-
-//         fontWeight: 700
-//     },
-
-//     info: {
-
-//         background: "#f3f4f6",
-
-//         padding: 12,
-
-//         borderRadius: 10
-//     }
-// };

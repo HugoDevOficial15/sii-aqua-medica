@@ -1543,7 +1543,7 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
     height: 50px;
     border-radius: 12px !important;
     border: 1px solid var(--operator-border);
-    background: var(--operator-border);
+    background: var(--operator-form);
     color: var(--operator-text) !important;
     padding: 0 14px;
     font-size: 14px;

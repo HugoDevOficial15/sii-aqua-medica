@@ -558,7 +558,7 @@ export default function News() {
           color: var(--operator-text);
           border-radius: 10px;
           border: 1px solid var(--operator-border);
-          background: var(--operator-border) !important;
+          background: var(--operator-form) !important;
         }
 
         .form-control:focus, .form-select:focus {
@@ -648,6 +648,7 @@ export default function News() {
         }
 
         /* CSS PARA EL BOTÓN BORRAR */
+
         .news-action-menu-item-borrar {
           border: none;
           background: var(--operator-card);
@@ -658,12 +659,26 @@ export default function News() {
           font-size: 12px;
           font-weight: 800;
           border-radius: 8px;
-          color: #dc2626; /* Rojo de alerta */
+          color: var(--operator-text);
           cursor: pointer;
         }
 
+
+
         .news-action-menu-item-borrar:hover {
-          background: rgba(239, 68, 68, 0.1);
+          color: var(--operator-danger);
+          background: var(--operator-border);
+        }
+
+        .bg-success {
+
+          background-color: rgba(34, 197, 94, 0.1) !important;
+          color: rgba(34, 197, 94, 1) !important;
+        }
+
+        .bg-secondary {
+          background-color: rgba(107, 114, 128, 0.1) !important;
+          color: rgba(107, 114, 128, 1) !important;
         }
 
 `}</style>
