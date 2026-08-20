@@ -758,7 +758,7 @@ export default function RackTransferModal({
                     border-radius: 14px;
                     border: 1px solid var(--operator-border);
                     padding: 0 14px;
-                    background: var(--operator-border);
+                    background: var(--operator-form);
                     color: var(--operator-text);
                 }
 

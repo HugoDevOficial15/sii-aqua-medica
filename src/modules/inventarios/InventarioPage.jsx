@@ -191,7 +191,7 @@ export default function InventarioPage() {
                                     <th>Área</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
-                                    <th>Distintivos</th>
+                                    <th width="10%">Distintivos</th>
                                 </tr>
                             </thead>
 
@@ -418,6 +418,14 @@ export default function InventarioPage() {
                     text-align: center;
                 }
 
+                .custom-table thead th:nth-child(7) {
+                    text-align: center;
+                }
+
+                .custom-table tbody td:nth-child(7) {
+                    text-align: center;
+                }
+
                 .form-select, .form-control {
                     height: 50px;
                     border-radius: 12px;
@@ -472,14 +480,14 @@ export default function InventarioPage() {
                 .custom-badge-dark {
                     background: #e5e7eb;
                     color: #111827;
-                    padding: 6px 12px;
+                    padding: 6px 12px;  
                     border-radius: 999px;
                     font-size: 0.8rem;
                 }
 
                 .custom-badge-info {
-                    background: #dbeafe;
-                    color: #2646a0;
+                    background: #daebff86;
+                    color: #0e3791;
                     padding: 6px 12px;
                     border-radius: 999px;
                     font-size: 0.8rem;
@@ -563,7 +571,7 @@ export default function InventarioPage() {
                 }
 
                 .action-menu-item-baja:hover {
-                    background: rgba(128, 31, 31, 0.18);
+                    background: var(--operator-card);
                     color: var(--operator-danger);
                 }
                 .action-menu-item-activar:hover {
@@ -572,7 +580,7 @@ export default function InventarioPage() {
                 }
                 .action-menu-item-log:hover {
                     background: var(--operator-card);
-                    color: rgba(62, 100, 206, 0.8);
+                    color: rgba(162, 65, 241, 0.8);
                 }
 
 

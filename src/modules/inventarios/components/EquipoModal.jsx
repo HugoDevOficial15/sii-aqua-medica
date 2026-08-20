@@ -368,7 +368,7 @@ const styles = {
         borderRadius: "12px",
         border: "1px solid var(--operator-border)", // Variable CSS
         padding: "0 14px",
-        background: "var(--operator-border)", // Variable CSS
+        background: "var(--operator-form)", // Variable CSS
         color: "var(--operator-text)", // Variable CSS
         fontSize: "14px",
         outline: "none"
@@ -377,7 +377,7 @@ const styles = {
         padding: "14px",
         borderRadius: "12px",
         border: "1px solid var(--operator-border)",
-        background: "var(--operator-background)",
+        background: "var(--operator-form)",
         color: "var(--operator-text)",
         fontSize: "14px",
         minHeight: "100px",

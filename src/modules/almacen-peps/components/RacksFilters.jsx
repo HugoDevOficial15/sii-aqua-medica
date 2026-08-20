@@ -133,7 +133,7 @@ export default function RacksFilters({ filters, setFilters }) {
                     height: 48px;
                     border-radius: 12px;
                     border: 1px solid var(--operator-border);
-                    background: var(--operator-border);
+                    background: var(--operator-form);
                     transition: all 0.2s ease;
                     font-size: 0.95rem;
                     font-weight: 500;

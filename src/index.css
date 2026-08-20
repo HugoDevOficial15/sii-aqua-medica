@@ -190,12 +190,7 @@ img {
       ya existe un estilo propio para inputs (fondo oscuro/texto claro,
       ver operator-theme.css) y este !important lo anulaba por completo
       en toda la app, dejándolos siempre claros aunque el tema fuera oscuro. */
-html:not([data-theme="dark"]) input,
-html:not([data-theme="dark"]) textarea,
-html:not([data-theme="dark"]) select {
-  color: #0f172a !important; /* Azul medianoche / Casi negro */
-  background-color: #ffffff !important;
-}
+
 
 /* 2. Arreglar los Placeholders (Ej. "Ingresa tu usuario") para que no se pierdan */
 html:not([data-theme="dark"]) input::placeholder,

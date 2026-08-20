@@ -99,12 +99,24 @@ export const canAccessPersonalSection = (usuario) => {
   return zonasPermitidas.some((z) => normalizeText(z) === zona);
 };
 
+// FILTRO DE PERSONAL
+
 export const getAllowedUsersForPersonal = (usuarios = [], usuarioActual) => {
   if (!usuarioActual) return [];
 
+  const rolActual = normalizeText(usuarioActual.rol);
   const areaActual = normalizeArea(usuarioActual.area);
   const zonaActual = normalizeText(usuarioActual.zona || usuarioActual.areaZona || "");
   const nominaActual = String(usuarioActual.nomina ?? "");
+
+  if (rolActual === "admin_sistemas") {
+    return usuarios.filter((usuario) => {
+      if (!usuario || usuario.activo === false) return false;
+      const rol = normalizeText(usuario.rol);
+      const area = normalizeArea(usuario.area);
+      return rol.includes("operador") && area === "sistemas";
+    });
+  }
 
   const esJefeDepartamento = isJefeArea(usuarioActual, areaActual);
   const esJefeZona = Object.entries(JEFE_DE_ZONA).some(([zonaKey, jefes]) => {
@@ -114,8 +126,12 @@ export const getAllowedUsersForPersonal = (usuarios = [], usuarioActual) => {
   return usuarios.filter((usuario) => {
     if (!usuario || usuario.activo === false) return false;
 
+    const rol = normalizeText(usuario.rol);
     const area = normalizeArea(usuario.area);
     const zona = normalizeText(usuario.zona || usuario.areaZona || "");
+
+    const esOperador = rol.includes("operador");
+    if (!esOperador) return false;
 
     if (esJefeDepartamento) {
       return area === areaActual;

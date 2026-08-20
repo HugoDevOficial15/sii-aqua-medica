@@ -560,9 +560,9 @@ export default function AgendaMesPage() {
                 height: 40px;
                 padding: 0 24px;
                 border-radius: 10px;
-                border: none;
-                background: var(--operator-border);
-                color: #fff;
+                border: 2px solid var(--operator-border);
+                background: transparent !important;
+                color: var(--operator-text);
                 font-weight: 500;
                 cursor: pointer;
                 gap: 3px;

@@ -660,6 +660,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                     box-shadow: 0 0 0 0.1rem var(--operator-primary);
                 }
 
+
                 .close:hover {
                     background-color: var(--operator-border);
                     color: var(--operator-primary);
@@ -847,7 +848,7 @@ const styles = {
 
         padding: "0 14px",
 
-        background: "var(--operator-border)",
+        background: "var(--operator-form)",
 
         fontSize: "14px",
 

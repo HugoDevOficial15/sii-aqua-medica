@@ -547,7 +547,7 @@ const styles = {
 
         padding: "0 14px",
 
-        background: "var(--operator-border)",
+        background: "var(--operator-form)",
 
         color: "var(--operator-text)",
 
@@ -586,7 +586,7 @@ const styles = {
 
         border: "1px solid var(--operator-border)",
 
-        background: "var(--operator-background)",
+        background: "var(--operator-form)",
 
         color: "var(--operator-text)",
 

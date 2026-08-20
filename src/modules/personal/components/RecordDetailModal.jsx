@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { FaFilePdf } from "react-icons/fa";
+import { getUsers } from "../../../services/usersService";
 import { generatePersonalRecordPDF } from "./pdf-generator";
 
 const formatRecordDate = (value) => {
@@ -22,35 +24,93 @@ const formatRecordDate = (value) => {
   });
 };
 
-const getRecordDetails = (record) => {
+const getRecordDetails = (record, areaValue = "Sin área") => {
   if (!record) return [];
 
-  const rawDate = record.fecha || record.createdAt;
+  const rawDate = record.fecha || record.createdAt || record.fechaInicio || record.created_at;
+  const isIncapacidad = record.type === "incapacidad";
 
   return [
-    { label: "Tipo", value: record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia" },
-    { label: "Título", value: record.titulo || "Sin título" },
-    { label: "Descripción", value: record.descripcion || "Sin descripción" },
-    { label: "Prioridad", value: record.prioridad || "No especificada" },
-    { label: "Estado", value: record.estado || "No especificado" },
-    { label: "Empleado", value: record.empleadoNombre || "Sin empleado" },
-    { label: "Nómina", value: record.empleadoNomina || "Sin nómina" },
-    { label: "Área", value: record.empleadoArea || "Sin área" },
+    { label: "Tipo", value: isIncapacidad ? "Incapacidad" : record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia" },
+    { label: "Título", value: record.titulo || record.tipo || "Sin título" },
+    { label: "Descripción", value: record.descripcion || record.notas || record.nota || "Sin descripción" },
+    { label: "Prioridad", value: record.prioridad || (isIncapacidad ? "-" : "-") },
+    { label: "Empleado", value: record.empleadoNombre || record.nombre || "Sin empleado" },
+    { label: "Nómina", value: record.empleadoNomina || record.nomina || "Sin nómina" },
+    { label: "Área", value: areaValue },
     {
-      label: record.type === "reconocimiento" ? "Emitido por" : "Reportado por",
-      value: record.emitidoPor || record.reportadoPor || "Sin información",
+      label: isIncapacidad ? "Tipo de incapacidad" : record.type === "reconocimiento" ? "Emitido por" : "Reportado por",
+      value: isIncapacidad ? (record.tipo || "Incapacidad") : (record.emitidoPor || record.reportadoPor || "Sin información"),
     },
     {
-      label: record.type === "reconocimiento" ? "Nómina del emisor" : "Nómina del reportante",
-      value: record.emitidoPorNomina || record.reportadoPorNomina || "Sin información",
+      label: isIncapacidad ? "Fecha inicio" : record.type === "reconocimiento" ? "Nómina del emisor" : "Nómina del reportante",
+      value: isIncapacidad ? formatRecordDate(record.fechaInicio || rawDate) : (record.emitidoPorNomina || record.reportadoPorNomina || "Sin información"),
     },
-    { label: "Fecha", value: formatRecordDate(rawDate) },
+    { label: isIncapacidad ? "Fecha fin" : "Fecha", value: isIncapacidad ? formatRecordDate(record.fechaFin || record.fecha) : formatRecordDate(rawDate) },
     { label: "Tipo específico", value: record.tipo || "Sin tipo" },
   ].filter((field) => field.value !== null && field.value !== undefined && field.value !== "");
 };
 
 export default function RecordDetailModal({ record, onClose }) {
+  const [areaValue, setAreaValue] = useState(record?.empleadoArea || record?.area || "Sin área");
+
+  useEffect(() => {
+    let active = true;
+
+    const resolveArea = async () => {
+      if (!record) return;
+
+      if (record.empleadoArea || record.area) {
+        setAreaValue(record.empleadoArea || record.area || "Sin área");
+        return;
+      }
+
+      const nomina = record.empleadoNomina || record.nomina;
+      if (!nomina || record.type !== "incapacidad") {
+        setAreaValue("Sin área");
+        return;
+      }
+
+      try {
+        const users = await getUsers();
+        if (!active) return;
+
+        const foundUser = users.find((user) => String(user?.nomina) === String(nomina));
+        setAreaValue(foundUser?.area || "Sin área");
+      } catch (error) {
+        console.error("Error buscando área por nómina en el detalle de incapacidad:", error);
+        if (active) setAreaValue("Sin área");
+      }
+    };
+
+    resolveArea();
+
+    return () => {
+      active = false;
+    };
+  }, [record]);
+
   if (!record) return null;
+
+  const details = [
+    { label: "Tipo", value: record.type === "incapacidad" ? "Incapacidad" : record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia" },
+    { label: "Título", value: record.titulo || record.tipo || "Sin título" },
+    { label: "Descripción", value: record.descripcion || record.notas || record.nota || "Sin descripción" },
+    { label: "Prioridad", value: record.prioridad || "No especificada" },
+    { label: "Empleado", value: record.empleadoNombre || record.nombre || "Sin empleado" },
+    { label: "Nómina", value: record.empleadoNomina || record.nomina || "Sin nómina" },
+    { label: "Área", value: areaValue },
+    {
+      label: record.type === "incapacidad" ? "Tipo de incapacidad" : record.type === "reconocimiento" ? "Emitido por" : "Reportado por",
+      value: record.type === "incapacidad" ? (record.tipo || "Incapacidad") : (record.emitidoPor || record.reportadoPor || "Sin información"),
+    },
+    {
+      label: record.type === "incapacidad" ? "Fecha inicio" : record.type === "reconocimiento" ? "Nómina del emisor" : "Nómina del reportante",
+      value: record.type === "incapacidad" ? formatRecordDate(record.fechaInicio || record.fecha || record.createdAt) : (record.emitidoPorNomina || record.reportadoPorNomina || "Sin información"),
+    },
+    { label: record.type === "incapacidad" ? "Fecha fin" : "Fecha", value: record.type === "incapacidad" ? formatRecordDate(record.fechaFin || record.fecha) : formatRecordDate(record.fecha || record.createdAt) },
+    { label: "Tipo específico", value: record.tipo || "Sin tipo" },
+  ].filter((field) => field.value !== null && field.value !== undefined && field.value !== "");
 
   // VISTA DEL MODAL DE DETALLE DE REGISTRO PERSONAL
   return (
@@ -58,8 +118,8 @@ export default function RecordDetailModal({ record, onClose }) {
       <div className="personal-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
           <div>
-            <h2>{record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia"}</h2>
-            <h3>{record.titulo || "Sin título"}</h3>
+            <h2>{record.type === "reconocimiento" ? "Reconocimiento" : record.type === "incapacidad" ? "Incapacidad" : "Incidencia"}</h2>
+            <h3>{record.titulo || record.tipo || "Sin título"}</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
             ×
@@ -69,12 +129,12 @@ export default function RecordDetailModal({ record, onClose }) {
         <div className="personal-record-modal-body">
           <div className="personal-record-modal-badge-wrap">
             <span className={`personal-record-badge ${record.type}`}>
-              {record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia"}
+              {record.type === "reconocimiento" ? "Reconocimiento" : record.type === "incapacidad" ? "Incapacidad" : "Incidencia"}
             </span>
           </div>
 
           <div className="personal-record-detail-grid">
-            {getRecordDetails(record).map((field) => (
+            {getRecordDetails(record, areaValue).map((field) => (
               <div key={`${record.id || record.titulo}-${field.label}`} className="personal-record-detail-item">
                 <span className="personal-record-detail-label">{field.label}</span>
                 <p className="personal-record-detail-value">{field.value}</p>

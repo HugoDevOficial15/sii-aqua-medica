@@ -241,7 +241,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
           border-radius: 12px;
           border: 1px solid var(--operator-border);
           padding: 15px 14px;
-          background: var(--operator-border);
+          background: var(--operator-form);
           color: var(--operator-text);
           font-size: 14px;
           outline: none;
@@ -260,9 +260,9 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
         }
 
         .personal-employee-pill {
-          background: rgba(37, 100, 235, 0.27);
-          border: 1px solid rgba(37, 100, 235, 0.37);
-          color: var(--operator-primary);
+          background: rgba(250, 223, 70, 0.25);
+          border: 1px solid rgba(250, 223, 70, 0.5);
+          color: rgba(204, 179, 39, 0.87);
           border-radius: 12px;
           padding: 10px 14px;
           text-align: center;
@@ -318,15 +318,11 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
         }
 
         .personal-modal-primary:hover {
-          background: var(--operator-primary);
-          scale: 1.02;
-          box-shadow: 0 0px 10px var(--operator-primary);
+          filter: brightness(1.05);
+          transform: scale(1.02);
         }
 
-        .personal-modal-primary:disabled {
-          opacity: 0.7;
-          cursor: wait;
-        }
+
       `}</style>
     </div>
   );

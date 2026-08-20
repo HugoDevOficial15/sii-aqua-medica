@@ -1,14 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { FaEllipsisV, FaMedal, FaUserTimes, FaFilePdf } from "react-icons/fa";
+import {
+  FaEllipsisV,
+  FaMedal,
+  FaUserTimes,
+  FaFilePdf,
+  FaHouseUser,
+} from "react-icons/fa";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import Loader from "../../components/Loader";
-import { getAllowedUsersForPersonal, canAccessPersonalSection } from "../../services/personalConfig";
+import {
+  getAllowedUsersForPersonal,
+  canAccessPersonalSection,
+} from "../../services/personalConfig";
+import {
+  getUsers,
+  createIncapacidad,
+  getIncapacidadesByUser,
+  updateUser,
+} from "../../services/usersService";
 import ReconocimientoModal from "./components/reconocimiento";
 import IncidenciaModal from "./components/incidencia";
 import RecordDetailModal from "./components/RecordDetailModal";
 import PdfGeneralModal from "./components/pdfGeneralModal";
+import IncapacidadModal, {
+  getUserStatusBadge,
+  hasActiveIncapacidad,
+  syncUsersWithIncapacidades,
+  useUserIncapacidades,
+} from "./components/incapacidad";
 
 const getRecordTimestamp = (item) => {
   if (!item) return 0;
@@ -56,13 +77,21 @@ export default function Personal() {
   const [loading, setLoading] = useState(true);
   const [openActionsId, setOpenActionsId] = useState(null);
   const [expandedUserId, setExpandedUserId] = useState(null);
-  const [allRecords, setAllRecords] = useState({ reconocimientos: [], incidencias: [] });
+  const [allRecords, setAllRecords] = useState({
+    reconocimientos: [],
+    incidencias: [],
+    incapacidades: [],
+  });
   const [recordFilters, setRecordFilters] = useState({});
   const [actionModal, setActionModal] = useState({ type: null, usuario: null });
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [filtro, setFiltro] = useState("");
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [pdfTargetUser, setPdfTargetUser] = useState(null);
+  const [incapacidadModal, setIncapacidadModal] = useState(false);
+  const [selectedIncapacidadUser, setSelectedIncapacidadUser] = useState(null);
+  const { userIncapacidades, loadingIncapacidades } =
+    useUserIncapacidades(usuarios);
 
   const openPdfModal = (usuario = null) => {
     setPdfTargetUser(usuario);
@@ -85,23 +114,43 @@ export default function Personal() {
   useEffect(() => {
     const fetchUsersAndRecords = async () => {
       try {
-        const [usersSnapshot, reconocimientosSnapshot, incidenciasSnapshot] = await Promise.all([
-          getDocs(query(collection(db, "users"), orderBy("nombre", "asc"))),
+        const [
+          usersData,
+          reconocimientosSnapshot,
+          incidenciasSnapshot,
+          incapacidadesSnapshot,
+        ] = await Promise.all([
+          getUsers(),
           getDocs(collection(db, "reconocimientos")),
           getDocs(collection(db, "incidencias_personal")),
+          getDocs(collection(db, "incapacidades")),
         ]);
 
-        const users = usersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const syncedUsers = await syncUsersWithIncapacidades(usersData);
 
-        setUsuarios(users);
+        setUsuarios(syncedUsers);
         setAllRecords({
-          reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
-          incidencias: incidenciasSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+          reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })),
+          incidencias: incidenciasSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })),
+          incapacidades: incapacidadesSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })),
         });
       } catch (error) {
         console.error("Error cargando personal y registros:", error);
         setUsuarios([]);
-        setAllRecords({ reconocimientos: [], incidencias: [] });
+        setAllRecords({
+          reconocimientos: [],
+          incidencias: [],
+          incapacidades: [],
+        });
       } finally {
         setLoading(false);
       }
@@ -130,7 +179,15 @@ export default function Personal() {
 
   const openActionModal = (type, usuario) => {
     setOpenActionsId(null);
+    setExpandedUserId(null);
     setActionModal({ type, usuario });
+  };
+
+  const handleOpenIncapacidad = (usuario) => {
+    setSelectedIncapacidadUser(usuario);
+    setIncapacidadModal(true);
+    setOpenActionsId(null);
+    setExpandedUserId(null);
   };
 
   const closeActionModal = () => {
@@ -138,23 +195,34 @@ export default function Personal() {
   };
 
   const matchesEmpleado = (usuario, record) => {
-    const empleadoId = usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
+    const empleadoId =
+      usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
     const empleadoNomina = String(usuario?.nomina || "").trim();
-    const recordEmpleadoId = String(record?.empleadoId || "").trim();
-    const recordNomina = String(record?.empleadoNomina || "").trim();
+
+    const recordEmpleadoId = String(
+      record?.empleadoId || record?.userId || "",
+    ).trim();
+    const recordNomina = String(
+      record?.empleadoNomina || record?.nomina || "",
+    ).trim();
 
     return (
-      (empleadoId && recordEmpleadoId && recordEmpleadoId.toLowerCase() === String(empleadoId).toLowerCase()) ||
-      (empleadoNomina && recordNomina && recordNomina.toLowerCase() === empleadoNomina.toLowerCase())
+      (empleadoId &&
+        recordEmpleadoId &&
+        recordEmpleadoId.toLowerCase() === String(empleadoId).toLowerCase()) ||
+      (empleadoNomina &&
+        recordNomina &&
+        recordNomina.toLowerCase() === empleadoNomina.toLowerCase())
     );
   };
 
   const getUserRecords = (usuario) => {
-    const empleadoId = usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
+    const empleadoId =
+      usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
     const empleadoNomina = String(usuario?.nomina || "").trim();
 
     if (!empleadoId && !empleadoNomina) {
-      return { reconocimientos: [], incidencias: [] };
+      return { reconocimientos: [], incidencias: [], incapacidades: [] };
     }
 
     const reconocimientos = allRecords.reconocimientos
@@ -165,19 +233,38 @@ export default function Personal() {
       .filter((record) => matchesEmpleado(usuario, record))
       .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
 
-    return { reconocimientos, incidencias };
+    const incapacidades = allRecords.incapacidades
+      .filter((record) => matchesEmpleado(usuario, record))
+      .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+
+    return { reconocimientos, incidencias, incapacidades };
   };
 
   const refreshAllRecords = async () => {
     try {
-      const [reconocimientosSnapshot, incidenciasSnapshot] = await Promise.all([
+      const [
+        reconocimientosSnapshot,
+        incidenciasSnapshot,
+        incapacidadesSnapshot,
+      ] = await Promise.all([
         getDocs(collection(db, "reconocimientos")),
         getDocs(collection(db, "incidencias_personal")),
+        getDocs(collection(db, "incapacidades")),
       ]);
 
       setAllRecords({
-        reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
-        incidencias: incidenciasSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+        reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })),
+        incidencias: incidenciasSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })),
+        incapacidades: incapacidadesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })),
       });
     } catch (error) {
       console.error("Error recargando registros del personal:", error);
@@ -185,7 +272,9 @@ export default function Personal() {
   };
 
   const toggleUserRecords = (usuario) => {
-    setExpandedUserId((current) => (current === usuario.id ? null : usuario.id));
+    setExpandedUserId((current) =>
+      current === usuario.id ? null : usuario.id,
+    );
   };
 
   if (loading) return <Loader text="Cargando personal..." />;
@@ -193,55 +282,57 @@ export default function Personal() {
     return (
       <div style={{ padding: 24 }}>
         <h2>Acceso restringido</h2>
-        <p>Esta sección solo la puede ver el jefe del departamento y los trabajadores de su área/zona.</p>
+        <p>
+          Esta sección solo la puede ver el jefe del departamento y los
+          trabajadores de su área/zona.
+        </p>
       </div>
     );
   }
   // VISTA DE LA PAGINA PERSONAL
-  return ( 
-
+  return (
     <div style={{ padding: 24 }}>
       <div className="header-pagina">
-      <h6 className="titulo"><strong>Personal</strong></h6>
-      <span className="badge-title">AQUA Médica</span>
+        <h6 className="titulo">
+          <strong>Personal</strong>
+        </h6>
+        <span className="badge-title">AQUA Médica</span>
       </div>
 
-      <div className= "filter-container" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <span className="badge-departamento">
-          Departamento: {user?.area || "Sin área"}
-        </span>
-          <input
-            type="text"
-            className="personal-filter-input"
-            value={filtro}
-            onChange={(event) => setFiltro(event.target.value)}
-            placeholder="Buscar por nombre o nómina"
-            aria-label="Buscar por nombre o nómina"
-          />
-          <button
-            type="button"
-            className="personal-pdf-button"
-            onClick={() => openPdfModal()}
-          >
-            <FaFilePdf className="personal-pdf-icon" /> PDF
-          </button>
+      <div
+        className="filter-container"
+        style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}
+      >
+        <input
+          type="text"
+          className="personal-filter-input"
+          value={filtro}
+          onChange={(event) => setFiltro(event.target.value)}
+          placeholder="Buscar por nombre o nómina"
+          aria-label="Buscar por nombre o nómina"
+        />
+        <button
+          type="button"
+          className="personal-pdf-button"
+          onClick={() => openPdfModal()}
+        >
+          <FaFilePdf className="personal-pdf-icon" /> PDF
+        </button>
       </div>
 
       <div className="card">
-        <div className="personal-filter-wrap">
-        </div>
+        <div className="personal-filter-wrap"></div>
         <table className="tabla-personal">
           <thead>
-            <tr >
-              <th >Nombre</th>
-              <th >Nómina</th>
-              <th >Área</th>
-              <th >Puesto</th>
-              <th >Acciones</th>
+            <tr>
+              <th>Nombre</th>
+              <th width="10%">Nómina</th>
+              <th>Puesto</th>
+              <th width="10%">Estado</th>
+              <th width="10%">Acciones</th>
             </tr>
           </thead>
           <tbody>
-
             {usuariosFiltrados.length === 0 ? (
               <tr>
                 <td colSpan={5} style={{ padding: 18, color: "#6b7280" }}>
@@ -255,27 +346,64 @@ export default function Personal() {
                 const recordData = getUserRecords(usuario);
                 const categoryFilter = recordFilters[usuario.id] || "todos";
                 const historial = [
-                  ...recordData.reconocimientos.map((item) => ({ ...item, type: "reconocimiento" })),
-                  ...recordData.incidencias.map((item) => ({ ...item, type: "incidencia" })),
+                  ...recordData.reconocimientos.map((item) => ({
+                    ...item,
+                    type: "reconocimiento",
+                  })),
+                  ...recordData.incidencias.map((item) => ({
+                    ...item,
+                    type: "incidencia",
+                  })),
+                  ...recordData.incapacidades.map((item) => ({
+                    ...item,
+                    type: "incapacidad",
+                  })),
                 ]
-                  .filter((item) => categoryFilter === "todos" || item.type === categoryFilter)
-                  .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+                  .filter(
+                    (item) =>
+                      categoryFilter === "todos" ||
+                      item.type === categoryFilter,
+                  )
+                  .sort(
+                    (a, b) => getRecordTimestamp(b) - getRecordTimestamp(a),
+                  );
+
+                const activeIncapacidad = hasActiveIncapacidad(
+                  usuario,
+                  userIncapacidades[usuario.id] || [],
+                );
 
                 return (
-                  <>    
+                  <>
                     <tr
-
-//CELDA DE MENU DESPLEGABLE DE ACCIONES Y BOTONES DE ACCIONES
+                      //CELDA DE MENU DESPLEGABLE DE ACCIONES Y BOTONES DE ACCIONES
 
                       key={usuario.id || usuario.nomina}
-                      className={openActionsId === usuario.id || expandedUserId === usuario.id ? "personal-row-open" : ""}
+                      className={
+                        openActionsId === usuario.id ||
+                        expandedUserId === usuario.id
+                          ? "personal-row-open"
+                          : ""
+                      }
                       style={{ borderBottom: "1px solid #e5e7eb" }}
                       onClick={() => toggleUserRecords(usuario)}
                     >
                       <td>{usuario.nombre || "—"}</td>
                       <td>{usuario.nomina || "—"}</td>
-                      <td>{usuario.area || "—"}</td>
                       <td>{usuario.puesto || "—"}</td>
+                      <td>
+                        {(() => {
+                          const status = getUserStatusBadge(
+                            usuario,
+                            activeIncapacidad,
+                          );
+                          return (
+                            <span className={status.className}>
+                              {status.label}
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td className="personal-actions-cell">
                         <div
                           className="personal-actions-wrapper"
@@ -286,7 +414,9 @@ export default function Personal() {
                             className="personal-action-menu-button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              setOpenActionsId((current) => (current === usuario.id ? null : usuario.id));
+                              setOpenActionsId((current) =>
+                                current === usuario.id ? null : usuario.id,
+                              );
                             }}
                             aria-label="Abrir menú de acciones"
                           >
@@ -319,24 +449,51 @@ export default function Personal() {
                               >
                                 <FaUserTimes /> Incidencia
                               </button>
+
+                              <button
+                                type="button"
+                                className="personal-action-menu-item incapacidad"
+                                disabled={
+                                  activeIncapacidad ||
+                                  String(usuario?.estado || "")
+                                    .trim()
+                                    .toLowerCase() === "incapacidad"
+                                }
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleOpenIncapacidad(usuario);
+                                }}
+                              >
+                                <FaHouseUser /> Incapacidad
+                              </button>
                             </div>
                           )}
                         </div>
                       </td>
                     </tr>
-  
+
                     {expandedUserId === usuario.id && (
+                      // TABLA DESPLEGABLE Y FILTRO DE REGISTROS
 
-// TABLA DESPLEGABLE Y FILTRO DE REGISTROS
-
-                      <tr key={`${usuario.id}-details`} className="personal-details-row">
+                      <tr
+                        key={`${usuario.id}-details`}
+                        className="personal-details-row"
+                      >
                         <td colSpan={5} className="personal-details-cell">
-                          <div className="personal-details-box" >
+                          <div className="personal-details-box">
                             <div className="personal-record-filter">
                               {[
                                 { key: "todos", label: "Todos" },
-                                { key: "reconocimiento", label: "Reconocimientos" },
+                                {
+                                  key: "reconocimiento",
+                                  label: "Reconocimientos",
+                                },
                                 { key: "incidencia", label: "Incidencias" },
+                                { key: "incapacidad", label: "Incapacidades" },
+                                {
+                                  key: "historialMedico",
+                                  label: "Historial Medico",
+                                },
                               ].map((option) => (
                                 <button
                                   key={option.key}
@@ -357,30 +514,61 @@ export default function Personal() {
 
                             {historial.length === 0 ? (
                               <div className="personal-record-empty">
-                                No hay {categoryFilter === "todos" ? "incidencias ni reconocimientos" : categoryFilter === "reconocimiento" ? "reconocimientos" : "incidencias"} registrados.
+                                No hay{" "}
+                                {categoryFilter === "todos"
+                                  ? "incidencias, reconocimientos ni incapacidades"
+                                  : categoryFilter === "reconocimiento"
+                                    ? "reconocimientos"
+                                    : categoryFilter === "incapacidad"
+                                      ? "incapacidades"
+                                      : "incidencias"}{" "}
+                                registrados.
                               </div>
                             ) : (
                               <table className="personal-record-table">
                                 <thead>
                                   <tr>
-                                    <th>Tipo</th>
-                                    <th>Título</th>
+                                    <th width="10%">Tipo</th>
+                                    <th width="25%">Título</th>
                                     <th>Descripción</th>
-                                    <th>Fecha</th>
-                                    <th>Acciones</th>
+                                    <th width="7%">Fecha</th>
+                                    <th width="10%">Acciones</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {historial.map((item) => (
-                                    <tr key={item.id || `${item.type}-${item.titulo}`}>
+                                    <tr
+                                      key={
+                                        item.id || `${item.type}-${item.titulo}`
+                                      }
+                                    >
                                       <td>
-                                        <span className={`personal-record-badge ${item.type}`}>
-                                          {item.type === "reconocimiento" ? "Reconocimiento" : "Incidencia"}
+                                        <span
+                                          className={`personal-record-badge ${item.type}`}
+                                        >
+                                          {item.type === "reconocimiento"
+                                            ? "Reconocimiento"
+                                            : item.type === "incapacidad"
+                                              ? "Incapacidad"
+                                              : "Incidencia"}
                                         </span>
                                       </td>
-                                      <td>{item.titulo || "Sin título"}</td>
-                                      <td>{item.descripcion || "Sin descripción"}</td>
-                                      <td>{formatRecordDate(item.fecha || item.createdAt)}</td>
+                                      <td>
+                                        {item.titulo ||
+                                          item.tipo ||
+                                          "Sin título"}
+                                      </td>
+                                      <td>
+                                        {item.descripcion ||
+                                          item.notas ||
+                                          item.nota ||
+                                          "Sin descripción"}
+                                      </td>
+                                      <td>
+                                        {formatRecordDate(
+                                          item.fecha || item.createdAt,
+                                        )}
+                                      </td>
                                       <td className="personal-record-action-cell">
                                         <button
                                           type="button"
@@ -410,7 +598,12 @@ export default function Personal() {
         </table>
       </div>
 
-      {selectedRecord && <RecordDetailModal record={selectedRecord} onClose={() => setSelectedRecord(null)} />}
+      {selectedRecord && (
+        <RecordDetailModal
+          record={selectedRecord}
+          onClose={() => setSelectedRecord(null)}
+        />
+      )}
 
       {actionModal.type === "reconocimiento" && (
         <ReconocimientoModal
@@ -430,6 +623,23 @@ export default function Personal() {
           onSuccess={async () => {
             await refreshAllRecords();
             closeActionModal();
+          }}
+        />
+      )}
+
+      {incapacidadModal && selectedIncapacidadUser && (
+        <IncapacidadModal
+          usuario={selectedIncapacidadUser}
+          open={incapacidadModal}
+          onClose={() => {
+            setIncapacidadModal(false);
+            setSelectedIncapacidadUser(null);
+          }}
+          setUsuarios={setUsuarios}
+          onSaved={async () => {
+            await refreshAllRecords();
+            setIncapacidadModal(false);
+            setSelectedIncapacidadUser(null);
           }}
         />
       )}
@@ -454,16 +664,6 @@ export default function Personal() {
         gap: 10px;
         padding-bottom: 15px;
         }
-        
-        .badge-departamento {
-        background: linear-gradient(90deg, rgba(161, 186, 241, 0.24) 0%, rgba(103, 148, 245, 0.2) 100%);
-        border-radius: 12px;
-        padding: 4px 12px;
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        
-        }
 
         .personal-pdf-button {
           height: 50px;
@@ -485,6 +685,32 @@ export default function Personal() {
           scale: 1.01;
           transition: 0.2s ease;
           box-shadow: 0 0px 20px var(--operator-danger);
+        }
+
+        .personal-status-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          padding: 5px 10px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+        }
+
+        .personal-status-badge.success {
+          background: rgba(34, 197, 94, 0.12);
+          color: #15803d;
+        }
+
+        .personal-status-badge.warning {
+          background: #ca56ff48;
+          color: #c12fee;
+        }
+
+        .personal-status-badge.danger {
+          background: rgba(239, 68, 68, 0.12);
+          color: #b91c1c;
         }
 
         .filter-container {
@@ -549,7 +775,8 @@ export default function Personal() {
         padding: 5px 5px;
         vertical-align: middle;
         border-top: none !important;
-        white-space: wrap;
+        white-space: normal;
+        justify-items: center;
 
         word-break: break-word;
         overflow-wrap: anywhere;
@@ -560,11 +787,11 @@ export default function Personal() {
         .tabla-personal tbody tr td {
         border-bottom: 3px solid var(--operator-border);
         height: 50px;
-        font-size 14px;
+        font-size: 14px;
         padding: 5px 5px;
         vertical-align: middle;
         border-top: none !important;
-        white-space: wrap;
+        white-space: normal;
 
         word-break: break-word;
         overflow-wrap: anywhere;
@@ -575,20 +802,49 @@ export default function Personal() {
         .tabla-personal tbody tr {
           position: relative;
           z-index: 1;
+          transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
         }
 
         .tabla-personal tbody tr.personal-row-open {
           z-index: 12;
         }
 
-        .tabla-personal tbody tr.personal-row-open:hover {
-          transform: none;
-          box-shadow: none;
+        .tabla-personal tbody tr:hover {
+          transform: scale(1.02);
+
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
         }
+
+        .tabla-personal tbody tr.personal-row-open:hover {
+                transform: none !important;
+                box-shadow: none !important;
+        }
+
+/* CORRECCIONES PUNTUALES DE FILAS Y TABLAS */
 
         .tabla-personal thead th:nth-child(5){
           text-align: center;
         }
+
+        .tabla-personal thead th:nth-child(4){
+          text-align: center;
+        }
+
+        .tabla-personal tbody td:nth-child(4){
+          text-align: center;
+        }
+
+        .tabla-personal thead th:nth-child(2){
+          text-align: center;
+          padding-right: 60px;
+        }
+
+        .tabla-personal tbody td:nth-child(2){
+          text-align: center;
+          padding-right: 60px;
+        }
+
+
 
 /*  MENU ACCIONES */
 
@@ -664,16 +920,19 @@ export default function Personal() {
           color: rgba(177, 151, 2, 0.87);
         }
 
-
-
         .personal-action-menu-item.danger:hover {
           background: var(--operator-border);
           color: var(--operator-danger);
         }
 
-        .personal-action-menu-item.reporte:hover {
+        .personal-action-menu-item.incapacidad:hover {
           background: var(--operator-border);
-          color: var(--operator-danger);
+          color: rgba(143, 83, 253, 0.8);
+        }
+
+        .personal-action-menu-item.incapacidad:disabled {
+          background: var(--operator-border);
+          opacity: 0.6;
         }
 
 
@@ -781,6 +1040,18 @@ export default function Personal() {
           overflow-wrap: anywhere;
         }
 
+/* HACE QUE LA TABLA DESPLEGABLE NO TENGA HOVER */
+
+        .tabla-personal tbody tr.personal-details-row:hover {
+          transform: none;
+          box-shadow: none;
+        }
+
+        .tabla-personal tbody tr.personal-details-row thead tr:hover {
+          transform: none;
+          box-shadow: none;
+        }
+
         .personal-record-table thead th {
           font-weight: 800;
           background: rgba(148, 163, 184, 0.06);
@@ -818,13 +1089,19 @@ export default function Personal() {
         }
 
         .personal-record-badge.reconocimiento {
-          background: rgba(67, 241, 131, 0.34) !important;
-          color: #21c460 !important;
+          background: rgba(250, 223, 70, 0.25);
+          color: rgba(214, 183, 6, 0.87);
         }
 
         .personal-record-badge.incidencia {
           background: rgba(239, 68, 68, 0.34) !important;
           color: #f33030 !important;
+        }
+
+        .personal-record-badge.incapacidad {
+          background: #ca56ff48;
+          color: #c12fee;
+
         }
 
         .personal-record-empty {
