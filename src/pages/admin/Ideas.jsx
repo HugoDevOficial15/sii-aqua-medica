@@ -47,12 +47,12 @@ export default function IdeasAdmin() {
 
   useEffect(() => {
     const closeMenu = (event) => {
-      if (!event.target.closest(".ideas-actions-cell")) {
+      if (!event.target.closest(".solicitudes-actions-cell")) {
         setOpenActionsId(null);
       }
     };
-    document.addEventListener("click", closeMenu);
-    return () => document.removeEventListener("click", closeMenu);
+    document.addEventListener("mousedown", closeMenu);
+    return () => document.removeEventListener("mousedown", closeMenu);
   }, []);
 
   const handleVerIdea = (idea) => {
@@ -91,13 +91,21 @@ export default function IdeasAdmin() {
       });
 
       if (selectedIdea.uid) {
-        await addDoc(collection(db, "notificaciones"), {
-          Titulo: "Actualización de tu idea",
-          Mensaje: `Tu idea "${selectedIdea.titulo}" cambió a: ${nuevoEstado}.${comentario ? ` Comentario: ${comentario}` : ""}`,
-          Destino: "IdeaActualizada",
-          IdUsuario: selectedIdea.uid,
-          fechaCreacion: serverTimestamp()
-        });
+        try {
+          await createNotification({
+            IdUsuario: selectedIdea.uid,
+            Titulo: "Actualización de tu idea",
+            Mensaje: `Tu idea "${selectedIdea.titulo}" cambió a: ${nuevoEstado}.${comentario ? ` Comentario: ${comentario}` : ""}`,
+            Destino: "suggestion-create",
+            Accion: "idea_actualizada",
+            extra: {
+              ideaId: selectedIdea.id,
+              nuevoEstado: nuevoEstado
+            }
+          });
+        } catch (notifError) {
+          console.error("Error al enviar notificación al usuario:", notifError);
+        }
       }
 
       const ideasActualizadas = ideas.map((idea) =>
@@ -176,75 +184,120 @@ export default function IdeasAdmin() {
           opacity: 1;
         }
 
-        .ideas-actions-cell {
-          position: relative;
-          text-align: center;
-          width: 100px;
-          min-width: 100px;
-          max-width: 100px;
+        /* ESTILOS EXACTOS DE ACCIONES COPIADOS DE SOLICITUDES.JSX */
+        .table-responsive-container {
+            overflow: visible !important;
         }
 
-        .ideas-actions-toggle {
-          width: 36px;
-          height: 36px;
-          border-radius: 999px !important;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 10 !important;
-          border: 1px solid var(--operator-border) !important;
-          background: var(--operator-card) !important;
-          color: var(--operator-text) !important;
-          cursor: pointer;
-          position: relative;
-          z-index: 100;
+        .solicitudes-actions-cell {
+            position: relative;
+            text-align: center;
+            width: 100px;
+            min-width: 100px;
+            max-width: 100px;
         }
 
-        .ideas-actions-toggle:hover {
-          background: var(--operator-background) !important;
-          color: var(--operator-primary) !important;
+        .solicitudes-actions-toggle {
+            width: 36px;
+            height: 36px;
+            min-width: 36px !important;
+            min-height: 36px !important;
+            border-radius: 50% !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0 !important;
+            border: 1px solid var(--operator-border) !important;
+            background: var(--operator-card) !important;
+            color: var(--operator-text) !important;
+            cursor: pointer;
+            transition: all 0.2s ease !important;
         }
 
-        .ideas-actions-menu {
-          position: absolute;
-          right: -50px;
-          top: 100%;
-          min-width: 180px;
-          padding: 10px;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          z-index: 999999 !important;
-          border: 1px solid var(--operator-background);
-          border-radius: 10px;
-          background: var(--operator-background);
-          box-shadow: 0 10px 24px var(--operator-shadow);
-          margin-top: 5px;
-          overflow: visible;
+        .solicitudes-actions-toggle:hover {
+            background: var(--operator-border) !important;
+            color: var(--operator-primary) !important;
+            transform: scale(1.05);
         }
 
-        .ideas-action-item {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: flex-start;
-          padding: 8px 10px;
-          border: none;
-          border-radius: 10px;
-          background: var(--operator-card);
-          color: var(--operator-text);
-          font-size: 12px;
-          font-weight: 800;
-          text-align: center;
+        .solicitudes-actions-menu {
+            position: absolute;
+            right: -50px;
+            top: 100%;
+            min-width: 180px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 99999 !important;
+            border: 1px solid var(--operator-background);
+            border-radius: 10px;
+            background: var(--operator-background);
+            box-shadow: 0 10px 24px var(--operator-shadow);
+            margin-top: 5px;
+            overflow: visible;
         }
 
-        .ideas-action-item:hover {
-          background: var(--operator-background);
+        .table-sol tbody tr {
+            overflow: visible !important;
+            z-index: 0;
         }
 
-        .table tbody tr {
-          overflow: visible !important;
-          z-index: 0;
+        .table-sol tbody tr.solicitud-row-menu-open {
+            transform: none !important;
+            transition: none !important;
+        }
+
+        .solicitudes-action-item {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 8px 10px;
+            border: none;
+            border-radius: 10px;
+            background: var(--operator-card);
+            color: var(--operator-text);
+            font-size: 12px;
+            font-weight: 800;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .solicitudes-action-item:hover {
+            background: var(--operator-background);
+        }
+
+        .table-sol {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: separate !important;
+            border-spacing: 0 10px !important;
+        }
+
+        .table-sol thead th {
+            border-bottom: 3px solid var(--operator-text);
+            font-size: 18px;
+            font-weight: 900;
+            padding: 5px 10px;
+            vertical-align: middle;
+            border-top: none !important;
+            color: var(--operator-text);
+        }
+
+        .table-sol tbody td {
+            border-bottom: 3px solid var(--operator-border);
+            height: 50px;
+            font-size: 14px;
+            padding: 5px 10px;
+            vertical-align: middle;
+            border-top: none !important;
+            color: var(--operator-text);
+        }
+
+        .table-sol tbody tr:hover {
+            transition: transform 0.2s;
+            transform: scale(1.01);
         }
       `}</style>
       <div className="container-fluid p-4 fade-in" style={{ color: "var(--operator-text)" }}>
@@ -351,94 +404,93 @@ export default function IdeasAdmin() {
       </div>
 
       <div className="card border-0 shadow-sm" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px" }}>
-        <div className="card-body p-0">
+        <div className="card-body p-0 table-responsive-container">
           {loading ? (
             <div className="p-5 text-center text-secondary">Cargando ideas...</div>
           ) : ideasFiltradas.length === 0 ? (
             <div className="p-5 text-center text-secondary">No hay ideas que coincidan con los filtros.</div>
           ) : (
-            <div className="table-responsive">
-              <table className="table table-borderless table-hover mb-0" style={{ color: "var(--operator-text)" }}>
-                <thead style={{ borderBottom: "1px solid var(--operator-border)" }}>
-                  <tr>
-                    <th className="px-4 py-3 bg-transparent text-secondary fw-semibold">Solicitante</th>
-                    <th className="px-4 py-3 bg-transparent text-secondary fw-semibold">Nómina</th>
-                    <th className="px-4 py-3 bg-transparent text-secondary fw-semibold">Categoría</th>
-                    <th className="px-4 py-3 bg-transparent text-secondary fw-semibold">Título</th>
-                    <th className="px-4 py-3 bg-transparent text-secondary fw-semibold">Fecha</th>
-                    <th className="px-4 py-3 bg-transparent text-secondary fw-semibold">Estado</th>
-                    <th className="px-4 py-3 bg-transparent text-secondary fw-semibold text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ideasFiltradas.map((item) => {
-                    const badge = getBadgeStyle(item.estado);
-                    return (
-                      <tr key={item.id} style={{ borderBottom: "1px solid var(--operator-border)" }}>
-                        <td className="px-4 py-3 align-middle fw-medium">{item.solicitante || "ANÓNIMO"}</td>
-                        <td className="px-4 py-3 align-middle">{item.nomina || "N/A"}</td>
-                        <td className="px-4 py-3 align-middle">{item.categoria || "General"}</td>
-                        <td className="px-4 py-3 align-middle text-truncate" style={{ maxWidth: "200px" }}>{item.titulo || "Sin título"}</td>
-                        <td className="px-4 py-3 align-middle">{item.fecha || "Reciente"}</td>
-                        <td className="px-4 py-3 align-middle">
-                          <span
-                            className="px-3 py-1 fw-semibold"
-                            style={{
-                              backgroundColor: badge.bg,
-                              color: badge.color,
-                              borderRadius: "20px",
-                              fontSize: "0.8rem",
-                            }}
+            <table className="table table-sol mb-0">
+              <thead>
+                <tr>
+                  <th>Solicitante</th>
+                  <th>Nómina</th>
+                  <th>Categoría</th>
+                  <th>Título</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                  <th className="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ideasFiltradas.map((item) => {
+                  const badge = getBadgeStyle(item.estado);
+                  const isMenuOpen = openActionsId === item.id;
+                  return (
+                    <tr key={item.id} className={isMenuOpen ? "solicitud-row-menu-open" : ""}>
+                      <td>{item.solicitante || "ANÓNIMO"}</td>
+                      <td>{item.nomina || "N/A"}</td>
+                      <td>{item.categoria || "General"}</td>
+                      <td className="text-truncate" style={{ maxWidth: "200px" }}>{item.titulo || "Sin título"}</td>
+                      <td>{item.fecha || "Reciente"}</td>
+                      <td>
+                        <span
+                          className="px-3 py-1 fw-semibold"
+                          style={{
+                            backgroundColor: badge.bg,
+                            color: badge.color,
+                            borderRadius: "20px",
+                            fontSize: "0.8rem",
+                          }}
+                        >
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        <div className="solicitudes-actions-cell">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary solicitudes-actions-toggle"
+                            onClick={() => setOpenActionsId(openActionsId === item.id ? null : item.id)}
                           >
-                            {badge.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 align-middle text-center">
-                          <div className="ideas-actions-cell">
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary ideas-actions-toggle"
-                              onClick={() => setOpenActionsId(openActionsId === item.id ? null : item.id)}
-                            >
-                              <FaEllipsisV />
-                            </button>
+                            <FaEllipsisV />
+                          </button>
 
-                            {openActionsId === item.id && (
-                              <div className="ideas-actions-menu">
-                                <button
-                                  type="button"
-                                  className="ideas-action-item"
-                                  onClick={() => {
-                                    handleVerIdea(item);
-                                    setOpenActionsId(null);
-                                  }}
-                                >
-                                  <FiEye className="me-2" />
-                                  Ver
-                                </button>
+                          {openActionsId === item.id && (
+                            <div className="solicitudes-actions-menu">
+                              <button
+                                type="button"
+                                className="solicitudes-action-item"
+                                onClick={() => {
+                                  handleVerIdea(item);
+                                  setOpenActionsId(null);
+                                }}
+                              >
+                                <FiEye className="me-2" />
+                                Ver
+                              </button>
 
-                                <button
-                                  type="button"
-                                  className="ideas-action-item text-danger"
-                                  disabled={actualizando}
-                                  onClick={() => {
-                                    handleEliminarIdea(item);
-                                    setOpenActionsId(null);
-                                  }}
-                                >
-                                  <FiTrash className="me-2" />
-                                  Eliminar
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                              <button
+                                type="button"
+                                className="solicitudes-action-item text-danger"
+                                disabled={actualizando}
+                                onClick={() => {
+                                  handleEliminarIdea(item);
+                                  setOpenActionsId(null);
+                                }}
+                              >
+                                <FiTrash className="me-2" />
+                                Eliminar
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
       </div>
@@ -494,21 +546,46 @@ export default function IdeasAdmin() {
               </div>
               <div className="mb-4">
                 <label className="text-secondary fw-semibold mb-1" style={{ fontSize: "0.85rem" }}>
-                  CAPTURA ADJUNTA
+                  EVIDENCIAS
                 </label>
-                {(!selectedIdea.capturas || selectedIdea.capturas.length === 0) && (
+
+                {!selectedIdea.imagen && !selectedIdea.pdf && (
                   <div style={styles.fieldBox} className="text-secondary fst-italic">
-                    No se adjuntó ninguna captura.
+                    No se adjuntaron evidencias.
                   </div>
                 )}
-                {selectedIdea.capturas && typeof selectedIdea.capturas === "string" && selectedIdea.capturas.length > 0 && (
-                  <div className="d-flex flex-wrap gap-2 mt-2">
-                    <a href={selectedIdea.capturas} target="_blank" rel="noopener noreferrer">
-                      <img
-                        src={selectedIdea.capturas}
-                        alt="Captura adjunta"
-                        style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "10px", border: "1px solid var(--operator-border)" }}
-                      />
+
+                {selectedIdea.imagen && typeof selectedIdea.imagen === "string" && selectedIdea.imagen.length > 0 && (
+                  <div className="mb-3">
+                    <div style={{ fontSize: "0.85rem", color: "var(--operator-text-soft)", marginBottom: "8px" }}>Imagen:</div>
+                    <div className="d-flex flex-wrap gap-2">
+                      <a href={selectedIdea.imagen} target="_blank" rel="noopener noreferrer">
+                        <img
+                          src={selectedIdea.imagen}
+                          alt="Imagen adjunta"
+                          style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "10px", border: "1px solid var(--operator-border)" }}
+                        />
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {selectedIdea.pdf && typeof selectedIdea.pdf === "string" && selectedIdea.pdf.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: "0.85rem", color: "var(--operator-text-soft)", marginBottom: "8px" }}>PDF:</div>
+                    <a href={selectedIdea.pdf} target="_blank" rel="noopener noreferrer" style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 16px',
+                      backgroundColor: 'var(--operator-border)',
+                      borderRadius: '10px',
+                      color: 'var(--operator-text)',
+                      textDecoration: 'none',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}>
+                      📄 Descargar PDF
                     </a>
                   </div>
                 )}
@@ -630,7 +707,7 @@ const styles = {
   footer: {
     padding: "18px 24px 24px",
     display: "flex",
-    justifyContent: "flex-end",
+    justifyContent: "flex-end", // Corregido de "justify-content" a "justifyContent"
     gap: "10px",
   },
 };

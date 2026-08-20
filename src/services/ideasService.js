@@ -10,10 +10,11 @@ import {
     updateDoc,
     serverTimestamp
 } from 'firebase/firestore';
+import { sendAdminNotification } from '../utils/sendAdminNotification';
 
 const ideasCollection = collection(db, 'Ideas');
 
-export const createIdea = async ({ user, titulo, categoria, descripcion, imagenBase64, pantalla }) => {
+export const createIdea = async ({ user, titulo, categoria, descripcion, imagenBase64, pdfBase64, pantalla }) => {
     const ideaDoc = {
         idUsuario: user?.id || null,
         uid: user?.uid || null,
@@ -27,7 +28,8 @@ export const createIdea = async ({ user, titulo, categoria, descripcion, imagenB
         categoria: categoria || 'General',
         descripcion: descripcion || '',
         pantalla: pantalla || 'Ideas',
-        capturas: typeof imagenBase64 === 'string' ? imagenBase64 : '',
+        imagen: typeof imagenBase64 === 'string' ? imagenBase64 : '',
+        pdf: typeof pdfBase64 === 'string' ? pdfBase64 : '',
         estado: 'Pendiente',
         comentarioAdmin: '',
         fecha: new Date().toLocaleDateString('es-MX'),
@@ -37,6 +39,20 @@ export const createIdea = async ({ user, titulo, categoria, descripcion, imagenB
     };
 
     const docRef = await addDoc(ideasCollection, ideaDoc);
+
+    await sendAdminNotification({
+        Titulo: "Nueva Idea Recibida",
+        Mensaje: `${user?.nombre || "Un usuario"} compartió: "${titulo}"`,
+        Destino: "ideas",
+        Accion: "nueva_idea",
+        extra: {
+            ideaId: docRef.id,
+            solicitante: user?.nombre,
+            titulo: titulo,
+            categoria: categoria
+        }
+    }, ["admin_sistemas", "admin_super"]);
+
     return { success: true, id: docRef.id };
 };
 

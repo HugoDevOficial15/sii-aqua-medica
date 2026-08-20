@@ -133,6 +133,8 @@ export default function ExpedienteClinico({ onBack }) {
                 }
                 .custom-box-theme {
                     border-radius: 16px;
+                    background: var(--operator-card, #1e293b) !important;
+                    color: var(--operator-text, #fff);
                 }
             `}</style>
         </div>

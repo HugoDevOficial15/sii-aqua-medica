@@ -18,7 +18,7 @@ exports.sendNotificationOnCreate = onDocumentCreated("notificaciones/{notifId}",
         if (!destinatario) return;
 
         // Intentamos leer el token FCM del usuario
-        const userRef = db.collection("usuarios").doc(String(destinatario));
+        const userRef = db.collection("users").doc(String(destinatario));
         const userSnap = await userRef.get();
         const userData = userSnap.exists ? userSnap.data() : null;
         const token = userData?.fcmToken;

@@ -197,20 +197,20 @@ export default function OperadorCitasMedicas({ onBack }) {
                 paciente: nombreFinal
             });
 
-            // 🔥 NOTIFICAR A TODOS LOS ADMINS
+            // 🔥 NOTIFICAR A admin_medico y admin_sistemas
             try {
                 const usersSnapshot = await getDocs(collection(db, "users"));
                 const admins = usersSnapshot.docs
                     .filter(doc => {
                         const rol = doc.data().rol || "";
-                        return rol.startsWith("admin");
+                        return rol === "admin_medico" || rol === "admin_sistemas";
                     })
-                    .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
+                    .map(doc => ({ docId: doc.id, ...doc.data() }));
 
                 for (const admin of admins) {
-                    if (admin.uid) {
+                    if (admin.docId) {
                         await createNotification({
-                            IdUsuario: admin.uid,
+                            IdUsuario: admin.docId,
                             Titulo: "📅 Nueva Cita Médica Agendada",
                             Mensaje: `${nombreFinal} agendó una cita en: "${agendaActiva.nombre}" para el ${formatearFecha(fechaElegida)} a las ${horaElegida}`,
                             Destino: "medical-appointments",
@@ -257,20 +257,20 @@ export default function OperadorCitasMedicas({ onBack }) {
         try {
             await cancelAppointmentByUser(citaACancelar.id, user, motivo);
 
-            // 🔥 NOTIFICAR A TODOS LOS ADMINS
+            // 🔥 NOTIFICAR A admin_medico y admin_sistemas
             try {
                 const usersSnapshot = await getDocs(collection(db, "users"));
                 const admins = usersSnapshot.docs
                     .filter(doc => {
                         const rol = doc.data().rol || "";
-                        return rol.startsWith("admin");
+                        return rol === "admin_medico" || rol === "admin_sistemas";
                     })
-                    .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
+                    .map(doc => ({ docId: doc.id, ...doc.data() }));
 
                 for (const admin of admins) {
-                    if (admin.uid) {
+                    if (admin.docId) {
                         await createNotification({
-                            IdUsuario: admin.uid,
+                            IdUsuario: admin.docId,
                             Titulo: "❌ Cita Médica Cancelada",
                             Mensaje: `${user?.nombre || "Un usuario"} canceló una cita para el ${formatearFecha(citaACancelar.fecha)}`,
                             Destino: "medical-appointments",

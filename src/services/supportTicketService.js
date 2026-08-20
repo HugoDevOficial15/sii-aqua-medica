@@ -1,6 +1,6 @@
 import { db } from "../config/firebase";
-import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore";
-import { createNotification } from "../utils/createNotification";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { sendAdminNotification } from "../utils/sendAdminNotification";
 
 const reportesCollection = collection(db, "Problemas reportados");
 
@@ -40,38 +40,18 @@ export async function createSupportTicket({
         administradorRevision: null
     });
 
-    // 🔥 NOTIFICAR A TODOS LOS ADMINS
-    try {
-        const usersSnapshot = await getDocs(collection(db, "users"));
-        const admins = usersSnapshot.docs
-            .filter(doc => {
-                const rol = doc.data().rol || "";
-                return rol.startsWith("admin");
-            })
-            .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
-
-        // Enviar notificación a cada admin
-        for (const admin of admins) {
-            if (admin.uid) {
-                await createNotification({
-                    IdUsuario: admin.uid,
-                    Titulo: "🚨 Nuevo Reporte de Problema",
-                    Mensaje: `${user?.nombre || "Un usuario"} reportó: "${asunto}"`,
-                    Destino: "support",
-                    Accion: "nuevo_reporte",
-                    extra: {
-                        reporteId: docRef.id,
-                        solicitante: user?.nombre,
-                        asunto: asunto,
-                        pantalla: pantalla
-                    }
-                });
-            }
+    await sendAdminNotification({
+        Titulo: "Nuevo Reporte de Problema",
+        Mensaje: `${user?.nombre || "Un usuario"} reportó: "${asunto}"`,
+        Destino: "soporte",
+        Accion: "nuevo_reporte",
+        extra: {
+            reporteId: docRef.id,
+            solicitante: user?.nombre,
+            asunto: asunto,
+            pantalla: pantalla
         }
-    } catch (error) {
-        console.error("Error al notificar a admins sobre el reporte:", error);
-        // No lanzamos el error para que el reporte se haya creado aunque falle la notificación
-    }
+    }, ["admin_sistemas", "admin_super"]);
 
     return { success: true, id: docRef.id };
 }

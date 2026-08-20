@@ -113,12 +113,16 @@ export default function Header({ toggleSidebar }) {
     useEffect(() => {
         const loadStaticNotifications = async () => {
             try {
-                const [solicitudes, medicamentos] = await Promise.all([
-                    getPendingRequests(),
+                const rolesPermitidos = ["admin_sistemas", "admin_super"];
+                const solicitudesPermitidas = rolesPermitidos.includes(user?.rol)
+                    ? await getPendingRequests()
+                    : [];
+
+                const [medicamentos] = await Promise.all([
                     getMedicamentos()
                 ]);
 
-                const notifsSolicitudes = solicitudes.map(s => ({
+                const notifsSolicitudes = solicitudesPermitidas.map(s => ({
                     id: `solicitud-${s.id}`,
                     icon: <FaClipboardCheck />,
                     title: "Nueva solicitud pendiente",

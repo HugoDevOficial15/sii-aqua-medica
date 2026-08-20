@@ -88,7 +88,7 @@ export default function MisCitasMedicas() {
                 const admins = usersSnapshot.docs
                     .filter(doc => {
                         const rol = doc.data().rol || "";
-                        return rol === "admin_medico" || rol === "admin_sistemas" || rol === "admin_sist";
+                        return rol === "admin_medico" || rol === "admin_sistemas";
                     })
                     .map(doc => ({ docId: doc.id, ...doc.data() }));
 

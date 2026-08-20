@@ -1,20 +1,13 @@
-// 👇 1. Agregamos useEffect a la importación de React
 import { useState, useEffect } from "react";
-
-// 👇 2. Importamos las herramientas de Firebase en tiempo real
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
-
 import { useAuth } from "../../hooks/useAuth";
-
-// 👇 Importamos el servicio de push notifications
 import { initPushNotifications, stopPushNotifications } from "../../services/pushNotificationService";
 
 import OperatorShell from "./layout/OperatorShell";
 
 import OperatorHome from "./OperatorHome";
 import OperatorSurveys from "./OperatorSurveys";
-import OperatorSuggestions from "./OperatorSuggestions";
 import OperatorProfile from "./OperatorProfile";
 import OperatorMore from "./OperatorMore";
 
@@ -52,7 +45,7 @@ export default function AppOperator() {
     const [surveyResult, setSurveyResult] = useState(null);
     const [selectedNews, setSelectedNews] = useState(null);
 
-    // 👇 3. Creamos un estado para guardar el número de notificaciones nuevas
+    // Creamos un estado para guardar el número de notificaciones nuevas
     const [notificacionesCount, setNotificacionesCount] = useState(0);
 
     const {
@@ -133,10 +126,7 @@ export default function AppOperator() {
                         onBack={() => setScreen("more")}
                     />
                 );
-            case "suggestions":
-                return <OperatorSuggestions onNavigate={setScreen} onBack={() => setScreen("more")} />;
-
-            // 👇 AQUÍ ESTÁ EL PERFIL YA CORREGIDO
+            
             case "profile":
                 return <OperatorProfile usuarioActual={user} onBack={() => setScreen("more")} onNavigate={setScreen} />;
             
@@ -172,8 +162,6 @@ export default function AppOperator() {
                 return <ExpedienteClinico onBack={() => setScreen("more")} />;
             case "suggestion-create":
                 return <OperatorSuggestionCreate onBack={() => setScreen("more")} />;
-            case "suggestion-detail":
-                return <OperatorSuggestionDetail onBack={() => setScreen("suggestions")} />;
             case "survey-detail":
                 return (
                     <OperatorSurveyDetail
@@ -203,7 +191,7 @@ export default function AppOperator() {
             activeTab={screen}
             onTabChange={setScreen}
             notificationCount={totalNotificaciones} //  Conectado a la suma total
-            usuarioActual={user} // 👇 LE PASAMOS EL USUARIO AL MENÚ LATERAL
+            usuarioActual={user} //  LE PASAMOS EL USUARIO AL MENÚ LATERAL
         >
             {renderScreen()}
         </OperatorShell>

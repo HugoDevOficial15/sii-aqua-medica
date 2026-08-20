@@ -626,20 +626,24 @@ export default function Solicitudes() {
 .solicitudes-actions-toggle {
     width: 36px;
     height: 36px;
-    border-radius: 999px !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10 !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
     border: 1px solid var(--operator-border) !important;
     background: var(--operator-card) !important;
     color: var(--operator-text) !important;
     cursor: pointer;
+    transition: all 0.2s ease !important;
 }
 
 .solicitudes-actions-toggle:hover {
-    background: var(--operator-background) !important;
+    background: var(--operator-border) !important;
     color: var(--operator-primary) !important;
+    transform: scale(1.05);
 }
 
 .solicitudes-actions-menu {

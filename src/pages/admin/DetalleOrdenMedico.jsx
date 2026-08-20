@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, addDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { FaSearch, FaUserInjured, FaFingerprint, FaCheckCircle, FaClock, FaHeartbeat, FaCheckDouble, FaTrash, FaEllipsisV } from "react-icons/fa";
+import { FiTrash2 } from "react-icons/fi";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -55,7 +56,6 @@ export default function DetalleOrdenMedica() {
     return () => document.removeEventListener("mousedown", closeMenu);
   }, []);
 
-
   // CALCULAR KPIs
   const kpis = {
     pendientes: ordenes.filter(o => o.estado === "Pendiente").length,
@@ -91,7 +91,6 @@ export default function DetalleOrdenMedica() {
 
     const docId = orden.docIdPaciente || orden.idPaciente;
 
-    // Intentar cargar datos de la orden primero
     setTipoSangre(orden.tipoSangre || "");
     setPeso(orden.peso || "");
     setEstatura(orden.estatura || "");
@@ -99,7 +98,6 @@ export default function DetalleOrdenMedica() {
     setEnfermedadesCronica(orden.enfermedadesCrónicas || "");
     setTelefonoEmergencia(orden.telefonoEmergencia || "");
 
-    // Si no hay datos en la orden, intentar cargar del usuario en Firestore
     if (!orden.tipoSangre && !orden.peso && docId) {
       try {
         const userDocRef = doc(db, "users", docId);
@@ -172,7 +170,7 @@ export default function DetalleOrdenMedica() {
       const ordenEncontrada = resultados.values().next().value || null;
 
       if (ordenEncontrada) {
-        setOrdenCargada(ordenEncontrada);
+        cargarPacienteDesdeTabla(ordenEncontrada);
       } else {
         notifyWarning("No encontrado", "No se encontró una orden médica activa para este paciente.");
       }
@@ -227,7 +225,6 @@ export default function DetalleOrdenMedica() {
         ...(esAltaMedica && { fechaCierre: new Date().toISOString() })
       });
 
-      // Actualizar datos del usuario en la BD
       const docIdUsuario = ordenCargada.docIdPaciente || ordenCargada.idPaciente;
       if (docIdUsuario) {
         try {
@@ -263,7 +260,6 @@ export default function DetalleOrdenMedica() {
         }
       }
 
-      // Enviar notificación a admin_medico, admin_sistemas y admin_sist
       try {
         const usersSnapshot = await getDocs(collection(db, "users"));
         const admins = usersSnapshot.docs
@@ -307,6 +303,7 @@ export default function DetalleOrdenMedica() {
       setTelefonoEmergencia("");
       setOrdenCargada(null);
       setBusqueda("");
+      cargarOrdenes();
 
     } catch (error) {
       console.error("Error al guardar:", error);
@@ -403,56 +400,50 @@ export default function DetalleOrdenMedica() {
 
       {/* TABLA DE PACIENTES EN ESPERA */}
       {pacientesEnEspera.length > 0 && !ordenCargada && (
-        <div className="card shadow-sm custom-users-card mb-4">
+        <div className="card shadow-sm mb-4">
           <div className="card-header bg-transparent border-bottom border-secondary pt-4 pb-3 px-4">
             <h5 className="mb-0 text-white">Pacientes en Espera</h5>
           </div>
-          <div className="card-body p-0 table-responsive-container">
-            <div className="table-responsive-inner">
-              <table className="table mb-0 table-hover align-middle">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Nómina</th>
-                    <th>Fecha Apertura</th>
-                    <th>Estado</th>
-                    <th className="text-end">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pacientesEnEspera.map((orden) => (
-                    <tr key={orden.id}>
-                      <td className="fw-semibold">{orden.nombrePaciente || "Sin nombre"}</td>
+          <div className="card-body table-responsive-container">
+            <table className="table table-sol">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Nómina</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pacientesEnEspera.map((orden) => {
+                  const isMenuOpen = openActionsId === orden.id;
+                  return (
+                    <tr key={orden.id} className={isMenuOpen ? "orden-row-menu-open" : ""}>
+                      <td>{orden.nombrePaciente || "Sin nombre"}</td>
                       <td>{orden.nominaPaciente || orden.nominaPAciente || "N/A"}</td>
                       <td>{new Date(orden.fechaApertura).toLocaleDateString("es-MX")}</td>
                       <td>
-                        <span className={`badge badge-${orden.estado === "Pendiente" ? "warning" : "info"}`}>
+                        <span className={`badge ${orden.estado === "Pendiente" ? "bg-warning text-dark" : "bg-info text-dark"}`}>
                           {orden.estado}
                         </span>
                       </td>
-                      <td className="ordenes-actions-cell text-end">
-                        <div
-                          className="ordenes-actions-wrapper"
-                        >
+                      <td>
+                        <div className="ordenes-actions-cell">
                           <button
                             type="button"
-                            className="orden-action-menu-button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setOpenActionsId(openActionsId === orden.id ? null : orden.id);
-                            }}
+                            className="btn btn-sm btn-outline-secondary ordenes-actions-toggle"
+                            onClick={() => setOpenActionsId(openActionsId === orden.id ? null : orden.id)}
                             aria-label="Abrir menú de acciones"
                           >
                             <FaEllipsisV />
                           </button>
 
-                          {openActionsId === orden.id && (
-                            <div
-                              className="orden-action-menu shadow"
-                            >
+                          {isMenuOpen && (
+                            <div className="ordenes-actions-menu">
                               <button
                                 type="button"
-                                className="orden-action-menu-atender"
+                                className="ordenes-action-item"
                                 onClick={() => {
                                   cargarPacienteDesdeTabla(orden);
                                   setOpenActionsId(null);
@@ -463,14 +454,13 @@ export default function DetalleOrdenMedica() {
 
                               <button
                                 type="button"
-                                className="orden-action-menu-eliminar"
+                                className="ordenes-action-item text-danger"
                                 onClick={() => {
                                   handleEliminarOrden(orden);
                                   setOpenActionsId(null);
                                 }}
-                                onMouseDown={(event) => event.stopPropagation()}
                               >
-                                <FaTrash size={12} className="me-1" />
+                                <FiTrash2 className="me-2" />
                                 Eliminar
                               </button>
                             </div>
@@ -478,15 +468,15 @@ export default function DetalleOrdenMedica() {
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* SECCIÓN DEL EXPEDIENTE (Solo se muestra si se encontró al paciente) */}
+      {/* SECCIÓN DEL EXPEDIENTE */}
       {ordenCargada && (
         <div className="card shadow-sm custom-users-card">
           <div className="card-header bg-transparent border-bottom border-secondary d-flex align-items-center gap-2 pt-4 pb-3 px-4">
@@ -517,7 +507,6 @@ export default function DetalleOrdenMedica() {
           </div>
 
           <div className="card-body p-4">
-            {/* DATOS GENERALES DEL PACIENTE */}
             <h6 className="mb-3 text-white">Datos Generales</h6>
             <div className="row mb-4">
               <div className="col-md-6 mb-3">
@@ -657,8 +646,8 @@ export default function DetalleOrdenMedica() {
         </div>
       )}
 
-      {/* ESTILOS UNIFICADOS */}
-      <style jsx>{`
+      {/* ESTILOS EXACTOS DE SOLICITUDES.JSX */}
+      <style>{`
         .custom-users-header input {
             height: 50px;
             border-radius: 12px;
@@ -701,7 +690,7 @@ export default function DetalleOrdenMedica() {
         }
 
         .custom-users-card {
-            border-radius: 20px;
+            border-radius: 30px;
             border: none;
             box-shadow: 0 8px 25px var(--operator-shadow);
             background: var(--operator-card);
@@ -711,15 +700,17 @@ export default function DetalleOrdenMedica() {
             border-radius: 12px;
             border: 1px solid var(--operator-border);
             padding: 10px 14px;
-            background: var(--operator-background);
-            color: var(--operator-text);
+            background: var(--operator-border) !important;
+            color: var(--operator-text) !important;
             font-size: 14px;
             outline: none;
         }
 
         .form-control:focus {
-            background: var(--operator-background);
-            border: 1px solid var(--operator-primary);
+            box-shadow: 0 0 0 0.25rem var(--operator-focus);
+            border-color: var(--operator-primary);
+            background: var(--operator-card) !important;
+            color: var(--operator-text);
         }
 
         .custom-btn {
@@ -793,32 +784,7 @@ export default function DetalleOrdenMedica() {
             margin: 4px 0 0 0;
         }
 
-        /* TABLE & DROPDOWN MENU FIX */
-        .table-responsive-container {
-            overflow: visible !important;
-        }
-
-        .table-responsive-inner {
-            overflow: visible !important;
-            border-radius: 0 0 20px 20px;
-        }
-
-        .table {
-            color: var(--operator-text);
-            overflow: visible !important;
-        }
-
-        .table tbody {
-            overflow: visible !important;
-        }
-
-        .table tbody tr {
-            border-bottom: 1px solid var(--operator-border);
-            transition: background-color 0.2s;
-            overflow: visible !important;
-        }
-
-        /* TABLE RESPONSIVE */
+        /* TABLE RESPONSIVE & ACCIONES (COPIADO EXACTO DE SOLICITUDES) */
         .table-responsive-container {
             overflow: visible !important;
         }
@@ -828,63 +794,65 @@ export default function DetalleOrdenMedica() {
         }
 
         .ordenes-actions-cell {
-            text-align: center;
             position: relative;
+            text-align: center;
             width: 100px;
             min-width: 100px;
             max-width: 100px;
         }
 
-        .ordenes-actions-wrapper {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            max-width: 36px;
-            min-width: 36px;
-        }
-
-        .orden-action-menu-button {
+        .ordenes-actions-toggle {
             width: 36px;
             height: 36px;
-            border: 1px solid var(--operator-border);
-            border-radius: 50%;
-            background: var(--operator-card);
-            color: var(--operator-text);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            min-width: 36px !important;
+            min-height: 36px !important;
+            border-radius: 50% !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0 !important;
+            border: 1px solid var(--operator-border) !important;
+            background: var(--operator-card) !important;
+            color: var(--operator-text) !important;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease !important;
         }
 
-        .orden-action-menu-button:hover {
-            background: var(--operator-border);
-            color: var(--operator-primary);
+        .ordenes-actions-toggle:hover {
+            background: var(--operator-border) !important;
+            color: var(--operator-primary) !important;
+            transform: scale(1.05);
         }
 
-        .orden-action-menu {
-            position: fixed;
-            min-width: 160px;
-            background: var(--operator-background);
-            border: 1px solid var(--operator-background);
-            border-radius: 12px;
-            box-shadow: 0 10px 24px var(--operator-shadow);
+        .ordenes-actions-menu {
+            position: absolute;
+            right: -50px;
+            top: 100%;
+            min-width: 180px;
             padding: 10px;
             display: flex;
             flex-direction: column;
             gap: 4px;
             z-index: 99999 !important;
+            border: 1px solid var(--operator-background);
+            border-radius: 10px;
+            background: var(--operator-background);
+            box-shadow: 0 10px 24px var(--operator-shadow);
+            margin-top: 5px;
             overflow: visible;
         }
 
-        .table tbody tr {
+        .table-sol tbody tr {
             overflow: visible !important;
             z-index: 0;
         }
 
-        .orden-action-menu-atender,
-        .orden-action-menu-eliminar {
+        .table-sol tbody tr.orden-row-menu-open {
+            transform: none !important;
+            transition: none !important;
+        }
+
+        .ordenes-action-item {
             width: 100%;
             display: flex;
             align-items: center;
@@ -897,12 +865,68 @@ export default function DetalleOrdenMedica() {
             font-size: 12px;
             font-weight: 800;
             text-align: center;
+            cursor: pointer;
         }
 
-        .orden-action-menu-atender:hover,
-        .orden-action-menu-eliminar:hover {
+        .ordenes-action-item:hover {
             background: var(--operator-background);
         }
+
+        /* CONTENEDORES Y TABLA ESTILO SOLICITUDES */
+        .mb-4 {
+            border-radius: 30px;
+        }
+
+        .card {
+            border-radius: 30px;
+            background: var(--operator-card);
+        }
+
+        .table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: separate !important;
+            border-spacing: 0 10px !important;
+            color: var(--operator-text);
+        }
+
+        .table-sol thead th {
+            border-bottom: 3px solid var(--operator-text);
+            font-size: 18px;
+            font-weight: 900;
+            padding: 5px 10px;
+            vertical-align: middle;
+            border-top: none !important;
+            color: var(--operator-text);
+        }
+
+        .table-sol tbody td {
+            border-bottom: 3px solid var(--operator-border);
+            height: 50px;
+            font-size: 14px;
+            padding: 5px 10px;
+            vertical-align: middle;
+            border-top: none !important;
+        }
+
+        .table-sol tbody tr:hover {
+            transition: transform 0.2s;
+            transform: scale(1.01);
+        }
+
+        .badge {
+            border-radius: 999px;
+            padding: 6px 12px;
+        }
+
+        .btn-sm {
+            font-size: 14px;
+            padding: 4px 8px;
+            height: 30px;
+            border-radius: 10px;
+            min-width: 90px;
+        }
+
         .btn-success {
             background: #10b981;
             color: #fff;

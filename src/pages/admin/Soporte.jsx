@@ -6,6 +6,7 @@ import { FaEllipsisV } from "react-icons/fa";
 
 import { useAuth } from "../../hooks/useAuth";
 import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
+import { sendAdminNotification } from "../../utils/sendAdminNotification";
 
 export default function SoporteAdmin() {
   const { user } = useAuth();
@@ -85,13 +86,22 @@ export default function SoporteAdmin() {
       });
 
       if (selectedProblema.idUsuario) {
-        await addDoc(collection(db, "notificaciones"), {
-          Titulo: "Actualización de tu reporte",
-          Mensaje: `Tu problema "${selectedProblema.asunto}" cambió a: ${nuevoEstado}.${comentario ? ` Comentario: ${comentario}` : ""}`,
-          Destino: "soporte",
-          IdUsuario: selectedProblema.idUsuario,
-          fechaCreacion: serverTimestamp()
-        });
+        try {
+          const { createNotification } = await import("../../utils/createNotification");
+          await createNotification({
+            IdUsuario: selectedProblema.idUsuario,
+            Titulo: "Actualización de tu reporte",
+            Mensaje: `Tu problema "${selectedProblema.asunto}" cambió a: ${nuevoEstado}.${comentario ? ` Comentario: ${comentario}` : ""}`,
+            Destino: "soporte",
+            Accion: "actualizar_reporte",
+            extra: {
+              reporteId: selectedProblema.id,
+              nuevoEstado: nuevoEstado
+            }
+          });
+        } catch (notifError) {
+          console.error("Error al enviar notificación al usuario:", notifError);
+        }
       }
 
       // Actualizamos la lista local y el modal
@@ -211,20 +221,24 @@ export default function SoporteAdmin() {
         .soporte-actions-toggle {
           width: 36px;
           height: 36px;
-          border-radius: 999px !important;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 10 !important;
+          min-width: 36px !important;
+          min-height: 36px !important;
+          border-radius: 50% !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0 !important;
           border: 1px solid var(--operator-border) !important;
           background: var(--operator-card) !important;
           color: var(--operator-text) !important;
           cursor: pointer;
+          transition: all 0.2s ease !important;
         }
 
         .soporte-actions-toggle:hover {
-          background: var(--operator-background) !important;
+          background: var(--operator-border) !important;
           color: var(--operator-primary) !important;
+          transform: scale(1.05);
         }
 
         .soporte-actions-menu {

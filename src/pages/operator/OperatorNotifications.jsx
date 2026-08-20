@@ -21,6 +21,7 @@ const RUTA_POR_DESTINO = {
     "SolicitudAprobada": "profile",
     "SolicitudRechazada": "profile",
     "soporte": "soporte",
+    "support": "soporte",
     "ProblemaActualizado": "soporte",
     "CitaCancelada": "citas-medicas",
     "CitaCanceladaConfirmacion": "citas-medicas",
@@ -30,7 +31,11 @@ const RUTA_POR_DESTINO = {
     "medical-appointments": "citas-medicas",
     "medico": "detalle-orden-medico",
     "/medico": "detalle-orden-medico",
-    "Orden Médico": "detalle-orden-medico"
+    "Orden Médico": "detalle-orden-medico",
+    "suggestions": "suggestions",
+    "suggestion-create": "suggestion-create",
+    "ideas": "suggestion-create",
+    "IdeaActualizada": "suggestion-create"
 };
 
 export default function OperatorNotifications({ onNavigate, onBack }) {

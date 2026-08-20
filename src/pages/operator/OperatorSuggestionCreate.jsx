@@ -76,8 +76,10 @@ export default function OperatorSuggestionCreate({ onBack }) {
     const [titulo, setTitulo] = useState("");
     const [categoria, setCategoria] = useState("Operativa");
     const [descripcion, setDescripcion] = useState("");
-    const [archivo, setArchivo] = useState(null);
-    const [archivoName, setArchivoName] = useState("");
+    const [imagenFile, setImagenFile] = useState(null);
+    const [imagenName, setImagenName] = useState("");
+    const [pdfFile, setPdfFile] = useState(null);
+    const [pdfName, setPdfName] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
     const onImagenClick = () => imagenInputRef.current && imagenInputRef.current.click();
@@ -92,11 +94,19 @@ export default function OperatorSuggestionCreate({ onBack }) {
         });
     };
 
-    const handleArchivoChange = (event) => {
+    const handleImagenChange = (event) => {
         const file = event.target.files[0];
-        if (file) {
-            setArchivo(file);
-            setArchivoName(file.name);
+        if (file && file.type.includes('image')) {
+            setImagenFile(file);
+            setImagenName(file.name);
+        }
+    };
+
+    const handlePdfChange = (event) => {
+        const file = event.target.files[0];
+        if (file && file.type.includes('pdf')) {
+            setPdfFile(file);
+            setPdfName(file.name);
         }
     };
 
@@ -107,20 +117,29 @@ export default function OperatorSuggestionCreate({ onBack }) {
         }
         setSubmitting(true);
         try {
-            let base64 = "";
-            if (archivo) base64 = await fileToBase64(archivo);
+            let imagenBase64 = "";
+            let pdfBase64 = "";
+
+            if (imagenFile) imagenBase64 = await fileToBase64(imagenFile);
+            if (pdfFile) pdfBase64 = await fileToBase64(pdfFile);
 
             const res = await createIdea({
                 user: user || {},
                 titulo: titulo.trim(),
                 categoria,
                 descripcion: descripcion.trim(),
-                imagenBase64: base64,
+                imagenBase64,
+                pdfBase64,
                 pantalla: "Ideas"
             });
             if (res && res.success) {
                 notifySuccess("Idea enviada", "Tu idea ha sido enviada correctamente.");
-                setTitulo(""); setDescripcion(""); setArchivo(null); setArchivoName("");
+                setTitulo("");
+                setDescripcion("");
+                setImagenFile(null);
+                setImagenName("");
+                setPdfFile(null);
+                setPdfName("");
                 setView("list");
             } else {
                 notifyError("Error", "Ocurrió un error al enviar la idea.");
@@ -219,14 +238,14 @@ export default function OperatorSuggestionCreate({ onBack }) {
                                 <small style={{ color: 'var(--operator-text-soft)', fontSize: '13px' }}>
                                     JPG, PNG
                                 </small>
-                                {archivoName && archivo?.type.includes('image') && (
+                                {imagenName && (
                                     <div style={{ color: "#10b981", fontSize: "12px", marginTop: "4px", fontWeight: "600" }}>
-                                        ✓ {archivoName}
+                                        ✓ {imagenName}
                                     </div>
                                 )}
                             </div>
                         </div>
-                        <input type="file" accept="image/png, image/jpeg" ref={imagenInputRef} onChange={handleArchivoChange} style={{ display: "none" }} />
+                        <input type="file" accept="image/png, image/jpeg" ref={imagenInputRef} onChange={handleImagenChange} style={{ display: "none" }} />
 
                         <div
                             className="suggestion-upload-option-simple"
@@ -250,14 +269,14 @@ export default function OperatorSuggestionCreate({ onBack }) {
                                 <small style={{ color: 'var(--operator-text-soft)', fontSize: '13px' }}>
                                     Documento de soporte
                                 </small>
-                                {archivoName && archivo?.type.includes('pdf') && (
+                                {pdfName && (
                                     <div style={{ color: "#10b981", fontSize: "12px", marginTop: "4px", fontWeight: "600" }}>
-                                        ✓ {archivoName}
+                                        ✓ {pdfName}
                                     </div>
                                 )}
                             </div>
                         </div>
-                        <input type="file" accept="application/pdf" ref={pdfInputRef} onChange={handleArchivoChange} style={{ display: "none" }} />
+                        <input type="file" accept="application/pdf" ref={pdfInputRef} onChange={handlePdfChange} style={{ display: "none" }} />
                     </div>
 
                     {/* BOTÓN DE ENVÍO */}
