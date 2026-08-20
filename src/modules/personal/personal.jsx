@@ -56,7 +56,7 @@ export default function Personal() {
   const [loading, setLoading] = useState(true);
   const [openActionsId, setOpenActionsId] = useState(null);
   const [expandedUserId, setExpandedUserId] = useState(null);
-  const [userRecords, setUserRecords] = useState({});
+  const [allRecords, setAllRecords] = useState({ reconocimientos: [], incidencias: [] });
   const [recordFilters, setRecordFilters] = useState({});
   const [actionModal, setActionModal] = useState({ type: null, usuario: null });
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -83,20 +83,31 @@ export default function Personal() {
   }, []);
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchUsersAndRecords = async () => {
       try {
-        const q = query(collection(db, "users"), orderBy("nombre", "asc"));
-        const snapshot = await getDocs(q);
-        setUsuarios(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+        const [usersSnapshot, reconocimientosSnapshot, incidenciasSnapshot] = await Promise.all([
+          getDocs(query(collection(db, "users"), orderBy("nombre", "asc"))),
+          getDocs(collection(db, "reconocimientos")),
+          getDocs(collection(db, "incidencias_personal")),
+        ]);
+
+        const users = usersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+        setUsuarios(users);
+        setAllRecords({
+          reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+          incidencias: incidenciasSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+        });
       } catch (error) {
-        console.error("Error cargando personal:", error);
+        console.error("Error cargando personal y registros:", error);
         setUsuarios([]);
+        setAllRecords({ reconocimientos: [], incidencias: [] });
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsers();
+    fetchUsersAndRecords();
   }, []);
 
   const accesoPermitido = canAccessPersonalSection(user);
@@ -126,64 +137,55 @@ export default function Personal() {
     setActionModal({ type: null, usuario: null });
   };
 
-  const loadUserRecords = async (usuario) => {
+  const matchesEmpleado = (usuario, record) => {
+    const empleadoId = usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
+    const empleadoNomina = String(usuario?.nomina || "").trim();
+    const recordEmpleadoId = String(record?.empleadoId || "").trim();
+    const recordNomina = String(record?.empleadoNomina || "").trim();
+
+    return (
+      (empleadoId && recordEmpleadoId && recordEmpleadoId.toLowerCase() === String(empleadoId).toLowerCase()) ||
+      (empleadoNomina && recordNomina && recordNomina.toLowerCase() === empleadoNomina.toLowerCase())
+    );
+  };
+
+  const getUserRecords = (usuario) => {
     const empleadoId = usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
     const empleadoNomina = String(usuario?.nomina || "").trim();
 
     if (!empleadoId && !empleadoNomina) {
-      setUserRecords((prev) => ({
-        ...prev,
-        [usuario.id]: { reconocimientos: [], incidencias: [] },
-      }));
-      return;
+      return { reconocimientos: [], incidencias: [] };
     }
 
+    const reconocimientos = allRecords.reconocimientos
+      .filter((record) => matchesEmpleado(usuario, record))
+      .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+
+    const incidencias = allRecords.incidencias
+      .filter((record) => matchesEmpleado(usuario, record))
+      .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+
+    return { reconocimientos, incidencias };
+  };
+
+  const refreshAllRecords = async () => {
     try {
-      const [reconocimientosSnap, incidenciasSnap] = await Promise.all([
+      const [reconocimientosSnapshot, incidenciasSnapshot] = await Promise.all([
         getDocs(collection(db, "reconocimientos")),
         getDocs(collection(db, "incidencias_personal")),
       ]);
 
-      const matchesEmpleado = (record) => {
-        const recordEmpleadoId = String(record?.empleadoId || "").trim();
-        const recordNomina = String(record?.empleadoNomina || "").trim();
-
-        return (
-          (empleadoId && recordEmpleadoId && recordEmpleadoId.toLowerCase() === String(empleadoId).toLowerCase()) ||
-          (empleadoNomina && recordNomina && recordNomina.toLowerCase() === empleadoNomina.toLowerCase())
-        );
-      };
-
-      const reconocimientos = reconocimientosSnap.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter(matchesEmpleado)
-        .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
-
-      const incidencias = incidenciasSnap.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter(matchesEmpleado)
-        .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
-
-      setUserRecords((prev) => ({
-        ...prev,
-        [usuario.id]: { reconocimientos, incidencias },
-      }));
+      setAllRecords({
+        reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+        incidencias: incidenciasSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+      });
     } catch (error) {
-      console.error("Error cargando historial del usuario:", error);
-      setUserRecords((prev) => ({
-        ...prev,
-        [usuario.id]: { reconocimientos: [], incidencias: [] },
-      }));
+      console.error("Error recargando registros del personal:", error);
     }
   };
 
-  const toggleUserRecords = async (usuario) => {
-    const isExpanded = expandedUserId === usuario.id;
-    setExpandedUserId(isExpanded ? null : usuario.id);
-
-    if (!isExpanded && !userRecords[usuario.id]) {
-      await loadUserRecords(usuario);
-    }
+  const toggleUserRecords = (usuario) => {
+    setExpandedUserId((current) => (current === usuario.id ? null : usuario.id));
   };
 
   if (loading) return <Loader text="Cargando personal..." />;
@@ -195,8 +197,9 @@ export default function Personal() {
       </div>
     );
   }
+  // VISTA DE LA PAGINA PERSONAL
+  return ( 
 
-  return (
     <div style={{ padding: 24 }}>
       <div className="header-pagina">
       <h6 className="titulo"><strong>Personal</strong></h6>
@@ -222,14 +225,11 @@ export default function Personal() {
           >
             <FaFilePdf className="personal-pdf-icon" /> PDF
           </button>
-          
       </div>
-
 
       <div className="card">
         <div className="personal-filter-wrap">
         </div>
-
         <table className="tabla-personal">
           <thead>
             <tr >
@@ -252,7 +252,7 @@ export default function Personal() {
               </tr>
             ) : (
               usuariosFiltrados.map((usuario) => {
-                const recordData = userRecords[usuario.id] || { reconocimientos: [], incidencias: [] };
+                const recordData = getUserRecords(usuario);
                 const categoryFilter = recordFilters[usuario.id] || "todos";
                 const historial = [
                   ...recordData.reconocimientos.map((item) => ({ ...item, type: "reconocimiento" })),
@@ -262,8 +262,11 @@ export default function Personal() {
                   .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
 
                 return (
-                  <>
+                  <>    
                     <tr
+
+//CELDA DE MENU DESPLEGABLE DE ACCIONES Y BOTONES DE ACCIONES
+
                       key={usuario.id || usuario.nomina}
                       className={openActionsId === usuario.id || expandedUserId === usuario.id ? "personal-row-open" : ""}
                       style={{ borderBottom: "1px solid #e5e7eb" }}
@@ -294,18 +297,25 @@ export default function Personal() {
                             <div
                               className="personal-actions-menu"
                               onMouseDown={(event) => event.stopPropagation()}
+                              onClick={(event) => event.stopPropagation()}
                             >
                               <button
                                 type="button"
                                 className="personal-action-menu-item"
-                                onClick={() => openActionModal("reconocimiento", usuario)}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openActionModal("reconocimiento", usuario);
+                                }}
                               >
                                 <FaMedal /> Reconocimiento
                               </button>
                               <button
                                 type="button"
                                 className="personal-action-menu-item danger"
-                                onClick={() => openActionModal("incidencia", usuario)}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openActionModal("incidencia", usuario);
+                                }}
                               >
                                 <FaUserTimes /> Incidencia
                               </button>
@@ -314,11 +324,14 @@ export default function Personal() {
                         </div>
                       </td>
                     </tr>
-
+  
                     {expandedUserId === usuario.id && (
+
+// TABLA DESPLEGABLE Y FILTRO DE REGISTROS
+
                       <tr key={`${usuario.id}-details`} className="personal-details-row">
                         <td colSpan={5} className="personal-details-cell">
-                          <div className="personal-details-box">
+                          <div className="personal-details-box" >
                             <div className="personal-record-filter">
                               {[
                                 { key: "todos", label: "Todos" },
@@ -404,9 +417,7 @@ export default function Personal() {
           empleado={actionModal.usuario}
           onClose={closeActionModal}
           onSuccess={async () => {
-            if (actionModal.usuario) {
-              await loadUserRecords(actionModal.usuario);
-            }
+            await refreshAllRecords();
             closeActionModal();
           }}
         />
@@ -417,9 +428,7 @@ export default function Personal() {
           empleado={actionModal.usuario}
           onClose={closeActionModal}
           onSuccess={async () => {
-            if (actionModal.usuario) {
-              await loadUserRecords(actionModal.usuario);
-            }
+            await refreshAllRecords();
             closeActionModal();
           }}
         />
@@ -468,13 +477,14 @@ export default function Personal() {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0px 20px var(--operator-danger);
+          box-shadow: 0 0px 10px var(--operator-danger);
         }
 
         .personal-pdf-button:hover {
           background: var(--operator-danger);
           scale: 1.01;
-          box-shadow: 0 0px 10px var(--operator-danger);
+          transition: 0.2s ease;
+          box-shadow: 0 0px 20px var(--operator-danger);
         }
 
         .filter-container {
@@ -533,7 +543,7 @@ export default function Personal() {
         }
 
         .tabla-personal thead tr th {
-        border-bottom: 3px solid var(--operator-border);
+        border-bottom: 3px solid var(--operator-text);
         font-size: 20px;
         font-weight: 900;
         padding: 5px 5px;
@@ -550,7 +560,7 @@ export default function Personal() {
         .tabla-personal tbody tr td {
         border-bottom: 3px solid var(--operator-border);
         height: 50px;
-        font-size: 14px;
+        font-size 14px;
         padding: 5px 5px;
         vertical-align: middle;
         border-top: none !important;
@@ -677,7 +687,12 @@ export default function Personal() {
 
         .personal-details-cell {
           padding: 0 !important;
+          transform-origin: top center;
+          animation: personalDetailsOpen 0.5s ease-out both;
+          overflow: hidden;
         }
+
+
 
         .personal-details-box {
           background: var(--operator-card, #ffffff);
@@ -685,12 +700,43 @@ export default function Personal() {
           border-radius: 14px;
           padding: 16px;
           margin: 0 0 12px;
+          transform-origin: top center;
+          animation: personalDetailsOpen 0.5s ease-out both;
+          overflow: hidden;
         }
 
         .personal-details-box:hover {
           transform: scale(1.02);
           transition: 0.2s ease;
 
+        }
+
+        @keyframes personalDetailsOpen {
+          0% {
+            opacity: 0;
+            transform: translateY(-18px) scaleY(0.75);
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+          }
+          18% {
+            opacity: 0.25;
+          }
+
+          30% {
+            opacity: 0.5;
+          }
+
+          60% {
+            opacity: 0.75;
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scaleY(1);
+            max-height: 900px;
+            padding-top: 16px;
+            padding-bottom: 16px;
+          }
         }
 
         .personal-record-filter {
@@ -704,7 +750,7 @@ export default function Personal() {
           border: 1px solid var(--operator-border, #dfe7f1);
           background: transparent;
           color: var(--operator-text, #1f2937);
-          border-radius: 999px;
+          border-radius: 12px;
           padding: 7px 12px;
           font-size: 12px;
           font-weight: 700;
@@ -772,12 +818,12 @@ export default function Personal() {
         }
 
         .personal-record-badge.reconocimiento {
-          background: rgba(37, 207, 99, 0.78) !important;
-          color: #105229 !important;
+          background: rgba(67, 241, 131, 0.34) !important;
+          color: #21c460 !important;
         }
 
         .personal-record-badge.incidencia {
-          background: rgba(239, 68, 68, 0.32) !important;
+          background: rgba(239, 68, 68, 0.34) !important;
           color: #f33030 !important;
         }
 

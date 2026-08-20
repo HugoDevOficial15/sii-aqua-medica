@@ -122,13 +122,13 @@ var(--operator-background)
 
 * Todos los inputs y selects que apaezcan en las paginas principales deberan llevar el siguiente diseño: 
 
-        height: "50px",
-        borderRadius: "12px",
-        border: "1px solid var(--operator-border)",
-        padding: "0 14px",
-        color: "var(--operator-text)",
-        fontSize: "14px",
-        outline: "none"
+        height: 50px;
+        border-radius: 12px;
+        border: 1px solid var(--operator-border);
+        padding: 0 14px;
+        color: var(--operator-text);
+        fontSize: 14px;
+        outline: none;
 
 * Todos los botones que esten en la pagina principal deberan seguir las siguientes reglas de diseño: 
 
@@ -143,9 +143,11 @@ var(--operator-background)
         display: flex;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 0px 10px var(--operator-primary-light);
+
+* Todos los botones principales que esten en la página llevaran el siguiente hover:
+
         box-shadow: 0 0px 20px var(--operator-primary-light);
-
-
 
 
 # Contenedores #
@@ -163,51 +165,51 @@ var(--operator-background)
 
 * Toda ventana modal seguira las siguintes reglas:
 
-        overflow: "hidden",
-        background: "var(--operator-card)",
-        backdropFilter: "blur(12px)",
-        borderRadius: "20px",
-        border: "1px solid var(--operator-border)",
-        boxShadow: "0 24px 48px var(--operator-shadow)",
+        overflow: hidden;
+        background: var(--operator-card);
+        backdrop-filter: blur(12px);
+        border-radius: 20px;
+        border: 1px solid var(--operator-border);
+        box-shadow: 0 24px 48px var(--operator-shadow);
 
 * El head de la ventana siempre seguira esats reglas:
 
-        display: "flex",
-        border: "none",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "24px 30px",
-        background: "var(--operator-card)"
+        display: flex;
+        border: none;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px 30px;
+        background: var(--operator-card);
 
 * El titulo del header sera siempre con la siguintes reglas:
 
-        margin: 0,
-        fontSize: "1.5rem",
-        fontWeight: "800",
-        color: "var(--operator-text"),
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--operator-text);
 
 * El body seguira las siguientes reglas:
-        border: "none"
-        padding: "30px",
-        background: "var(--operator-card)",
+        border: none;
+        padding: 30px;
+        background: var(--operator-card);
 
 * Los labels de las ventanas emergentes seguiran las siguientes reglas:
 
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        color: "var(--operator-text)"
+        display: flex;
+        alignItems: center;
+        gap: 8px;
+        color: var(--operator-text);
 
 * Los inputs y selects de las ventanas emergentes tendran el siguiente formato:
 
-        height: "50px",
-        borderRadius: "12px",
-        border: "1px solid var(--operator-border)",
-        padding: "0 14px",
-        background: "var(--operator-border)",
-        color: "var(--operator-text)",
-        fontSize: "14px",
-        outline: "none"
+        height: 50px;
+        border-radius: 12px;
+        border: 1px solid var(--operator-border);
+        padding: 0 14px;
+        background: var(--operator-border);
+        color: var(--operator-text);
+        font-size: 14px;
+        outline: none;
 
 * El footer de las ventanas emergentes seguiran las siguientes reglas:
 
@@ -219,37 +221,42 @@ var(--operator-background)
 * En las ventanas emergentes que ocupen un boton de guardar deberan de contar con lo siguiente para dicho boton: Un heigth: 
 
         height: "50px",
-        padding: "0 24px",
-        borderRadius: "14px",
-        border: "none",
-        background: "var(--operator-primary)",
-        color: "#fff",
-        fontWeight: "700",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 0px 20px var(--operator-primary-light)",
+        height: 50px;
+        padding: 0 24px;
+        border-radius: 14px;
+        border: none;
+        background: var(--operator-primary);
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0px 10px var(--operator-primary-light);
 
+* Todos los botones de guardar tienen que tener el siguiente hover:
+
+        background: var(--operator-border);
+        boxShadow: 0 0px 20px var(--operator-primary-light);
 
 * En los botones de cerrado "closeButton" se usara el siguiente diseño: 
 
-        width: "36px",
-        height: "36px",
-        border: "none", 
-        borderRadius: "10px",
-        background: "var(--operator-card)", 
-        color: "var(--operator-text)", 
-        fontSize: "30px",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
+        width: 36px;
+        height: 36px;
+        border: none; 
+        border-radius: 10px;
+        background: var(--operator-card); 
+        color: var(--operator-text); 
+        font-size: 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
 * Todos los botones de cerrar tienen que tener el siguiente hover:
 
         background: var(--operator-border);
-        color: var(--operator-primary);
+        color: var(--operator-danger);
 
 
 * En caso de que la ventana contenga un boton de cancelar usar las siguientes reglas:

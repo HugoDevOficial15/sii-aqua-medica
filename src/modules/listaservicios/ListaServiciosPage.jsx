@@ -269,7 +269,7 @@ export default function ListaServiciosPage() {
                             value={filtroArea}
                             onChange={(e) => setFiltroArea(e.target.value)}
                             style={{
-                                height: "36px",
+                                height: "50px",
                                 fontSize: "15px"
                             }}
                         />
@@ -285,7 +285,7 @@ export default function ListaServiciosPage() {
                         value={mes}
                         onChange={(e) => setMes(Number(e.target.value))}
                         style={{
-                            height: "36px"
+                            height: "50px"
                         }}
                     >
                         {[...Array(12)].map((_, i) => (
@@ -307,7 +307,7 @@ export default function ListaServiciosPage() {
                         value={filtroFechaInicio}
                         onChange={(e) => setFiltroFechaInicio(e.target.value)}
                         style={{
-                            height: "36px"
+                            height: "50px"
                         }}
                     />
 
@@ -322,7 +322,7 @@ export default function ListaServiciosPage() {
                         value={filtroFechaFin}
                         onChange={(e) => setFiltroFechaFin(e.target.value)}
                         style={{
-                            height: "36px"
+                            height: "50px"
                         }}
                     />
 
@@ -335,7 +335,7 @@ export default function ListaServiciosPage() {
                     <button
                         className="btn btn-danger w-100 rounded-3"
                         style={{
-                            height: "36px"
+                            height: "50px"
                         }}
                         onClick={() => setShowPdfModal(true)}
                     >
@@ -354,7 +354,7 @@ export default function ListaServiciosPage() {
                             : "btn-outline-danger"
                             }`}
                         style={{
-                            height: "36px"
+                            height: "50px"
                         }}
                         onClick={() => setShowBloqueo(!showBloqueo)}
                     >
@@ -379,7 +379,7 @@ export default function ListaServiciosPage() {
                     <button
                         className="btn btn-primary w-100 rounded-3"
                         style={{
-                            height: "36px"
+                            height: "50px"
                         }}
                         onClick={() => setShowResumen(true)}
                     >
@@ -926,7 +926,7 @@ export default function ListaServiciosPage() {
                 }
 
                 .btn-primary {
-                    height: 40px;
+                    height: 50px;
                     padding: 0 20px;
                     border-radius: 10px;
                     border: none;
@@ -937,12 +937,17 @@ export default function ListaServiciosPage() {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
                 }
 
                 .btn-primary:hover {
                     background: var(--operator-primary);
-                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                }
+
+                .btn-danger:hover {
+                    background: var(--operator-danger);
+                    box-shadow: 0 0px 20px var(--operator-danger);
                 }
 
                 /*  MENU DE ACCIONES */
@@ -1039,6 +1044,7 @@ export default function ListaServiciosPage() {
                 .eliminar:hover {
                     background: var(--operator-card);
                     color: var(--operator-danger);
+                    transform: translateY(-1px);
                 }
 
             `}</style>

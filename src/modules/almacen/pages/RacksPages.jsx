@@ -409,12 +409,12 @@ export default function RacksPages() {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
                 }
                     
                 .btn-primary:hover {
                     background: var(--operator-primary);
-                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
                 }
 
                 

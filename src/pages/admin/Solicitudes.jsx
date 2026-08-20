@@ -760,10 +760,11 @@ export default function Solicitudes() {
 }
 
 .form-control-date {
-    background: var(--operator-border);
+    background: var(--operator-card) !important;
     color: var(--operator-text) !important;
     border: 1px solid var(--operator-border);
     border-radius: 10px;
+    padding: 0 10px;
 }
 
 .form-control-date:focus {
@@ -837,11 +838,8 @@ export default function Solicitudes() {
         padding: 4px 8px;
         height: 30px;
         border-radius: 10px;
+        min-width: 100px;
 }
-
-
-
-
 
             `}</style>
 

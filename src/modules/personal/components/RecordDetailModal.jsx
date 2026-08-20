@@ -52,12 +52,13 @@ const getRecordDetails = (record) => {
 export default function RecordDetailModal({ record, onClose }) {
   if (!record) return null;
 
+  // VISTA DEL MODAL DE DETALLE DE REGISTRO PERSONAL
   return (
-    <div className="personal-modal-backdrop" onClick={onClose}>
+    <div className="personal-modal-backdrop">
       <div className="personal-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
           <div>
-            <p className="personal-modal-kicker">Personal</p>
+            <h2>{record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia"}</h2>
             <h3>{record.titulo || "Sin título"}</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
@@ -99,6 +100,9 @@ export default function RecordDetailModal({ record, onClose }) {
       </div>
 
       <style>{`
+
+/* HEADER */
+
         .personal-modal-backdrop {
           position: fixed;
           inset: 0;
@@ -128,18 +132,17 @@ export default function RecordDetailModal({ record, onClose }) {
           background: var(--operator-card);
         }
 
-        .personal-modal-kicker {
-          margin: 0 0 4px;
-          font-size: 11px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--operator-text-soft);
+        .personal-modal-header h2 {
+          margin: 0;
+          padding: 10px 0px;
+          font-size: 1.5rem;
           font-weight: 700;
+          color: var(--operator-text);
         }
 
         .personal-modal-header h3 {
           margin: 0;
-          font-size: 1.5rem;
+          font-size: 1.0rem;
           font-weight: 800;
           color: var(--operator-text);
         }
@@ -163,8 +166,11 @@ export default function RecordDetailModal({ record, onClose }) {
           color: var(--operator-primary);
         }
 
+/* BODY */
+
+
         .personal-record-modal-body {
-          padding: 20px 24px 10px;
+          padding: 24px 30px;
         }
 
         .personal-record-modal-badge-wrap {
@@ -203,26 +209,6 @@ export default function RecordDetailModal({ record, onClose }) {
           word-break: break-word;
         }
 
-        .personal-record-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 5px 10px;
-          border-radius: 999px;
-          font-size: 11px;
-          font-weight: 700;
-        }
-
-        .personal-record-badge.reconocimiento {
-          background: rgba(67, 241, 131, 0.34) !important;
-          color: #30fc7e !important;
-        }
-
-        .personal-record-badge.incidencia {
-          background: rgba(239, 68, 68, 0.32) !important;
-          color: #f33030 !important;
-        }
-
         .personal-modal-actions {
           display: flex;
           justify-content: flex-end;
@@ -230,6 +216,8 @@ export default function RecordDetailModal({ record, onClose }) {
           margin-top: 8px;
           padding: 0 24px 24px;
         }
+
+/* BOTONES FOOTER */
 
         .personal-modal-primary {
           height: 50px;
@@ -264,7 +252,7 @@ export default function RecordDetailModal({ record, onClose }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0px 20px rgba(239, 68, 68, 0.35);
+          box-shadow: 0 0px 10px rgba(239, 68, 68, 0.35);
         }
 
         .personal-modal-pdf:hover {

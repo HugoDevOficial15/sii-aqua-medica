@@ -273,7 +273,7 @@ export default function AgendaMesPage() {
                 <h6>Agenda del Mes {mes} - AQUA Médica</h6>
 
                 <button
-                    className="btn btm-sm btn-success"
+                    className="btn btm-sm btn-primary"
                     onClick={async () => {
                         setSelectedEquipo();
 
@@ -377,7 +377,7 @@ export default function AgendaMesPage() {
 
                                             <td>
                                                 <button
-                                                    className="btn btn-sm btn-primary custom-btn"
+                                                    className="btn-agendar"
 
                                                     onClick={() => {
 
@@ -466,31 +466,60 @@ export default function AgendaMesPage() {
 
             /* TABLE */
             .custom-table {
-                border-collapse: separate;
-                border-spacing: 0 10px;
+                table-layout: fixed;
+                width: 100%;
+                border-collapse: separate !important;
+                border-spacing: 0 10px !important;
             }
 
             .custom-table thead th {
-                font-size: 12px;
-                text-transform: uppercase;
-                color: #6b7280;
-                border: none;
+                border-bottom: 3px solid var(--operator-text);
+                font-size: 20px;
+                font-weight: 900;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
             }
 
             .custom-table tbody tr {
-                background: #ffffff;
-                transition: all 0.2s ease;
+                border-bottom: 3px solid var(--operator-border);
+                height: 50px;
+                font-size 14px;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
             }
 
             .custom-table tbody tr:hover {
-                transform: scale(1.01);
-                box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+                transform: scale(1.02);
+                transition: transform 0.2s;
             }
 
             .custom-table td {
+                border-bottom: 3px solid var(--operator-border);
+                height: 50px;
+                font-size 14px;
+                padding: 5px 5px;
                 vertical-align: middle;
-                border-top: none;
-                padding: 12px;
+                border-top: none !important;
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
             }
 
             /* BADGES */
@@ -527,27 +556,83 @@ export default function AgendaMesPage() {
                 transition: all 0.2s ease;
             }
 
+            .btn-agendar {
+                height: 40px;
+                padding: 0 24px;
+                border-radius: 10px;
+                border: none;
+                background: var(--operator-border);
+                color: #fff;
+                font-weight: 500;
+                cursor: pointer;
+                gap: 3px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .btn-agendar:hover {
+                background: var(--operator-border);
+                color: var(--operator-primary);
+                transform: translateY(-1px);
+            }
+
+            .btn-agendar:disabled {
+                background: var(--operator-border);
+                color: var(--operator-text);
+                opacity: 0.6;
+            }
+
+            .btn-agendar:disabled:hover {
+                background: var(--operator-border);
+                color: var(--operator-text);
+                opacity: 0.6;
+                transform: none;
+            }
+
+            .btn-primary {
+            height: 50px;
+            height: 50px;
+            padding: 0 24px;
+            border-radius: 14px;
+            border: none;
+            background: var(--operator-primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0px 10px var(--operator-primary-light);  
+            }
+
+            .btn-primary:hover {
+                background: var(--operator-primary);
+                color: #fff;
+                box-shadow: 0 0px 20px var(--operator-primary-light);
+            }
+
             .custom-btn:hover {
                 transform: translateY(-1px);
             }
 
             .custom-badge-dark {
-    background: #e5e7eb;
-    color: #111827;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 500;
-}
+                background: #e5e7eb;
+                color: #111827;
+                padding: 6px 12px;
+                border-radius: 999px;
+                font-size: 12px;
+                font-weight: 500;
+            }
 
             .custom-badge-info {
-    background: #dbeafe;
-    color: #1d4ed8;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 500;
-}
+                background: #dbeafe;
+                color: #1d4ed8;
+                padding: 6px 12px;
+                border-radius: 999px;
+                font-size: 12px;
+                font-weight: 500;
+            }
 
         `}</style>
 

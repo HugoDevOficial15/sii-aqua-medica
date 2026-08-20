@@ -81,6 +81,8 @@ const openPdfPreview = (doc, fileName) => {
   };
 };
 
+// HEADER DEL PDF DE REGISTRO PERSONAL
+
 const drawPdfHeader = async (doc, title, subtitle, fechaActual = null, { showLogo = true } = {}) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const logo = showLogo ? await loadLogo() : null;
@@ -105,7 +107,7 @@ const drawPdfHeader = async (doc, title, subtitle, fechaActual = null, { showLog
   doc.text("AQUA Médica S.A. de C.V.", 14, 20);
 
   if (logo) {
-    doc.addImage(logo, "JPEG", 160, 12, 36, 26);
+    doc.addImage(logo, "JPEG", 160, 7, 36, 26);
   }
 
   doc.setFontSize(15);

@@ -513,14 +513,6 @@ regla de "tbody tr" de arriba y seguía mostrando su fondo claro. */
         /* TABLA DE INVENTARIO */
 
 
-html[data-theme="dark"] .custom-table thead th {
-    background: var(--operator-card) !important;
-    color: var(--operator-text) !important;
-    border-color: var(--operator-border) !important;
-
-
-
-}
 
 html[data-theme="dark"] .table,
 html[data-theme="dark"] .custom-table {
@@ -536,7 +528,7 @@ html[data-theme="dark"] .custom-table td,
 html[data-theme="dark"] .custom-table th {
     background: var(--operator-card) !important;
     color: var(--operator-text) !important;
-    border-color: var(--operator-border) !important;
+
 }
 
 html[data-theme="dark"] .custom-badge-success {

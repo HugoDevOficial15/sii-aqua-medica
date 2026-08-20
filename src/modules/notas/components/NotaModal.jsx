@@ -169,14 +169,16 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     background: var(--operator-card);
                     color: var(--operator-text);
                     font-weight: 700;
+                    justify-content: end;
+                    justify-self: end;
 
                 }
 
                 .btn-secondary {
-                    height: 40px;
+                    height: 50px;
                     padding: 0 24px;   
                     border: none;
-                    border-radius: 14px;
+                    border-radius: 12px;
                     background: var(--operator-border);
                     color: var(--operator-text);
                     font-weight: 700;

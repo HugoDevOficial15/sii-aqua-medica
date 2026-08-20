@@ -76,7 +76,7 @@ const buildPdfHeader = async (doc, title, subtitle, fechaActual = null) => {
   doc.text("AQUA Médica S.A. de C.V.", 14, 20);
 
   if (logo) {
-    doc.addImage(logo, "JPEG", 160, 12, 36, 26);
+    doc.addImage(logo, "JPEG", 160, 7, 36, 26);
   }
 
   doc.setFontSize(15);
@@ -388,12 +388,12 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
     }
   };
 
+  // VISTA DEL MODAL DE REPORTE PDF GENERAL
   return (
-    <div className="personal-modal-backdrop" onClick={onClose}>
+    <div className="personal-modal-backdrop">
       <div className="personal-modal-card personal-pdf-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
           <div>
-            <p className="personal-modal-kicker">Personal</p>
             <h3>Generar reporte PDF</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
@@ -502,6 +502,8 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
 
       <style>{`
 
+/* MODAL */
+
         .personal-modal-backdrop {
           position: fixed;
           inset: 0;
@@ -522,21 +524,14 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
           overflow: hidden;
         }
 
+/* HEADER */
+
         .personal-modal-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           padding: 24px 30px;
           background: var(--operator-card);
-        }
-
-        .personal-modal-kicker {
-          margin: 0 0 4px;
-          font-size: 11px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--operator-text-soft);
-          font-weight: 700;
         }
 
         .personal-modal-header h3 {
@@ -569,11 +564,13 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
           max-width: 560px;
         }
 
+/* BODY */
+
         .personal-pdf-filter-block {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          padding: 20px 24px 0;
+          padding: 20px 30px 0;
         }
 
         .personal-pdf-search-suggestions {
@@ -712,6 +709,8 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
           padding: 20px 24px 24px;
         }
 
+/* BOTONES FOOTER */
+
         .personal-modal-btn {
           height: 50px;
           padding: 0 24px;
@@ -739,7 +738,7 @@ export default function PdfGeneralModal({ usuarios = [], selectedUser = null, on
         .personal-modal-btn.primary {
           background: linear-gradient(135deg, #ef4444, #dc2626);
           color: white;
-          box-shadow: 0 0px 20px rgba(239, 68, 68, 0.35);
+          box-shadow: 0 0px 10px rgba(239, 68, 68, 0.35);
         }
 
         .personal-modal-btn.primary:hover {

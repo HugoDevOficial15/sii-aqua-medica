@@ -59,7 +59,9 @@ export const FiltrosMedicamentos = ({
             <style>{`
 
             .btn-light {
+                color: black !important;
                 border-radius: 10px;
+                border: 1px solid var(--operator-border);
             }
 
             .btn-success {

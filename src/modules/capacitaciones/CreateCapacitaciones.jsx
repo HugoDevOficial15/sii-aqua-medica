@@ -1049,12 +1049,12 @@ export default function CreateCapacitaciones() {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0px 20px var(--operator-primary-light);
+    box-shadow: 0 0px 10px var(--operator-primary-light);
 }
 
 .btn-primary.btn-custom:hover {
-    transform: translateY(0px);
-    box-shadow: 0 0px 26px rgba(37,99,235,0.22);
+    transform: translateY(-1px);
+    box-shadow: 0 0px 20px var(--operator-primary-light);
 }
 
 /* ==================================================
