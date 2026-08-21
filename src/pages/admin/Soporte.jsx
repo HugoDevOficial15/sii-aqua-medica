@@ -309,7 +309,7 @@ export default function SoporteAdmin() {
                 placeholder="Buscar por nombre, nómina o asunto..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                style={styles.input}
+                style= {styles.input}
               />
             </div>
             <div className="col-6 col-md-3">
@@ -662,11 +662,13 @@ export default function SoporteAdmin() {
 // definidas en operator-theme.css (light/dark), en vez de hex fijos.
 const styles = {
   input: {
-    backgroundColor: "var(--operator-border)",
+    backgroundColor: "var(--operator-form)",
     color: "var(--operator-text)",
     border: "1px solid var(--operator-border)",
     borderRadius: "10px",
+    placeholderColor: "var(--operator-text-soft)",
   },
+
   backdrop: {
     position: "fixed",
     top: 0,

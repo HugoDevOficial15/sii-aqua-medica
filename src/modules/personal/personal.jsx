@@ -326,10 +326,10 @@ export default function Personal() {
           <thead>
             <tr>
               <th>Nombre</th>
-              <th width="10%">Nómina</th>
+              <th width="20%">Nómina</th>
               <th>Puesto</th>
               <th width="10%">Estado</th>
-              <th width="10%">Acciones</th>
+              <th width="15%">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -376,7 +376,7 @@ export default function Personal() {
                 return (
                   <>
                     <tr
-                      //CELDA DE MENU DESPLEGABLE DE ACCIONES Y BOTONES DE ACCIONES
+//CELDA DE MENU DESPLEGABLE DE ACCIONES Y BOTONES DE ACCIONES
 
                       key={usuario.id || usuario.nomina}
                       className={
@@ -473,7 +473,7 @@ export default function Personal() {
                     </tr>
 
                     {expandedUserId === usuario.id && (
-                      // TABLA DESPLEGABLE Y FILTRO DE REGISTROS
+// TABLA DESPLEGABLE Y FILTRO DE REGISTROS
 
                       <tr
                         key={`${usuario.id}-details`}
@@ -528,11 +528,11 @@ export default function Personal() {
                               <table className="personal-record-table">
                                 <thead>
                                   <tr>
-                                    <th width="10%">Tipo</th>
+                                    <th width="13%">Tipo</th>
                                     <th width="25%">Título</th>
                                     <th>Descripción</th>
-                                    <th width="7%">Fecha</th>
-                                    <th width="10%">Acciones</th>
+                                    <th width="10%">Fecha</th>
+                                    <th width="13%">Acciones</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -825,6 +825,10 @@ export default function Personal() {
         .tabla-personal thead th:nth-child(5){
           text-align: center;
         }
+        
+        .tabla-personal tbody td:nth-child(5){
+          text-align: center;
+        }
 
         .tabla-personal thead th:nth-child(4){
           text-align: center;
@@ -837,12 +841,16 @@ export default function Personal() {
         .tabla-personal thead th:nth-child(2){
           text-align: center;
           padding-right: 60px;
+
         }
 
         .tabla-personal tbody td:nth-child(2){
           text-align: center;
           padding-right: 60px;
+
         }
+
+        .tabla 
 
 
 

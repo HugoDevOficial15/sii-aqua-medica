@@ -829,12 +829,12 @@ export default function MovimientoModal({
                     justify-content: flex-end;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
                 }
 
                 .movement-submit:hover {
                     background: var(--operator-primary);
-                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
                     transition: transform 0.2s;
                     transform: scale(1.02);
                 }

@@ -147,11 +147,10 @@ export default function RackPdfModal({
                 img,
                 'JPEG', 
                 160, 
-                15, 
-                35, 
-                23
+                7, 
+                36, 
+                26
             );
-
 
 
             doc.line(

@@ -19,11 +19,56 @@ export default function OperatorSurveyDetail({
 
     const { user } = useAuth();
 
+    // HORA DE RESPUESTA
+
+    const timeToMinutes = (value) => {
+        if (!value) return 0;
+
+        const normalized = String(value).trim().toLowerCase();
+        const match = normalized.match(/^(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?|am|pm)?$/i);
+
+        if (!match) {
+            const [hours, minutes] = normalized.split(":").map(Number);
+            return (Number.isFinite(hours) ? hours : 0) * 60 + (Number.isFinite(minutes) ? minutes : 0);
+        }
+
+        let hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        const meridiem = (match[3] || "").toLowerCase();
+
+        if (meridiem.includes("p") && hours < 12) hours += 12;
+        if (meridiem.includes("a") && hours === 12) hours = 0;
+
+        return hours * 60 + minutes;
+    };
+
     // 🔥 VALIDAR FECHAS: Solo permitir responder si está dentro del rango
     const hoy = new Date().toISOString().split("T")[0];
     const fechaInicio = survey.fechaInicio;
     const fechaFin = survey.fechaFin;
-    const puedeResponder = hoy >= fechaInicio && hoy <= fechaFin;
+    const horaInicioSesion = survey.horaInicio || "00:00";
+    const horaFinSesion = survey.horaFin || "23:59";
+    const ahora = new Date();
+    const horaActual = ahora.toTimeString().slice(0, 5);
+    const dentroRangoFechas = hoy >= fechaInicio && hoy <= fechaFin;
+    const horaActualMinutos = timeToMinutes(horaActual);
+    const inicioSesionMinutos = timeToMinutes(horaInicioSesion);
+    const finSesionMinutos = timeToMinutes(horaFinSesion);
+    const dentroHorarioSesion = horaActualMinutos >= inicioSesionMinutos && horaActualMinutos <= finSesionMinutos;
+    const puedeResponder = dentroRangoFechas && dentroHorarioSesion;
+
+    const [currentQuestion, setCurrentQuestion] = useState(0);
+    const [answers, setAnswers] = useState({});
+    const [timeRemaining, setTimeRemaining] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [sessionExpired, setSessionExpired] = useState(false);
+
+    const isSessionStillOpen = dentroRangoFechas
+        && horaActualMinutos >= inicioSesionMinutos
+        && horaActualMinutos <= finSesionMinutos
+        && !sessionExpired
+        && (timeRemaining === null || timeRemaining > 0);
 
     if (!puedeResponder) {
         return (
@@ -33,9 +78,11 @@ export default function OperatorSurveyDetail({
                     <div className="op-survey-badge" style={{ margin: "0 auto 16px" }}>⏰ Fuera de Plazo</div>
                     <h1>{survey.titulo}</h1>
                     <p style={{ marginTop: "16px", color: "var(--operator-text-soft)" }}>
-                        {hoy < fechaInicio
-                            ? `Esta encuesta estará disponible a partir del ${fechaInicio}`
-                            : `El plazo para responder esta encuesta venció el ${fechaFin}`
+                        {!dentroRangoFechas
+                            ? (hoy < fechaInicio
+                                ? `Esta encuesta estará disponible a partir del ${fechaInicio}`
+                                : `El plazo para responder esta encuesta venció el ${fechaFin}`)
+                            : `La encuesta solo está disponible entre ${horaInicioSesion} y ${horaFinSesion} en los días hábiles del periodo.`
                         }
                     </p>
                     <button
@@ -51,12 +98,6 @@ export default function OperatorSurveyDetail({
     }
     const preguntas = survey.preguntas || [];
     const tienePreguntas = preguntas.length > 0;
-
-    const [currentQuestion, setCurrentQuestion] = useState(0);
-    const [answers, setAnswers] = useState({});
-    const [timeRemaining, setTimeRemaining] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [saving, setSaving] = useState(false);
 
     const question = tienePreguntas ? preguntas[currentQuestion] : null;
     const isAnswered = question ? answers[question.id] !== undefined && answers[question.id] !== "" : false;
@@ -100,12 +141,36 @@ export default function OperatorSurveyDetail({
         return () => clearInterval(timer);
     }, [timeRemaining]);
 
-    // Enviar cuando el tiempo llega a cero
     useEffect(() => {
-        if (timeRemaining === 0 && !isSubmitting && !saving) {
-            handleFinishSurvey();
-        }
-    }, [timeRemaining, isSubmitting, saving]);
+        const checkSessionWindow = () => {
+            const now = new Date();
+            const currentDate = now.toISOString().split("T")[0];
+            const currentMinutes = timeToMinutes(now.toTimeString().slice(0, 5));
+            const isStillOpen = currentDate >= fechaInicio && currentDate <= fechaFin && currentMinutes >= inicioSesionMinutos && currentMinutes <= finSesionMinutos;
+
+            if ((!isStillOpen || timeRemaining === 0) && !sessionExpired) {
+                setSessionExpired(true);
+                localStorage.setItem("survey_session_closed_notice", JSON.stringify({
+                    title: survey?.titulo || "Encuesta",
+                    message: "La encuesta se cerró porque llegó la hora límite. Inténtalo más tarde."
+                }));
+                localStorage.removeItem(storageTimerKey);
+                localStorage.removeItem(storageAnswersKey);
+                setAnswers({});
+                setCurrentQuestion(0);
+                onNavigate("surveys");
+            }
+        };
+
+        checkSessionWindow();
+        const interval = setInterval(checkSessionWindow, 1000);
+
+        return () => clearInterval(interval);
+    }, [fechaInicio, fechaFin, inicioSesionMinutos, finSesionMinutos, timeRemaining, storageTimerKey, storageAnswersKey, sessionExpired, survey?.titulo, onNavigate]);
+
+    if (sessionExpired) {
+        return null;
+    }
 
     // 🔥 FUNCIÓN VITAL PARA NO PERDER RESPUESTAS AL SALIR
     const updateAnswers = (questionId, value) => {
@@ -155,6 +220,10 @@ export default function OperatorSurveyDetail({
 
     const handleFinishSurvey = async () => {
         if (isSubmitting) return;
+        if (sessionExpired || !puedeResponder || timeRemaining === 0) {
+            setSessionExpired(true);
+            return;
+        }
 
         try {
             setIsSubmitting(true);
@@ -271,15 +340,6 @@ export default function OperatorSurveyDetail({
                     <h1>{survey.titulo}</h1>
                     <p>{survey.descripcion}</p>
 
-                    <div className="survey-header-info">
-                        <span>Pregunta: {currentQuestion + 1} de {preguntas.length}</span>
-                        {timeRemaining !== null && (
-                            <div className={`survey-timer ${timeRemaining <= 60 ? 'critical' : ''}`} style={{ color: timeRemaining <= 60 ? '#ef4444' : '#3b82f6' }}>
-                                ⏱️ {formatTime(timeRemaining)}
-                            </div>
-                        )}
-                    </div>
-
                     <div className="op-survey-progress">
                         <div className="op-survey-progress-fill" style={{ width: `${((currentQuestion + 1) / preguntas.length) * 100}%` }} />
                     </div>
@@ -346,11 +406,31 @@ export default function OperatorSurveyDetail({
                     )}
 
                     {currentQuestion < preguntas.length - 1 ? (
-                        <button className="op-survey-btn-primary" disabled={!isAnswered} onClick={() => setCurrentQuestion(currentQuestion + 1)}>
+                        <button
+                            className="op-survey-btn-primary"
+                            disabled={!isAnswered || sessionExpired || timeRemaining === 0}
+                            onClick={() => {
+                                if (sessionExpired || timeRemaining === 0 || !puedeResponder) {
+                                    setSessionExpired(true);
+                                    return;
+                                }
+                                setCurrentQuestion(currentQuestion + 1);
+                            }}
+                        >
                             Siguiente
                         </button>
                     ) : (
-                        <button className="op-survey-btn-primary" disabled={!isAnswered} onClick={handleFinishSurvey}>
+                        <button
+                            className="op-survey-btn-primary"
+                            disabled={!isAnswered || sessionExpired || timeRemaining === 0}
+                            onClick={() => {
+                                if (sessionExpired || timeRemaining === 0 || !puedeResponder) {
+                                    setSessionExpired(true);
+                                    return;
+                                }
+                                handleFinishSurvey();
+                            }}
+                        >
                             Finalizar Encuesta
                         </button>
                     )}

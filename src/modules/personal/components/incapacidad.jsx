@@ -7,7 +7,25 @@ export const isWoman = (usuario) => {
   return ["M", "MUJER", "F", "FEMENINO"].includes(genero);
 };
 
-export const getTodayDate = () => new Date().toISOString().split("T")[0];
+const parseLocalDate = (value) => {
+  if (!value) return null;
+
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+export const getTodayDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 export const hasActiveIncapacidad = (usuario, incapacidades = []) => {
   if (!usuario || usuario.activo === false) return false;
@@ -255,7 +273,10 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
     setForm((prev) => {
       if (!value) return { ...prev, fechaInicio: "", fechaFin: prev.fechaFin && prev.fechaFin < value ? "" : prev.fechaFin };
 
-      if (prev.fechaFin && new Date(value) > new Date(prev.fechaFin)) {
+      const nuevaFechaInicio = parseLocalDate(value);
+      const fechaFinActual = parseLocalDate(prev.fechaFin);
+
+      if (fechaFinActual && nuevaFechaInicio && nuevaFechaInicio > fechaFinActual) {
         return { ...prev, fechaInicio: value, fechaFin: value };
       }
 
@@ -267,7 +288,10 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
     setForm((prev) => {
       if (!value) return { ...prev, fechaFin: "" };
 
-      if (prev.fechaInicio && new Date(value) < new Date(prev.fechaInicio)) {
+      const nuevaFechaFin = parseLocalDate(value);
+      const fechaInicioActual = parseLocalDate(prev.fechaInicio);
+
+      if (fechaInicioActual && nuevaFechaFin && nuevaFechaFin < fechaInicioActual) {
         return { ...prev, fechaFin: prev.fechaInicio };
       }
 
@@ -285,7 +309,7 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
       return;
     }
 
-    if (new Date(form.fechaFin) < new Date(form.fechaInicio)) {
+    if (parseLocalDate(form.fechaFin) < parseLocalDate(form.fechaInicio)) {
       notifyError("La fecha de inicio no puede ser mayor que la fecha de fin.");
       return;
     }

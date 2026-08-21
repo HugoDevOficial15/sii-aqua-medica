@@ -293,7 +293,6 @@ export default function AlmacenMaterialesPage() {
           <span className="badge-title">AQUA Médica</span>
         </div>
 
-
         <div className="row g-3 mb-3">
           <div className="col-md-3">
             <div className="input-group">
@@ -358,11 +357,9 @@ export default function AlmacenMaterialesPage() {
             </select>
           </div>
         </div>
-
       </div>
 
       <div className="card p-3 shadow-sm">
-
         <div className="table-responsive-container">
           <table className="table table-principal">
             <thead>
@@ -425,7 +422,7 @@ export default function AlmacenMaterialesPage() {
                       <td>{item.racks.length}</td>
                     </tr>
                     {expandedId === item.id && (
-                      <tr>
+                      <tr className="expanded-row">
                         <td colSpan="5">
                           <div className="p-3-rounded-bg-light">
                             <div className="fw-semibold mb-2">
@@ -483,7 +480,7 @@ export default function AlmacenMaterialesPage() {
       <style jsx>{`
 
 
-            /* PAGINA */
+/* PAGINA */
 
             .card {
                 border-radius: 30px;
@@ -492,7 +489,8 @@ export default function AlmacenMaterialesPage() {
 
 
 
-            /* COLOR */
+/* COLOR */
+
             .p-3-rounded-bg-light {
                 background-color: var(--operator-card);
                 border-color: var(--operator-border);
@@ -507,7 +505,7 @@ export default function AlmacenMaterialesPage() {
                 display: inline-block;
             }
 
-                /* TABLA PRINCIPAL */
+/* TABLA PRINCIPAL */
 
             .table-principal thead tr {
                 border-bottom: 3px solid var(--operator-text);
@@ -568,7 +566,18 @@ export default function AlmacenMaterialesPage() {
                 max-width: 70px;
                 min-width: 70px;
             }
-                /* BOTONES */
+
+/*  TABLA DESPLEGABLE  */
+
+
+/*  DESHABILITAR HOVER DE LA TABLA  */
+
+            .expanded-row {
+              transform: none !important;
+            }
+
+/* BOTONES */
+
             .rack-location-button {
                 background: var(--operator-primary);
                 color: #fff;
@@ -586,7 +595,7 @@ export default function AlmacenMaterialesPage() {
                 transform: translateY(-1px);
             }
 
-            /* LABELS INPUTS */
+/* LABELS INPUTS */
 
             .form-label {
                 display: "flex",

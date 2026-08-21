@@ -35,9 +35,26 @@ export default function OperatorSurveys({
     const { user } = useAuth();
     const [transitioning, setTransitioning] = useState(false);
     const [activeTab, setActiveTab] = useState("Disponibles");
+    const [closeNotice, setCloseNotice] = useState(null);
     
     // 🔥 ESTADO REACTIVO PARA RESPUESTAS (Garantiza que se muevan de pestaña en tiempo real)
     const [userResponses, setUserResponses] = useState({});
+
+    useEffect(() => {
+        const saved = localStorage.getItem("survey_session_closed_notice");
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                setCloseNotice(parsed);
+            } catch (error) {
+                console.error("Error leyendo aviso de encuesta cerrada:", error);
+            }
+        }
+
+        return () => {
+            localStorage.removeItem("survey_session_closed_notice");
+        };
+    }, []);
 
     useEffect(() => {
         if (!user?.uid) return;
@@ -112,6 +129,119 @@ export default function OperatorSurveys({
         return true;
     });
 
+// TIEMPO RESTANTE PARA EXPIRACIÓN DE ENCUESTA    
+
+    const parseHourToMinutes = (value) => {
+        if (value === null || value === undefined || value === "") return 0;
+
+        const normalized = String(value).trim().toLowerCase();
+        if (!normalized) return 0;
+
+        const match = normalized.match(/^(\d{1,2})(?::(\d{2}))?\s*(a\.m\.|p\.m\.|am|pm)?$/i);
+        if (!match) {
+            const fallback = normalized.includes(":") ? normalized.split(":") : [normalized, "00"];
+            const [hours, minutes] = fallback.map(Number);
+            return (Number.isFinite(hours) ? hours : 0) * 60 + (Number.isFinite(minutes) ? minutes : 0);
+        }
+
+        let hours = Number(match[1]);
+        const minutes = Number(match[2] || "0");
+        const meridiem = (match[3] || "").toLowerCase();
+
+        if (meridiem.includes("p") && hours < 12) hours += 12;
+        if (meridiem.includes("a") && hours === 12) hours = 0;
+
+        return hours * 60 + minutes;
+    };
+
+    const normalizeSurveyDate = (value) => {
+        if (!value && value !== 0) return null;
+
+        if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+        if (typeof value?.toDate === "function") {
+            const date = value.toDate();
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        if (typeof value === "number") {
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        if (typeof value === "string") {
+            const trimmed = value.trim();
+            if (!trimmed) return null;
+
+            const isoLike = trimmed.match(/^\d{4}-\d{2}-\d{2}(?:[T\s]\d{2}:\d{2}(:\d{2})?)?$/);
+            if (isoLike) {
+                const dateOnly = new Date(trimmed.includes("T") || trimmed.includes(" ") ? trimmed : `${trimmed}T00:00:00`);
+                return Number.isNaN(dateOnly.getTime()) ? null : dateOnly;
+            }
+
+            const localDate = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (localDate) {
+                const [, day, month, year] = localDate;
+                const normalizedDate = new Date(Number(year), Number(month) - 1, Number(day), 0, 0, 0, 0);
+                return Number.isNaN(normalizedDate.getTime()) ? null : normalizedDate;
+            }
+
+            const date = new Date(trimmed);
+            if (!Number.isNaN(date.getTime())) return date;
+        }
+
+        return null;
+    };
+
+    const buildSurveyDateTime = (dateValue, timeValue, fallbackTime = "00:00") => {
+        const baseDate = normalizeSurveyDate(dateValue);
+        if (!baseDate) return null;
+
+        const date = new Date(baseDate.getTime());
+        const minutes = parseHourToMinutes(timeValue || fallbackTime);
+        date.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+        return date;
+    };
+
+    const getRemainingSurveyTime = (survey) => {
+        if (!survey?.fechaInicio && !survey?.fechaFin) return "Sin fecha";
+
+        const now = new Date();
+        const startDate = buildSurveyDateTime(survey.fechaInicio, survey.horaInicio, "00:00");
+        const endDate = buildSurveyDateTime(survey.fechaFin, survey.horaFin, "23:59");
+
+        if (!startDate || !endDate) return "Sin fecha";
+
+        if (now < startDate) {
+            const diffMs = startDate.getTime() - now.getTime();
+            const totalMinutes = Math.max(0, Math.ceil(diffMs / 60000));
+            const days = Math.floor(totalMinutes / (60 * 24));
+            const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+            const minutes = totalMinutes % 60;
+
+            const parts = [];
+            if (days > 0) parts.push(`${days}d`);
+            if (hours > 0 || parts.length > 0) parts.push(`${hours}h`);
+            parts.push(`${minutes}m`);
+            return `Inicia en ${parts.join(" ")}`;
+        }
+
+        const diffMs = endDate.getTime() - now.getTime();
+        if (diffMs <= 0) return "Expirada";
+
+        const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
+        const days = Math.floor(totalMinutes / (60 * 24));
+        const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+        const minutes = totalMinutes % 60;
+
+        const parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0 || parts.length > 0) parts.push(`${hours}h`);
+        parts.push(`${minutes}m`);
+
+        return parts.join(" ");
+    };
+
     if (loading || transitioning) return <AppLoader text="Cargando encuestas..." />;
 
     return (
@@ -123,6 +253,13 @@ export default function OperatorSurveys({
                 <h1>Encuestas</h1>
                 <p>Completa tus evaluaciones pendientes.</p>
             </div>
+
+            {closeNotice && (
+                <div className="survey-card-v2" style={{ borderLeft: "4px solid #f59e0b", background: "#fff7ed", marginBottom: "16px" }}>
+                    <p style={{ margin: 0, color: "#92400e", fontWeight: 600 }}>{closeNotice.title}</p>
+                    <p style={{ margin: "6px 0 0", color: "#78350f" }}>{closeNotice.message}</p>
+                </div>
+            )}
 
             <div className="survey-stats">
                 <div className="survey-stat-card" onClick={() => setActiveTab("Disponibles")} style={{ cursor: "pointer", opacity: activeTab === "Disponibles" ? 1 : 0.5, border: activeTab === "Disponibles" ? "2px solid #3b82f6" : "2px solid transparent", transition: "all 0.3s ease" }}>
@@ -157,8 +294,8 @@ export default function OperatorSurveys({
                         <p>{survey.descripcion}</p>
 
                         <p><strong>Instructor:</strong> {survey.instructor}</p>
-                        <p><strong>Modalidad:</strong> {survey.modalidad}</p>
-                        <p><strong>Duración:</strong> {survey.duracionHoras}h {survey.duracionMinutos}m</p>
+                        <p><strong>Tipo de curso:</strong> {survey.tipoCurso}</p>
+                        <p><strong>Expiración:</strong> {getRemainingSurveyTime(survey)}</p>
 
                         {survey.estadoActual === "completada" && <p style={{ color: "#10b981", marginTop:"10px" }}><strong>Puntaje obtenido:</strong> {survey.miPuntaje}/100 ✔️</p>}
                         {survey.estadoActual === "pendiente_validacion" && <p style={{ color: "#3b82f6", marginTop:"10px" }}><strong>Estado:</strong> Pendiente de revisión ⏱️</p>}
