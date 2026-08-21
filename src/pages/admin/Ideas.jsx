@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, query, orderBy, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, deleteDoc, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiTrash } from "react-icons/fi";
 import { FaEllipsisV } from "react-icons/fa";
@@ -8,6 +8,7 @@ import { addDoc } from "firebase/firestore";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { createNotification } from "../../utils/createNotification";
 import { notifyError, notifySuccess, confirmDelete } from "../../utils/notify";
+import { dismissNotification } from "../../utils/notificationPersistence";
 
 export default function IdeasAdmin() {
   const { user } = useAuth();
@@ -67,9 +68,21 @@ export default function IdeasAdmin() {
 
     setActualizando(true);
     try {
+      // Eliminar notificaciones asociadas
+      const qNotif = query(collection(db, "notificaciones"), where("extra.ideaId", "==", idea.id));
+      const snapshotNotif = await getDocs(qNotif);
+
+      const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
+        // 🍪 Persistir en cookies antes de borrar
+        dismissNotification(docNotif.id);
+        return deleteDoc(doc(db, "notificaciones", docNotif.id));
+      });
+      await Promise.all(deleteNotifPromises);
+
+      // Eliminar idea
       await deleteDoc(doc(db, "Ideas", idea.id));
       setIdeas(ideas.filter((i) => i.id !== idea.id));
-      notifySuccess("Eliminado", "La idea fue eliminada correctamente.");
+      notifySuccess("Eliminado", "La idea y notificaciones fueron eliminadas correctamente.");
     } catch (error) {
       console.error("Error al eliminar idea:", error);
       notifyError("Error", "No se pudo eliminar la idea.");

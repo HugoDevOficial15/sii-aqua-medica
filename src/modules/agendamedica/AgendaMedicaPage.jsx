@@ -9,6 +9,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
 import { updateAgendaWithBatch } from "../../services/agendaMedicaService";
 import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
+import { dismissNotification } from "../../utils/notificationPersistence";
 
 import AgendaDetalle from "./AgendaDetalle";
 import AgendaForm from "./AgendaForm";
@@ -105,9 +106,11 @@ export default function AgendaMedicaPage() {
             const qNotif = query(collection(db, "notificaciones"), where("NomAgenda", "==", nombre));
             const snapshotNotif = await getDocs(qNotif);
 
-            const deletePromises = snapshotNotif.docs.map(docNotif =>
-                deleteDoc(doc(db, "notificaciones", docNotif.id))
-            );
+            const deletePromises = snapshotNotif.docs.map(docNotif => {
+                // 🍪 Persistir en cookies antes de borrar
+                dismissNotification(docNotif.id);
+                return deleteDoc(doc(db, "notificaciones", docNotif.id));
+            });
             await Promise.all(deletePromises);
 
             notifySuccess("Eliminado", "Agenda y notificaciones eliminadas del sistema.");

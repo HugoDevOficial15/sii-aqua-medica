@@ -7,6 +7,7 @@ import { FaEllipsisV } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
 import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
 import { sendAdminNotification } from "../../utils/sendAdminNotification";
+import { dismissNotification } from "../../utils/notificationPersistence";
 
 export default function SoporteAdmin() {
   const { user } = useAuth();
@@ -125,6 +126,18 @@ export default function SoporteAdmin() {
 
     setActualizando(true);
     try {
+      // Eliminar notificaciones asociadas
+      const qNotif = query(collection(db, "notificaciones"), where("extra.reporteId", "==", problema.id));
+      const snapshotNotif = await getDocs(qNotif);
+
+      const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
+        // 🍪 Persistir en cookies antes de borrar
+        dismissNotification(docNotif.id);
+        return deleteDoc(doc(db, "notificaciones", docNotif.id));
+      });
+      await Promise.all(deleteNotifPromises);
+
+      // Eliminar problema
       const docRef = doc(db, "Problemas reportados", problema.id);
       await deleteDoc(docRef);
 
@@ -137,7 +150,7 @@ export default function SoporteAdmin() {
         setSelectedProblema(null);
       }
 
-      notifySuccess("Eliminado", "Reporte eliminado correctamente.");
+      notifySuccess("Eliminado", "Reporte y notificaciones eliminados correctamente.");
     } catch (error) {
       console.error("Error al eliminar el reporte:", error);
       notifyError("Error", "No se pudo eliminar el reporte.");

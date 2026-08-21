@@ -7,6 +7,7 @@ import { useAuth } from "../../hooks/useAuth";
 import NotificationCard from "../../components/operator/NotificationCard";
 import MobileBackButton from "./components/MobileBackButton";
 import { confirmDelete } from "../../utils/notify";
+import { filterDismissedNotifications, dismissNotification } from "../../utils/notificationPersistence";
 
 // Ruta a la que navega cada tipo de notificación dinámica al completarla.
 // Los tipos festivos (Cumpleaños/Aniversario) no tienen pantalla propia:
@@ -60,7 +61,7 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
                 const currentUserIds = [user?.uid, user?.id].filter(Boolean);
                 console.log("🔔 Listener ejecutado. User IDs:", currentUserIds);
 
-                const notifs = querySnapshot.docs
+                let notifs = querySnapshot.docs
                     .map(doc => ({
                         id: doc.id,
                         ...doc.data()
@@ -79,6 +80,9 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
 
                         return shouldShow;
                     });
+
+                // 🍪 Filtrar notificaciones descartadas (persistencia en cookies)
+                notifs = filterDismissedNotifications(notifs);
 
                 console.log("📬 Notificaciones actualizadas (tiempo real):", notifs.length, "de", querySnapshot.docs.length);
                 if (notifs.length > 0) {
@@ -102,7 +106,13 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
     //  FUNCIÓN PARA BORRAR Y NAVEGAR
     const handleCompletarTarea = async (idNotificacion, ruta) => {
         try {
+            // 🍪 Guardar en persistencia (cookies) antes de borrar de Firebase
+            dismissNotification(idNotificacion);
+
+            // Borrar de Firestore
             await deleteDoc(doc(db, "notificaciones", idNotificacion));
+
+            // Actualizar UI local
             setNotificaciones(prev => prev.filter(n => n.id !== idNotificacion));
 
             if (typeof onNavigate === 'function') {
@@ -125,6 +135,8 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
         try {
             const batch = writeBatch(db);
             notificaciones.forEach((notif) => {
+                // 🍪 Guardar en persistencia antes de borrar
+                dismissNotification(notif.id);
                 batch.delete(doc(db, "notificaciones", notif.id));
             });
             await batch.commit();

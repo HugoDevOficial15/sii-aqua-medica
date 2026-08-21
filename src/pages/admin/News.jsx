@@ -4,6 +4,7 @@ import { db } from "../../config/firebase";
 import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa";
 import { AREAS } from "../../catalogs/areas";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
+import { dismissNotification } from "../../utils/notificationPersistence";
 
 // 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
@@ -92,8 +93,20 @@ export default function News() {
     const result = await confirmDelete("¿Eliminar noticia?", "Esta acción no se puede deshacer.");
     if (result.isConfirmed) {
       try {
+        // Eliminar notificaciones asociadas
+        const qNotif = query(collection(db, "notificaciones"), where("extra.noticiaId", "==", id));
+        const snapshotNotif = await getDocs(qNotif);
+
+        const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
+          // 🍪 Persistir en cookies antes de borrar
+          dismissNotification(docNotif.id);
+          return deleteDoc(doc(db, "notificaciones", docNotif.id));
+        });
+        await Promise.all(deleteNotifPromises);
+
+        // Eliminar noticia
         await deleteDoc(doc(db, "noticias", id));
-        notifySuccess("Noticia eliminada", "La noticia ha sido eliminada correctamente.");
+        notifySuccess("Noticia eliminada", "La noticia y notificaciones han sido eliminadas correctamente.");
         cargarNoticias();
       } catch (error) {
         console.error("Error al eliminar la noticia:", error);
@@ -199,19 +212,22 @@ export default function News() {
 
         const usersSnapshot = await getDocs(q);
 
-        usersSnapshot.docs.forEach(userDoc => {
-          addDoc(collection(db, "notificaciones"), {
-            IdUsuario: userDoc.id,
-            Titulo: "📰 Nueva noticia",
-            Mensaje: `Nueva noticia: "${titulo}"`,
-            fechaCreacion: serverTimestamp(),
-            Destino: "/news",
-            extra: {
-              tipo: "news",
-              noticiaId: docRef.id
-            }
-          });
-        });
+        // 🍪 Usar Promise.all para esperar a que TODAS se creen
+        await Promise.all(
+          usersSnapshot.docs.map(userDoc =>
+            addDoc(collection(db, "notificaciones"), {
+              IdUsuario: userDoc.id,
+              Titulo: "📰 Nueva noticia",
+              Mensaje: `Nueva noticia: "${titulo}"`,
+              fechaCreacion: serverTimestamp(),
+              Destino: "/news",
+              extra: {
+                tipo: "news",
+                noticiaId: docRef.id
+              }
+            })
+          )
+        );
       }
 
       notifySuccess(

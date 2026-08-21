@@ -1,9 +1,10 @@
 // src/utils/storage.js
 
 const PRESERVED_KEYS = [
-    "theme", 
-    "fontSize", 
-    "dismissed_admin_notifications"
+    "theme",
+    "fontSize",
+    "dismissed_admin_notifications",
+    "dismissed_notifications"  // Ahora centralizada
 ];
 
 export const clearStorageSafely = () => {

@@ -5,6 +5,7 @@ import { FaSearch, FaUserInjured, FaFingerprint, FaCheckCircle, FaClock, FaHeart
 import { FiTrash2 } from "react-icons/fi";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
 import { useAuth } from "../../hooks/useAuth";
+import { dismissNotification } from "../../utils/notificationPersistence";
 
 export default function DetalleOrdenMedica() {
   const { user } = useAuth();
@@ -128,9 +129,21 @@ export default function DetalleOrdenMedica() {
     if (!result.isConfirmed) return;
 
     try {
+      // Eliminar notificaciones asociadas
+      const qNotif = query(collection(db, "notificaciones"), where("extra.idOrden", "==", orden.id));
+      const snapshotNotif = await getDocs(qNotif);
+
+      const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
+        // 🍪 Persistir en cookies antes de borrar
+        dismissNotification(docNotif.id);
+        return deleteDoc(doc(db, "notificaciones", docNotif.id));
+      });
+      await Promise.all(deleteNotifPromises);
+
+      // Eliminar orden
       await deleteDoc(doc(db, "ordenes_medicas", orden.id));
       setOrdenes(ordenes.filter(o => o.id !== orden.id));
-      notifySuccess("Eliminado", "La orden médica ha sido eliminada exitosamente.");
+      notifySuccess("Eliminado", "La orden médica y notificaciones asociadas han sido eliminadas exitosamente.");
     } catch (error) {
       console.error("Error al eliminar orden:", error);
       notifyError("Error", "No se pudo eliminar la orden médica.");

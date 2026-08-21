@@ -8,8 +8,8 @@ import { FiArrowLeft, FiCalendar, FiList, FiX } from "react-icons/fi";
 import Loader from "../../components/Loader";
 import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
 import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
-import { createNotification } from "../../utils/createNotification";
-import MobileBackButton from "./components/MobileBackButton";
+import { sendAdminNotification } from "../../utils/sendAdminNotification";
+
 
 import { CITA_ESTADOS } from "../../constants/citasMedicasStates";
 import {
@@ -19,7 +19,7 @@ import {
     bookAppointment
 } from "../../services/citasMedicasService";
 
-export default function OperadorCitasMedicas({ onBack }) {
+export default function OperadorCitasMedicas() {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
     const agendaIdReagendamiento = searchParams.get("reagendar"); // ?reagendar=agendaId
@@ -78,14 +78,17 @@ export default function OperadorCitasMedicas({ onBack }) {
     }, [agendaIdReagendamiento]);
 
     const cargarMisCitas = async () => {
-        if (!user?.nomina) return;
+        if (!user?.uid) {
+            notifyError("Error", "No se pudo identificar tu usuario.");
+            return;
+        }
         setLoadingMisCitas(true);
         try {
-            const data = await getUserAppointments(user.nomina);
+            const data = await getUserAppointments(user.nomina, user.uid);
             setMisCitas(data);
         } catch (error) {
             console.error("Error al cargar mis citas:", error);
-            notifyError("Error", "No se pudieron cargar tus citas.");
+            notifyError("Error", error.message || "No se pudieron cargar tus citas.");
         } finally {
             setLoadingMisCitas(false);
         }
@@ -199,32 +202,22 @@ export default function OperadorCitasMedicas({ onBack }) {
 
             // 🔥 NOTIFICAR A admin_medico y admin_sistemas
             try {
-                const usersSnapshot = await getDocs(collection(db, "users"));
-                const admins = usersSnapshot.docs
-                    .filter(doc => {
-                        const rol = doc.data().rol || "";
-                        return rol === "admin_medico" || rol === "admin_sistemas";
-                    })
-                    .map(doc => ({ docId: doc.id, ...doc.data() }));
-
-                for (const admin of admins) {
-                    if (admin.docId) {
-                        await createNotification({
-                            IdUsuario: admin.docId,
-                            Titulo: "📅 Nueva Cita Médica Agendada",
-                            Mensaje: `${nombreFinal} agendó una cita en: "${agendaActiva.nombre}" para el ${formatearFecha(fechaElegida)} a las ${horaElegida}`,
-                            Destino: "medical-appointments",
-                            Accion: "cita_agendada",
-                            extra: {
-                                agendaId: agendaActiva.id,
-                                agendaNombre: agendaActiva.nombre,
-                                usuarioNombre: nombreFinal,
-                                fecha: fechaElegida,
-                                hora: horaElegida
-                            }
-                        });
-                    }
-                }
+                await sendAdminNotification(
+                    {
+                        Titulo: "📅 Nueva Cita Médica Agendada",
+                        Mensaje: `${nombreFinal} agendó una cita en: "${agendaActiva.nombre}" para el ${formatearFecha(fechaElegida)} a las ${horaElegida}`,
+                        Destino: "medical-appointments",
+                        Accion: "cita_agendada",
+                        extra: {
+                            agendaId: agendaActiva.id,
+                            agendaNombre: agendaActiva.nombre,
+                            usuarioNombre: nombreFinal,
+                            fecha: fechaElegida,
+                            hora: horaElegida
+                        }
+                    },
+                    ["admin_medico", "admin_sistemas"]
+                );
             } catch (error) {
                 console.error("Error al notificar a admins sobre la cita agendada:", error);
             }
@@ -257,34 +250,24 @@ export default function OperadorCitasMedicas({ onBack }) {
         try {
             await cancelAppointmentByUser(citaACancelar.id, user, motivo);
 
-            // 🔥 NOTIFICAR A admin_medico y admin_sistemas
+            // NOTIFICAR A admin_medico y admin_sistemas
             try {
-                const usersSnapshot = await getDocs(collection(db, "users"));
-                const admins = usersSnapshot.docs
-                    .filter(doc => {
-                        const rol = doc.data().rol || "";
-                        return rol === "admin_medico" || rol === "admin_sistemas";
-                    })
-                    .map(doc => ({ docId: doc.id, ...doc.data() }));
-
-                for (const admin of admins) {
-                    if (admin.docId) {
-                        await createNotification({
-                            IdUsuario: admin.docId,
-                            Titulo: "❌ Cita Médica Cancelada",
-                            Mensaje: `${user?.nombre || "Un usuario"} canceló una cita para el ${formatearFecha(citaACancelar.fecha)}`,
-                            Destino: "medical-appointments",
-                            Accion: "cita_cancelada",
-                            extra: {
-                                citaId: citaACancelar.id,
-                                usuarioNombre: user?.nombre,
-                                fecha: citaACancelar.fecha,
-                                hora: citaACancelar.horaInicio || citaACancelar.hora,
-                                motivo: motivo
-                            }
-                        });
-                    }
-                }
+                await sendAdminNotification(
+                    {
+                        Titulo: "❌ Cita Médica Cancelada",
+                        Mensaje: `${user?.nombre || "Un usuario"} canceló una cita para el ${formatearFecha(citaACancelar.fecha)}`,
+                        Destino: "medical-appointments",
+                        Accion: "cita_cancelada",
+                        extra: {
+                            citaId: citaACancelar.id,
+                            usuarioNombre: user?.nombre,
+                            fecha: citaACancelar.fecha,
+                            hora: citaACancelar.horaInicio || citaACancelar.hora,
+                            motivo: motivo
+                        }
+                    },
+                    ["admin_medico", "admin_sistemas"]
+                );
             } catch (error) {
                 console.error("Error al notificar a admins sobre la cancelación:", error);
             }
@@ -309,7 +292,6 @@ export default function OperadorCitasMedicas({ onBack }) {
 
     return (
         <div className="container-fluid p-4 citas-op-page fade-in">
-            <MobileBackButton onBack={onBack} />
 
             <div className="mb-4 d-flex justify-content-between align-items-start flex-wrap gap-3">
                 <div>

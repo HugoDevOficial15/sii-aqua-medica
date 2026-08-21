@@ -19,6 +19,7 @@ import { useLogout } from "../hooks/useLogout";
 import { getPendingRequests } from "../services/solicitudesCambiosService";
 import { getMedicamentos } from "../services/medicamentosService";
 import { getSemaforo } from "../utils/getSemaforo";
+import { getDismissedNotifications, dismissNotification, filterDismissedNotifications } from "../utils/notificationPersistence";
 
 export default function Header({ toggleSidebar }) {
 
@@ -63,52 +64,6 @@ export default function Header({ toggleSidebar }) {
         );
     };
 
-    const DISMISSED_NOTIFS_KEY = "dismissed_admin_notifications";
-
-    // 🍪 1. LEER DESDE COOKIES (Inmune a localStorage.clear)
-    const getDismissedFromStorage = () => {
-        try {
-            const nameEQ = DISMISSED_NOTIFS_KEY + "=";
-            const ca = document.cookie.split(';');
-            for(let i = 0; i < ca.length; i++) {
-                let c = ca[i].trim();
-                if (c.indexOf(nameEQ) === 0) {
-                    return JSON.parse(decodeURIComponent(c.substring(nameEQ.length, c.length)));
-                }
-            }
-            // Fallback por si acaso
-            const raw = localStorage.getItem(DISMISSED_NOTIFS_KEY);
-            return raw ? JSON.parse(raw) : [];
-        } catch (err) {
-            console.error("Error leyendo notificaciones descartadas:", err);
-            return [];
-        }
-    };
-
-    // 🍪 2. GUARDAR EN COOKIES
-    const addDismissedToStorage = (id) => {
-        try {
-            const arr = getDismissedFromStorage();
-            if (!arr.includes(id)) {
-                arr.push(id);
-                
-                // Evitamos que la cookie crezca infinitamente (máx 100 descartes)
-                if (arr.length > 100) arr.shift();
-                
-                const stringified = JSON.stringify(arr);
-                
-                // Guardar en localStorage como respaldo
-                localStorage.setItem(DISMISSED_NOTIFS_KEY, stringified);
-                
-                // Guardar en Cookie válida por 30 días para sobrevivir al Login
-                const d = new Date();
-                d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
-                document.cookie = `${DISMISSED_NOTIFS_KEY}=${encodeURIComponent(stringified)};expires=${d.toUTCString()};path=/`;
-            }
-        } catch (err) {
-            console.error("Error guardando notificación descartada:", err);
-        }
-    };
 
     useEffect(() => {
         const loadStaticNotifications = async () => {
@@ -219,9 +174,12 @@ export default function Header({ toggleSidebar }) {
     };
 
     useEffect(() => {
-        const dismissed = getDismissedFromStorage();
         const allNotifications = [...staticNotifications, ...dynamicNotifications];
-        setNotifications(allNotifications.filter(n => !dismissed.includes(n.id) || !isPersistentNotification(n)));
+        const filtered = allNotifications.filter(n => {
+            const isDismissed = getDismissedNotifications().includes(n.id);
+            return !isDismissed || !isPersistentNotification(n);
+        });
+        setNotifications(filtered);
     }, [staticNotifications, dynamicNotifications]);
 
     useEffect(() => {
@@ -245,17 +203,12 @@ export default function Header({ toggleSidebar }) {
 
         if (isPersistentNotification(notif)) {
             try {
+                // 🍪 Guardar en persistencia antes de borrar
+                dismissNotification(id);
+                // Borrar de Firestore
                 await deleteDoc(doc(db, "notificaciones", id));
             } catch (err) {
-                console.error("Error al borrar la notificación de Firestore:", err);
-            }
-        }
-
-        if (isPersistentNotification(notif)) {
-            try {
-                addDismissedToStorage(id);
-            } catch (err) {
-                console.error("Error al persistir el descarte:", err);
+                console.error("Error al processar notificación:", err);
             }
         }
 
@@ -285,17 +238,12 @@ export default function Header({ toggleSidebar }) {
 
         if (isPersistentNotification(notif)) {
             try {
+                // 🍪 Guardar en persistencia antes de borrar
+                dismissNotification(id);
+                // Borrar de Firestore
                 await deleteDoc(doc(db, "notificaciones", id));
             } catch (err) {
-                console.error("Error al borrar la notificación de Firestore:", err);
-            }
-        }
-
-        if (isPersistentNotification(notif)) {
-            try {
-                addDismissedToStorage(id);
-            } catch (err) {
-                console.error("Error al persistir el descarte:", err);
+                console.error("Error al procesar notificación:", err);
             }
         }
         setNotifications((prev) => prev.filter((notification) => notification.id !== id));

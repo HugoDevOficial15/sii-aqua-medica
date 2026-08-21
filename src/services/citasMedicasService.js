@@ -132,14 +132,18 @@ export const getCitasPorAgenda = async (agendaId) => {
 // ======================================================
 // Se busca por nómina (no por uid/userId): es el identificador estable
 // usado en el resto del proyecto para localizar a un usuario.
-export const getUserAppointments = async (nomina) => {
+export const getUserAppointments = async (nomina, userId) => {
     try {
-        // 1. Consulta SIMPLE: Solo pedimos las citas de esta nómina (No requiere índice)
+        if (!userId) {
+            throw new Error("Se requiere el ID de usuario para obtener citas");
+        }
+
+        // Usar userId como filtro principal (identificador único y confiable)
         const q = query(
             collection(db, "citas_medicas"),
-            where("nominaUsuario", "==", nomina)
+            where("userId", "==", userId)
         );
-        
+
         const snapshot = await getDocs(q);
 
         // 2. Extraemos los datos
@@ -171,7 +175,7 @@ export const getUserAppointments = async (nomina) => {
         // 3. Filtramos y ordenamos localmente con JavaScript puro
         misCitas = misCitas
             // Dejamos solo las citas activas
-            .filter(cita => cita.estado === "activa") 
+            .filter(cita => cita.estado === CITA_ESTADOS.ACTIVA)
             // Las ordenamos de la más próxima a la más lejana
             .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 

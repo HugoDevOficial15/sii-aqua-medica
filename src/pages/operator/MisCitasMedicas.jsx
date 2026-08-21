@@ -6,6 +6,7 @@ import { useAuth } from "../../hooks/useAuth";
 // 👇 Agregamos FaTrash para el ícono de eliminar
 import { FaPlus, FaStethoscope, FaCalendarAlt, FaSpinner, FaNotesMedical, FaTrash } from "react-icons/fa";
 import { notifyInfo, notifyError, confirmDelete } from "../../utils/notify";
+import { sendAdminNotification } from "../../utils/sendAdminNotification";
 
 export default function MisCitasMedicas() {
     const { user } = useAuth(); 
@@ -84,27 +85,16 @@ export default function MisCitasMedicas() {
 
             // Enviar notificación a admin_medico y admin_sistemas
             try {
-                const usersSnapshot = await getDocs(collection(db, "users"));
-                const admins = usersSnapshot.docs
-                    .filter(doc => {
-                        const rol = doc.data().rol || "";
-                        return rol === "admin_medico" || rol === "admin_sistemas";
-                    })
-                    .map(doc => ({ docId: doc.id, ...doc.data() }));
-
-                for (const admin of admins) {
-                    if (admin.docId) {
-                        await addDoc(collection(db, "notificaciones"), {
-                            IdUsuario: admin.docId,
-                            Titulo: "Nueva Orden Médica",
-                            Mensaje: `${nuevaOrden.nombrePaciente} (Nómina: ${nominaPaciente}) solicita consulta médica.`,
-                            Destino: "detalle-orden-medico",
-                            leida: false,
-                            fechaCreacion: new Date().toISOString(),
-                            tipo: "medico"
-                        });
-                    }
-                }
+                await sendAdminNotification(
+                    {
+                        Titulo: "Nueva Orden Médica",
+                        Mensaje: `${nuevaOrden.nombrePaciente} (Nómina: ${nominaPaciente}) solicita consulta médica.`,
+                        Destino: "detalle-orden-medico",
+                        Accion: "nueva_orden_medica",
+                        extra: { tipo: "medico" }
+                    },
+                    ["admin_medico", "admin_sistemas"]
+                );
             } catch(error){
                 console.error("Error al enviar notificaciones:", error);
             }
