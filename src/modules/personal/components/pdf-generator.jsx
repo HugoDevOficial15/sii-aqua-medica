@@ -3,6 +3,18 @@ import autoTable from "jspdf-autotable";
 import logo2Image from "../../../utils/img/logo2.jpg";
 import { getUsers } from "../../../services/usersService";
 
+const parseLocalDate = (value) => {
+  if (!value) return null;
+
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const normalizeDate = (value) => {
   if (!value) return "Sin fecha";
 
@@ -14,8 +26,8 @@ const normalizeDate = (value) => {
     });
   }
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "Sin fecha";
+  const parsed = parseLocalDate(value);
+  if (!parsed) return "Sin fecha";
 
   return parsed.toLocaleDateString("es-MX", {
     day: "2-digit",

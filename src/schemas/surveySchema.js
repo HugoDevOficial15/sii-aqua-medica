@@ -94,10 +94,10 @@ export const surveySchema = z.object({
 
     instructor: z.string().min(3, "Instructor requerido"),
 
-    modalidad: z.enum(["online", "presencial"]),
+    modalidad: z.literal("digital"),
     tipoCurso: z.enum(["programado", "extraordinario"]),
 
-    formaEvaluacion: z.string().min(1),
+    formaEvaluacion: z.literal("digital"),
 
     areas: z.array(z.string()).min(1, "Selecciona al menos un área"),
 

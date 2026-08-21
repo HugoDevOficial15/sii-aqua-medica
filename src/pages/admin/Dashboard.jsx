@@ -135,22 +135,23 @@ export default function Dashboard() {
     }).filter(a => a.total > 0);
 
     const pieChartColors = [
-        "#2563EB",
-        "#10B981",
-        "#F59E0B",
-        "#8B5CF6",
-        "#EF4444",
-        "#14B8A6",
-        "#F97316",
+        "#ebe72b",
+        "#e7a619",
+        "#88f012",
+        "#4169e1",
+        "#f15cff",
+        "#4169e1",
+        "#7e7e7e",
         "#0EA5E9",
-        "#A855F7",
-        "#84CC16",
+        "#d4d4d4",
+        "#4169e1",
         "#EC4899",
-        "#06B6D4",
-        "#64748B",
-        "#22C55E",
-        "#EAB308",
-        "#FB7185"
+        "#242424",
+        "#1e1ec9 ",
+        "#4169e1",
+        "#4169e1",
+        "#fdcb88",
+        "#444444"
     ];
 
     const renderActiveAreaShape = (props) => {

@@ -449,7 +449,7 @@ export default function EncuestaResultados({ survey, onBack }) {
     height: 50px;
     border-radius: 12px;
     border: 3px solid var(--operator-border);
-    background: var(--operator-border);
+    background: var(--operator-form);
     color: var(--operator-text);
 }
 
@@ -462,9 +462,15 @@ export default function EncuestaResultados({ survey, onBack }) {
     font-weight: 700;
 }
 
+.form-select::placeholder,
+.form-control::placeholder {
+    color: var(--operator-text-soft);
+}
+
 .results-filter-grid .form-control:focus,
 .results-filter-grid .form-select:focus {
     border-color: var(--operator-primary);
+    color: var(--operator-text);
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
     outline: none;
 }

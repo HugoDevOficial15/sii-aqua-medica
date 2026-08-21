@@ -833,12 +833,12 @@ export default function RackTransferModal({
                     justify-content: center;
                     cursor: pointer;
                     display: flex;
-                    box-shadow: 0 0px 20px var(--operator-primary-light);
+                    box-shadow: 0 0px 10px var(--operator-primary-light);
                 }
 
                 .transfer-submit:hover {
                     background: var(--operator-primary);
-                    box-shadow: 0 0px 10px var(--operator-primary-light);
+                    box-shadow: 0 0px 20px var(--operator-primary-light);
                     transition: transform 0.2s;
                     transform: scale(1.02);
                 }

@@ -174,13 +174,13 @@ export default function RacksPages() {
           <table className="table custom-table">
             <thead>
               <tr>
-                <th>Rack</th>
-                <th>Planta</th>
-                <th>Estatus</th>
-                <th>Tipo almacenamiento</th>
-                <th>Asignación</th>
+                <th width="10%">Rack</th>
+                <th width="10%">Planta</th>
+                <th width="10%">Estatus</th>
+                <th width="17%">Tipo almacenamiento</th>
+                <th width="10%">Asignación</th>
                 <th>Elemento</th>
-                <th>Acciones</th>
+                <th width="10%">Acciones</th>
               </tr>
             </thead>
             <tbody>

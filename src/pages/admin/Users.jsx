@@ -1161,7 +1161,7 @@ export default function Users({ onClose }) {
                   Área
                 </th>
                 <th>Puesto</th>
-                <th width="10%">Estado</th>
+                <th width="15%">Estado</th>
                 <th width="10%">Acciones</th>
               </tr>
             </thead>
@@ -2347,7 +2347,7 @@ export default function Users({ onClose }) {
         }
 
         /* TABLA DE USUARIOS */
-
+        
         .user-incapacidades-row td {
           background: rgba(255, 255, 255, 0.02);
           padding: 0;
@@ -2363,8 +2363,9 @@ export default function Users({ onClose }) {
 
         .user-incapacidades-box {
           background: var(--operator-card);
+          border-radius: 14px;
           border: 1px solid var(--operator-border);
-          border-radius: 12px;
+          padding: 16px;
           overflow: hidden;
           margin: 0 0 12px;
           transform-origin: top center;
@@ -2399,15 +2400,19 @@ export default function Users({ onClose }) {
           scale: none !important;
         }
 
-        .user-incapacidades-table thead th,
         .user-incapacidades-table tbody td {
-          padding: 10px 12px;
-          text-align: left;
-          border-bottom: 1px solid var(--operator-border);
-          background: transparent;
-          color: var(--operator-text);
-          font-size: 12px;
-          position: static;
+        border-bottom: 3px solid var(--operator-border);
+        height: 50px;
+        font-size 14px;
+        padding: 5px 5px;
+        vertical-align: middle;
+        border-top: none !important;
+        white-space: wrap;
+
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 230px;
+        min-width: 100px;
         }
 
         .user-incapacidades-table thead th {

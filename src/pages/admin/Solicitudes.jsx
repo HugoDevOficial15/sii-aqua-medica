@@ -774,7 +774,6 @@ export default function Solicitudes() {
 .form-control-date:focus {
     border-color: var(--operator-primary) !important;
     background: var(--operator-border);
-
 }
 
 

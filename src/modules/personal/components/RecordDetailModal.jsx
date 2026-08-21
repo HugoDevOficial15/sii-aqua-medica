@@ -3,6 +3,18 @@ import { FaFilePdf } from "react-icons/fa";
 import { getUsers } from "../../../services/usersService";
 import { generatePersonalRecordPDF } from "./pdf-generator";
 
+const parseLocalDate = (value) => {
+  if (!value) return null;
+
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const formatRecordDate = (value) => {
   if (!value) return "Sin fecha";
 
@@ -14,8 +26,8 @@ const formatRecordDate = (value) => {
     });
   }
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "Sin fecha";
+  const parsed = parseLocalDate(value);
+  if (!parsed) return "Sin fecha";
 
   return parsed.toLocaleDateString("es-MX", {
     day: "2-digit",
@@ -34,7 +46,7 @@ const getRecordDetails = (record, areaValue = "Sin área") => {
     { label: "Tipo", value: isIncapacidad ? "Incapacidad" : record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia" },
     { label: "Título", value: record.titulo || record.tipo || "Sin título" },
     { label: "Descripción", value: record.descripcion || record.notas || record.nota || "Sin descripción" },
-    { label: "Prioridad", value: record.prioridad || (isIncapacidad ? "-" : "-") },
+    { label: "Prioridad", value: record.prioridad || (isIncapacidad ? "Sin prioridad" : "Sin prioridad") },
     { label: "Empleado", value: record.empleadoNombre || record.nombre || "Sin empleado" },
     { label: "Nómina", value: record.empleadoNomina || record.nomina || "Sin nómina" },
     { label: "Área", value: areaValue },
