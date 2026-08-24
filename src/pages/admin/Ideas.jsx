@@ -56,6 +56,24 @@ export default function IdeasAdmin() {
     return () => document.removeEventListener("mousedown", closeMenu);
   }, []);
 
+  // Prevenir desplazamiento del body cuando el modal está abierto
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [modalOpen]);
+
   const handleVerIdea = (idea) => {
     setSelectedIdea(idea);
     setComentario(idea.comentarioAdmin || "");
@@ -690,14 +708,17 @@ const styles = {
     justifyContent: "center",
     zIndex: 9999,
     padding: "20px",
+    overflow: "hidden",
   },
   modalCard: {
     width: "100%",
     maxWidth: "920px",
+    maxHeight: "85vh",
     backgroundColor: "var(--operator-card)",
     border: "1px solid var(--operator-border)",
     borderRadius: "22px",
-    overflow: "hidden",
+    overflow: "auto",
+    WebkitOverflowScrolling: "touch",
     boxShadow: "0 30px 80px rgba(15,23,42,0.25)",
   },
   header: {

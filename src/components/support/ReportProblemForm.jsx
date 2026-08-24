@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiSend, FiCheckCircle, FiAlertCircle } from "react-icons/fi";
 
 import { useAuth } from "../../hooks/useAuth";
@@ -17,10 +17,11 @@ export default function ReportProblemForm({
     const [asunto, setAsunto] = useState("");
     const [descripcion, setDescripcion] = useState("");
     const [pantalla, setPantalla] = useState(pantallas[0]);
-    
+
     // 🔥 NUEVO: Estado único para la imagen en formato Base64
-    const [imagenBase64, setImagenBase64] = useState(""); 
-    
+    const [imagenBase64, setImagenBase64] = useState("");
+    const [keyboardOpen, setKeyboardOpen] = useState(false);
+
     const [errors, setErrors] = useState({});
     const [status, setStatus] = useState("idle"); // idle | sending | success | error
 
@@ -46,6 +47,42 @@ export default function ReportProblemForm({
     const removeImage = () => {
         setImagenBase64(""); // Simplemente vaciamos el string
     };
+
+    // Detectar cuando el teclado móvil se abre/cierra
+    useEffect(() => {
+        const handleInputFocus = () => setKeyboardOpen(true);
+        const handleInputBlur = () => setKeyboardOpen(false);
+
+        // Agregar listeners a todos los inputs y textareas
+        const inputs = document.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('focus', handleInputFocus);
+            input.addEventListener('blur', handleInputBlur);
+        });
+
+        return () => {
+            inputs.forEach(input => {
+                input.removeEventListener('focus', handleInputFocus);
+                input.removeEventListener('blur', handleInputBlur);
+            });
+        };
+    }, []);
+
+    // Alternativa: Detectar usando visualViewport (más preciso en móviles)
+    useEffect(() => {
+        if (!('visualViewport' in window)) return;
+
+        const handleViewportResize = () => {
+            const viewport = window.visualViewport;
+            const heightDiff = window.innerHeight - viewport.height;
+            setKeyboardOpen(heightDiff > 100);
+        };
+
+        window.visualViewport.addEventListener('resize', handleViewportResize);
+        return () => {
+            window.visualViewport.removeEventListener('resize', handleViewportResize);
+        };
+    }, []);
 
     const validate = () => {
         const nextErrors = {};

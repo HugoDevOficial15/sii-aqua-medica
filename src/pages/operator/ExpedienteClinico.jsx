@@ -44,7 +44,7 @@ export default function ExpedienteClinico({ onBack }) {
                         <FiHeart size={32} />
                     </div>
                 </div>
-                <h3 className="fw-bold mb-1" style={{ fontSize: "22px" }}>Mi Expediente Clínico</h3>
+                <h3 className="fw-bold mb-1" style={{ fontSize: "22px" }}>Mi Expediente Médico</h3>
                 <p className="text-muted mb-0 small">Consulta tu información médica, datos vitales e historial de recetas.</p>
             </div>
 

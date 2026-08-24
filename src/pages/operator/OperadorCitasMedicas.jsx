@@ -77,6 +77,13 @@ export default function OperadorCitasMedicas() {
         fetchAgendas();
     }, [agendaIdReagendamiento]);
 
+    // Cargar citas del usuario al montar el componente
+    useEffect(() => {
+        if (user?.uid) {
+            cargarMisCitas();
+        }
+    }, [user?.uid]);
+
     const cargarMisCitas = async () => {
         if (!user?.uid) {
             notifyError("Error", "No se pudo identificar tu usuario.");
@@ -86,9 +93,15 @@ export default function OperadorCitasMedicas() {
         try {
             const data = await getUserAppointments(user.nomina, user.uid);
             setMisCitas(data);
+
+            // Si no hay citas, mostrar lista de campañas disponibles para agendar
+            if (!data || data.length === 0) {
+                setVista("lista");
+            }
         } catch (error) {
             console.error("Error al cargar mis citas:", error);
             notifyError("Error", error.message || "No se pudieron cargar tus citas.");
+            setVista("lista"); // Si hay error, mostrar campañas disponibles
         } finally {
             setLoadingMisCitas(false);
         }
@@ -180,6 +193,11 @@ export default function OperadorCitasMedicas() {
         e.preventDefault();
         if (!fechaElegida || !horaElegida) return;
 
+        if (!user?.uid) {
+            notifyError("Error", "No se pudo identificar tu usuario.");
+            return;
+        }
+
         setProcesando(true);
         const nombreFinal = user?.nombre || "Ángel Julián Ojeda Ramírez";
         const uidUsuario = user?.uid;
@@ -206,7 +224,7 @@ export default function OperadorCitasMedicas() {
                     {
                         Titulo: "📅 Nueva Cita Médica Agendada",
                         Mensaje: `${nombreFinal} agendó una cita en: "${agendaActiva.nombre}" para el ${formatearFecha(fechaElegida)} a las ${horaElegida}`,
-                        Destino: "medical-appointments",
+                        Destino: "citas-medicas",
                         Accion: "cita_agendada",
                         extra: {
                             agendaId: agendaActiva.id,
@@ -236,7 +254,8 @@ export default function OperadorCitasMedicas() {
             setFechaElegida("");
             setHoraElegida("");
             setHorariosDisponibles([]);
-            setVista("lista");
+            setVista("mis-citas");
+            cargarMisCitas();
         } catch (error) {
             console.error("Error al guardar cita:", error);
             notifyError("Error", error.message || "Hubo un error al agendar la cita.");
@@ -364,12 +383,13 @@ export default function OperadorCitasMedicas() {
                         <button
                             className="btn btn-link citas-op-muted p-0 mb-4 d-flex align-items-center gap-2 text-decoration-none"
                             onClick={() => {
-                                setVista("lista");
+                                setVista("mis-citas");
                                 setFechaElegida("");
                                 setHoraElegida("");
+                                cargarMisCitas();
                             }}
                         >
-                            <FiArrowLeft /> Volver a campañas
+                            <FiArrowLeft /> Cancelar
                         </button>
 
                         <h4 className="fw-bold mb-4">
@@ -446,9 +466,13 @@ export default function OperadorCitasMedicas() {
                     <div className="card-body p-4">
                         <button
                             className="btn btn-link citas-op-muted p-0 mb-4 d-flex align-items-center gap-2 text-decoration-none"
-                            onClick={() => setVista("lista")}
+                            onClick={() => {
+                                setVista("lista");
+                                setFechaElegida("");
+                                setHoraElegida("");
+                            }}
                         >
-                            <FiArrowLeft /> Volver a campañas
+                            <FiArrowLeft /> Agendar otra cita
                         </button>
 
                         {loadingMisCitas ? (

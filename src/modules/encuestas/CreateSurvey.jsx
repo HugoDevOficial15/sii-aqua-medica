@@ -865,7 +865,7 @@ export default function CreateSurvey() {
 
                                             <div className="col-span-2">
                                                 <label>
-                                                    <strong>Duración total de encuesta</strong>
+                                                    <strong>Duración total de Encuesta</strong>
                                                 </label>
                                                 <input
                                                     type="text"

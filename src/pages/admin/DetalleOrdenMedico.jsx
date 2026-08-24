@@ -3,7 +3,7 @@ import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, addDoc, 
 import { db } from "../../config/firebase";
 import { FaSearch, FaUserInjured, FaFingerprint, FaCheckCircle, FaClock, FaHeartbeat, FaCheckDouble, FaTrash, FaEllipsisV } from "react-icons/fa";
 import { FiTrash2 } from "react-icons/fi";
-import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
+import { notifySuccess, notifyError, notifyWarning, confirmDelete, notifyInfo } from "../../utils/notify";
 import { useAuth } from "../../hooks/useAuth";
 import { dismissNotification } from "../../utils/notificationPersistence";
 
@@ -27,6 +27,10 @@ export default function DetalleOrdenMedica() {
   const [alergias, setAlergias] = useState("");
   const [enfermedadesCrónicas, setEnfermedadesCronica] = useState("");
   const [telefonoEmergencia, setTelefonoEmergencia] = useState("");
+
+  const [mostrarModalAtencionRapida, setMostrarModalAtencionRapida] = useState(false);
+  const [nominaAtencionRapida, setNominaAtencionRapida] = useState("");
+  const [procesandoAtencionRapida, setProcesandoAtencionRapida] = useState(false);
 
   // 0. CARGAR TODAS LAS ÓRDENES
   const cargarOrdenes = async () => {
@@ -150,6 +154,92 @@ export default function DetalleOrdenMedica() {
     }
   };
 
+  // SOLICITAR ATENCIÓN RÁPIDA SIN CITA PREVIA
+  const solicitarAtencionRapida = async () => {
+    const nominaStr = nominaAtencionRapida.trim();
+    if (!nominaStr) {
+      notifyInfo("Campo requerido", "Por favor ingresa la nómina del paciente.");
+      return;
+    }
+
+    const nominaNum = Number(nominaStr);
+    if (isNaN(nominaNum)) {
+      notifyWarning("Nómina inválida", "La nómina debe ser un número válido.");
+      return;
+    }
+
+    setProcesandoAtencionRapida(true);
+    try {
+      // Buscar si ya existe orden activa
+      const ordenesRef = collection(db, "ordenes_medicas");
+      const q = query(
+        ordenesRef,
+        where("nominaPacienteNum", "==", nominaNum),
+        where("estado", "in", ["Pendiente", "En Tratamiento"])
+      );
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        // Cargar la orden existente
+        const ordenExistente = snapshot.docs[0];
+        cargarPacienteDesdeTabla({ id: ordenExistente.id, ...ordenExistente.data() });
+        setMostrarModalAtencionRapida(false);
+        setNominaAtencionRapida("");
+        notifyInfo("Orden encontrada", "Cargando la orden médica activa del paciente.");
+        return;
+      }
+
+      // Si no existe, buscar en usuarios para obtener datos (por nómina como número)
+      const usersRef = collection(db, "users");
+      const qUsers = query(usersRef, where("nomina", "==", nominaNum));
+      const snapUsers = await getDocs(qUsers);
+
+      if (snapUsers.empty) {
+        notifyWarning("No encontrado", "No se encontró un usuario con esa nómina en el sistema.");
+        setProcesandoAtencionRapida(false);
+        return;
+      }
+
+      const usuario = snapUsers.docs[0].data();
+      const docId = snapUsers.docs[0].id;
+
+      // Crear nueva orden médica para atención rápida
+      const nuevaOrden = {
+        idPaciente: usuario.uid || usuario.id,
+        docIdPaciente: docId,
+        nominaPaciente: nominaStr,
+        nominaPacienteNum: nominaNum,
+        nombrePaciente: usuario.displayName || usuario.nombre || "Usuario",
+        areaPaciente: usuario.area || "",
+        fechaApertura: new Date().toISOString(),
+        estado: "Pendiente",
+        tipoSangre: usuario.tipoSangre || "",
+        peso: usuario.peso || "",
+        estatura: usuario.estatura || "",
+        alergias: usuario.alergias || "",
+        enfermedadesCrónicas: usuario.enfermedadesCrónicas || "",
+        telefonoEmergencia: usuario.telefonoEmergencia || "",
+        revisiones: [],
+        esAtencionRapida: true
+      };
+
+      const docRef = await addDoc(collection(db, "ordenes_medicas"), nuevaOrden);
+
+      // Cargar la orden recién creada
+      cargarPacienteDesdeTabla({ id: docRef.id, ...nuevaOrden });
+      setMostrarModalAtencionRapida(false);
+      setNominaAtencionRapida("");
+      cargarOrdenes();
+      notifySuccess("Orden creada", "Nueva orden médica para atención rápida creada exitosamente.");
+
+    } catch (error) {
+      console.error("Error al solicitar atención rápida:", error);
+      notifyError("Error", "No se pudo crear la orden médica. Verifica la nómina e intenta de nuevo.");
+    } finally {
+      setProcesandoAtencionRapida(false);
+    }
+  };
+
   // 1. BUSCAR PACIENTE
   const buscarPaciente = async (e) => {
     e.preventDefault();
@@ -263,7 +353,7 @@ export default function DetalleOrdenMedica() {
             Mensaje: esAltaMedica
             ? "El médico ha concluido tu orden médica y te ha dado de alta."
             : `Nuevo diagnóstico o receta agregada: "${comentarios.substring(0, 40)}..."`,
-            Destino: "detalle-orden-medico",
+            Destino: "expediente-clinico",
             leida: false,
             fechaCreacion: new Date().toISOString(),
             tipo: "medico"
@@ -275,25 +365,41 @@ export default function DetalleOrdenMedica() {
 
       try {
         const usersSnapshot = await getDocs(collection(db, "users"));
-        const admins = usersSnapshot.docs
-          .filter(doc => {
-            const rol = doc.data().rol || "";
-            return rol === "admin_medico" || rol === "admin_sistemas" || rol === "admin_sist";
-          })
-          .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
+        let adminsANotificar = [];
 
-        for (const admin of admins) {
+        if (esAltaMedica && ordenCargada?.areaPaciente) {
+          // Si es alta médica, notificar solo al admin del área del paciente
+          adminsANotificar = usersSnapshot.docs
+            .filter(doc => {
+              const rol = doc.data().rol || "";
+              const area = doc.data().area || "";
+              return (rol === "admin_area" || rol === "admin_medico" || rol === "admin_sistemas" || rol === "admin_sist")
+                && area.toLowerCase() === ordenCargada.areaPaciente.toLowerCase();
+            })
+            .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
+        } else if (!esAltaMedica) {
+          // Si es solo actualización, notificar a todos los admins
+          adminsANotificar = usersSnapshot.docs
+            .filter(doc => {
+              const rol = doc.data().rol || "";
+              return rol === "admin_medico" || rol === "admin_sistemas" || rol === "admin_sist";
+            })
+            .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
+        }
+
+        for (const admin of adminsANotificar) {
           if (admin.uid) {
             await addDoc(collection(db, "notificaciones"), {
               IdUsuario: admin.uid,
               Titulo: esAltaMedica ? "Paciente Dado de Alta" : "Orden Médica Actualizada",
               Mensaje: esAltaMedica
-                ? `Paciente ${ordenCargada.nombrePaciente} ha sido dado de alta.`
+                ? `Paciente ${ordenCargada.nombrePaciente} ha sido dado de alta en el área ${ordenCargada.areaPaciente}.`
                 : `Se ha actualizado la orden médica del paciente ${ordenCargada.nombrePaciente}.`,
-              Destino: "detalle-orden-medico",
+              Destino: esAltaMedica ? "personal" : "detalle-orden-medico",
               leida: false,
               fechaCreacion: new Date().toISOString(),
-              tipo: "medico"
+              tipo: "medico",
+              orderId: ordenCargada.id
             });
           }
         }
@@ -361,6 +467,16 @@ export default function DetalleOrdenMedica() {
               {buscando ? "Buscando..." : "Buscar Paciente"}
             </button>
           </form>
+
+          <button
+            type="button"
+            className="btn btn-success custom-btn d-flex align-items-center gap-2"
+            onClick={() => setMostrarModalAtencionRapida(true)}
+            disabled={procesandoAtencionRapida}
+          >
+            <FaHeartbeat className="me-1" />
+            Atención Rápida
+          </button>
         </div>
 
       </div>
@@ -646,15 +762,67 @@ export default function DetalleOrdenMedica() {
                       handleFirmarYGuardar(e, true);
                     }
                   }}
-                  className="btn btn-success custom-btn d-flex align-items-center gap-2" 
+                  className="btn btn-success custom-btn d-flex align-items-center gap-2"
                   disabled={loadingGuardar}
-                  style={{ boxShadow: "0 0px 20px rgba(21, 128, 61, 0.4)", border: "none" }}
                 >
                   <FaCheckCircle size={18} />
                   Dar de Alta
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ATENCIÓN RÁPIDA */}
+      {mostrarModalAtencionRapida && (
+        <div className="modal-overlay-atencion" onClick={() => !procesandoAtencionRapida && setMostrarModalAtencionRapida(false)}>
+          <div className="modal-content-atencion" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-atencion">
+              <h5 className="modal-title-atencion">Atención Médica Rápida</h5>
+              <button
+                type="button"
+                className="btn-close-atencion"
+                onClick={() => setMostrarModalAtencionRapida(false)}
+                disabled={procesandoAtencionRapida}
+                aria-label="Close"
+              >×</button>
+            </div>
+            <div className="modal-body-atencion">
+              <label className="form-label fw-medium mb-2">Ingresa la nómina del paciente:</label>
+              <input
+                type="text"
+                className="form-control form-control-atencion"
+                placeholder="Ej: 502"
+                value={nominaAtencionRapida}
+                onChange={(e) => setNominaAtencionRapida(e.target.value)}
+                disabled={procesandoAtencionRapida}
+                onKeyDown={(e) => e.key === 'Enter' && solicitarAtencionRapida()}
+                autoFocus
+              />
+              <p className="text-white-50 small mt-3 mb-0">
+                Si el paciente no tiene una orden activa, se creará una nueva automáticamente.
+              </p>
+            </div>
+            <div className="modal-footer-atencion">
+              <button
+                type="button"
+                className="btn btn-secondary-atencion"
+                onClick={() => setMostrarModalAtencionRapida(false)}
+                disabled={procesandoAtencionRapida}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn-success-atencion d-flex align-items-center gap-2"
+                onClick={solicitarAtencionRapida}
+                disabled={procesandoAtencionRapida || !nominaAtencionRapida.trim()}
+              >
+                <FaHeartbeat />
+                {procesandoAtencionRapida ? "Buscando..." : "Cargar Paciente"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -700,6 +868,27 @@ export default function DetalleOrdenMedica() {
         .btn-primary:hover {
             background: var(--operator-primary);
             box-shadow: 0 0px 10px var(--operator-primary-light);
+        }
+
+        .btn-success {
+            height: 50px;
+            padding: 0 20px;
+            border-radius: 10px;
+            border: none;
+            background: #10b981;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0px 20px rgba(16, 185, 129, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            box-shadow: 0 0px 10px rgba(16, 185, 129, 0.7);
         }
 
         .custom-users-card {
@@ -948,6 +1137,139 @@ export default function DetalleOrdenMedica() {
 
         .btn-success:hover {
             background: #059669;
+        }
+
+        /* MODAL ATENCIÓN RÁPIDA STYLES */
+        .modal-overlay-atencion {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-content-atencion {
+            background: var(--operator-card);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            max-width: 450px;
+            width: 90%;
+            color: var(--operator-text);
+            border: 1px solid var(--operator-border);
+        }
+
+        .modal-header-atencion {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--operator-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title-atencion {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--operator-text);
+        }
+
+        .btn-close-atencion {
+            background: none;
+            border: none;
+            color: var(--operator-text-soft);
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 28px;
+            height: 28px;
+            line-height: 1;
+        }
+
+        .btn-close-atencion:hover {
+            color: var(--operator-text);
+        }
+
+        .btn-close-atencion:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal-body-atencion {
+            padding: 24px;
+        }
+
+        .form-control-atencion {
+            padding: 12px 16px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: 1px solid var(--operator-border);
+            background: var(--operator-background);
+            color: var(--operator-text);
+        }
+
+        .form-control-atencion:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            background: var(--operator-card);
+            color: var(--operator-text);
+        }
+
+        .modal-footer-atencion {
+            padding: 16px 24px;
+            border-top: 1px solid var(--operator-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn-secondary-atencion {
+            background: var(--operator-border);
+            border: 1px solid var(--operator-border);
+            color: var(--operator-text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary-atencion:hover:not(:disabled) {
+            background: var(--operator-border);
+            opacity: 0.8;
+        }
+
+        .btn-secondary-atencion:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-success-atencion {
+            background: #10b981;
+            border: none;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-success-atencion:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        .btn-success-atencion:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
       `}</style>
     </div>

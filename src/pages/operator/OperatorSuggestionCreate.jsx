@@ -19,10 +19,11 @@ import "../../styles/operator/operator-suggestions.css";
 
 export default function OperatorSuggestionCreate({ onBack }) {
     const { user } = useAuth();
-    
+
     //  MÁQUINA DE ESTADOS DE VISTA: "list" (Img 1/3) | "create" (Img 2) | "detail" (Img 4)
-    const [view, setView] = useState("list"); 
-    const [selectedIdea, setSelectedIdea] = useState(null); 
+    const [view, setView] = useState("list");
+    const [selectedIdea, setSelectedIdea] = useState(null);
+    const [keyboardOpen, setKeyboardOpen] = useState(false); 
 
     // ==========================================
     //  1. ESTADOS Y LÓGICA PARA LA LISTA
@@ -49,6 +50,42 @@ export default function OperatorSuggestionCreate({ onBack }) {
     useEffect(() => {
         if (view === "list") loadIdeas();
     }, [user?.nomina, user?.uid, view]);
+
+    // Detectar cuando el teclado móvil se abre/cierra
+    useEffect(() => {
+        const handleInputFocus = () => setKeyboardOpen(true);
+        const handleInputBlur = () => setKeyboardOpen(false);
+
+        // Agregar listeners a todos los inputs y textareas
+        const inputs = document.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('focus', handleInputFocus);
+            input.addEventListener('blur', handleInputBlur);
+        });
+
+        return () => {
+            inputs.forEach(input => {
+                input.removeEventListener('focus', handleInputFocus);
+                input.removeEventListener('blur', handleInputBlur);
+            });
+        };
+    }, []);
+
+    // Alternativa: Detectar usando visualViewport (más preciso en móviles)
+    useEffect(() => {
+        if (!('visualViewport' in window)) return;
+
+        const handleViewportResize = () => {
+            const viewport = window.visualViewport;
+            const heightDiff = window.innerHeight - viewport.height;
+            setKeyboardOpen(heightDiff > 100);
+        };
+
+        window.visualViewport.addEventListener('resize', handleViewportResize);
+        return () => {
+            window.visualViewport.removeEventListener('resize', handleViewportResize);
+        };
+    }, []);
 
     const getEstadoNormalizado = (estado) => estado || "Pendiente";
     const ideasEnRevision = ideas.filter(i => ["Pendiente", "En revisión"].includes(getEstadoNormalizado(i.estado)));

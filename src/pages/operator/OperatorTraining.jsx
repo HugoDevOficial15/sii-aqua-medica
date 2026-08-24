@@ -37,6 +37,7 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
     const [answers, setAnswers] = useState({});
     const [timeLeft, setTimeLeft] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [keyboardOpen, setKeyboardOpen] = useState(false);
 
     // 🔥 ESTADOS PARA RESPUESTAS EN FIREBASE
     const [userResponses, setUserResponses] = useState({});
@@ -110,6 +111,42 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
         }, 1000);
         return () => clearInterval(timerId);
     }, [timeLeft, isSubmitting]);
+
+    // Detectar cuando el teclado móvil se abre/cierra
+    useEffect(() => {
+        const handleInputFocus = () => setKeyboardOpen(true);
+        const handleInputBlur = () => setKeyboardOpen(false);
+
+        // Agregar listeners a todos los inputs y textareas
+        const inputs = document.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('focus', handleInputFocus);
+            input.addEventListener('blur', handleInputBlur);
+        });
+
+        return () => {
+            inputs.forEach(input => {
+                input.removeEventListener('focus', handleInputFocus);
+                input.removeEventListener('blur', handleInputBlur);
+            });
+        };
+    }, []);
+
+    // Alternativa: Detectar usando visualViewport (más preciso en móviles)
+    useEffect(() => {
+        if (!('visualViewport' in window)) return;
+
+        const handleViewportResize = () => {
+            const viewport = window.visualViewport;
+            const heightDiff = window.innerHeight - viewport.height;
+            setKeyboardOpen(heightDiff > 100);
+        };
+
+        window.visualViewport.addEventListener('resize', handleViewportResize);
+        return () => {
+            window.visualViewport.removeEventListener('resize', handleViewportResize);
+        };
+    }, []);
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600);
@@ -355,7 +392,13 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
             </div>
 
             {ongoingTraining && (
-                <div className="training-modal-backdrop">
+                <div
+                    className="training-modal-backdrop"
+                    style={{
+                        zIndex: keyboardOpen ? 10001 : 10000,
+                        transition: 'z-index 0.3s ease'
+                    }}
+                >
                     <div className="training-modal-content">
                         <div className="training-modal-header">
                             <h2>{ongoingTraining.titulo}</h2>

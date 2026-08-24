@@ -81,6 +81,7 @@ export default function Personal() {
     reconocimientos: [],
     incidencias: [],
     incapacidades: [],
+    historialesMedicos: [],
   });
   const [recordFilters, setRecordFilters] = useState({});
   const [actionModal, setActionModal] = useState({ type: null, usuario: null });
@@ -119,16 +120,28 @@ export default function Personal() {
           reconocimientosSnapshot,
           incidenciasSnapshot,
           incapacidadesSnapshot,
+          ordenesSnapshot,
         ] = await Promise.all([
           getUsers(),
           getDocs(collection(db, "reconocimientos")),
           getDocs(collection(db, "incidencias_personal")),
           getDocs(collection(db, "incapacidades")),
+          getDocs(collection(db, "ordenes_medicas")),
         ]);
 
         const syncedUsers = await syncUsersWithIncapacidades(usersData);
 
         setUsuarios(syncedUsers);
+
+        const historialesMedicos = ordenesSnapshot.docs
+          .filter(doc => doc.data().estado === "Cerrada")
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            type: "historialMedico",
+            fecha: doc.data().fechaCierre || doc.data().fechaApertura,
+          }));
+
         setAllRecords({
           reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({
             id: doc.id,
@@ -142,6 +155,7 @@ export default function Personal() {
             id: doc.id,
             ...doc.data(),
           })),
+          historialesMedicos,
         });
       } catch (error) {
         console.error("Error cargando personal y registros:", error);
@@ -150,6 +164,7 @@ export default function Personal() {
           reconocimientos: [],
           incidencias: [],
           incapacidades: [],
+          historialesMedicos: [],
         });
       } finally {
         setLoading(false);
@@ -222,7 +237,7 @@ export default function Personal() {
     const empleadoNomina = String(usuario?.nomina || "").trim();
 
     if (!empleadoId && !empleadoNomina) {
-      return { reconocimientos: [], incidencias: [], incapacidades: [] };
+      return { reconocimientos: [], incidencias: [], incapacidades: [], historialesMedicos: [] };
     }
 
     const reconocimientos = allRecords.reconocimientos
@@ -237,7 +252,23 @@ export default function Personal() {
       .filter((record) => matchesEmpleado(usuario, record))
       .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
 
-    return { reconocimientos, incidencias, incapacidades };
+    const historialesMedicos = allRecords.historialesMedicos
+      .filter((record) => {
+        const recordEmpleadoId = String(record?.idPaciente || "").trim();
+        const recordNomina = String(record?.nominaPaciente || "").trim();
+        const userNomina = String(usuario?.nomina || "").trim();
+        const recordNombre = String(record?.nombrePaciente || "").toLowerCase().trim();
+        const userName = String(usuario?.nombre || "").toLowerCase().trim();
+
+        return (
+          (empleadoId && recordEmpleadoId && recordEmpleadoId.toLowerCase() === empleadoId.toLowerCase()) ||
+          (userNomina && recordNomina && recordNomina === userNomina) ||
+          (userName && recordNombre && recordNombre === userName)
+        );
+      })
+      .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+
+    return { reconocimientos, incidencias, incapacidades, historialesMedicos };
   };
 
   const refreshAllRecords = async () => {
@@ -246,11 +277,22 @@ export default function Personal() {
         reconocimientosSnapshot,
         incidenciasSnapshot,
         incapacidadesSnapshot,
+        ordenesSnapshot,
       ] = await Promise.all([
         getDocs(collection(db, "reconocimientos")),
         getDocs(collection(db, "incidencias_personal")),
         getDocs(collection(db, "incapacidades")),
+        getDocs(collection(db, "ordenes_medicas")),
       ]);
+
+      const historialesMedicos = ordenesSnapshot.docs
+        .filter(doc => doc.data().estado === "Cerrada")
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          type: "historialMedico",
+          fecha: doc.data().fechaCierre || doc.data().fechaApertura,
+        }));
 
       setAllRecords({
         reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({
@@ -265,6 +307,7 @@ export default function Personal() {
           id: doc.id,
           ...doc.data(),
         })),
+        historialesMedicos,
       });
     } catch (error) {
       console.error("Error recargando registros del personal:", error);
@@ -357,6 +400,10 @@ export default function Personal() {
                   ...recordData.incapacidades.map((item) => ({
                     ...item,
                     type: "incapacidad",
+                  })),
+                  ...recordData.historialesMedicos.map((item) => ({
+                    ...item,
+                    type: "historialMedico",
                   })),
                 ]
                   .filter(
@@ -492,7 +539,7 @@ export default function Personal() {
                                 { key: "incapacidad", label: "Incapacidades" },
                                 {
                                   key: "historialMedico",
-                                  label: "Historial Medico",
+                                  label: "Historial Médico",
                                 },
                               ].map((option) => (
                                 <button
@@ -516,12 +563,14 @@ export default function Personal() {
                               <div className="personal-record-empty">
                                 No hay{" "}
                                 {categoryFilter === "todos"
-                                  ? "incidencias, reconocimientos ni incapacidades"
+                                  ? "incidencias, reconocimientos, incapacidades ni historial médico"
                                   : categoryFilter === "reconocimiento"
                                     ? "reconocimientos"
                                     : categoryFilter === "incapacidad"
                                       ? "incapacidades"
-                                      : "incidencias"}{" "}
+                                      : categoryFilter === "historialMedico"
+                                        ? "historial médico"
+                                        : "incidencias"}{" "}
                                 registrados.
                               </div>
                             ) : (
@@ -550,18 +599,23 @@ export default function Personal() {
                                             ? "Reconocimiento"
                                             : item.type === "incapacidad"
                                               ? "Incapacidad"
-                                              : "Incidencia"}
+                                              : item.type === "historialMedico"
+                                                ? "Historial Médico"
+                                                : "Incidencia"}
                                         </span>
                                       </td>
                                       <td>
                                         {item.titulo ||
                                           item.tipo ||
+                                          item.nombrePaciente ||
                                           "Sin título"}
                                       </td>
                                       <td>
                                         {item.descripcion ||
                                           item.notas ||
                                           item.nota ||
+                                          item.Mensaje ||
+                                          item.comentarios ||
                                           "Sin descripción"}
                                       </td>
                                       <td>

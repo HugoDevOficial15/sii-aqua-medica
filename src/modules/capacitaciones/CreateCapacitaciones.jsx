@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaSave, FaTrash, FaChartBar, FaEllipsisV, FaFileUpload } from "react-icons/fa";
 import { createTraining, getTrainings, updateTraining, deleteTraining } from "../../services/trainingService";
 import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
 import Loader from "../../components/Loader";
@@ -10,6 +9,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { trainingSchema } from "../../schemas/trainingSchema";
 import { getAuth } from "firebase/auth";
 import EncuestaResultados from "../../modules/encuestas/EncuestaResultados";
+import { collection, getDocs, query, where, deleteDoc, doc } from "firebase/firestore";
+import { db } from "../../config/firebase";
+import { dismissNotification } from "../../utils/notificationPersistence";
+import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar,FaWindowClose,FaEllipsisV,FaGlobe,FaWarehouse,FaFlask,FaUtensils,FaUserTie,FaCalculator,FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaShieldAlt,FaHeartbeat,FaHandsHelping,FaStethoscope,FaLaptopCode,FaClipboardCheck,FaEye,FaShoppingCart,FaFileUpload } from "react-icons/fa";
 import '../../styles/index.css';
 
 export default function CreateCapacitaciones() {
@@ -29,6 +32,157 @@ export default function CreateCapacitaciones() {
 
     // Fecha actual para validación (min={today})
     const today = new Date().toISOString().split("T")[0];
+
+    const formatToAmPm = (timeValue) => {
+        if (!timeValue) return "";
+
+        const normalized = String(timeValue).trim();
+        const match = normalized.match(/^(\d{1,2}):(\d{2})(?:\s*(a\.?m\.?|p\.?m\.?)?)?$/i);
+
+        if (!match) return normalized;
+
+        let hours = Number(match[1]);
+        const minutes = String(match[2]).padStart(2, "0");
+        const meridiem = (match[3] || "").toLowerCase();
+
+        if (meridiem.startsWith("p") && hours < 12) {
+            hours += 12;
+        }
+
+        if (meridiem.startsWith("a") && hours === 12) {
+            hours = 0;
+        }
+
+        const suffix = hours >= 12 ? "p.m." : "a.m.";
+        const hour12 = ((hours + 11) % 12) + 1;
+
+        return `${String(hour12)}:${minutes} ${suffix}`;
+    };
+
+    const timeInputValue = (timeValue) => {
+        if (!timeValue) return "";
+
+        const normalized = String(timeValue).trim().toLowerCase().replace(/\s+/g, "");
+        const match = normalized.match(/^(\d{1,2}):(\d{2})(?:a\.m\.?|p\.m\.?|am|pm)?$/i);
+
+        if (!match) return normalized;
+
+        let hours = Number(match[1]);
+        const minutes = String(match[2]).padStart(2, "0");
+        const meridiem = normalized.replace(/^(\d{1,2}:\d{2})/, "");
+
+        if (meridiem.startsWith("p") && hours < 12) {
+            hours += 12;
+        }
+
+        if (meridiem.startsWith("a") && hours === 12) {
+            hours = 0;
+        }
+
+        return `${String(hours).padStart(2, "0")}:${minutes}`;
+    };
+
+    const getMinutesFromTime = (timeValue) => {
+        if (!timeValue) return 0;
+
+        const normalized = String(timeValue).trim().toLowerCase().replace(/\s+/g, "");
+        const match = normalized.match(/^(\d{1,2}):(\d{2})(?:a\.m\.?|p\.m\.?|am|pm)?$/i);
+
+        if (!match) {
+            const [hours, minutes] = String(timeValue).split(":").map(Number);
+            return (Number.isFinite(hours) ? hours : 0) * 60 + (Number.isFinite(minutes) ? minutes : 0);
+        }
+
+        let hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        const suffix = normalized.replace(/^(\d{1,2}:\d{2})/, "");
+
+        if (suffix.startsWith("p") && hours < 12) {
+            hours += 12;
+        }
+
+        if (suffix.startsWith("a") && hours === 12) {
+            hours = 0;
+        }
+
+        return hours * 60 + minutes;
+    };
+
+    const getBusinessDaysBetween = (fechaInicio, fechaFin) => {
+        if (!fechaInicio || !fechaFin) return 0;
+
+        const startDate = new Date(`${fechaInicio}T00:00:00`);
+        const endDate = new Date(`${fechaFin}T00:00:00`);
+
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return 0;
+
+        let businessDays = 0;
+        const cursor = new Date(startDate);
+
+        while (cursor <= endDate) {
+            const day = cursor.getDay();
+            if (day !== 0 && day !== 6) {
+                businessDays += 1;
+            }
+            cursor.setDate(cursor.getDate() + 1);
+        }
+
+        return businessDays;
+    };
+
+    const calcularDuracionEncuesta = (fechaInicio, fechaFin, horaInicio, horaFin) => {
+        if (!fechaInicio || !fechaFin || !horaInicio || !horaFin) {
+            return { sessionMinutos: 0, totalMinutos: 0 };
+        }
+
+        const sessionMinutos = Math.max(0, getMinutesFromTime(horaFin) - getMinutesFromTime(horaInicio));
+        const businessDays = getBusinessDaysBetween(fechaInicio, fechaFin);
+        const totalMinutos = sessionMinutos * businessDays;
+
+        return { sessionMinutos, totalMinutos };
+    };
+
+    const calcularDuracionCapacitacion = (fechaInicio, fechaFin, horaInicio, horaFin) => {
+        if (!fechaInicio || !fechaFin || !horaInicio || !horaFin) {
+            return { sessionMinutos: 0, totalMinutos: 0 };
+        }
+
+        const sessionMinutos = Math.max(0, getMinutesFromTime(horaFin) - getMinutesFromTime(horaInicio));
+        const businessDays = getBusinessDaysBetween(fechaInicio, fechaFin);
+        const totalMinutos = sessionMinutos * businessDays;
+
+        return { sessionMinutos, totalMinutos };
+    };
+
+    const AREA_ICONS = {
+        "Todas las áreas": FaGlobe,
+        "Almacen": FaWarehouse,
+        "Control de Calidad": FaFlask,
+        "Comedor": FaUtensils,
+        "Comité Técnico": FaUserTie,
+        "Contabilidad": FaCalculator,
+        "Dirección General": FaBuilding,
+        "Mantenimiento": FaTools,
+        "Gerencia de Operaciones": FaHardHat,
+        "Gestión Sostenible": FaLeaf,
+        "Producción": FaIndustry,
+        "Recepcion": FaDoorOpen,
+        "Recursos Humanos": FaUsers,
+        "Responsable Sanitario": FaShieldAlt,
+        "Salud Ocupacional": FaHeartbeat,
+        "Seguridad": FaShieldAlt,
+        "Servicios": FaHandsHelping,
+        "Servicio Médico": FaStethoscope,
+        "Sistemas": FaLaptopCode,
+        "Validaciones": FaClipboardCheck,
+        "Vigilancia": FaEye,
+        "Compras": FaShoppingCart,
+    };
+
+    const getAreaIcon = (areaName) => {
+        const Icon = AREA_ICONS[areaName] || FaBuilding;
+        return <Icon className="area-card-icon" />;
+    };
 
     const {
         register,
@@ -76,6 +230,29 @@ export default function CreateCapacitaciones() {
         control,
         name: "temario",
     });
+
+    const fechaInicioWatch = watch("fechaInicio");
+    const fechaFinWatch = watch("fechaFin");
+    const horaInicioWatch = watch("horaInicio");
+    const horaFinWatch = watch("horaFin");
+
+    useEffect(() => {
+        const { sessionMinutos, totalMinutos } = calcularDuracionEncuesta(
+            fechaInicioWatch,
+            fechaFinWatch,
+            horaInicioWatch,
+            horaFinWatch,
+        );
+
+        const duracionHoras = Math.floor(totalMinutos / 60);
+        const duracionMinutos = totalMinutos % 60;
+
+        if (sessionMinutos > 0 || totalMinutos > 0) {
+            setValue("duracionHoras", String(duracionHoras), { shouldDirty: true, shouldTouch: true });
+            setValue("duracionMinutos", String(duracionMinutos), { shouldDirty: true, shouldTouch: true });
+        }
+    }, [fechaInicioWatch, fechaFinWatch, horaInicioWatch, horaFinWatch, setValue]);
+
 
     const formaEvaluacion = watch("formaEvaluacion");
     const isOnline = formaEvaluacion && formaEvaluacion.toLowerCase().includes("digital");
@@ -143,6 +320,16 @@ export default function CreateCapacitaciones() {
                 return;
             }
 
+             const { sessionMinutos, totalMinutos } = calcularDuracionEncuesta(
+                data.fechaInicio,
+                data.fechaFin,
+                data.horaInicio,
+                data.horaFin,
+            );
+
+            const totalHoras = Math.floor(totalMinutos / 60);
+            const totalMinutosRestantes = totalMinutos % 60;
+
             const cleanData = {
                 ...data,
                 preguntas: (data.preguntas || []).map(p => ({
@@ -154,6 +341,14 @@ export default function CreateCapacitaciones() {
 
             const trainingData = {
                 ...cleanData,
+                 horaInicio: formatToAmPm(data.horaInicio),
+                horaFin: formatToAmPm(data.horaFin),
+                modalidad: "digital",
+                formaEvaluacion: "digital",
+                duracionSesionMinutos: sessionMinutos,
+                duracionTotalMinutos: totalMinutos,
+                duracionHoras: String(totalHoras),
+                duracionMinutos: String(totalMinutosRestantes),
                 asignacion: construirAsignacion(data),
                 activa: true,
                 createdAt: new Date(),
@@ -194,7 +389,11 @@ export default function CreateCapacitaciones() {
     }
 
     const handleEdit = (training) => {
-        reset(training);
+        reset({
+            ...training,
+            horaInicio: timeInputValue(training.horaInicio),
+            horaFin: timeInputValue(training.horaFin),
+        });
         setCurrentId(training.id);
         setEditing(true);
         setCurrentStep(1);
@@ -220,10 +419,27 @@ export default function CreateCapacitaciones() {
         const result = await confirmDelete("¿Eliminar capacitación?", "Esta acción no se puede deshacer.");
         if (result.isConfirmed) {
             try {
+                // Eliminar notificaciones asociadas
+                try {
+                    const qNotif = query(collection(db, "notificaciones"), where("extra.capacitacionId", "==", training.id));
+                    const snapshotNotif = await getDocs(qNotif);
+
+                    const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
+                        // 🍪 Persistir en cookies antes de borrar
+                        dismissNotification(docNotif.id);
+                        return deleteDoc(doc(db, "notificaciones", docNotif.id));
+                    });
+                    await Promise.all(deleteNotifPromises);
+                } catch (notifError) {
+                    console.warn("No se encontraron notificaciones asociadas o error al eliminarlas:", notifError);
+                    // Continuar sin fallar
+                }
+
+                // Eliminar capacitación
                 await deleteTraining(training.id);
                 const data = await getTrainings();
                 setTrainings(data);
-                notifySuccess("Capacitación eliminada", "La capacitación fue eliminada correctamente");
+                notifySuccess("Capacitación eliminada", "La capacitación y notificaciones fueron eliminadas correctamente");
             } catch (error) {
                 console.error("Error eliminando capacitación:", error);
                 notifyError("Error", "No se pudo eliminar la capacitación");
@@ -263,7 +479,7 @@ export default function CreateCapacitaciones() {
     }
 
     return (
-        <div id="capacitaciones-fix" className="container-fluid p-4 page-transition" style={{ color: "var(--operator-text)" }}>
+        <div id="capacitaciones-fix" className="page-transition">
             {!showModal && (
                 <FloatingAlert
                     errors={errors}
@@ -273,34 +489,47 @@ export default function CreateCapacitaciones() {
             )}
             {/* Header */}
             <div className="d-flex justify-content-between mb-4">
+
+
                 <div className="page mb-3">
-                    <h6>
+                    <h6 >
                         <strong>Capacitaciones</strong>
                     </h6>
+
                     <span className="badge-title">
                         AQUA Médica
                     </span>
                 </div>
 
                 <div className="d-flex gap-3">
-                    <button className="btn btn-sm btn-primary btn-custom"
+
+                    <button className="btn btn-sm btn-primary btn-custom "
+
                         onClick={() => {
                             reset();
                             setEditing(false);
+
                             setCurrentStep(1);
                             setUploadedFiles([]);
+
                             setShowModal(true);
                         }}
                     >
+
                         <FaPlus className="me-2" />
                         Crear Capacitación
+
                     </button>
+
                 </div>
+
             </div>
 
             <div className="card shadow-sm">
+
                 <div className="card-body">
-                    <div className="mb-4 d-flex gap-2" style={{ borderBottom: "1px solid var(--operator-border)", paddingBottom: "16px" }}></div>
+
+                    {/* tabala */}
 
                     <div className="table-responsive table-responsive-container">
                         <table className="table training-table">
@@ -572,7 +801,7 @@ export default function CreateCapacitaciones() {
 
                                             <div className="col-span-3">
                                                 <label>
-                                                    <strong>Hora inicio</strong>
+                                                    <strong>Hora inicio de sesión</strong>
                                                 </label>
                                                 <input
                                                     type="time"
@@ -583,7 +812,7 @@ export default function CreateCapacitaciones() {
 
                                             <div className="col-span-3">
                                                 <label>
-                                                    <strong>Hora fin</strong>
+                                                    <strong>Hora término de sesión</strong>
                                                 </label>
                                                 <input
                                                     type="time"
@@ -594,29 +823,49 @@ export default function CreateCapacitaciones() {
 
                                             <div className="col-span-2">
                                                 <label>
-                                                    <strong>Duración (Horas)</strong>
+                                                    <strong>Duración por sesión</strong>
                                                 </label>
                                                 <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="99"
-                                                    maxLength="2"
-                                                    {...register("duracionHoras")}
-                                                    className={`form-control ${errors.duracionHoras ? "is-invalid" : ""}`}
+                                                    type="text"
+                                                    readOnly
+                                                    value={
+                                                        (() => {
+                                                            const sessionMinutos = calcularDuracionCapacitacion(
+                                                                watch("fechaInicio"),
+                                                                watch("fechaFin"),
+                                                                watch("horaInicio"),
+                                                                watch("horaFin")
+                                                            ).sessionMinutos;
+                                                            const horas = Math.floor(sessionMinutos / 60);
+                                                            const minutos = sessionMinutos % 60;
+                                                            return `${horas}h ${minutos}m`;
+                                                        })()
+                                                    }
+                                                    className="form-control"
                                                 />
                                             </div>
 
                                             <div className="col-span-2">
                                                 <label>
-                                                    <strong>Duración (Minutos)</strong>
+                                                    <strong>Duración total de Capacitación</strong>
                                                 </label>
                                                 <input
-                                                    type="number"
-                                                    min="0"
-                                                    max="59"
-                                                    maxLength="2"
-                                                    {...register("duracionMinutos")}
-                                                    className={`form-control ${errors.duracionMinutos ? "is-invalid" : ""}`}
+                                                    type="text"
+                                                    readOnly
+                                                    value={
+                                                        (() => {
+                                                            const totalMinutos = calcularDuracionCapacitacion(
+                                                                watch("fechaInicio"),
+                                                                watch("fechaFin"),
+                                                                watch("horaInicio"),
+                                                                watch("horaFin")
+                                                            ).totalMinutos;
+                                                            const horas = Math.floor(totalMinutos / 60);
+                                                            const minutos = totalMinutos % 60;
+                                                            return `${horas}h ${minutos}m`;
+                                                    })()
+                                                    }
+                                                    className="form-control"
                                                 />
                                             </div>
 
@@ -703,6 +952,14 @@ export default function CreateCapacitaciones() {
                                                     </button>
                                                 </div>
                                             ))}
+
+                                            <button
+                                                type="=button"
+                                                className="btn-agregar-temario"
+                                                onClick={() => addTema("")}
+                                            >
+                                                Agregar tema
+                                            </button>
                                         </div>
                                     </div>
                                 </>
@@ -747,7 +1004,11 @@ export default function CreateCapacitaciones() {
                                                         }
                                                     }}
                                                 />
+                                                <span className="area-card-content">
+                                                    {getAreaIcon("Todas las áreas")}                                                
                                                 <span>Todas las áreas</span>
+                                                </span>
+
                                             </label>
                                         )}
 
@@ -756,6 +1017,7 @@ export default function CreateCapacitaciones() {
                                                 {AREAS.map(area => {
                                                     const selected = watch("areas") || [];
                                                     const isSelected = selected.includes(area.nombre);
+                                                    const AreaIcon = AREA_ICONS[area.nombre] || FaBuilding;
                                                     return (
                                                         <div key={area.id} className="area-grid-item">
                                                             <label className={`area-card ${isSelected ? "selected" : ""}`}>
@@ -772,7 +1034,12 @@ export default function CreateCapacitaciones() {
                                                                         setValue("areas", updated, { shouldValidate: true });
                                                                     }}
                                                                 />
-                                                                <span>{area.nombre}</span>
+
+                                                                <span className="area-card-content">
+                                                                    <AreaIcon className="area-card-icon" />
+                                                                    <span>{area.nombre}</span>
+                                                                </span>
+
                                                             </label>
                                                         </div>
                                                     );
@@ -978,7 +1245,7 @@ export default function CreateCapacitaciones() {
                                     {currentStep === (isOnline ? 3 : 2) && (
                                         <button
                                             type="submit"
-                                            className="modal-primary-btn modal-primary-btn-success"
+                                            className="modal-primary-btn"
                                         >
                                             <FaSave className="me-2" />
                                             Guardar capacitación
@@ -1307,7 +1574,7 @@ export default function CreateCapacitaciones() {
 .form-grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 16px;
+    gap: 20px;
 }
 
 .col-span-12 { grid-column: span 12; }
@@ -1337,8 +1604,8 @@ export default function CreateCapacitaciones() {
 
 .step-btn.active {
     color: #fff;
-    background: var(--operator-primary);
-    box-shadow: 0 0 0 1px rgba(10, 77, 157, 0.12), 0 0px 24px var(--operator-primary-light);
+    background: rgba(28, 93, 172, 0.38);
+    box-shadow: 0 0px 10px rgba(53, 114, 187, 0.68);
 }
 
 .modal-full .text-primary {
@@ -1448,7 +1715,20 @@ export default function CreateCapacitaciones() {
     cursor: pointer;
 }
 
-.area-card span {
+.area-card-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.area-card-icon {
+    font-size: 20px;
+    color: var(--operator-text);
+    flex-shrink: 0;
+}
+
+.area-card span:last-child {
     font-size: 14px;
     font-weight: 600;
     color: var(--operator-text);
@@ -1648,6 +1928,40 @@ export default function CreateCapacitaciones() {
 .card-body {
     overflow: visible !important;
 }
+
+
+
+.agregar-temario {
+    display: flex;
+    flex-direction: column;
+    
+    gap: 10px;
+    }
+
+.btn-agregar-temario {
+    height: 50px;
+    width: fit-content;
+    padding: 0 24px;
+    border-radius: 14px;
+    border: none;
+    background: var(--operator-primary);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0px 10px var(--operator-primary-light);
+}
+
+.btn-agregar-temario:hover {
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+    box-shadow:0 0px 20px var(--operator-primary-light);
+}
+
+
+
 `}</style>
         </div>
     );

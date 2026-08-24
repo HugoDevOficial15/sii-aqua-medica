@@ -134,23 +134,102 @@ export const getCitasPorAgenda = async (agendaId) => {
 // usado en el resto del proyecto para localizar a un usuario.
 export const getUserAppointments = async (nomina, userId) => {
     try {
-        if (!userId) {
-            throw new Error("Se requiere el ID de usuario para obtener citas");
+        if (!userId && !nomina) {
+            throw new Error("Se requiere el ID de usuario o nómina para obtener citas");
         }
 
-        // Usar userId como filtro principal (identificador único y confiable)
-        const q = query(
-            collection(db, "citas_medicas"),
-            where("userId", "==", userId)
-        );
+        console.log("🔍 DEBUG getUserAppointments - Parámetros entrada:", { nomina, userId });
 
-        const snapshot = await getDocs(q);
+        let snapshot;
+
+        // 🔥 CRÍTICO: Filtrar SIEMPRE por userId si disponible (es el identificador más confiable)
+        // NO usar fallback a nomina porque causa que usuarios vean citas de otros con la misma nomina
+        if (userId) {
+            const q = query(
+                collection(db, "citas_medicas"),
+                where("userId", "==", userId)
+            );
+            snapshot = await getDocs(q);
+            console.log("🔍 DEBUG - Query por userId:", { resultados: snapshot.docs.length, userId });
+        } else if (nomina) {
+            // Solo si NO hay userId, usar nómina como último recurso
+            console.log("⚠️ DEBUG - No hay userId, usando nomina como fallback");
+            const q = query(
+                collection(db, "citas_medicas"),
+                where("nominaUsuario", "==", nomina)
+            );
+            snapshot = await getDocs(q);
+            console.log("🔍 DEBUG - Query por nomina (fallback):", { resultados: snapshot.docs.length, nomina });
+        } else {
+            throw new Error("Se requiere userId o nomina para obtener citas");
+        }
 
         // 2. Extraemos los datos
         let misCitas = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
+
+        console.log("🔍 DEBUG - Citas antes de filtro:", { cantidad: misCitas.length, muestras: misCitas.slice(0, 2).map(c => ({ userId: c.userId, nomina: c.nominaUsuario, fecha: c.fecha, hora: c.horaInicio })) });
+
+        // 2b. Filtrado adicional ESTRICTO por usuario
+        // 🔥 CRÍTICO: Si se usó userId en la query, EXIGIR que coincida EXACTAMENTE
+        // Rechaza CUALQUIER cita que no tenga userId o que tenga userId diferente
+        if (userId) {
+            const paramUserId = String(userId).trim();
+            const citasAntesDelFiltro = misCitas.length;
+
+            misCitas = misCitas.filter(cita => {
+                // 🚨 SI NO TIENE userId, RECHAZARLA INMEDIATAMENTE
+                if (!cita.userId) {
+                    console.warn("🚨 FILTRO RECHAZÓ cita: NO TIENE userId", { citaId: cita.id, fecha: cita.fecha, hora: cita.horaInicio });
+                    return false;
+                }
+
+                const citaUserId = String(cita.userId).trim();
+                const coinciden = citaUserId === paramUserId;
+
+                if (!coinciden) {
+                    console.warn("🚨 FILTRO RECHAZÓ cita: userId DIFERENTE", { esperado: paramUserId, encontrado: citaUserId, citaId: cita.id });
+                }
+                return coinciden;
+            });
+
+            console.log("🔍 DEBUG - Filtrado por userId:", { antes: citasAntesDelFiltro, despues: misCitas.length, userId: paramUserId });
+        } else {
+            // Si se usó nomina, filtrar por nomina
+            const paramNomina = String(nomina).trim();
+            const citasAntesDelFiltro = misCitas.length;
+
+            misCitas = misCitas.filter(cita => {
+                const citaNomina = String(cita.nominaUsuario || "").trim();
+                const coinciden = citaNomina === paramNomina;
+                if (!coinciden) {
+                    console.warn("🚨 FILTRO RECHAZÓ cita: nomina no coincide", { esperado: paramNomina, encontrado: citaNomina, citaId: cita.id });
+                }
+                return coinciden;
+            });
+
+            console.log("🔍 DEBUG - Filtrado por nomina:", { antes: citasAntesDelFiltro, despues: misCitas.length, nomina: paramNomina });
+        }
+
+        console.log("🔍 DEBUG - Citas después de filtro:", { cantidad: misCitas.length });
+
+        // 🔍 DIAGNÓSTICO: Si hay muchas citas, reportar problema
+        if (misCitas.length > 10) {
+            console.error("🚨 PROBLEMA DETECTADO: El usuario tiene " + misCitas.length + " citas, lo que es inusual");
+            console.error("🚨 Primeras citas después del filtrado:");
+            misCitas.slice(0, 3).forEach(c => {
+                console.error({
+                    id: c.id,
+                    userId: c.userId,
+                    nomina: c.nominaUsuario,
+                    usuario: c.usuario,
+                    fecha: c.fecha,
+                    hora: c.horaInicio
+                });
+            });
+        }
 
         // Enriquecer cada cita con el nombre de la agenda (si está disponible)
         // para que desde la vista de usuario podamos mostrar la campaña/agenda.
@@ -366,6 +445,8 @@ export const bookAppointment = async (appointmentData) => {
         nombre,
         paciente
     } = appointmentData;
+
+    console.log("🔍 DEBUG bookAppointment - Datos recibidos:", { userId, nominaUsuario, usuario, nombre, fecha, horaInicio });
 
     if (!agendaId || !fecha || !horaInicio || !userId) {
         throw new Error("Datos incompletos para agendar la cita.");

@@ -242,6 +242,16 @@ export default function AppRouter() {
                         }
                     />
 
+                    {/* ALIAS: Medical Appointments - Mis Citas */}
+                    <Route
+                        path="/medical-appointments"
+                        element={
+                            <ProtectedRoute permiso="citas.ver">
+                                <OperadorCitasMedicas />
+                            </ProtectedRoute>
+                        }
+                    />
+
                     {/*ORDEN MÉDICA*/}
                     <Route
                         path="/detalle-orden-medico"

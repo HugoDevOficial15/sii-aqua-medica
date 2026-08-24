@@ -54,6 +54,7 @@ const getRegistroTipoLabel = (record) => {
       record.tipo || record.categoria || "incidencia",
     );
   if (record.type === "incapacidad") return record?.tipo || "Incapacidad";
+  if (record.type === "historialMedico") return "Historial Médico";
 
   return "General";
 };
@@ -293,24 +294,25 @@ export default function PdfGeneralModal({
         return;
       }
 
-      const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap] =
+      const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap, ordenesSnap] =
         await Promise.all([
           getDocs(collection(db, "reconocimientos")),
           getDocs(collection(db, "incidencias_personal")),
           getDocs(collection(db, "incapacidades")),
+          getDocs(collection(db, "ordenes_medicas")),
         ]);
 
       const matchesUser = (record, usuario) => {
         const empleadoId = String(usuario?.id || usuario?.uid || "").trim();
         const recordEmpleadoId = String(
-          record?.empleadoId || record?.empleadoUid || record?.userId || "",
+          record?.empleadoId || record?.empleadoUid || record?.userId || record?.idPaciente || "",
         ).trim();
         const recordNomina = String(
-          record?.empleadoNomina || record?.nomina || "",
+          record?.empleadoNomina || record?.nomina || record?.nominaPaciente || "",
         ).trim();
         const userNomina = String(usuario?.nomina || "").trim();
         const recordNombre = String(
-          record?.empleadoNombre || record?.nombre || "",
+          record?.empleadoNombre || record?.nombre || record?.nombrePaciente || "",
         )
           .trim()
           .toLowerCase();
@@ -345,6 +347,14 @@ export default function PdfGeneralModal({
           type: "incapacidad",
           ...doc.data(),
         })),
+        ...ordenesSnap.docs
+          .filter(doc => doc.data().estado === "Cerrada")
+          .map((doc) => ({
+            id: doc.id,
+            type: "historialMedico",
+            ...doc.data(),
+            fecha: doc.data().fechaCierre || doc.data().fechaApertura,
+          })),
       ];
 
       const records = rawRecords
@@ -359,6 +369,8 @@ export default function PdfGeneralModal({
             return record.type === "reconocimiento";
           if (categoria === "incapacidades")
             return record.type === "incapacidad";
+          if (categoria === "historialMedico")
+            return record.type === "historialMedico";
           return true;
         })
         .sort((a, b) => {
@@ -391,7 +403,9 @@ export default function PdfGeneralModal({
             ? "Reporte de incidencias"
             : categoria === "reconocimientos"
               ? "Reporte de reconocimientos"
-              : "Reporte de incapacidades";
+              : categoria === "incapacidades"
+                ? "Reporte de incapacidades"
+                : "Reporte de historial médico";
 
       const subtitleBase =
         tipoReporte === "nomina"
@@ -405,33 +419,66 @@ export default function PdfGeneralModal({
 
       await buildPdfHeader(doc, titleText, subtitle, fechaActual);
 
-      const rows = records.length
-        ? records.map((record) => {
-            const usuario =
-              targetUsers.find((item) => matchesUser(record, item)) || {};
-            return [
-              safeValue(
-                usuario?.nombre || record?.empleadoNombre || record?.nombre,
-                "Sin nombre",
-              ),
-              safeValue(
-                usuario?.nomina || record?.empleadoNomina || record?.nomina,
-                "Sin nómina",
-              ),
+      let rows = [];
+
+      if (records.length) {
+        for (const record of records) {
+          const usuario =
+            targetUsers.find((item) => matchesUser(record, item)) || {};
+          const displayName = usuario?.nombre || record?.empleadoNombre || record?.nombre || record?.nombrePaciente;
+          const displayNomina = usuario?.nomina || record?.empleadoNomina || record?.nomina || record?.nominaPaciente;
+
+          if (record?.type === "historialMedico" && record?.revisiones?.length > 0) {
+            // Desglosa cada revisión médica en una fila separada
+            for (const revision of record.revisiones) {
+              const tipoRevision = revision?.tipo || "Revisión Rutina";
+              const medicamentosText = revision?.medicamentos
+                ? `Medicamentos: ${revision.medicamentos}`
+                : "Sin medicamentos";
+              const comentariosText = revision?.comentarios || "Sin comentarios";
+              const descripcionCompleta = `${comentariosText}\n${medicamentosText}`;
+
+              rows.push([
+                safeValue(displayName, "Sin nombre"),
+                safeValue(displayNomina, "Sin nómina"),
+                safeValue(getRegistroTipoLabel(record), "Sin tipo"),
+                safeValue(tipoRevision, "Sin tipo de revisión"),
+                safeValue(descripcionCompleta, "Sin descripción"),
+                normalizeDate(revision?.fechaRevision || record?.fechaCierre || record?.fechaApertura),
+              ]);
+            }
+          } else if (record?.type !== "historialMedico") {
+            // Registros normales (no médicos)
+            const displayTitulo = record?.titulo || getIncapacidadTipoLabel(record?.tipo);
+            const displayDesc = record?.descripcion || record?.nota || "Sin descripción";
+
+            rows.push([
+              safeValue(displayName, "Sin nombre"),
+              safeValue(displayNomina, "Sin nómina"),
               safeValue(getRegistroTipoLabel(record), "Sin tipo"),
-              safeValue(
-                record?.titulo || getIncapacidadTipoLabel(record?.tipo),
-                "Sin título",
-              ),
-              safeValue(
-                record?.descripcion || record?.nota || "Sin descripción",
-              ),
+              safeValue(displayTitulo, "Sin título"),
+              safeValue(displayDesc, "Sin descripción"),
               normalizeDate(
                 record?.fecha || record?.fechaInicio || record?.createdAt,
               ),
-            ];
-          })
-        : [["Sin resultados", "—", "—", "—", "—", "—"]];
+            ]);
+          } else if (record?.type === "historialMedico" && !record?.revisiones?.length) {
+            // Orden médica sin revisiones
+            rows.push([
+              safeValue(displayName, "Sin nombre"),
+              safeValue(displayNomina, "Sin nómina"),
+              safeValue(getRegistroTipoLabel(record), "Sin tipo"),
+              safeValue("Sin revisiones", "Sin título"),
+              safeValue("No hay registros de revisión", "Sin descripción"),
+              normalizeDate(record?.fechaCierre || record?.fechaApertura),
+            ]);
+          }
+        }
+      }
+
+      if (rows.length === 0) {
+        rows = [["Sin resultados", "—", "—", "—", "—", "—"]];
+      }
 
       autoTable(doc, {
         startY: 60,
@@ -593,6 +640,7 @@ export default function PdfGeneralModal({
               { key: "incidencias", label: "Incidencias" },
               { key: "reconocimientos", label: "Reconocimientos" },
               { key: "incapacidades", label: "Incapacidades" },
+              { key: "historialMedico", label: "Historial Médico" },
             ].map((option) => (
               <button
                 key={option.key}

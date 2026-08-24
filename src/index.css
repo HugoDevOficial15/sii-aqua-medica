@@ -28,6 +28,10 @@ body {
   overflow-x: clip;
 }
 
+#root {
+  overflow-x: clip;
+}
+
 img,
 video,
 svg,

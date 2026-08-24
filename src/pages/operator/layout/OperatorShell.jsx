@@ -13,9 +13,10 @@ export default function OperatorShell({
     onTabChange,
     notificationCount = 0,
     children,
-    usuarioActual 
+    usuarioActual
 }) {
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [keyboardOpen, setKeyboardOpen] = useState(false);
 
     const openSwipe = useRef({ tracking: false, startX: 0, startY: 0, axis: null });
     const closeSwipe = useRef({ tracking: false, startX: 0, startY: 0, axis: null });
@@ -122,6 +123,42 @@ export default function OperatorShell({
         closeSwipe.current.tracking = false;
     };
 
+    // Detectar cuando el teclado móvil se abre/cierra
+    useEffect(() => {
+        const handleInputFocus = () => setKeyboardOpen(true);
+        const handleInputBlur = () => setKeyboardOpen(false);
+
+        // Agregar listeners a todos los inputs y textareas
+        const inputs = document.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('focus', handleInputFocus);
+            input.addEventListener('blur', handleInputBlur);
+        });
+
+        return () => {
+            inputs.forEach(input => {
+                input.removeEventListener('focus', handleInputFocus);
+                input.removeEventListener('blur', handleInputBlur);
+            });
+        };
+    }, []);
+
+    // Alternativa: Detectar usando visualViewport (más preciso en móviles)
+    useEffect(() => {
+        if (!('visualViewport' in window)) return;
+
+        const handleViewportResize = () => {
+            const viewport = window.visualViewport;
+            const heightDiff = window.innerHeight - viewport.height;
+            setKeyboardOpen(heightDiff > 100); // Si hay más de 100px de diferencia, el teclado está abierto
+        };
+
+        window.visualViewport.addEventListener('resize', handleViewportResize);
+        return () => {
+            window.visualViewport.removeEventListener('resize', handleViewportResize);
+        };
+    }, []);
+
     return (
         <>
             <div
@@ -138,10 +175,17 @@ export default function OperatorShell({
                 <div className="operator-content">
                     {children}
                 </div>
-                <OperatorBottomNav
-                    active={activeTab}
-                    onChange={onTabChange}
-                />
+                <div style={{
+                    opacity: keyboardOpen ? 0 : 1,
+                    visibility: keyboardOpen ? 'hidden' : 'visible',
+                    transition: 'opacity 0.3s ease, visibility 0.3s ease',
+                    pointerEvents: keyboardOpen ? 'none' : 'auto'
+                }}>
+                    <OperatorBottomNav
+                        active={activeTab}
+                        onChange={onTabChange}
+                    />
+                </div>
             </div>
 
             <OperatorDrawer

@@ -64,6 +64,24 @@ export default function SoporteAdmin() {
     return () => document.removeEventListener("mousedown", closeMenu);
   }, []);
 
+  // Prevenir desplazamiento del body cuando el modal está abierto
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [modalOpen]);
+
   // Abrir el modal con los datos del usuario (Img 3)
   const handleVerProblema = (problema) => {
     setSelectedProblema(problema);
@@ -695,6 +713,7 @@ const styles = {
     justifyContent: "center",
     zIndex: 9999,
     padding: "20px",
+    overflow: "hidden",
   },
   modalCard: {
     backgroundColor: "var(--operator-card)",
@@ -702,8 +721,10 @@ const styles = {
     borderRadius: "20px",
     width: "600px",
     maxWidth: "95%",
+    maxHeight: "85vh",
     boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-    overflow: "hidden",
+    overflow: "auto",
+    WebkitOverflowScrolling: "touch",
   },
   header: {
     padding: "20px 24px",

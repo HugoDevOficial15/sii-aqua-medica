@@ -63,7 +63,7 @@ export default function AgendaDetalle({ agenda, onBack }) {
                         IdUsuario: user.uid,
                         Titulo: "✅ Cita Atendida",
                         Mensaje: `${nombrePaciente} - ${fecha} a las ${hora}`,
-                        Destino: "medical-appointments",
+                        Destino: "citas-medicas",
                         Accion: "cita_atendida"
                     });
                 } catch (error) {
@@ -86,7 +86,7 @@ export default function AgendaDetalle({ agenda, onBack }) {
                         IdUsuario: user.uid,
                         Titulo: "🎉 Todas las Citas Completadas",
                         Mensaje: `Completaste todas las citas de la agenda "${agenda.nombre}" por hoy.`,
-                        Destino: "medical-appointments",
+                        Destino: "citas-medicas",
                         Accion: "todas_citas_completadas"
                     });
                 } catch (error) {
