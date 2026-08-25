@@ -1,5 +1,6 @@
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { isSurveyTimeExpired } from "../utils/surveyTiming";
 
 // ============================================================
 // CONSULTA DE ENCUESTAS DISPONIBLES PARA UN USUARIO
@@ -72,21 +73,24 @@ export const getEncuestasDisponibles = async (usuario) => {
         const encuestasEnriquecidas = encuestasAccesibles.map(encuesta => {
             const respondida = respuestasUsuario.some(r => r.encuestaId === encuesta.id);
 
-            // Parsear fechas (pueden venir como Timestamp o string)
             const fechaInicio = encuesta.fechaInicio?.toDate?.()
                 || new Date(encuesta.fechaInicio);
             const fechaFin = encuesta.fechaFin?.toDate?.()
                 || new Date(encuesta.fechaFin);
 
-            const vencida = hoy > fechaFin;
-            const disponible = !vencida && !respondida;
+            const vencida = isSurveyTimeExpired({
+                fechaInicio: encuesta.fechaInicio,
+                fechaFin: encuesta.fechaFin,
+                horaInicio: encuesta.horaInicio || "00:00",
+                horaFin: encuesta.horaFin || "23:59"
+            }, hoy);
 
-            // Buscar respuesta para extraer puntaje y estado
+            const disponible = !respondida && !vencida && (!encuesta.horaInicio || hoy >= new Date(`${fechaInicio.toISOString().split("T")[0]}T${encuesta.horaInicio}:00`));
+
             const miRespuesta = respuestasUsuario.find(r => r.encuestaId === encuesta.id);
-            const miPuntaje = miRespuesta?.puntuacionObtenida || miRespuesta?.puntajeFinal || null;
+            const miPuntaje = miRespuesta?.puntuacionObtenida ?? miRespuesta?.puntajeFinal ?? null;
             const miEstado = miRespuesta?.estadoActual || null;
 
-            // Determinar estado: usar el guardado en Firebase si existe, si no calcular
             let estadoFinal = miEstado;
             if (!estadoFinal) {
                 estadoFinal = vencida ? "vencida" : (respondida ? "completada" : "pendiente");
@@ -99,25 +103,23 @@ export const getEncuestasDisponibles = async (usuario) => {
                 instructor: encuesta.instructor || "",
                 modalidad: encuesta.modalidad || "",
                 fechaCurso: encuesta.fechaCurso || "",
-                fechaInicio: fechaInicio.toISOString().split("T")[0],
-                fechaFin: fechaFin.toISOString().split("T")[0],
+                fechaInicio: fechaInicio && !Number.isNaN(fechaInicio.getTime()) ? fechaInicio.toISOString().split("T")[0] : "",
+                fechaFin: fechaFin && !Number.isNaN(fechaFin.getTime()) ? fechaFin.toISOString().split("T")[0] : "",
                 horaInicio: encuesta.horaInicio || "",
                 horaFin: encuesta.horaFin || "",
                 duracion: encuesta.duracionHoras || "0",
                 tipoCurso: encuesta.tipoCurso || "",
                 formaEvaluacion: encuesta.formaEvaluacion || "",
 
-                // Preguntas (IMPORTANTE: no debe faltar)
                 preguntas: encuesta.preguntas || [],
                 duracionHoras: encuesta.duracionHoras || "0",
                 duracionMinutos: encuesta.duracionMinutos || "0",
                 intentos: miRespuesta?.intentos || 0,
 
-                // Calculados
                 estado: estadoFinal,
                 estadoActual: estadoFinal,
                 respondida,
-                disponible: estadoFinal === "pendiente" && !vencida,
+                disponible: estadoFinal === "pendiente" && disponible,
                 vencida,
                 miPuntaje
             };

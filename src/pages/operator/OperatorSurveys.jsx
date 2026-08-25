@@ -5,6 +5,7 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import MobileBackButton from "./components/MobileBackButton";
+import { isSurveyTimeExpired } from "../../utils/surveyTiming";
 
 const ESTADO_LABEL = {
     pendiente: "Pendiente",
@@ -90,6 +91,13 @@ export default function OperatorSurveys({
         let puntaje = survey.miPuntaje;
         let intentos = survey.intentos || 1;
 
+        const expiroSinResponder = !userResp && isSurveyTimeExpired({
+            fechaInicio: survey.fechaInicio,
+            fechaFin: survey.fechaFin,
+            horaInicio: survey.horaInicio || "00:00",
+            horaFin: survey.horaFin || "23:59"
+        }, new Date());
+
         if (userResp) {
             puntaje = userResp.calificacion ?? userResp.puntuacionObtenida;
             intentos = userResp.intentos || 1;
@@ -99,6 +107,8 @@ export default function OperatorSurveys({
             } else {
                 estadoCorregido = userResp.estadoActual || "completada";
             }
+        } else if (expiroSinResponder && estadoCorregido === "pendiente") {
+            estadoCorregido = "vencida";
         } else if (estadoCorregido === "pendiente" && puntaje !== undefined && puntaje !== null) {
             const puntajeNum = Number(puntaje);
             if (puntajeNum < 80) {

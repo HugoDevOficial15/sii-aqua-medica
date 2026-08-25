@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import {
   FaEllipsisV,
   FaMedal,
   FaUserTimes,
   FaFilePdf,
   FaHouseUser,
+  FaEye,
 } from "react-icons/fa";
+
+
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import Loader from "../../components/Loader";
@@ -14,12 +17,7 @@ import {
   getAllowedUsersForPersonal,
   canAccessPersonalSection,
 } from "../../services/personalConfig";
-import {
-  getUsers,
-  createIncapacidad,
-  getIncapacidadesByUser,
-  updateUser,
-} from "../../services/usersService";
+import { getUsers } from "../../services/usersService";
 import ReconocimientoModal from "./components/reconocimiento";
 import IncidenciaModal from "./components/incidencia";
 import RecordDetailModal from "./components/RecordDetailModal";
@@ -71,6 +69,62 @@ const formatRecordDate = (value) => {
   });
 };
 
+const getMedicalHistoryDescription = (item) => {
+  if (!item) return "Sin descripción";
+
+  const revision = Array.isArray(item.revisiones) ? item.revisiones[0] : null;
+  const comment =
+    revision?.comentarios ||
+    revision?.comentario ||
+    revision?.observaciones ||
+    item.descripcion ||
+    item.comentarios ||
+    item.notas ||
+    item.nota ||
+    item.Mensaje ||
+    item.motivo ||
+    item.diagnostico ||
+    "Sin descripción";
+
+  return String(comment).trim() || "Sin descripción";
+};
+
+const isMedicalHistoryActiveState = (estado) => {
+  const normalized = String(estado ?? "").trim().toLowerCase();
+  return ["cerrada", "en tratamiento", "pendiente"].includes(normalized);
+};
+
+const mapMedicalHistoryRecords = (docs = []) =>
+  docs
+    .filter((doc) => isMedicalHistoryActiveState(doc?.data?.().estado))
+    .map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      type: "historialMedico",
+      fecha: doc.data().fechaCierre || doc.data().fechaApertura,
+    }));
+
+const buildAllRecordsFromSnapshots = ({
+  reconocimientosSnapshot,
+  incidenciasSnapshot,
+  incapacidadesSnapshot,
+  ordenesSnapshot,
+}) => ({
+  reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })),
+  incidencias: incidenciasSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })),
+  incapacidades: incapacidadesSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })),
+  historialesMedicos: mapMedicalHistoryRecords(ordenesSnapshot.docs),
+});
+
 export default function Personal() {
   const { user } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
@@ -91,8 +145,7 @@ export default function Personal() {
   const [pdfTargetUser, setPdfTargetUser] = useState(null);
   const [incapacidadModal, setIncapacidadModal] = useState(false);
   const [selectedIncapacidadUser, setSelectedIncapacidadUser] = useState(null);
-  const { userIncapacidades, loadingIncapacidades } =
-    useUserIncapacidades(usuarios);
+  const { userIncapacidades } = useUserIncapacidades(usuarios);
 
   const openPdfModal = (usuario = null) => {
     setPdfTargetUser(usuario);
@@ -130,33 +183,15 @@ export default function Personal() {
         ]);
 
         const syncedUsers = await syncUsersWithIncapacidades(usersData);
-
         setUsuarios(syncedUsers);
-
-        const historialesMedicos = ordenesSnapshot.docs
-          .filter(doc => doc.data().estado === "Cerrada")
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-            type: "historialMedico",
-            fecha: doc.data().fechaCierre || doc.data().fechaApertura,
-          }));
-
-        setAllRecords({
-          reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })),
-          incidencias: incidenciasSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })),
-          incapacidades: incapacidadesSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })),
-          historialesMedicos,
-        });
+        setAllRecords(
+          buildAllRecordsFromSnapshots({
+            reconocimientosSnapshot,
+            incidenciasSnapshot,
+            incapacidadesSnapshot,
+            ordenesSnapshot,
+          }),
+        );
       } catch (error) {
         console.error("Error cargando personal y registros:", error);
         setUsuarios([]);
@@ -285,30 +320,14 @@ export default function Personal() {
         getDocs(collection(db, "ordenes_medicas")),
       ]);
 
-      const historialesMedicos = ordenesSnapshot.docs
-        .filter(doc => doc.data().estado === "Cerrada")
-        .map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          type: "historialMedico",
-          fecha: doc.data().fechaCierre || doc.data().fechaApertura,
-        }));
-
-      setAllRecords({
-        reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })),
-        incidencias: incidenciasSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })),
-        incapacidades: incapacidadesSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })),
-        historialesMedicos,
-      });
+      setAllRecords(
+        buildAllRecordsFromSnapshots({
+          reconocimientosSnapshot,
+          incidenciasSnapshot,
+          incapacidadesSnapshot,
+          ordenesSnapshot,
+        }),
+      );
     } catch (error) {
       console.error("Error recargando registros del personal:", error);
     }
@@ -423,9 +442,6 @@ export default function Personal() {
                 return (
                   <>
                     <tr
-//CELDA DE MENU DESPLEGABLE DE ACCIONES Y BOTONES DE ACCIONES
-
-                      key={usuario.id || usuario.nomina}
                       className={
                         openActionsId === usuario.id ||
                         expandedUserId === usuario.id
@@ -520,8 +536,6 @@ export default function Personal() {
                     </tr>
 
                     {expandedUserId === usuario.id && (
-// TABLA DESPLEGABLE Y FILTRO DE REGISTROS
-
                       <tr
                         key={`${usuario.id}-details`}
                         className="personal-details-row"
@@ -607,16 +621,20 @@ export default function Personal() {
                                       <td>
                                         {item.titulo ||
                                           item.tipo ||
-                                          item.nombrePaciente ||
+                                          (item.type === "historialMedico"
+                                            ? "Historial Médico"
+                                            : item.type) ||
                                           "Sin título"}
                                       </td>
                                       <td>
-                                        {item.descripcion ||
-                                          item.notas ||
-                                          item.nota ||
-                                          item.Mensaje ||
-                                          item.comentarios ||
-                                          "Sin descripción"}
+                                        {item.type === "historialMedico"
+                                          ? getMedicalHistoryDescription(item)
+                                          : item.descripcion ||
+                                            item.notas ||
+                                            item.nota ||
+                                            item.Mensaje ||
+                                            item.comentarios ||
+                                            "Sin descripción"}
                                       </td>
                                       <td>
                                         {formatRecordDate(
@@ -632,7 +650,7 @@ export default function Personal() {
                                             setSelectedRecord(item);
                                           }}
                                         >
-                                          Ver
+                                          <FaEye /> Ver
                                         </button>
                                       </td>
                                     </tr>
@@ -1126,8 +1144,8 @@ export default function Personal() {
 
         .personal-record-view-btn {
           border: none;
-          background: rgba(118, 147, 243, 0.12);
-          color: var(--operator-primary, #2563eb);
+          background: var(--operator-form);
+          color: var(--operator-text, #1f2937);
           border-radius: 10px;
           padding: 7px 12px;
           font-size: 12px;
@@ -1138,6 +1156,7 @@ export default function Personal() {
 
         .personal-record-view-btn:hover {
           background: rgba(118, 147, 243, 0.2);
+          color: var(--operator-primary, #2563eb);
         }
 
         .personal-record-badge {
@@ -1165,6 +1184,13 @@ export default function Personal() {
           color: #c12fee;
 
         }
+
+        .personal-record-badge.historialMedico {
+          background: rgba(34, 159, 197, 0.31);
+          color: #24c2c2;
+        }
+
+
 
         .personal-record-empty {
           padding: 14px 8px 2px;

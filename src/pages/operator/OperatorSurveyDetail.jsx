@@ -7,6 +7,7 @@ import { MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { createNotification } from "../../utils/createNotification";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../config/firebase";
+import { isSurveyInTimeWindow } from "../../utils/surveyTiming";
 
 export default function OperatorSurveyDetail({
     survey,
@@ -50,7 +51,12 @@ export default function OperatorSurveyDetail({
     const horaFinSesion = survey.horaFin || "23:59";
     const ahora = new Date();
     const horaActual = ahora.toTimeString().slice(0, 5);
-    const dentroRangoFechas = hoy >= fechaInicio && hoy <= fechaFin;
+    const dentroRangoFechas = isSurveyInTimeWindow({
+        fechaInicio,
+        fechaFin,
+        horaInicio: horaInicioSesion,
+        horaFin: horaFinSesion
+    }, ahora);
     const horaActualMinutos = timeToMinutes(horaActual);
     const inicioSesionMinutos = timeToMinutes(horaInicioSesion);
     const finSesionMinutos = timeToMinutes(horaFinSesion);
@@ -258,8 +264,10 @@ export default function OperatorSurveyDetail({
                 fechaRespuesta: new Date().toISOString()
             });
 
-            // 🔥 NOTIFICAR A TODOS LOS ADMINS
-            try {
+
+// DEBE REVISARSE SI SE MANDA UNA NOTIFICACION O NO, SI ES ASI A QUIENES SE LES MANDA 
+           /* 
+           try {
                 const usersSnapshot = await getDocs(collection(db, "users"));
                 const admins = usersSnapshot.docs
                     .filter(doc => {
@@ -287,7 +295,8 @@ export default function OperatorSurveyDetail({
                 }
             } catch (error) {
                 console.error("Error al notificar a admins sobre respuesta de encuesta:", error);
-            }
+            }       */
+
 
             if (onFinished) onFinished();
 

@@ -242,7 +242,7 @@ body {
 
 .modal-full form>* {
     max-width: 1200px;
-    margin: 0 auto;
+    padding: 0 40px;
 }
 
 .swal2-container {

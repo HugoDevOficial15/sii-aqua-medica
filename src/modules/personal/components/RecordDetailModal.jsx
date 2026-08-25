@@ -28,43 +28,147 @@ const formatRecordDate = (value) => {
 
   const parsed = parseLocalDate(value);
   if (!parsed) return "Sin fecha";
-
+ 
   return parsed.toLocaleDateString("es-MX", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   });
 };
+ 
+const isMedicalHistoryRecord = (record) => {
+  if (!record) return false;
+
+  return (
+    record.type === "historialMedico" ||
+    Boolean(record.nombrePaciente) ||
+    Boolean(record.nominaPaciente) ||
+    Boolean(record.areaPaciente) ||
+    Boolean(record.idPaciente) ||
+    Boolean(record.fechaCierre) ||
+    Boolean(record.fechaApertura) ||
+    Boolean(record.comentarios)
+  );
+};
+
+const getMedicalHistoryPrimaryComment = (record) => {
+  if (!record) return "Sin diagnóstico";
+
+  const revision = Array.isArray(record.revisiones) ? record.revisiones[0] : null;
+  const primaryComment =
+    revision?.comentarios ||
+    revision?.comentario ||
+    revision?.observaciones ||
+    record.diagnostico ||
+    record.motivo ||
+    "Sin diagnóstico";
+
+  return String(primaryComment).trim() || "Sin diagnóstico";
+};
 
 const getRecordDetails = (record, areaValue = "Sin área") => {
   if (!record) return [];
 
-  const rawDate = record.fecha || record.createdAt || record.fechaInicio || record.created_at;
+  const rawDate =
+    record.fecha ||
+    record.createdAt ||
+    record.fechaInicio ||
+    record.created_at ||
+    record.fechaCierre ||
+    record.fechaApertura;
   const isIncapacidad = record.type === "incapacidad";
+  const isHistorialMedico = isMedicalHistoryRecord(record);
+  const medicalHistoryComment = getMedicalHistoryPrimaryComment(record);
 
   return [
-    { label: "Tipo", value: isIncapacidad ? "Incapacidad" : record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia" },
-    { label: "Título", value: record.titulo || record.tipo || "Sin título" },
-    { label: "Descripción", value: record.descripcion || record.notas || record.nota || "Sin descripción" },
-    { label: "Prioridad", value: record.prioridad || (isIncapacidad ? "Sin prioridad" : "Sin prioridad") },
-    { label: "Empleado", value: record.empleadoNombre || record.nombre || "Sin empleado" },
-    { label: "Nómina", value: record.empleadoNomina || record.nomina || "Sin nómina" },
-    { label: "Área", value: areaValue },
     {
-      label: isIncapacidad ? "Tipo de incapacidad" : record.type === "reconocimiento" ? "Emitido por" : "Reportado por",
-      value: isIncapacidad ? (record.tipo || "Incapacidad") : (record.emitidoPor || record.reportadoPor || "Sin información"),
+      label: "Tipo",
+      value: isIncapacidad
+        ? "Incapacidad"
+        : isHistorialMedico
+          ? "Historial Médico"
+          : record.type === "reconocimiento"
+            ? "Reconocimiento"
+            : "Incidencia",
     },
     {
-      label: isIncapacidad ? "Fecha inicio" : record.type === "reconocimiento" ? "Nómina del emisor" : "Nómina del reportante",
-      value: isIncapacidad ? formatRecordDate(record.fechaInicio || rawDate) : (record.emitidoPorNomina || record.reportadoPorNomina || "Sin información"),
+      label: "Título",
+      value: isHistorialMedico ? "Historial Médico" : record.titulo || record.tipo || record.motivo || record.diagnostico || record.nombrePaciente || "Sin título",
     },
-    { label: isIncapacidad ? "Fecha fin" : "Fecha", value: isIncapacidad ? formatRecordDate(record.fechaFin || record.fecha) : formatRecordDate(rawDate) },
-    { label: "Tipo específico", value: record.tipo || "Sin tipo" },
+    {
+      label: "Descripción",
+      value: isHistorialMedico
+        ? medicalHistoryComment
+        : record.descripcion ||
+          record.notas ||
+          record.nota ||
+          record.diagnostico ||
+          record.comentarios ||
+          record.observaciones ||
+          record.Mensaje ||
+          "Sin descripción",
+    },
+
+    { label: "Estado", value: record.type === "incapacidad" || record.type === "reconocimiento" || record.type === "incidencia" ? null : record.estado || "Sin estado" },
+
+    { label: "Prioridad", value: record.type === "historialMedico" || record.type === "incapacidad" || record.type === "reconocimiento" ? null : record.prioridad || "Sin prioridad" },
+    {
+      label: "Empleado",
+      value: record.empleadoNombre || record.nombrePaciente || record.nombre || "Sin empleado",
+    },
+    {
+      label: "Nómina",
+      value: record.empleadoNomina || record.nominaPaciente || record.nomina || "Sin nómina",
+    },
+    { label: "Área", value: areaValue || "Sin área" },
+    {
+      label: isIncapacidad
+        ? "Tipo de incapacidad"
+        : isHistorialMedico
+          ? "Diagnóstico"
+          : record.type === "reconocimiento"
+            ? "Emitido por"
+            : "Reportado por",
+      value: isIncapacidad
+        ? record.tipo || "Incapacidad"
+        : isHistorialMedico
+          ? medicalHistoryComment
+          : record.emitidoPor || record.reportadoPor || "Sin información",
+    },
+    {
+      label: isIncapacidad
+        ? "Fecha inicio"
+        : isHistorialMedico
+          ? "Fecha de inicio"
+          : record.type === "reconocimiento"
+            ? "Nómina del emisor"
+            : "Nómina del reportante",
+      value: isIncapacidad
+        ? formatRecordDate(record.fechaInicio || rawDate)
+        : isHistorialMedico
+          ? formatRecordDate(record.fechaInicio || record.fecha || rawDate)
+          : record.emitidoPorNomina || record.reportadoPorNomina || "Sin información",
+    },
+    {
+      label: isIncapacidad ? "Fecha fin" : isHistorialMedico ? "Fecha de cierre" : "Fecha",
+      value: isIncapacidad
+        ? formatRecordDate(record.fechaFin || record.fecha)
+        : isHistorialMedico
+          ? formatRecordDate(record.fechaCierre || record.fecha || record.fechaApertura || rawDate)
+          : formatRecordDate(record.fecha || rawDate),
+    },
+    {
+      label: "Tipo específico", 
+      value: record.type === "historialMedico" || record.type === "incapacidad"  ? null : record.tipo || record.motivo || "Sin tipo",
+    },
   ].filter((field) => field.value !== null && field.value !== undefined && field.value !== "");
 };
 
 export default function RecordDetailModal({ record, onClose }) {
-  const [areaValue, setAreaValue] = useState(record?.empleadoArea || record?.area || "Sin área");
+  const isMedicalHistory = isMedicalHistoryRecord(record);
+  const [areaValue, setAreaValue] = useState(
+    record?.empleadoArea || record?.area || record?.areaPaciente || "Sin área",
+  );
 
   useEffect(() => {
     let active = true;
@@ -72,13 +176,13 @@ export default function RecordDetailModal({ record, onClose }) {
     const resolveArea = async () => {
       if (!record) return;
 
-      if (record.empleadoArea || record.area) {
-        setAreaValue(record.empleadoArea || record.area || "Sin área");
+      if (record.empleadoArea || record.area || record.areaPaciente) {
+        setAreaValue(record.empleadoArea || record.area || record.areaPaciente || "Sin área");
         return;
       }
 
-      const nomina = record.empleadoNomina || record.nomina;
-      if (!nomina || record.type !== "incapacidad") {
+      const nomina = record.empleadoNomina || record.nomina || record.nominaPaciente;
+      if (!nomina || (record.type !== "incapacidad" && !isMedicalHistory)) {
         setAreaValue("Sin área");
         return;
       }
@@ -90,7 +194,7 @@ export default function RecordDetailModal({ record, onClose }) {
         const foundUser = users.find((user) => String(user?.nomina) === String(nomina));
         setAreaValue(foundUser?.area || "Sin área");
       } catch (error) {
-        console.error("Error buscando área por nómina en el detalle de incapacidad:", error);
+        console.error("Error buscando área en el detalle del registro:", error);
         if (active) setAreaValue("Sin área");
       }
     };
@@ -100,29 +204,11 @@ export default function RecordDetailModal({ record, onClose }) {
     return () => {
       active = false;
     };
-  }, [record]);
+  }, [record, isMedicalHistory]);
 
   if (!record) return null;
 
-  const details = [
-    { label: "Tipo", value: record.type === "incapacidad" ? "Incapacidad" : record.type === "reconocimiento" ? "Reconocimiento" : "Incidencia" },
-    { label: "Título", value: record.titulo || record.tipo || "Sin título" },
-    { label: "Descripción", value: record.descripcion || record.notas || record.nota || "Sin descripción" },
-    { label: "Prioridad", value: record.prioridad || "No especificada" },
-    { label: "Empleado", value: record.empleadoNombre || record.nombre || "Sin empleado" },
-    { label: "Nómina", value: record.empleadoNomina || record.nomina || "Sin nómina" },
-    { label: "Área", value: areaValue },
-    {
-      label: record.type === "incapacidad" ? "Tipo de incapacidad" : record.type === "reconocimiento" ? "Emitido por" : "Reportado por",
-      value: record.type === "incapacidad" ? (record.tipo || "Incapacidad") : (record.emitidoPor || record.reportadoPor || "Sin información"),
-    },
-    {
-      label: record.type === "incapacidad" ? "Fecha inicio" : record.type === "reconocimiento" ? "Nómina del emisor" : "Nómina del reportante",
-      value: record.type === "incapacidad" ? formatRecordDate(record.fechaInicio || record.fecha || record.createdAt) : (record.emitidoPorNomina || record.reportadoPorNomina || "Sin información"),
-    },
-    { label: record.type === "incapacidad" ? "Fecha fin" : "Fecha", value: record.type === "incapacidad" ? formatRecordDate(record.fechaFin || record.fecha) : formatRecordDate(record.fecha || record.createdAt) },
-    { label: "Tipo específico", value: record.tipo || "Sin tipo" },
-  ].filter((field) => field.value !== null && field.value !== undefined && field.value !== "");
+  const details = getRecordDetails(record, areaValue);
 
   // VISTA DEL MODAL DE DETALLE DE REGISTRO PERSONAL
   return (
@@ -130,8 +216,14 @@ export default function RecordDetailModal({ record, onClose }) {
       <div className="personal-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
           <div>
-            <h2>{record.type === "reconocimiento" ? "Reconocimiento" : record.type === "incapacidad" ? "Incapacidad" : "Incidencia"}</h2>
-            <h3>{record.titulo || record.tipo || "Sin título"}</h3>
+            <h2>
+              {isMedicalHistory ? "Historial Médico" : record.type === "reconocimiento" ? "Reconocimiento" : record.type === "incapacidad" ? "Incapacidad" : "Incidencia"}
+            </h2>
+            <h3>
+              {isMedicalHistory
+                ? "Historial Médico"
+                : record.titulo || record.tipo || record.motivo || record.diagnostico || record.nombrePaciente || "Sin título"}
+            </h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
             ×
@@ -140,8 +232,14 @@ export default function RecordDetailModal({ record, onClose }) {
 
         <div className="personal-record-modal-body">
           <div className="personal-record-modal-badge-wrap">
-            <span className={`personal-record-badge ${record.type}`}>
-              {record.type === "reconocimiento" ? "Reconocimiento" : record.type === "incapacidad" ? "Incapacidad" : "Incidencia"}
+            <span className={`personal-record-badge ${isMedicalHistory ? "historialMedico" : record.type}`}>
+              {record.type === "reconocimiento"
+                ? "Reconocimiento"
+                : record.type === "incapacidad"
+                  ? "Incapacidad"
+                  : isMedicalHistory
+                    ? "Historial Médico"
+                    : "Incidencia"}
             </span>
           </div>
 

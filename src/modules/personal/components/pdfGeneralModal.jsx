@@ -45,16 +45,43 @@ const getIncidenciaTipoLabel = (value) => {
   return map[String(value || "").trim()] || safeValue(value, "Incidencia");
 };
 
+const isMedicalHistoryRecord = (record) => {
+  if (!record) return false;
+
+  return (
+    record.type === "historialMedico" ||
+    Boolean(record.nombrePaciente) ||
+    Boolean(record.nominaPaciente) ||
+    Boolean(record.areaPaciente) ||
+    Boolean(record.idPaciente) ||
+    Boolean(record.fechaCierre) ||
+    Boolean(record.fechaApertura)
+  );
+};
+
+const resolveRecordType = (record) => {
+  if (!record) return "general";
+  if (record.type === "reconocimiento") return "reconocimiento";
+  if (record.type === "incidencia") return "incidencia";
+  if (record.type === "incapacidad") return "incapacidad";
+  if (record.type === "historialMedico" || isMedicalHistoryRecord(record)) {
+    return "historialMedico";
+  }
+  return "general";
+};
+
 const getRegistroTipoLabel = (record) => {
   if (!record) return "Sin tipo";
 
-  if (record.type === "reconocimiento") return "Reconocimiento";
-  if (record.type === "incidencia")
+  const recordType = resolveRecordType(record);
+
+  if (recordType === "reconocimiento") return "Reconocimiento";
+  if (recordType === "incidencia")
     return getIncidenciaTipoLabel(
       record.tipo || record.categoria || "incidencia",
     );
-  if (record.type === "incapacidad") return record?.tipo || "Incapacidad";
-  if (record.type === "historialMedico") return "Historial Médico";
+  if (recordType === "incapacidad") return record?.tipo || "Incapacidad";
+  if (recordType === "historialMedico") return "Historial Médico";
 
   return "General";
 };
@@ -348,7 +375,10 @@ export default function PdfGeneralModal({
           ...doc.data(),
         })),
         ...ordenesSnap.docs
-          .filter(doc => doc.data().estado === "Cerrada")
+          .filter((doc) => {
+            const estado = String(doc.data().estado ?? "").trim().toLowerCase();
+            return ["cerrada", "en tratamiento", "pendiente"].includes(estado);
+          })
           .map((doc) => ({
             id: doc.id,
             type: "historialMedico",
@@ -363,14 +393,12 @@ export default function PdfGeneralModal({
         )
         .filter((record) => matchesDateRange(record))
         .filter((record) => {
+          const recordType = resolveRecordType(record);
           if (categoria === "general") return true;
-          if (categoria === "incidencias") return record.type === "incidencia";
-          if (categoria === "reconocimientos")
-            return record.type === "reconocimiento";
-          if (categoria === "incapacidades")
-            return record.type === "incapacidad";
-          if (categoria === "historialMedico")
-            return record.type === "historialMedico";
+          if (categoria === "incidencias") return recordType === "incidencia";
+          if (categoria === "reconocimientos") return recordType === "reconocimiento";
+          if (categoria === "incapacidades") return recordType === "incapacidad";
+          if (categoria === "historialMedico") return recordType === "historialMedico";
           return true;
         })
         .sort((a, b) => {
@@ -428,7 +456,7 @@ export default function PdfGeneralModal({
           const displayName = usuario?.nombre || record?.empleadoNombre || record?.nombre || record?.nombrePaciente;
           const displayNomina = usuario?.nomina || record?.empleadoNomina || record?.nomina || record?.nominaPaciente;
 
-          if (record?.type === "historialMedico" && record?.revisiones?.length > 0) {
+          if (resolveRecordType(record) === "historialMedico" && record?.revisiones?.length > 0) {
             // Desglosa cada revisión médica en una fila separada
             for (const revision of record.revisiones) {
               const tipoRevision = revision?.tipo || "Revisión Rutina";
@@ -447,7 +475,7 @@ export default function PdfGeneralModal({
                 normalizeDate(revision?.fechaRevision || record?.fechaCierre || record?.fechaApertura),
               ]);
             }
-          } else if (record?.type !== "historialMedico") {
+          } else if (resolveRecordType(record) !== "historialMedico") {
             // Registros normales (no médicos)
             const displayTitulo = record?.titulo || getIncapacidadTipoLabel(record?.tipo);
             const displayDesc = record?.descripcion || record?.nota || "Sin descripción";
@@ -462,15 +490,15 @@ export default function PdfGeneralModal({
                 record?.fecha || record?.fechaInicio || record?.createdAt,
               ),
             ]);
-          } else if (record?.type === "historialMedico" && !record?.revisiones?.length) {
+          } else if (resolveRecordType(record) === "historialMedico" && !record?.revisiones?.length) {
             // Orden médica sin revisiones
             rows.push([
               safeValue(displayName, "Sin nombre"),
               safeValue(displayNomina, "Sin nómina"),
               safeValue(getRegistroTipoLabel(record), "Sin tipo"),
-              safeValue("Sin revisiones", "Sin título"),
-              safeValue("No hay registros de revisión", "Sin descripción"),
-              normalizeDate(record?.fechaCierre || record?.fechaApertura),
+              safeValue(record?.motivo || record?.diagnostico || "Sin revisiones", "Sin título"),
+              safeValue(record?.descripcion || record?.observaciones || record?.comentarios || "No hay registros de revisión", "Sin descripción",),
+              normalizeDate(record?.fechaCierre || record?.fechaApertura || record?.fecha),
             ]);
           }
         }

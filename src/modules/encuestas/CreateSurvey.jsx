@@ -345,7 +345,7 @@ export default function CreateSurvey() {
             const totalHoras = Math.floor(totalMinutos / 60);
             const totalMinutosRestantes = totalMinutos % 60;
 
-            //  LIMPIAR undefined (CLAVE)
+//  LIMPIAR undefined (CLAVE)
             const cleanData = {
                 ...data,
                 preguntas: data.preguntas.map(p => {
@@ -449,7 +449,7 @@ export default function CreateSurvey() {
 
     }
 
-    // Activar o desactivar
+// Activar o desactivar
     const toggleSurvey = async (survey) => {
 
         const update = {
@@ -599,7 +599,7 @@ export default function CreateSurvey() {
                                                         <div className="survey-actions-menu">
                                                             <button
                                                                 type="button"
-                                                                className="survey-action-item"
+                                                                className="survey-action-item editar"
                                                                 onClick={() => {
                                                                     handleEdit(survey);
                                                                     setOpenActionsId(null);
@@ -611,7 +611,7 @@ export default function CreateSurvey() {
 
                                                             <button
                                                                 type="button"
-                                                                className="survey-action-item"
+                                                                className="survey-action-item respuestas"
                                                                 onClick={() => {
                                                                     setViewingResults(survey);
                                                                     setOpenActionsId(null);
@@ -623,7 +623,7 @@ export default function CreateSurvey() {
 
                                                             <button
                                                                 type="button"
-                                                                className={`survey-action-item ${survey.activa ? "text-danger" : "text-success"}`}
+                                                                className={`survey-action-item ${survey.activa ? "desactivado" : "activado"}`}
                                                                 onClick={() => {
                                                                     toggleSurvey(survey);
                                                                     setOpenActionsId(null);
@@ -635,7 +635,7 @@ export default function CreateSurvey() {
 
                                                             <button
                                                                 type="button"
-                                                                className="survey-action-item text-danger"
+                                                                className="survey-action-item borrar"
                                                                 onClick={() => {
                                                                     handleDeleteSurvey(survey);
                                                                     setOpenActionsId(null);
@@ -865,7 +865,7 @@ export default function CreateSurvey() {
 
                                             <div className="col-span-2">
                                                 <label>
-                                                    <strong>Duración total de Encuesta</strong>
+                                                    <strong>Duración total </strong>
                                                 </label>
                                                 <input
                                                     type="text"
@@ -1092,7 +1092,7 @@ export default function CreateSurvey() {
                             {currentStep === 3 && (
                                 <>
 
-                                    <div className="mt-4">
+                                    <div className="temario-content">
 
                                         <div className="d-flex-mb-3">
 
@@ -1344,6 +1344,8 @@ export default function CreateSurvey() {
 
 .btn {
     transition: all 0.2s ease !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .btn:hover {
@@ -1527,7 +1529,7 @@ export default function CreateSurvey() {
     z-index: 9999;
     border: 1px solid var(--operator-background);
     border-radius: 10px;
-    background: var(--operator-card);
+    background: var(--operator-background);
     box-shadow: 0 12px 24px rgba(2, 6, 23, 0.14);
     margin-top: 5px;
 }
@@ -1547,11 +1549,30 @@ export default function CreateSurvey() {
     text-align: center;
 }
 
-.survey-action-item:hover {
-    background: var(--operator-background);
+.survey-action-item.editar:hover {
+    color: var(--operator-primary);
+    scale: 1.02;
 }
 
+.survey-action-item.respuestas:hover {
+    color: var(--operator-warning);
+    scale: 1.02;
+}
 
+.survey-action-item.borrar:hover {
+    color: var(--operator-danger);
+    scale: 1.02;
+}
+
+.survey-action-item.desactivado:hover {
+    color: var(--operator-danger);
+    scale: 1.02;
+}
+
+.survey-action-item.activado:hover {
+    color: var(--operator-success);
+    scale: 1.02;
+}
 
 
 /* ==================================================
@@ -1684,7 +1705,7 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
 .col-span-2 { grid-column: span 2; }
 .survey-steps {
 
-    width: 70%;
+    width: 80%;
     display: flex;
     gap: 8px;
     margin-bottom: 6px;
@@ -1818,10 +1839,6 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
     cursor: pointer;
 }
 
-
-
-
-
 .area-card-content {
     display: flex;
     align-items: center;
@@ -1843,7 +1860,7 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
 
 .modal-footer-actions {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     gap: 12px;
     margin-top: 8px;
