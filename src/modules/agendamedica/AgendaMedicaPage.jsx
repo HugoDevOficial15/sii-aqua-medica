@@ -95,25 +95,40 @@ export default function AgendaMedicaPage() {
         cargarAgendas();
     }, []);
 
-    // 🗑️ ELIMINAR AGENDA Y SUS NOTIFICACIONES EN CADENA
+    // 🗑️ ELIMINAR AGENDA Y SUS CITAS + NOTIFICACIONES EN CASCADA
     const handleEliminar = async (id, nombre) => {
-        const result = await confirmDelete("¿Eliminar campaña?", `La campaña "${nombre}" se eliminará permanentemente.`);
+        const result = await confirmDelete("¿Eliminar campaña?", `La campaña "${nombre}" y TODAS sus citas se eliminarán permanentemente.`);
         if (!result.isConfirmed) return;
 
         try {
-            await deleteDoc(doc(db, "agendas_medicas", id));
+            // 1️⃣ ELIMINAR TODAS LAS CITAS DE ESTA AGENDA
+            const qCitas = query(collection(db, "citas_medicas"), where("agendaId", "==", id));
+            const snapshotCitas = await getDocs(qCitas);
+            console.log(`🗑️ Eliminando ${snapshotCitas.docs.length} citas de la agenda "${nombre}"`);
 
+            const { writeBatch: batchImport } = await import("firebase/firestore");
+            const batch = batchImport(db);
+
+            snapshotCitas.docs.forEach(docCita => {
+                batch.delete(docCita.ref);
+            });
+
+            // 2️⃣ ELIMINAR LA AGENDA
+            batch.delete(doc(db, "agendas_medicas", id));
+
+            // 3️⃣ ELIMINAR NOTIFICACIONES
             const qNotif = query(collection(db, "notificaciones"), where("NomAgenda", "==", nombre));
             const snapshotNotif = await getDocs(qNotif);
 
-            const deletePromises = snapshotNotif.docs.map(docNotif => {
-                // 🍪 Persistir en cookies antes de borrar
+            snapshotNotif.docs.forEach(docNotif => {
                 dismissNotification(docNotif.id);
-                return deleteDoc(doc(db, "notificaciones", docNotif.id));
+                batch.delete(docNotif.ref);
             });
-            await Promise.all(deletePromises);
 
-            notifySuccess("Eliminado", "Agenda y notificaciones eliminadas del sistema.");
+            // Ejecutar batch
+            await batch.commit();
+
+            notifySuccess("Eliminado", `Agenda, ${snapshotCitas.docs.length} citas y notificaciones eliminadas.`);
             cargarAgendas();
         } catch (error) {
             console.error("Error al eliminar:", error);

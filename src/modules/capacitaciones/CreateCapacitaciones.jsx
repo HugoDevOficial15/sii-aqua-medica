@@ -25,7 +25,6 @@ export default function CreateCapacitaciones() {
     const [currentId, setCurrentId] = useState(null);
     const [currentStep, setCurrentStep] = useState(1);
     const [openActionsId, setOpenActionsId] = useState(null);
-    const [uploadedFiles, setUploadedFiles] = useState([]);
 
     // Estados para ver resultados
     const [viewingResults, setViewingResults] = useState(null);
@@ -368,7 +367,6 @@ export default function CreateCapacitaciones() {
             setTrainings(update);
             setShowModal(false);
             setEditing(false);
-            setUploadedFiles([]);
             reset();
 
         } catch (error) {
@@ -447,22 +445,6 @@ export default function CreateCapacitaciones() {
         }
     };
 
-    const handleFileUpload = (e) => {
-        const files = Array.from(e.target.files);
-        const newFiles = files.map(file => ({
-            name: file.name,
-            size: file.size,
-            type: file.type
-        }));
-        setUploadedFiles([...uploadedFiles, ...newFiles]);
-        setValue("asignacion.archivos", [...uploadedFiles, ...newFiles]);
-    }
-
-    const removeUploadedFile = (index) => {
-        const updated = uploadedFiles.filter((_, i) => i !== index);
-        setUploadedFiles(updated);
-        setValue("asignacion.archivos", updated);
-    }
 
     if (loading) {
         return <Loader text="Cargando capacitaciones..." />
@@ -510,7 +492,6 @@ export default function CreateCapacitaciones() {
                             setEditing(false);
 
                             setCurrentStep(1);
-                            setUploadedFiles([]);
 
                             setShowModal(true);
                         }}
@@ -1067,44 +1048,6 @@ export default function CreateCapacitaciones() {
                                             </div>
                                         )}
 
-                                        {/* Carga de archivos */}
-                                        <div className="mt-4">
-                                            <label>
-                                                <strong>Archivo de la Capacitación </strong>
-                                            </label>
-                                            <div className="file-upload-area" onClick={() => document.getElementById("file-input-training").click()}>
-                                                <input
-                                                    type="file"
-                                                    multiple
-                                                    onChange={handleFileUpload}
-                                                    className="file-input"
-                                                    accept="*/*"
-                                                    id="file-input-training"
-                                                />
-                                                <FaFileUpload className="file-upload-icon" />
-                                                <p>Arrastra archivos aquí o haz clic para seleccionar</p>
-                                            </div>
-
-                                            {uploadedFiles.length > 0 && (
-                                                <div className="mt-3">
-                                                    <strong>Archivos cargados:</strong>
-                                                    <ul className="list-group mt-2">
-                                                        {uploadedFiles.map((file, idx) => (
-                                                            <li key={idx} className="list-group-item d-flex justify-content-between align-items-center">
-                                                                {file.name}
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-sm btn-danger"
-                                                                    onClick={() => removeUploadedFile(idx)}
-                                                                >
-                                                                    <FaTrash />
-                                                                </button>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                        </div>
                                     </div>
                                 </>
                             )}

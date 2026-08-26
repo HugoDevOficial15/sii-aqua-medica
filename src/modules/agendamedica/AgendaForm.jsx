@@ -152,6 +152,25 @@ export default function AgendaForm({ onSaved }) {
             return;
         }
 
+        // 🛑 VALIDACIÓN: Los rangos que SÍ fueron agregados deben estar completos
+        const diasIncompletos = dias.filter(dia => {
+            const horariosDelDia = form?.horarios?.[dia.id];
+
+            // Si no tiene rangos agregados, es OK (no es obligatorio)
+            if (!Array.isArray(horariosDelDia) || horariosDelDia.length === 0) {
+                return false;
+            }
+
+            // Pero si tiene rangos, TODOS deben tener inicio y fin válidos
+            return horariosDelDia.some(rango => !rango.inicio || !rango.fin);
+        });
+
+        if (diasIncompletos.length > 0) {
+            const diasNombres = diasIncompletos.map(d => d.label).join(", ");
+            notifyWarning("Horarios incompletos", `Los rangos de ${diasNombres} no están completamente rellenados.`);
+            return;
+        }
+
         let tieneDiasConHorario = false;
 
         try {
@@ -161,7 +180,7 @@ export default function AgendaForm({ onSaved }) {
             while (fechaActual <= fechaLimite) {
                 const diaSemana = fechaActual.getDay();
                 const horariosDelDia = form?.horarios?.[diaSemana];
-                
+
                 if (Array.isArray(horariosDelDia) && horariosDelDia.length > 0) {
                     for (const r of horariosDelDia) {
                         if (!r.inicio || !r.fin) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
@@ -9,7 +9,6 @@ import Loader from "../../components/Loader";
 import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
 import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
 import { sendAdminNotification } from "../../utils/sendAdminNotification";
-
 
 import { CITA_ESTADOS } from "../../constants/citasMedicasStates";
 import {
@@ -22,16 +21,15 @@ import {
 export default function OperadorCitasMedicas() {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
-    const agendaIdReagendamiento = searchParams.get("reagendar"); // ?reagendar=agendaId
+    const agendaIdReagendamiento = searchParams.get("reagendar"); 
 
     const [loading, setLoading] = useState(true);
-    const [vista, setVista] = useState("lista"); // lista | agendar | mis-citas
+    const [vista, setVista] = useState("lista"); 
     const [esReagendamiento, setEsReagendamiento] = useState(false);
 
     const [agendas, setAgendas] = useState([]);
     const [agendaActiva, setAgendaActiva] = useState(null);
 
-    // Estados para controlar los días
     const [diasValidos, setDiasValidos] = useState([]);
     const [citasOcupadas, setCitasOcupadas] = useState([]);
     const [horariosDisponibles, setHorariosDisponibles] = useState([]);
@@ -39,8 +37,10 @@ export default function OperadorCitasMedicas() {
     const [fechaElegida, setFechaElegida] = useState("");
     const [horaElegida, setHoraElegida] = useState("");
     const [procesando, setProcesando] = useState(false);
+    
+    // 🔥 Candado estricto para evitar doble envío a Firebase
+    const isSubmitting = useRef(false);
 
-    // "Mis Citas Agendadas"
     const [misCitas, setMisCitas] = useState([]);
     const [loadingMisCitas, setLoadingMisCitas] = useState(false);
     const [citaACancelar, setCitaACancelar] = useState(null);
@@ -56,7 +56,6 @@ export default function OperadorCitasMedicas() {
                 }));
                 setAgendas(agendasCargadas);
 
-                // 🔥 SI VIENE CON PARÁMETRO DE REAGENDAMIENTO
                 if (agendaIdReagendamiento) {
                     setEsReagendamiento(true);
                     const agendaAReagendar = agendasCargadas.find(a => a.id === agendaIdReagendamiento);
@@ -77,7 +76,6 @@ export default function OperadorCitasMedicas() {
         fetchAgendas();
     }, [agendaIdReagendamiento]);
 
-    // Cargar citas del usuario al montar el componente
     useEffect(() => {
         if (user?.uid) {
             cargarMisCitas();
@@ -94,14 +92,13 @@ export default function OperadorCitasMedicas() {
             const data = await getUserAppointments(user.nomina, user.uid);
             setMisCitas(data);
 
-            // Si no hay citas, mostrar lista de campañas disponibles para agendar
             if (!data || data.length === 0) {
                 setVista("lista");
             }
         } catch (error) {
             console.error("Error al cargar mis citas:", error);
             notifyError("Error", error.message || "No se pudieron cargar tus citas.");
-            setVista("lista"); // Si hay error, mostrar campañas disponibles
+            setVista("lista"); 
         } finally {
             setLoadingMisCitas(false);
         }
@@ -119,9 +116,7 @@ export default function OperadorCitasMedicas() {
 
         while (actual <= final) {
             const fechaStr = actual.toISOString().split("T")[0];
-
             const isBloqueado = agenda.diasBloqueados && agenda.diasBloqueados.includes(fechaStr);
-
             let diaSemana = actual.getDay();
             if (diaSemana === 0) diaSemana = 7;
 
@@ -170,15 +165,12 @@ export default function OperadorCitasMedicas() {
         });
 
         try {
-            // Disponibilidad + restricción por nómina: centralizada en el
-            // servicio (citasMedicasService.getAvailableSchedules), no en
-            // el componente.
             const { bloques, ocupadas } = await getAvailableSchedules({
                 agendaId: agendaActiva.id,
                 fecha,
                 bloquesPosibles: bloquesDelDia,
                 nominaUsuarioActual: user?.nomina,
-                userIdActual: user?.uid  // 🔥 Pasar el userId para bloquear horarios cancelados por admin
+                userIdActual: user?.uid  
             });
 
             setCitasOcupadas(ocupadas);
@@ -191,22 +183,23 @@ export default function OperadorCitasMedicas() {
 
     const handleAgendar = async (e) => {
         e.preventDefault();
+        
         if (!fechaElegida || !horaElegida) return;
+        
+        // 🔥 BLOQUEO ESTRICTO: Evita que spam de clics genere duplicados
+        if (isSubmitting.current) return;
 
         if (!user?.uid) {
             notifyError("Error", "No se pudo identificar tu usuario.");
             return;
         }
 
+        isSubmitting.current = true;
         setProcesando(true);
-        const nombreFinal = user?.nombre || "Ángel Julián Ojeda Ramírez";
+        const nombreFinal = user?.nombre || "Usuario AQUA";
         const uidUsuario = user?.uid;
 
         try {
-            // La función centralizada hace dos validaciones:
-            // 1. Aislamiento de campaña: no puedes tener dos citas en la misma agenda
-            // 2. Bloqueo de horario: no puedes tener dos citas a la misma hora,
-            //    aunque sean en agendas diferentes
             await bookAppointment({
                 agendaId: agendaActiva.id,
                 fecha: fechaElegida,
@@ -218,8 +211,8 @@ export default function OperadorCitasMedicas() {
                 paciente: nombreFinal
             });
 
-            // 🔥 NOTIFICAR A admin_medico y admin_sistemas
             try {
+                // 🔥 Expandimos roles para garantizar que le llegue a Luis Ángel y a cualquier admin
                 await sendAdminNotification(
                     {
                         Titulo: "📅 Nueva Cita Médica Agendada",
@@ -234,18 +227,14 @@ export default function OperadorCitasMedicas() {
                             hora: horaElegida
                         }
                     },
-                    ["admin_medico", "admin_sistemas"]
+                    ["admin_medico", "admin_sistemas", "admin", "administrador", "admin_general"]
                 );
             } catch (error) {
                 console.error("Error al notificar a admins sobre la cita agendada:", error);
             }
 
-            // 🔥 MENSAJE DIFERENCIADO PARA REAGENDAMIENTO
             if (esReagendamiento) {
-                notifySuccess(
-                    "Cita reagendada",
-                    "Tu nueva cita fue registrada con éxito en la misma campaña médica."
-                );
+                notifySuccess("Cita reagendada", "Tu nueva cita fue registrada con éxito.");
                 setEsReagendamiento(false);
             } else {
                 notifySuccess("Cita agendada", "Tu cita fue registrada con éxito.");
@@ -260,6 +249,7 @@ export default function OperadorCitasMedicas() {
             console.error("Error al guardar cita:", error);
             notifyError("Error", error.message || "Hubo un error al agendar la cita.");
         } finally {
+            isSubmitting.current = false;
             setProcesando(false);
         }
     };
@@ -269,8 +259,8 @@ export default function OperadorCitasMedicas() {
         try {
             await cancelAppointmentByUser(citaACancelar.id, user, motivo);
 
-            // NOTIFICAR A admin_medico y admin_sistemas
             try {
+                // 🔥 Expandimos roles para notificar cancelación
                 await sendAdminNotification(
                     {
                         Titulo: "❌ Cita Médica Cancelada",
@@ -285,7 +275,7 @@ export default function OperadorCitasMedicas() {
                             motivo: motivo
                         }
                     },
-                    ["admin_medico", "admin_sistemas"]
+                    ["admin_medico", "admin_sistemas", "admin", "administrador", "admin_general"]
                 );
             } catch (error) {
                 console.error("Error al notificar a admins sobre la cancelación:", error);
@@ -301,6 +291,7 @@ export default function OperadorCitasMedicas() {
             setProcesandoCancelacion(false);
         }
     };
+
 
     const formatearFecha = (fechaStr) => {
         const date = new Date(fechaStr + "T12:00:00");

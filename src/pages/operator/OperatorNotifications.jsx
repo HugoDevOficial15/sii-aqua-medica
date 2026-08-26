@@ -62,35 +62,15 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             try {
                 const currentUserIds = [user?.uid, user?.id].filter(Boolean);
-                console.log("🔔 Listener ejecutado. User IDs:", currentUserIds);
 
                 let notifs = querySnapshot.docs
                     .map(doc => ({
                         id: doc.id,
                         ...doc.data()
                     }))
-                    .filter(n => {
-                        // Mostrar notificaciones de broadcast (sin IdUsuario) y notificaciones dirigidas al usuario actual
-                        const shouldShow = !n.IdUsuario || currentUserIds.includes(n.IdUsuario);
+                    .filter(n => !n.IdUsuario || currentUserIds.includes(n.IdUsuario));
 
-                        if (!shouldShow) {
-                            console.log("  ❌ Notificación descartada:", {
-                                titulo: n.Titulo,
-                                idUsuarioNotif: n.IdUsuario,
-                                currentUserIds
-                            });
-                        }
-
-                        return shouldShow;
-                    });
-
-                // 🍪 Filtrar notificaciones descartadas (persistencia en cookies)
                 notifs = filterDismissedNotifications(notifs);
-
-                console.log("📬 Notificaciones actualizadas (tiempo real):", notifs.length, "de", querySnapshot.docs.length);
-                if (notifs.length > 0) {
-                    console.log("   Notificaciones:", notifs.map(n => ({ titulo: n.Titulo, destino: n.Destino })));
-                }
                 setNotificaciones(notifs);
             } catch (error) {
                 console.error("Error procesando notificaciones:", error);

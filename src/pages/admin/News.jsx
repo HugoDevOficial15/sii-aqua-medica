@@ -82,9 +82,18 @@ export default function News() {
   };
 
   const abrirFormularioEditar = (noticia) => {
-    setTitulo(noticia.titulo || ""); setContenido(noticia.contenido || "");
-    setFechaLimite(noticia.fechaLimite || ""); setAreaDestino(noticia.areaDestino || "Todas");
-    setImagen(null); setArchivoSeleccionado(null); setNoticiaEditando(noticia);
+    setTitulo(noticia.titulo || "");
+    setContenido(noticia.contenido || "");
+    setFechaLimite(noticia.fechaLimite || "");
+    setAreaDestino(noticia.areaDestino || "Todas");
+    setImagen(null);
+    // Mantener el archivo existente si no se selecciona uno nuevo
+    if (noticia.archivo) {
+      setArchivoSeleccionado({ name: noticia.archivoNombre || "archivo" });
+    } else {
+      setArchivoSeleccionado(null);
+    }
+    setNoticiaEditando(noticia);
     setVistaActual("formulario");
   };
 
@@ -205,12 +214,31 @@ export default function News() {
           estado: "Activa"
         });
 
-        // Crear notificaciones solo para usuarios del área destino
-        const q = areaDestino === "Todas"
-          ? query(collection(db, "usuarios"))
-          : query(collection(db, "usuarios"), where("area", "==", areaDestino));
+        // Obtener usuarios (operadores solo)
+        let usersSnapshot = await getDocs(query(collection(db, "users")));
 
-        const usersSnapshot = await getDocs(q);
+        if (usersSnapshot.docs.length === 0) {
+          usersSnapshot = await getDocs(query(collection(db, "usuarios")));
+        }
+
+        // Filtrar: solo operadores del área destino
+        usersSnapshot = {
+          docs: usersSnapshot.docs.filter(doc => {
+            const userData = doc.data();
+            const rol = userData.rol || userData.Rol || "";
+
+            if (!rol.toLowerCase().includes("operador")) {
+              return false;
+            }
+
+            if (areaDestino === "Todas") {
+              return true;
+            }
+
+            const userArea = userData.area || userData.Area;
+            return userArea === areaDestino;
+          })
+        };
 
         // 🍪 Usar Promise.all para esperar a que TODAS se creen
         await Promise.all(

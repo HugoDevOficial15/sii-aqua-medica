@@ -4,10 +4,12 @@ import {
     doc,
     getDoc,
     addDoc,
-    updateDoc, query, where,
+    updateDoc,
+    deleteDoc,
+    query,
+    where,
     writeBatch,
-    serverTimestamp,
-    orderBy
+    serverTimestamp
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { CITA_ESTADOS, ESTADOS_CANCELABLES } from "../constants/citasMedicasStates";
@@ -102,16 +104,6 @@ export const cancelarCitaPorAdmin = async (citaId, motivo, adminUid, adminNombre
     }
 };
 
-// Función antigua (mantener para compatibilidad)
-export const cancelarCita = async (id) => {
-    await updateDoc(doc(db, "citas_medicas", id), {
-        estado: "libre",
-        usuarioId: null,
-        usuarioNombre: null
-    });
-};
-
-
 export const getCitasPorAgenda = async (agendaId) => {
 
     const q = query(
@@ -138,8 +130,6 @@ export const getUserAppointments = async (nomina, userId) => {
             throw new Error("Se requiere el ID de usuario o nómina para obtener citas");
         }
 
-        console.log("🔍 DEBUG getUserAppointments - Parámetros entrada:", { nomina, userId });
-
         let snapshot;
 
         // 🔥 CRÍTICO: Filtrar SIEMPRE por userId si disponible (es el identificador más confiable)
@@ -150,16 +140,13 @@ export const getUserAppointments = async (nomina, userId) => {
                 where("userId", "==", userId)
             );
             snapshot = await getDocs(q);
-            console.log("🔍 DEBUG - Query por userId:", { resultados: snapshot.docs.length, userId });
         } else if (nomina) {
             // Solo si NO hay userId, usar nómina como último recurso
-            console.log("⚠️ DEBUG - No hay userId, usando nomina como fallback");
             const q = query(
                 collection(db, "citas_medicas"),
                 where("nominaUsuario", "==", nomina)
             );
             snapshot = await getDocs(q);
-            console.log("🔍 DEBUG - Query por nomina (fallback):", { resultados: snapshot.docs.length, nomina });
         } else {
             throw new Error("Se requiere userId o nomina para obtener citas");
         }
@@ -170,64 +157,27 @@ export const getUserAppointments = async (nomina, userId) => {
             ...doc.data()
         }));
 
-        console.log("🔍 DEBUG - Citas antes de filtro:", { cantidad: misCitas.length, muestras: misCitas.slice(0, 2).map(c => ({ userId: c.userId, nomina: c.nominaUsuario, fecha: c.fecha, hora: c.horaInicio })) });
-
         // 2b. Filtrado adicional ESTRICTO por usuario
         // 🔥 CRÍTICO: Si se usó userId en la query, EXIGIR que coincida EXACTAMENTE
         // Rechaza CUALQUIER cita que no tenga userId o que tenga userId diferente
         if (userId) {
             const paramUserId = String(userId).trim();
-            const citasAntesDelFiltro = misCitas.length;
 
             misCitas = misCitas.filter(cita => {
-                // 🚨 SI NO TIENE userId, RECHAZARLA INMEDIATAMENTE
                 if (!cita.userId) {
-                    console.warn("🚨 FILTRO RECHAZÓ cita: NO TIENE userId", { citaId: cita.id, fecha: cita.fecha, hora: cita.horaInicio });
                     return false;
                 }
 
                 const citaUserId = String(cita.userId).trim();
-                const coinciden = citaUserId === paramUserId;
-
-                if (!coinciden) {
-                    console.warn("🚨 FILTRO RECHAZÓ cita: userId DIFERENTE", { esperado: paramUserId, encontrado: citaUserId, citaId: cita.id });
-                }
-                return coinciden;
+                return citaUserId === paramUserId;
             });
-
-            console.log("🔍 DEBUG - Filtrado por userId:", { antes: citasAntesDelFiltro, despues: misCitas.length, userId: paramUserId });
         } else {
             // Si se usó nomina, filtrar por nomina
             const paramNomina = String(nomina).trim();
-            const citasAntesDelFiltro = misCitas.length;
 
             misCitas = misCitas.filter(cita => {
                 const citaNomina = String(cita.nominaUsuario || "").trim();
-                const coinciden = citaNomina === paramNomina;
-                if (!coinciden) {
-                    console.warn("🚨 FILTRO RECHAZÓ cita: nomina no coincide", { esperado: paramNomina, encontrado: citaNomina, citaId: cita.id });
-                }
-                return coinciden;
-            });
-
-            console.log("🔍 DEBUG - Filtrado por nomina:", { antes: citasAntesDelFiltro, despues: misCitas.length, nomina: paramNomina });
-        }
-
-        console.log("🔍 DEBUG - Citas después de filtro:", { cantidad: misCitas.length });
-
-        // 🔍 DIAGNÓSTICO: Si hay muchas citas, reportar problema
-        if (misCitas.length > 10) {
-            console.error("🚨 PROBLEMA DETECTADO: El usuario tiene " + misCitas.length + " citas, lo que es inusual");
-            console.error("🚨 Primeras citas después del filtrado:");
-            misCitas.slice(0, 3).forEach(c => {
-                console.error({
-                    id: c.id,
-                    userId: c.userId,
-                    nomina: c.nominaUsuario,
-                    usuario: c.usuario,
-                    fecha: c.fecha,
-                    hora: c.horaInicio
-                });
+                return citaNomina === paramNomina;
             });
         }
 
@@ -446,8 +396,6 @@ export const bookAppointment = async (appointmentData) => {
         paciente
     } = appointmentData;
 
-    console.log("🔍 DEBUG bookAppointment - Datos recibidos:", { userId, nominaUsuario, usuario, nombre, fecha, horaInicio });
-
     if (!agendaId || !fecha || !horaInicio || !userId) {
         throw new Error("Datos incompletos para agendar la cita.");
     }
@@ -476,11 +424,30 @@ export const bookAppointment = async (appointmentData) => {
     }
 
     // ======================================================
-    // 2. BLOQUEO DE HORARIO
+    // 2. VALIDACIÓN: NO permitir citas en la MISMA FECHA (sin importar hora/campaña)
     // ======================================================
-    // Verifica si el usuario ya tiene una cita ACTIVA en la misma fecha y hora
-    // (sin importar la agenda/campaña).
-    // 🔥 IMPORTANTE: Las citas canceladas por admin NO bloquean reagendamiento
+    // 🔥 CRÍTICO: Esto previene que un usuario aggende múltiples citas en el MISMO DÍA
+    // Cada usuario solo puede tener UNA cita por día, punto.
+    const qFecha = query(
+        collection(db, "citas_medicas"),
+        where("userId", "==", userId),
+        where("fecha", "==", fecha)
+    );
+
+    const snapFecha = await getDocs(qFecha);
+
+    const citasEnMismaFecha = snapFecha.docs.filter(doc => {
+        const cita = doc.data();
+        return cita.estado === CITA_ESTADOS.ACTIVA;
+    });
+
+    if (citasEnMismaFecha.length > 0) {
+        throw new Error("Ya tienes una cita agendada en esta fecha. No puedes agendar dos citas en el mismo día.");
+    }
+
+    // ======================================================
+    // 3. BLOQUEO DE HORARIO (Antiguo - DEPRECADO pero se mantiene para seguridad)
+    // ======================================================
     const qHorario = query(
         collection(db, "citas_medicas"),
         where("userId", "==", userId),
@@ -492,7 +459,6 @@ export const bookAppointment = async (appointmentData) => {
     snapHorario.docs.forEach(doc => {
         const cita = doc.data();
 
-        // Solo contar citas ACTIVAS (ignorar canceladas)
         if (cita.estado !== CITA_ESTADOS.ACTIVA) {
             return;
         }
@@ -533,5 +499,4 @@ export const bookAppointment = async (appointmentData) => {
         id: docRef.id,
         ...nuevaCita
     };
-
-};;
+};

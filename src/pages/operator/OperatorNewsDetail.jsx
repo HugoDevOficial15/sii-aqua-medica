@@ -1,48 +1,37 @@
 import MobileBackButton from "./components/MobileBackButton";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { notifyInfo } from "../../utils/notify";
 
 export default function OperatorNewsDetail({ onBack, noticia }) {
     const [descargandoArchivo, setDescargandoArchivo] = useState(false);
+    const timeoutRef = useRef(null);
 
-    const handleDescargarArchivo = async () => {
+    const handleDescargarArchivo = () => {
+        if (!noticia.archivo) {
+            notifyInfo("Sin archivo", "Esta noticia no tiene archivo adjunto.");
+            return;
+        }
+
         setDescargandoArchivo(true);
+
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
         try {
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            // Intenta abrir/descargar el archivo
+            const link = document.createElement('a');
+            link.href = noticia.archivo;
+            link.download = noticia.archivoNombre || "documento_aqua";
+            link.click();
 
-            if (isIOS) {
-                const newWindow = window.open(noticia.archivo, '_blank');
-                if (!newWindow) {
-                    notifyInfo('Bloqueo de ventanas', 'Mantén presionado el archivo y selecciona "Guardar"');
-                }
-            } else if (isMobile && noticia.archivo.startsWith('data:')) {
-                const response = await fetch(noticia.archivo);
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-
-                const element = document.createElement('a');
-                element.setAttribute('href', url);
-                element.setAttribute('download', noticia.archivoNombre || 'documento');
-                element.style.display = 'none';
-                document.body.appendChild(element);
-                element.click();
-                document.body.removeChild(element);
-
-                setTimeout(() => URL.revokeObjectURL(url), 100);
-            } else {
-                const link = document.createElement('a');
-                link.href = noticia.archivo;
-                link.download = noticia.archivoNombre || "documento_aqua";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
+            notifyInfo("Descarga", "Archivo abierto/descargado");
         } catch (error) {
-            console.error("Error al descargar:", error);
-            window.open(noticia.archivo, '_blank');
+            console.error("Error:", error);
+            notifyInfo("Error", "No se pudo descargar el archivo");
         } finally {
-            setDescargandoArchivo(false);
+            // Resetear después de 2s
+            timeoutRef.current = setTimeout(() => {
+                setDescargandoArchivo(false);
+            }, 2000);
         }
     };
     

@@ -11,7 +11,6 @@ import { createNotification } from "../../utils/createNotification";
 import {
     getCitasPorAgenda,
     atenderCita,
-    cancelarCita,
     cancelarCitaPorAdmin
 } from "../../services/citasMedicasService";
 
