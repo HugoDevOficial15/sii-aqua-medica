@@ -171,6 +171,48 @@ export default function CreateSurvey() {
         return <Icon className="area-card-icon" />;
     };
 
+    const getEmptySurveyValues = () => ({
+        titulo: "",
+        descripcion: "",
+        fechaCurso: "",
+        objetivo: "",
+        temario: [""],
+        instructor: "",
+        modalidad: "digital",
+        tipoCurso: "programado",
+        formaEvaluacion: "digital",
+        areas: [],
+        duracionHoras: "0",
+        duracionMinutos: "0",
+        horaInicio: "",
+        horaFin: "",
+        fechaInicio: "",
+        fechaFin: "",
+        asignacion: {
+            tipo: "area",
+            valores: [],
+        },
+        preguntas: [],
+    });
+
+    const normalizeSurveyForForm = (survey = {}) => ({
+        ...getEmptySurveyValues(),
+        ...survey,
+        temario: Array.isArray(survey.temario) && survey.temario.length > 0 ? survey.temario : [""],
+        preguntas: Array.isArray(survey.preguntas) ? survey.preguntas : [],
+        areas: Array.isArray(survey.areas) ? survey.areas : [],
+        asignacion: survey.asignacion || { tipo: "area", valores: [] },
+        horaInicio: survey.horaInicio ? timeInputValue(survey.horaInicio) : "",
+        horaFin: survey.horaFin ? timeInputValue(survey.horaFin) : "",
+    });
+
+    const resetSurveyForm = () => {
+        reset(getEmptySurveyValues());
+        setCurrentId(null);
+        setEditing(false);
+        setCurrentStep(1);
+    };
+
     const {
         register,
         handleSubmit,
@@ -181,40 +223,8 @@ export default function CreateSurvey() {
         control,
     } = useForm({
         resolver: zodResolver(surveySchema),
-        defaultValues: {
-            titulo: "",
-            descripcion: "",
-
-            fechaCurso: "",
-            objetivo: "",
-            temario: [""],
-            instructor: "",
-            modalidad: "digital",
-            tipoCurso: "programado",
-            formaEvaluacion: "digital",
-            areas: [],
-            duracionHoras: "0",
-            duracionMinutos: "0",
-            horaInicio: "",
-            horaFin: "",
-
-            fechaInicio: "",
-            fechaFin: "",
-
-            asignacion: {
-                tipo: "area",
-                valores: [],
-            },
-
-            preguntas: []
-        }
-
-
-
-
+        defaultValues: getEmptySurveyValues(),
     });
-    console.log("errores:", errors);
-
     // array
     const { fields, append, remove, update } = useFieldArray({
         control,
@@ -256,8 +266,6 @@ export default function CreateSurvey() {
             pregunta: "",
             obligatoria: true,
             opciones: [{ texto: "" }, { texto: "" }],
-            respuestaCorrecta: undefined,
-            pares: [],
         });
     }
 
@@ -345,22 +353,39 @@ export default function CreateSurvey() {
             const totalHoras = Math.floor(totalMinutos / 60);
             const totalMinutosRestantes = totalMinutos % 60;
 
-//  LIMPIAR undefined (CLAVE)
+//  LIMPIAR undefined y propiedades no usadas (CLAVE)
             const cleanData = {
                 ...data,
-                preguntas: data.preguntas.map(p => {
-                    let respuesta = p.respuestaCorrecta;
-                    if (respuesta === undefined || p.tipo === "abierta") {
-                        respuesta = null;
+                preguntas: data.preguntas.map((p) => {
+                    const baseQuestion = {
+                        id: p.id,
+                        tipo: p.tipo,
+                        pregunta: p.pregunta,
+                        obligatoria: Boolean(p.obligatoria),
+                    };
+
+                    if (p.tipo === "abierta") {
+                        return baseQuestion;
+                    }
+
+                    if (p.tipo === "relacionar") {
+                        return {
+                            ...baseQuestion,
+                            pares: Array.isArray(p.pares) ? p.pares.filter((par) => par?.izquierda || par?.derecha) : [],
+                            respuestaCorrecta: Array.isArray(p.respuestaCorrecta) ? p.respuestaCorrecta : [],
+                        };
                     }
 
                     return {
-                        ...p,
-                        opciones: p.tipo === "abierta" ? [] : (p.opciones || []),
-                        pares: p.pares || [],
-                        respuestaCorrecta: respuesta
+                        ...baseQuestion,
+                        opciones: Array.isArray(p.opciones)
+                            ? p.opciones
+                                .filter((opcion) => opcion && opcion.texto && String(opcion.texto).trim())
+                                .map((opcion) => ({ texto: String(opcion.texto).trim() }))
+                            : [],
+                        respuestaCorrecta: p.respuestaCorrecta ?? null,
                     };
-                })
+                }),
             };
 
             const surveyData = {
@@ -402,10 +427,7 @@ export default function CreateSurvey() {
             setSurveys(update);
 
             setShowModal(false);
-
-            setEditing(false);
-
-            reset();
+            resetSurveyForm();
 
         } catch (error) {
 
@@ -433,11 +455,7 @@ export default function CreateSurvey() {
 
     const handleEdit = (survey) => {
 
-        reset({
-            ...survey,
-            horaInicio: timeInputValue(survey.horaInicio),
-            horaFin: timeInputValue(survey.horaFin),
-        });
+        reset(normalizeSurveyForForm(survey));
 
         setCurrentId(survey.id);
 
@@ -521,11 +539,7 @@ export default function CreateSurvey() {
                     <button className="btn btn-sm btn-primary btn-custom "
 
                         onClick={() => {
-                            reset();
-                            setEditing(false);
-
-                            setCurrentStep(1);
-
+                            resetSurveyForm();
                             setShowModal(true);
                         }}
                     >
@@ -682,7 +696,10 @@ export default function CreateSurvey() {
                             <button
                                 type="button"
                                 className="modal-close-btn"
-                                onClick={() => setShowModal(false)}
+                                onClick={() => {
+                                    setShowModal(false);
+                                    resetSurveyForm();
+                                }}
                             >
                                 ×
                             </button>
@@ -1483,7 +1500,7 @@ export default function CreateSurvey() {
 }
 
 .table thead tr th:nth-child(5){
-                text-align: center;
+        text-align: center;
 }
 
 /* ==================================================
