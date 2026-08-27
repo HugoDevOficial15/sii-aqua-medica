@@ -7,7 +7,8 @@ import {
     FiSettings,
     FiHelpCircle,
     FiChevronRight,
-    FiTrendingUp
+    FiTrendingUp,
+    FiAlertCircle
 } from "react-icons/fi";
 
 export default function OperatorMore({
@@ -28,6 +29,13 @@ export default function OperatorMore({
             icon: <FiAward />,
             title: "Reconocimientos",
             subtitle: "Logros e insignias"
+        },
+
+        {
+            id: "incidences",
+            icon: <FiAlertCircle />,
+            title: "Incidencias",
+            subtitle: "Registros de incidencias"
         },
 
         {

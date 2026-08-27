@@ -39,7 +39,11 @@ const RUTA_POR_DESTINO = {
     "suggestions": "suggestions",
     "suggestion-create": "suggestion-create",
     "ideas": "suggestion-create",
-    "IdeaActualizada": "suggestion-create"
+    "IdeaActualizada": "suggestion-create",
+    "reconocimientos": "recognitions",
+    "recognitions": "recognitions",
+    "incidencias": "incidences",
+    "incidences": "incidences"
 };
 
 export default function OperatorNotifications({ onNavigate, onBack }) {

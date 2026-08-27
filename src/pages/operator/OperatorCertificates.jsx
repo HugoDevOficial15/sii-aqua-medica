@@ -1,12 +1,81 @@
+import { useEffect, useState } from "react";
 import {
     FiDownload,
     FiCheckCircle,
     FiCalendar,
     FiAward
 } from "react-icons/fi";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "../../config/firebase";
 import MobileBackButton from "./components/MobileBackButton";
+import Loader from "../../components/Loader";
 
-export default function OperatorCertificates({ onBack }) {
+export default function OperatorCertificates({ onBack, usuarioActual }) {
+    const [certificates, setCertificates] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({ certificados: 0, cursosAprobados: 0 });
+
+    useEffect(() => {
+        const loadCertificates = async () => {
+            try {
+                if (!usuarioActual?.uid) {
+                    setLoading(false);
+                    return;
+                }
+
+                // Obtener respuestas de capacitaciones certificadas
+                const q = query(
+                    collection(db, "respuestasCapacitaciones"),
+                    where("userId", "==", usuarioActual.id),
+                    where("certificado", "==", true),
+                    where("tipo", "==", "capacitacion")
+                );
+
+                const snapshot = await getDocs(q);
+                const certs = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                setCertificates(certs);
+                setStats({
+                    certificados: certs.length,
+                    cursosAprobados: certs.length
+                });
+            } catch (error) {
+                console.error("Error loading certificates:", error);
+                // Si falla por índice, intentar sin filtro de tipo
+                try {
+                    const q = query(
+                        collection(db, "respuestasCapacitaciones"),
+                        where("userId", "==", usuarioActual.id),
+                        where("certificado", "==", true)
+                    );
+                    const snapshot = await getDocs(q);
+                    const certs = snapshot.docs
+                        .map(doc => ({ id: doc.id, ...doc.data() }))
+                        .filter(c => c.tipo === "capacitacion" || c.tipo === undefined);
+
+                    setCertificates(certs);
+                    setStats({
+                        certificados: certs.length,
+                        cursosAprobados: certs.length
+                    });
+                } catch (fallbackError) {
+                    console.error("Error in fallback:", fallbackError);
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadCertificates();
+    }, [usuarioActual]);
+
+    if (loading) {
+        return <Loader text="Cargando certificados..." />;
+    }
+
     return (
         <div className="certificates-screen">
 
@@ -34,7 +103,7 @@ export default function OperatorCertificates({ onBack }) {
 
                     <FiAward />
 
-                    <h3>8</h3>
+                    <h3>{stats.certificados}</h3>
 
                     <span>
                         Certificados
@@ -46,7 +115,7 @@ export default function OperatorCertificates({ onBack }) {
 
                     <FiCheckCircle />
 
-                    <h3>12</h3>
+                    <h3>{stats.cursosAprobados}</h3>
 
                     <span>
                         Cursos aprobados
@@ -56,131 +125,55 @@ export default function OperatorCertificates({ onBack }) {
 
             </div>
 
-            <div className="certificate-card">
-
-                <div className="certificate-top">
-
-                    <div className="certificate-icon">
-                        📜
-                    </div>
-
-                    <div>
-
-                        <h3>
-                            Seguridad Operativa
-                        </h3>
-
-                        <span>
-                            Calificación: 95/100
-                        </span>
-
-                    </div>
-
+            {certificates.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--operator-text-soft)" }}>
+                    <p>Aún no tienes certificados. Completa y aprueba capacitaciones para obtenerlos.</p>
                 </div>
+            ) : (
+                certificates.map(cert => (
+                    <div key={cert.id} className="certificate-card">
 
-                <div className="certificate-info">
+                        <div className="certificate-top">
 
-                    <FiCalendar />
+                            <div className="certificate-icon">
+                                📜
+                            </div>
 
-                    <span>
-                        Emitido: 12 Junio 2026
-                    </span>
+                            <div>
 
-                </div>
+                                <h3>
+                                    {cert.titulo || "Capacitación"}
+                                </h3>
 
-                <button className="certificate-download-btn">
+                                <span>
+                                    Calificación: {Math.round(cert.puntuacionObtenida || 0)}/100
+                                </span>
 
-                    <FiDownload />
+                            </div>
 
-                    Descargar PDF
+                        </div>
 
-                </button>
+                        <div className="certificate-info">
 
-            </div>
+                            <FiCalendar />
 
-            <div className="certificate-card">
+                            <span>
+                                Emitido: {cert.fechaEnviado ? new Date(cert.fechaEnviado.seconds * 1000).toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" }) : "Por definir"}
+                            </span>
 
-                <div className="certificate-top">
+                        </div>
 
-                    <div className="certificate-icon">
-                        🎓
-                    </div>
+                        <button className="certificate-download-btn" disabled>
 
-                    <div>
+                            <FiDownload />
 
-                        <h3>
-                            Manejo de Inventarios
-                        </h3>
+                            Descargar PDF (próximamente)
 
-                        <span>
-                            Calificación: 88/100
-                        </span>
+                        </button>
 
                     </div>
-
-                </div>
-
-                <div className="certificate-info">
-
-                    <FiCalendar />
-
-                    <span>
-                        Emitido: 20 Mayo 2026
-                    </span>
-
-                </div>
-
-                <button className="certificate-download-btn">
-
-                    <FiDownload />
-
-                    Descargar PDF
-
-                </button>
-
-            </div>
-
-            <div className="certificate-card">
-
-                <div className="certificate-top">
-
-                    <div className="certificate-icon">
-                        🏆
-                    </div>
-
-                    <div>
-
-                        <h3>
-                            Buenas Prácticas
-                        </h3>
-
-                        <span>
-                            Calificación: 100/100
-                        </span>
-
-                    </div>
-
-                </div>
-
-                <div className="certificate-info">
-
-                    <FiCalendar />
-
-                    <span>
-                        Emitido: 15 Abril 2026
-                    </span>
-
-                </div>
-
-                <button className="certificate-download-btn">
-
-                    <FiDownload />
-
-                    Descargar PDF
-
-                </button>
-
-            </div>
+                ))
+            )}
 
         </div>
     );

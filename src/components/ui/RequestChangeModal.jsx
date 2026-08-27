@@ -17,10 +17,17 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
     useEffect(() => {
 
         const loadPuestos = async () => {
-            const data = await getPuestos();
-            setPuestos(
-                [...data].sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }))
-            );
+            try {
+                const data = await getPuestos();
+                if (data && Array.isArray(data)) {
+                    setPuestos(
+                        data.sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }))
+                    );
+                }
+            } catch (error) {
+                console.error("Error cargando puestos:", error);
+                setPuestos([]);
+            }
         };
 
         loadPuestos();
@@ -169,7 +176,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Puesto</label>
                             <select
-                                style={{ ...styles.input, ...(errors.puesto ? styles.inputError : {}) }}
+                                style={{ ...styles.input, ...styles.selectOverflow, ...(errors.puesto ? styles.inputError : {}) }}
                                 {...register("puesto")}
                             >
                                 <option value="">Seleccionar...</option>
@@ -330,6 +337,7 @@ const styles = {
         gap: "16px",
         maxHeight: "60vh",
         overflowY: "auto",
+        overflowX: "visible",
         color: "var(--operator-text)"
     },
     hint: {
@@ -363,6 +371,9 @@ const styles = {
         outline: "none",
         background: "var(--operator-background)",
         color: "var(--operator-text)"
+    },
+    selectOverflow: {
+        overflow: "visible"
     },
     upperInput: {
         textTransform: "uppercase"

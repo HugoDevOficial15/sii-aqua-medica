@@ -133,9 +133,6 @@ export default function AgendaMesPage() {
                 Number(mes)
             );
 
-            console.log("Data Proof", user);
-
-
             const areaNew = quitarAcentos(user.area.toLowerCase());
 
             // const srv = await getServicios(areaNew, anio, Number(mes));

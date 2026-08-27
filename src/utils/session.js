@@ -4,10 +4,6 @@ export const getCurrentUser = () => {
 
     if (!user) return null;
 
-
-    console.log(JSON.parse(user));
-    
-
     return JSON.parse(user);
 
 };

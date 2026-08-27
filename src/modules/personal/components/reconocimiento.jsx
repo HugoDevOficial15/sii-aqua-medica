@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useState, useEffect } from "react";
+import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
 import { createNotification } from "../../../utils/createNotification";
@@ -14,6 +14,27 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
   });
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [isPrimeraVez, setIsPrimeraVez] = useState(null);
+
+  useEffect(() => {
+    const verificarPrimerReconocimiento = async () => {
+      if (!empleado?.id && !empleado?.uid) return;
+
+      try {
+        const q = query(
+          collection(db, "reconocimientos"),
+          where("empleadoId", "==", empleado.id || empleado.uid)
+        );
+        const snapshot = await getDocs(q);
+        setIsPrimeraVez(snapshot.empty);
+      } catch (err) {
+        console.error("Error verificando reconocimientos previos:", err);
+        setIsPrimeraVez(false);
+      }
+    };
+
+    verificarPrimerReconocimiento();
+  }, [empleado]);
 
   if (!empleado) return null;
 
@@ -36,6 +57,8 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
     setError("");
 
     try {
+      const tipoReconocimiento = isPrimeraVez ? "primer_logro" : form.tipo;
+
       const payload = {
         empleadoId: empleado.id || empleado.uid || null,
         empleadoNombre: empleado.nombre || "Trabajador",
@@ -46,7 +69,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
         emitidoPorNomina: user?.nomina || "",
         titulo,
         descripcion,
-        tipo: form.tipo,
+        tipo: tipoReconocimiento,
         estado: "activo",
         fecha: new Date().toISOString(),
         createdAt: serverTimestamp(),
@@ -66,7 +89,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
         IdUsuario: uidDestino,
         Titulo: "🏆 Reconocimiento recibido",
         Mensaje: `${user?.nombre || "Tu líder"} te otorgó el reconocimiento "${titulo}".`,
-        Destino: "personal",
+        Destino: "reconocimientos",
         Accion: "reconocimiento",
         extra: {
           empleadoId: payload.empleadoId,
@@ -117,19 +140,29 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
             />
           </div>
 
-          <div className="personal-field">
-            <label htmlFor="reconocimiento-tipo">Tipo</label>
-            <select
-              id="reconocimiento-tipo"
-              value={form.tipo}
-              onChange={(event) => handleChange("tipo", event.target.value)}
-            >
-              <option value="destacado">Destacado</option>
-              <option value="equipo">Equipo</option>
-              <option value="apoyo">Apoyo</option>
-              <option value="puntualidad">Puntualidad</option>
-            </select>
-          </div>
+          {isPrimeraVez ? (
+            <div className="personal-field">
+              <label>Tipo de reconocimiento</label>
+              <div className="personal-employee-pill" style={{ background: "rgba(250, 191, 36, 0.25)", borderColor: "rgba(250, 191, 36, 0.5)", color: "rgba(204, 164, 39, 0.87)" }}>
+                🏆 Primer logro
+              </div>
+              <small style={{ color: "var(--operator-text-soft)", fontSize: "12px" }}>Este es el primer reconocimiento que recibe, se asignará automáticamente como "Primer logro"</small>
+            </div>
+          ) : (
+            <div className="personal-field">
+              <label htmlFor="reconocimiento-tipo">Tipo</label>
+              <select
+                id="reconocimiento-tipo"
+                value={form.tipo}
+                onChange={(event) => handleChange("tipo", event.target.value)}
+              >
+                <option value="destacado">Destacado</option>
+                <option value="equipo">Equipo</option>
+                <option value="apoyo">Apoyo</option>
+                <option value="puntualidad">Puntualidad</option>
+              </select>
+            </div>
+          )}
 
           <div className="personal-field">
             <label htmlFor="reconocimiento-descripcion">Descripción</label>

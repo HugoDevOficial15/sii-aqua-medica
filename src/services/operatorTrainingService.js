@@ -18,7 +18,6 @@ export const getOperatorTrainings = async (userArea, userId, usuarioCompleto = n
         };
 
         const trainingsEnriquecidas = await getCapacitacionesDisponibles(usuario);
-        console.log("📊 Total capacitaciones para operador:", trainingsEnriquecidas.length);
         return trainingsEnriquecidas;
     } catch (error) {
         console.error("Error fetching operator trainings:", error);

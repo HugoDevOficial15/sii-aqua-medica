@@ -578,34 +578,6 @@ export default function CreateCapacitaciones() {
                                                                 <FaEdit className="me-2" /> Editar
                                                             </button>
 
-                                                            {estado !== "aprobada" && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="training-action-item"
-                                                                    style={{ color: "#0dcaf0", background: "transparent" }}
-                                                                    onClick={() => {
-                                                                        updateTrainingState(training, "aprobada");
-                                                                        setOpenActionsId(null);
-                                                                    }}
-                                                                >
-                                                                    <FaCheckCircle className="me-2" /> Aprobar
-                                                                </button>
-                                                            )}
-
-                                                            {estado !== "certificado" && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="training-action-item"
-                                                                    style={{ color: "#059669", background: "transparent" }}
-                                                                    onClick={() => {
-                                                                        updateTrainingState(training, "certificado");
-                                                                        setOpenActionsId(null);
-                                                                    }}
-                                                                >
-                                                                    <FaCheckCircle className="me-2" /> Certificar
-                                                                </button>
-                                                            )}
-
                                                             <button
                                                                 type="button"
                                                                 className="training-action-item"
@@ -1441,31 +1413,32 @@ export default function CreateCapacitaciones() {
     font-size: 13px;
     font-weight: 800;
     text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.training-action-item:hover {
+    transform: scale(1.05);
 }
 
 .training-action-item.editar:hover {
     color: var(--operator-primary);
-    scale: 1.02;
 }
 
 .training-action-item.respuestas:hover {
     color: var(--operator-warning);
-    scale: 1.02;
 }
 
 .training-action-item.borrar:hover {
     color: var(--operator-danger);
-    scale: 1.02;
 }
 
 .training-action-item.desactivado:hover {
     color: var(--operator-danger);
-    scale: 1.02;
 }
 
 .training-action-item.activado:hover {
     color: var(--operator-success);
-    scale: 1.02;
 }
 
 /* ==================================================

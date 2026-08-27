@@ -16,6 +16,7 @@ import OperatorSuggestionCreate from "./OperatorSuggestionCreate";
 
 import OperatorPoints from "./OperatorPoints";
 import OperatorRecognitions from "./OperatorRecognitions";
+import OperatorIncidences from "./OperatorIncidences";
 import OperatorTraining from "./OperatorTraining";
 import OperatorCertificates from "./OperatorCertificates";
 import OperatorNotifications from "./OperatorNotifications";
@@ -135,11 +136,13 @@ export default function AppOperator() {
             case "points":
                 return <OperatorPoints onBack={() => setScreen("more")} />;
             case "recognitions":
-                return <OperatorRecognitions onBack={() => setScreen("more")} />;
+                return <OperatorRecognitions usuarioActual={user} onBack={() => setScreen("more")} />;
+            case "incidences":
+                return <OperatorIncidences usuarioActual={user} onBack={() => setScreen("more")} />;
             case "training":
                 return <OperatorTraining onTrainingComplete={refetchTrainings} onBack={() => setScreen("more")} />;
             case "certificates":
-                return <OperatorCertificates onBack={() => setScreen("more")} />;
+                return <OperatorCertificates usuarioActual={user} onBack={() => setScreen("more")} />;
             case "notifications":
                 return <OperatorNotifications onNavigate={handleNavigate} onBack={() => setScreen("more")} />;
             case "news":

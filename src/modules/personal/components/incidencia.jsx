@@ -69,7 +69,7 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
         IdUsuario: uidDestino,
         Titulo: "⚠️ Incidencia registrada",
         Mensaje: `${user?.nombre || "Tu líder"} registró una incidencia para ti: "${titulo}".`,
-        Destino: "personal",
+        Destino: "incidencias",
         Accion: "incidencia",
         extra: {
           incidenciaId: docRef.id,
@@ -127,11 +127,11 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
               onChange={(event) => handleChange("tipo", event.target.value)}
             >
               <option value="incidencia">Incidencia</option>
-              <option value="ausencia">Falta injustificada</option>
+              <option value="falta injustificada">Falta injustificada</option>
               <option value="retardo">Retardo</option>
-              <option value="comportamiento">Falta administrativa</option>
-              <option value="llamadaEscrita">Llamada de atención escrita</option>
-              <option value="llamadaVerbal">Llamada de atención verbal</option>
+              <option value="falta administrativa">Falta administrativa</option>
+              <option value="llamada de atención escrita">Llamada de atención escrita</option>
+              <option value="llamada de atención verbal">Llamada de atención verbal</option>
             </select>
           </div>
 
