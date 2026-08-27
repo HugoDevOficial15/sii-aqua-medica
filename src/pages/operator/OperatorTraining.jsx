@@ -167,7 +167,7 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
                 ...training,
                 estadoActual: estadoCorregido,
                 miPuntaje: userResp.calificacion || userResp.puntuacionObtenida,
-                intentos: userResp.intentos || 1
+                intentos: userResp.intentos || 0
             };
         }
         return { ...training, estadoActual: estadoCorregido };
@@ -265,7 +265,7 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
             let nuevoEstado = "";
             if (result.tieneRespuestasAbiertas) nuevoEstado = "pendiente_validacion";
             else if (result.calificacion >= MIN_APROBATORIO) nuevoEstado = "completada";
-            else nuevoEstado = (intentosActuales >= 3) ? "bloqueada" : "reprobada";
+            else nuevoEstado = "reprobada";
 
             await saveTrainingResponse({
                 idCapacitacion: ongoingTraining.id,
@@ -382,31 +382,46 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
                     </div>
                 )}
 
-                {capacitacionesAMostrar.map(training => (
-                    <div key={training.id} className="survey-card-v2">
-                        <div className="survey-card-top">
-                            <span className={ESTADO_BADGE_CLASS[training.estadoActual] || "badge default"}>{ESTADO_LABEL[training.estadoActual] || training.estadoActual}</span>
-                        </div>
+                {capacitacionesAMostrar.map(training => {
+                    const intentosUsados = Number(training.intentos || 0);
+                    const reintentosRestantes = Math.max(0, MAX_SURVEY_ATTEMPTS - intentosUsados);
+                    const puedeReintentar = training.estadoActual === "reprobada" && reintentosRestantes > 0;
 
-                        <h3>{training.titulo}</h3>
-                        <p>{training.descripcion}</p>
-                        <p><strong>Modalidad:</strong> {training.modalidad === 'online' ? 'Digital' : 'Escrita'}</p>
-
-                        {training.estadoActual === "completada" && <p style={{ color: "#10b981", marginTop: "10px" }}><strong>Puntaje obtenido:</strong> {training.miPuntaje}/100 ✔️</p>}
-                        {training.estadoActual === "pendiente_validacion" && <p style={{ color: "#3b82f6", marginTop: "10px" }}><strong>Estado:</strong> Pendiente de validación manual ⏱️</p>}
-
-                        {(training.estadoActual === "reprobada" || training.estadoActual === "bloqueada") && (
-                            <div style={{ marginTop: "10px" }}>
-                                <p style={{ color: "#ef4444" }}><strong>Último puntaje:</strong> {training.miPuntaje}/100 ❌ (Mínimo 80)</p>
-                                <p><strong>Intentos utilizados:</strong> {training.intentos || 1} de 3</p>
+                    return (
+                        <div key={training.id} className="survey-card-v2">
+                            <div className="survey-card-top">
+                                <span className={ESTADO_BADGE_CLASS[training.estadoActual] || "badge default"}>{ESTADO_LABEL[training.estadoActual] || training.estadoActual}</span>
                             </div>
-                        )}
 
-                        {training.estadoActual === "pendiente" && <button onClick={() => handleStartTraining(training)}>Iniciar Evaluación</button>}
-                        {training.estadoActual === "reprobada" && <button onClick={() => handleStartTraining(training)} style={{ background: "#f59e0b", color: "#fff", border: "none" }}>Reintentar ({3 - (training.intentos || 1)} intentos restantes)</button>}
-                        {training.estadoActual === "bloqueada" && <button disabled style={{ opacity: 0.6, cursor: "not-allowed", background: "#64748b", color: "#fff", border: "none" }}>Bloqueada (Límite alcanzado)</button>}
-                    </div>
-                ))}
+                            <h3>{training.titulo}</h3>
+                            <p>{training.descripcion}</p>
+                            <p><strong>Modalidad:</strong> {training.modalidad === 'online' ? 'Digital' : 'Escrita'}</p>
+
+                            {training.estadoActual === "completada" && <p style={{ color: "#10b981", marginTop: "10px" }}><strong>Puntaje obtenido:</strong> {training.miPuntaje}/100 ✔️</p>}
+                            {training.estadoActual === "pendiente_validacion" && <p style={{ color: "#3b82f6", marginTop: "10px" }}><strong>Estado:</strong> Pendiente de validación manual ⏱️</p>}
+
+                            {(training.estadoActual === "reprobada" || training.estadoActual === "bloqueada") && (
+                                <div style={{ marginTop: "10px" }}>
+                                    <p style={{ color: "#ef4444" }}><strong>Último puntaje:</strong> {training.miPuntaje}/100 ❌ (Mínimo 80)</p>
+                                    <p><strong>Intentos utilizados:</strong> {intentosUsados} de {MAX_SURVEY_ATTEMPTS}</p>
+                                </div>
+                            )}
+
+                            {training.estadoActual === "pendiente" && <button onClick={() => handleStartTraining(training)}>Iniciar Evaluación</button>}
+                            {puedeReintentar && (
+                                <button onClick={() => handleStartTraining(training)} style={{ background: "#f59e0b", color: "#fff", border: "none" }}>
+                                    Reintentar ({reintentosRestantes} intentos restantes)
+                                </button>
+                            )}
+                            {!puedeReintentar && training.estadoActual === "reprobada" && (
+                                <button disabled style={{ opacity: 0.6, cursor: "not-allowed", background: "#64748b", color: "#fff", border: "none" }}>
+                                    Reprobado (sin intentos restantes)
+                                </button>
+                            )}
+                            {training.estadoActual === "bloqueada" && <button disabled style={{ opacity: 0.6, cursor: "not-allowed", background: "#64748b", color: "#fff", border: "none" }}>Bloqueada (Límite alcanzado)</button>}
+                        </div>
+                    );
+                })}
             </div>
 
             {ongoingTraining && (

@@ -6,6 +6,7 @@ import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import MobileBackButton from "./components/MobileBackButton";
 import { isSurveyTimeExpired } from "../../utils/surveyTiming";
+import { MAX_SURVEY_ATTEMPTS } from "../../constants/surveyConstants";
 
 const ESTADO_LABEL = {
     pendiente: "Pendiente",
@@ -67,7 +68,16 @@ export default function OperatorSurveys({
             const map = {};
             snap.forEach(doc => {
                 const d = doc.data();
-                map[d.encuestaId || d.idEncuesta] = d;
+                const key = d.encuestaId || d.idEncuesta;
+                if (!key) return;
+
+                const current = map[key];
+                const currentTime = current?.fechaRespuesta ? Date.parse(current.fechaRespuesta) : 0;
+                const newTime = d.fechaRespuesta ? Date.parse(d.fechaRespuesta) : 0;
+
+                if (!current || newTime > currentTime) {
+                    map[key] = { id: doc.id, ...d };
+                }
             });
             setUserResponses(map);
         });
@@ -89,7 +99,7 @@ export default function OperatorSurveys({
         const userResp = userResponses[survey.id];
         let estadoCorregido = survey.estadoActual || "pendiente";
         let puntaje = survey.miPuntaje;
-        let intentos = survey.intentos || 1;
+        let intentos = survey.intentos || 0;
 
         const expiroSinResponder = !userResp && isSurveyTimeExpired({
             fechaInicio: survey.fechaInicio,
@@ -100,19 +110,19 @@ export default function OperatorSurveys({
 
         if (userResp) {
             puntaje = userResp.calificacion ?? userResp.puntuacionObtenida;
-            intentos = userResp.intentos || 1;
+            intentos = userResp.intentos || 0;
             
             if (userResp.estadoActual === "pendiente_validacion" || userResp.tieneRespuestasAbiertas) {
                 estadoCorregido = "pendiente_validacion";
             } else {
-                estadoCorregido = userResp.estadoActual || "completada";
+                estadoCorregido = userResp.estadoActual === "bloqueada" ? "reprobada" : (userResp.estadoActual || "completada");
             }
         } else if (expiroSinResponder && estadoCorregido === "pendiente") {
             estadoCorregido = "vencida";
         } else if (estadoCorregido === "pendiente" && puntaje !== undefined && puntaje !== null) {
             const puntajeNum = Number(puntaje);
             if (puntajeNum < 80) {
-                estadoCorregido = intentos >= 3 ? "bloqueada" : "reprobada";
+                estadoCorregido = "reprobada";
             } else {
                 estadoCorregido = "completada";
             }
@@ -292,36 +302,51 @@ export default function OperatorSurveys({
                     </div>
                 )}
 
-                {encuestasAMostrar.map(survey => (
-                    <div key={survey.id} className="survey-card-v2">
-                        <div className="survey-card-top">
-                            <span className={ESTADO_BADGE_CLASS[survey.estadoActual] || "badge default"}>
-                                {ESTADO_LABEL[survey.estadoActual] || survey.estadoActual}
-                            </span>
-                        </div>
+                {encuestasAMostrar.map(survey => {
+                    const intentosUsados = Number(survey.intentos || 0);
+                    const reintentosRestantes = Math.max(0, MAX_SURVEY_ATTEMPTS - intentosUsados);
+                    const puedeReintentar = survey.estadoActual === "reprobada" && reintentosRestantes > 0;
 
-                        <h3>{survey.titulo}</h3>
-                        <p>{survey.descripcion}</p>
-
-                        <p><strong>Instructor:</strong> {survey.instructor}</p>
-                        <p><strong>Tipo de curso:</strong> {survey.tipoCurso}</p>
-                        <p><strong>Expiración:</strong> {getRemainingSurveyTime(survey)}</p>
-
-                        {survey.estadoActual === "completada" && <p style={{ color: "#10b981", marginTop:"10px" }}><strong>Puntaje obtenido:</strong> {survey.miPuntaje}/100 ✔️</p>}
-                        {survey.estadoActual === "pendiente_validacion" && <p style={{ color: "#3b82f6", marginTop:"10px" }}><strong>Estado:</strong> Pendiente de revisión ⏱️</p>}
-
-                        {(survey.estadoActual === "reprobada" || survey.estadoActual === "bloqueada") && (
-                            <div style={{ marginTop:"10px" }}>
-                                <p style={{ color: "#ef4444" }}><strong>Último puntaje:</strong> {survey.miPuntaje}/100 ❌ (Mínimo 80)</p>
-                                <p><strong>Intentos utilizados:</strong> {survey.intentos || 1} de 3</p>
+                    return (
+                        <div key={survey.id} className="survey-card-v2">
+                            <div className="survey-card-top">
+                                <span className={ESTADO_BADGE_CLASS[survey.estadoActual] || "badge default"}>
+                                    {ESTADO_LABEL[survey.estadoActual] || survey.estadoActual}
+                                </span>
                             </div>
-                        )}
 
-                        {survey.estadoActual === "pendiente" && <button onClick={() => handleStartSurvey(survey)}>Comenzar</button>}
-                        {survey.estadoActual === "reprobada" && <button onClick={() => handleStartSurvey(survey)} style={{ background: "#f59e0b", color: "#fff", border: "none" }}>Reintentar ({3 - (survey.intentos || 1)} intentos restantes)</button>}
-                        {survey.estadoActual === "bloqueada" && <button disabled style={{ opacity: 0.6, cursor: "not-allowed", background: "#64748b", color: "#fff", border: "none" }}>Bloqueada (Límite alcanzado)</button>}
-                    </div>
-                ))}
+                            <h3>{survey.titulo}</h3>
+                            <p>{survey.descripcion}</p>
+
+                            <p><strong>Instructor:</strong> {survey.instructor}</p>
+                            <p><strong>Tipo de curso:</strong> {survey.tipoCurso}</p>
+                            <p><strong>Expiración:</strong> {getRemainingSurveyTime(survey)}</p>
+
+                            {survey.estadoActual === "completada" && <p style={{ color: "#10b981", marginTop:"10px" }}><strong>Puntaje obtenido:</strong> {survey.miPuntaje}/100 ✔️</p>}
+                            {survey.estadoActual === "pendiente_validacion" && <p style={{ color: "#3b82f6", marginTop:"10px" }}><strong>Estado:</strong> Pendiente de revisión ⏱️</p>}
+
+                            {(survey.estadoActual === "reprobada" || survey.estadoActual === "bloqueada") && (
+                                <div style={{ marginTop:"10px" }}>
+                                    <p style={{ color: "#ef4444" }}><strong>Último puntaje:</strong> {survey.miPuntaje}/100 ❌ (Mínimo 80)</p>
+                                    <p><strong>Intentos utilizados:</strong> {intentosUsados} de {MAX_SURVEY_ATTEMPTS}</p>
+                                </div>
+                            )}
+
+                            {survey.estadoActual === "pendiente" && <button onClick={() => handleStartSurvey(survey)}>Comenzar</button>}
+                            {puedeReintentar && (
+                                <button onClick={() => handleStartSurvey(survey)} style={{ background: "#f59e0b", color: "#fff", border: "none" }}>
+                                    Reintentar ({reintentosRestantes} intentos restantes)
+                                </button>
+                            )}
+                            {!puedeReintentar && survey.estadoActual === "reprobada" && (
+                                <button disabled style={{ opacity: 0.6, cursor: "not-allowed", background: "#64748b", color: "#fff", border: "none" }}>
+                                    Reprobado (sin intentos restantes)
+                                </button>
+                            )}
+                            {survey.estadoActual === "bloqueada" && <button disabled style={{ opacity: 0.6, cursor: "not-allowed", background: "#64748b", color: "#fff", border: "none" }}>Bloqueada (Límite alcanzado)</button>}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

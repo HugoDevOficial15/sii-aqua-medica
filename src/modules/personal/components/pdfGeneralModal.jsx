@@ -673,7 +673,7 @@ export default function PdfGeneralModal({
               <button
                 key={option.key}
                 type="button"
-                className={`personal-record-filter-btn ${categoria === option.key ? "active" : ""}`}
+                className={`personal-record-filter-btn ${categoria === option.key ? "active" : ""} ${option.key}`}
                 onClick={() => setCategoria(option.key)}
               >
                 {option.label}
@@ -886,20 +886,44 @@ export default function PdfGeneralModal({
           padding: 8px 12px;
           font-weight: 600;
           cursor: pointer;
+          font-size: 14px;
         }
 
-        .personal-record-filter-btn.active {
-          background: #2563eb;
-          color: white;
-          border-color: #2563eb;
+        .personal-record-filter-btn.active.general {
+          background: none;
+          border-color: rgba(118, 147, 243, 0.8);
+          color: var(--operator-primary, #2563eb);
         }
 
-        .personal-record-filter-btn.active:hover {
+        .personal-record-filter-btn.active.incidencias {
+          background: none;
+          border: 3px solid rgba(239, 68, 68, 0.34);
+          color: #f33030;
+        }
+
+        .personal-record-filter-btn.active.reconocimientos {
+          background: none;
+          border: 3px solid rgba(155, 138, 43, 0.25);
+          color: rgba(155, 133, 10, 0.87);
+        }
+
+        .personal-record-filter-btn.active.incapacidades {
+          background: none;
+          border: 3px solid #ca56ff48;
+          color: #d666f8;
+        }
+
+        .personal-record-filter-btn.active.historialMedico {
+          background: none;
+          border: 3px solid rgba(34, 159, 197, 0.31);
+          color: #24c2c2;
+        }
+
+        .personal-record-filter-btn.active.general:hover {
             scale: 1.02;
         }
         
         .personal-record-filter-btn.active:focus {
-            transition: all 0.3s;
             scale: 1.02;
         }
 

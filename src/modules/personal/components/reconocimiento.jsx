@@ -124,10 +124,10 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
               value={form.tipo}
               onChange={(event) => handleChange("tipo", event.target.value)}
             >
-              <option value="destacado">Destacado</option>
-              <option value="equipo">Equipo</option>
-              <option value="apoyo">Apoyo</option>
-              <option value="puntualidad">Puntualidad</option>
+              <option value="Destacado">Destacado</option>
+              <option value="Equipo">Equipo</option>
+              <option value="Apoyo">Apoyo</option>
+              <option value="Puntualidad">Puntualidad</option>
             </select>
           </div>
 

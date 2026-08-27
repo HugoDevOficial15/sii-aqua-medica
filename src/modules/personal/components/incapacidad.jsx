@@ -115,81 +115,122 @@ export const syncUsersWithIncapacidades = async (usersData = []) => {
     return [];
   }
 
-  const syncedUsers = await Promise.all(
-    usersData.map(async (usuario) => {
-      try {
-        const incapacidades = await getIncapacidadesByUser(usuario.id, usuario.nomina);
-        const activeIncapacidad = incapacidades.some((incapacidad) => {
-          const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-          const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const startOk = !fechaInicio || fechaInicio <= today;
-          const endOk = !fechaFin || fechaFin >= today;
-          return startOk && endOk;
-        });
+  try {
+    const incapacidadesSnapshot = await getDocs(collection(db, "incapacidades"));
+    const incapacidadesByUser = new Map();
+    const incapacidadesByNomina = new Map();
 
-        const currentState = String(usuario?.estado || "").trim().toLowerCase();
-        const isExpiredIncapacidad = currentState === "incapacidad" && !activeIncapacidad;
+    incapacidadesSnapshot.docs.forEach((docSnap) => {
+      const data = { id: docSnap.id, ...docSnap.data() };
+      const userId = data.userId ? String(data.userId) : null;
+      const nomina = data.nomina !== null && data.nomina !== undefined && data.nomina !== "" ? String(data.nomina) : null;
 
-        if (activeIncapacidad && currentState !== "incapacidad") {
-          await updateUser(usuario.id, {
-            estado: "incapacidad",
-            activo: true,
-            tipoIncapacidad: incapacidades.find((incapacidad) => {
-              const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-              const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
-            })?.tipo || "incapacidad",
-            fechaInicioIncapacidad: incapacidades.find((incapacidad) => {
-              const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-              const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
-            })?.fechaInicio || null,
-            fechaFinIncapacidad: incapacidades.find((incapacidad) => {
-              const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-              const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
-            })?.fechaFin || null,
-            notaIncapacidad: incapacidades.find((incapacidad) => {
-              const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-              const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
-            })?.nota || "",
-          });
-        }
-
-        if (isExpiredIncapacidad) {
-          await updateUser(usuario.id, {
-            estado: "activo",
-            activo: true,
-            tipoIncapacidad: "",
-            fechaInicioIncapacidad: null,
-            fechaFinIncapacidad: null,
-            notaIncapacidad: "",
-          });
-        }
-
-        return {
-          ...usuario,
-          estado: activeIncapacidad ? "incapacidad" : isExpiredIncapacidad ? "activo" : usuario.estado,
-        };
-      } catch (error) {
-        console.error("Error sincronizando incapacidad del usuario:", error);
-        return usuario;
+      if (userId) {
+        const current = incapacidadesByUser.get(userId) || [];
+        incapacidadesByUser.set(userId, [...current, data]);
       }
-    })
-  );
 
-  return syncedUsers;
+      if (nomina) {
+        const current = incapacidadesByNomina.get(nomina) || [];
+        incapacidadesByNomina.set(nomina, [...current, data]);
+      }
+    });
+
+    const syncedUsers = await Promise.all(
+      usersData.map(async (usuario) => {
+        try {
+          const userId = usuario?.id ? String(usuario.id) : "";
+          const nomina = usuario?.nomina !== null && usuario?.nomina !== undefined && usuario?.nomina !== "" ? String(usuario.nomina) : "";
+
+          const incapacidades = [];
+          const seenIds = new Set();
+
+          const addItems = (items = []) => {
+            items.forEach((incapacidad) => {
+              if (!incapacidad?.id || seenIds.has(incapacidad.id)) return;
+              seenIds.add(incapacidad.id);
+              incapacidades.push(incapacidad);
+            });
+          };
+
+          if (userId) addItems(incapacidadesByUser.get(userId) || []);
+          if (nomina) addItems(incapacidadesByNomina.get(nomina) || []);
+
+          const activeIncapacidad = incapacidades.some((incapacidad) => {
+            const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+            const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const startOk = !fechaInicio || fechaInicio <= today;
+            const endOk = !fechaFin || fechaFin >= today;
+            return startOk && endOk;
+          });
+
+          const currentState = String(usuario?.estado || "").trim().toLowerCase();
+          const isExpiredIncapacidad = currentState === "incapacidad" && !activeIncapacidad;
+
+          if (activeIncapacidad && currentState !== "incapacidad") {
+            await updateUser(usuario.id, {
+              estado: "incapacidad",
+              activo: true,
+              tipoIncapacidad: incapacidades.find((incapacidad) => {
+                const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+                const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
+              })?.tipo || "incapacidad",
+              fechaInicioIncapacidad: incapacidades.find((incapacidad) => {
+                const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+                const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
+              })?.fechaInicio || null,
+              fechaFinIncapacidad: incapacidades.find((incapacidad) => {
+                const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+                const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
+              })?.fechaFin || null,
+              notaIncapacidad: incapacidades.find((incapacidad) => {
+                const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+                const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
+              })?.nota || "",
+            });
+          }
+
+          if (isExpiredIncapacidad) {
+            await updateUser(usuario.id, {
+              estado: "activo",
+              activo: true,
+              tipoIncapacidad: "",
+              fechaInicioIncapacidad: null,
+              fechaFinIncapacidad: null,
+              notaIncapacidad: "",
+            });
+          }
+
+          return {
+            ...usuario,
+            estado: activeIncapacidad ? "incapacidad" : isExpiredIncapacidad ? "activo" : usuario.estado,
+          };
+        } catch (error) {
+          console.error("Error sincronizando incapacidad del usuario:", error);
+          return usuario;
+        }
+      })
+    );
+
+    return syncedUsers;
+  } catch (error) {
+    console.error("Error cargando incapacidades para sincronizar usuarios:", error);
+    return usersData;
+  }
 };
 
 export const refreshUsersWithIncapacidades = async (setUsuarios) => {
@@ -212,30 +253,71 @@ export const useUserIncapacidades = (usuarios = []) => {
     let active = true;
 
     const loadUserIncapacidades = async () => {
-      const map = {};
+      try {
+        const snapshot = await getDocs(collection(db, "incapacidades"));
+        const byUser = {};
+        const byNomina = {};
 
-      for (const usuario of usuarios) {
-        if (!active) return;
+        snapshot.docs.forEach((docSnap) => {
+          const item = { id: docSnap.id, ...docSnap.data() };
+          const userId = item.userId ? String(item.userId) : null;
+          const nomina = item.nomina !== null && item.nomina !== undefined && item.nomina !== "" ? String(item.nomina) : null;
 
-        setLoadingIncapacidades((prev) => ({ ...prev, [usuario.id]: true }));
+          if (userId) {
+            byUser[userId] = [...(byUser[userId] || []), item];
+          }
 
-        try {
-          const incapacidades = await getIncapacidadesByUser(usuario.id, usuario.nomina);
-          map[usuario.id] = Array.isArray(incapacidades) ? incapacidades.filter(Boolean) : [];
-        } catch (error) {
-          console.error("Error cargando incapacidades del personal:", error);
-          map[usuario.id] = [];
-        } finally {
+          if (nomina) {
+            byNomina[nomina] = [...(byNomina[nomina] || []), item];
+          }
+        });
+
+        const map = {};
+
+        usuarios.forEach((usuario) => {
+          const uid = usuario?.id ? String(usuario.id) : "";
+          const nomina = usuario?.nomina !== null && usuario?.nomina !== undefined && usuario?.nomina !== "" ? String(usuario.nomina) : "";
+          const items = [];
+          const seenIds = new Set();
+
+          const addItems = (list = []) => {
+            list.forEach((item) => {
+              if (!item?.id || seenIds.has(item.id)) return;
+              seenIds.add(item.id);
+              items.push(item);
+            });
+          };
+
+          if (uid) addItems(byUser[uid] || []);
+          if (nomina) addItems(byNomina[nomina] || []);
+
+          map[usuario.id] = items.sort((a, b) => {
+            const aDate = a.fechaInicio ? new Date(a.fechaInicio).getTime() : 0;
+            const bDate = b.fechaInicio ? new Date(b.fechaInicio).getTime() : 0;
+            return bDate - aDate;
+          });
+
           if (active) {
             setLoadingIncapacidades((prev) => ({ ...prev, [usuario.id]: false }));
           }
+        });
+
+        if (active) {
+          setUserIncapacidades(map);
+        }
+      } catch (error) {
+        console.error("Error cargando incapacidades del personal:", error);
+        if (active) {
+          setUserIncapacidades({});
         }
       }
-
-      if (active) {
-        setUserIncapacidades(map);
-      }
     };
+
+    const nextLoading = {};
+    usuarios.forEach((usuario) => {
+      nextLoading[usuario.id] = true;
+    });
+    setLoadingIncapacidades(nextLoading);
 
     loadUserIncapacidades();
 
@@ -378,9 +460,9 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
                 onChange={(event) => setForm((prev) => ({ ...prev, tipo: event.target.value }))}
                 className="personal-input"
               >
-                <option value="incapacidad">Incapacidad</option>
-                <option value="maternidad">Maternidad</option>
-                <option value="lactancia">Lactancia</option>
+                <option value="Incapacidad">Incapacidad</option>
+                <option value="Maternidad">Maternidad</option>
+                <option value="Lactancia">Lactancia</option>
               </select>
             </div>
           )}

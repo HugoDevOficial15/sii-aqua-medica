@@ -49,7 +49,6 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
         descripcion,
         tipo: form.tipo,
         prioridad: form.prioridad,
-        estado: "pendiente",
         fecha: new Date().toISOString(),
         createdAt: serverTimestamp(),
       };
@@ -126,12 +125,12 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
               value={form.tipo}
               onChange={(event) => handleChange("tipo", event.target.value)}
             >
-              <option value="incidencia">Incidencia</option>
-              <option value="ausencia">Falta injustificada</option>
-              <option value="retardo">Retardo</option>
-              <option value="comportamiento">Falta administrativa</option>
-              <option value="llamadaEscrita">Llamada de atención escrita</option>
-              <option value="llamadaVerbal">Llamada de atención verbal</option>
+              <option value="Incidencia">Incidencia</option>
+              <option value="Ausencia">Falta injustificada</option>
+              <option value="Retardo">Retardo</option>
+              <option value="Comportamiento">Falta administrativa</option>
+              <option value="LlamadaEscrita">Llamada de atención escrita</option>
+              <option value="LlamadaVerbal">Llamada de atención verbal</option>
             </select>
           </div>
 

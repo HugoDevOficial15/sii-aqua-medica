@@ -1,12 +1,41 @@
 import { Await } from "react-router-dom";
 import { db } from "../config/firebase";
 
-import { query, where } from "firebase/firestore";
+import { query, where, getDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
 
 const surveyCollection = collection(db, "encuestas");
+
+// AVISAR A NUEVOS ASIGNADOS
+
+const normalizeAssignment = (assignment = {}) => {
+    const tipo = assignment?.tipo || "global";
+    const valores = Array.isArray(assignment?.valores) ? assignment.valores : [];
+
+    if (tipo === "usuarios") {
+        return {
+            tipo: "usuarios",
+            valores: valores.map(value => String(value).trim()).filter(Boolean)
+        };
+    }
+
+    if (tipo === "area") {
+        return {
+            tipo: "area",
+            valores: valores.map(value => String(value).trim()).filter(Boolean)
+        };
+    }
+
+    return { tipo: "global", valores: [] };
+};
+
+const getAssignmentSignature = (assignment = {}) => {
+    const normalized = normalizeAssignment(assignment);
+    const values = [...normalized.valores].sort();
+    return `${normalized.tipo}:${values.join("|")}`;
+};
 
 const getUsersToNotifyForSurvey = async (surveyData) => {
     const usersSnapshot = await getDocs(collection(db, "users"));
@@ -37,8 +66,8 @@ const getUsersToNotifyForSurvey = async (surveyData) => {
     return usersToNotify.filter(user => user.uid);
 };
 
-const createSurveyNotificationsBatch = async (surveyData, surveyId) => {
-    const usersToNotify = await getUsersToNotifyForSurvey(surveyData);
+const createSurveyNotificationsBatch = async (surveyData, surveyId, usersToNotifyOverride) => {
+    const usersToNotify = usersToNotifyOverride ?? await getUsersToNotifyForSurvey(surveyData);
 
     if (!usersToNotify.length) return 0;
 
@@ -108,15 +137,29 @@ export const createSurvey = async (surveyData) => {
 
 }
 
-// Actuzalizar
+// Actualizar
 export const updateSurvey = async (id, data) => {
 
     const ref = doc(db, "encuestas", id);
+    const currentSnapshot = await getDoc(ref);
+    const previousAssignment = currentSnapshot.exists() ? currentSnapshot.data()?.asignacion : null;
+    const previousSignature = getAssignmentSignature(previousAssignment);
+    const nextSignature = getAssignmentSignature(data?.asignacion);
 
     await updateDoc(ref, data);
 
+    if (!previousAssignment || previousSignature === nextSignature) {
+        return;
+    }
+
     try {
-        await createSurveyNotificationsBatch(data, id);
+        const usersToNotify = await getUsersToNotifyForSurvey(data);
+        const previousUsers = await getUsersToNotifyForSurvey({ ...data, asignacion: previousAssignment });
+        const newUsers = usersToNotify.filter(user => !previousUsers.some(prevUser => prevUser.uid === user.uid));
+
+        if (!newUsers.length) return;
+
+        await createSurveyNotificationsBatch(data, id, newUsers);
     } catch (error) {
         console.error("Error creando notificaciones al actualizar encuesta:", error);
     }

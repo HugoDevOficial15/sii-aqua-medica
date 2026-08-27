@@ -559,7 +559,7 @@ export default function Personal() {
                                 <button
                                   key={option.key}
                                   type="button"
-                                  className={`personal-record-filter-btn ${categoryFilter === option.key ? "active" : ""}`}
+                                  className={`personal-record-filter-btn ${categoryFilter === option.key ? "active" : ""} ${option.key}`}
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     setRecordFilters((prev) => ({
@@ -1086,21 +1086,49 @@ export default function Personal() {
         }
 
         .personal-record-filter-btn {
+        height: 36px;
           border: 1px solid var(--operator-border, #dfe7f1);
           background: transparent;
           color: var(--operator-text, #1f2937);
           border-radius: 12px;
           padding: 7px 12px;
-          font-size: 12px;
+          font-size: 14px;
           font-weight: 700;
           cursor: pointer;
         }
 
-        .personal-record-filter-btn.active {
-          background: rgba(118, 147, 243, 0.12);
+        .personal-record-filter-btn.active.todos {
+          background: none;
           border-color: rgba(118, 147, 243, 0.8);
           color: var(--operator-primary, #2563eb);
         }
+
+        .personal-record-filter-btn.active.reconocimiento {
+          background: none;
+          border: 3px solid rgba(155, 138, 43, 0.25);
+          color: rgba(155, 133, 10, 0.87);
+        }
+
+
+        .personal-record-filter-btn.active.incidencia {
+          background: none;
+          border: 3px solid rgba(239, 68, 68, 0.34);
+          color: #f33030;
+        }
+
+
+        .personal-record-filter-btn.active.incapacidad {
+          background: none;
+          border: 3px solid #ca56ff48;
+          color: #c12fee;
+        }
+
+        .personal-record-filter-btn.active.historialMedico {
+          background: none;
+          border: 3px solid rgba(34, 159, 197, 0.31);
+          color: #24c2c2;
+        }
+
 
         .personal-record-table {
           width: 100%;
@@ -1155,8 +1183,8 @@ export default function Personal() {
         }
 
         .personal-record-view-btn:hover {
-          background: rgba(118, 147, 243, 0.2);
-          color: var(--operator-primary, #2563eb);
+          background: var(--operator-form);
+          color: var(--operator-primary-light);
         }
 
         .personal-record-badge {
@@ -1165,29 +1193,29 @@ export default function Personal() {
           justify-content: center;
           padding: 5px 10px;
           border-radius: 999px;
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 700;
         }
 
         .personal-record-badge.reconocimiento {
           background: rgba(250, 223, 70, 0.25);
-          color: rgba(214, 183, 6, 0.87);
+          color: var(--operator-raconocimiento);
         }
 
         .personal-record-badge.incidencia {
           background: rgba(239, 68, 68, 0.34) !important;
-          color: #f33030 !important;
+          color: var(--operator-incidencia) !important;
         }
 
         .personal-record-badge.incapacidad {
           background: #ca56ff48;
-          color: #c12fee;
+          color: var(--operator-incapacidad);
 
         }
 
         .personal-record-badge.historialMedico {
           background: rgba(34, 159, 197, 0.31);
-          color: #24c2c2;
+          color: var(--operator-historialMedico);
         }
 
 

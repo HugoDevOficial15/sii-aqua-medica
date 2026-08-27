@@ -5,12 +5,17 @@ export const exportExcel = (rows = [], survey = {}) => {
 
   const data = (rows || [])
     .filter((row) => row && !row.expiroSinResponder && row.nomina && row.nombre)
-    .map((row) => ({
-      "Número de Nómina": row.nomina ?? "",
-      Nombre: row.nombre ?? "",
-      "Nombre de la Encuesta": surveyName,
-      Calificación: Number(row.puntuacion ?? row.calificacion ?? 0),
-    }));
+    .map((row) => {
+      const isMissingScore =
+        row.estado === "faltante" || row.respondido === false || row.expiroSinResponder;
+
+      return {
+        "Número de Nómina": row.nomina ?? "",
+        Nombre: row.nombre ?? "",
+        "Nombre de la Encuesta": surveyName,
+        Calificación: isMissingScore ? "Sin registro" : Number(row.puntuacion ?? row.calificacion ?? 0),
+      };
+    });
 
   const safeSurveyName = String(surveyName)
     .trim()

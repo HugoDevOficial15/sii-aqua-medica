@@ -82,13 +82,20 @@ export const generatePersonalRecordPDF = async (payload) => {
   doc.setDrawColor(40, 40, 40);
   doc.line(14, 47, 196, 47);
 
-  const dataRows = rows.map((row) => [
-    row.nomina || "—",
-    row.nombre || "Sin nombre",
-    row.area || "Sin área",
-    survey?.titulo || "Sin encuesta",
-    Number(row.puntuacion ?? row.calificacion ?? 0),
-  ]);
+  const dataRows = rows.map((row) => {
+    const puntuacion =
+      row?.puntuacion === "Sin registro" || row?.puntuacion == null
+        ? "Sin registro"
+        : Number(row.puntuacion ?? row.calificacion ?? 0);
+
+    return [
+      row.nomina || "—",
+      row.nombre || "Sin nombre",
+      row.area || "Sin área",
+      survey?.titulo || "Sin encuesta",
+      puntuacion,
+    ];
+  });
 
   autoTable(doc, {
     startY: 51,

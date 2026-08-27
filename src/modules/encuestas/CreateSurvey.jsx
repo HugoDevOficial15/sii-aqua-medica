@@ -16,7 +16,6 @@ import { getAuth } from "firebase/auth";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { surveySchema } from "../../schemas/surveySchema";
-import { Label } from "recharts";
 
 export default function CreateSurvey() {
 
@@ -1743,8 +1742,9 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
 
 .step-btn.active {
     color: #fff;
-    background: rgba(28, 93, 172, 0.38);
-    box-shadow: 0 0px 10px rgba(53, 114, 187, 0.68);
+    background: rgba(28, 127, 172, 0.71);
+    box-shadow: 0 0px 10px rgba(53, 144, 187, 0.93);
+    border: none;
 }
 
     .modal-full .text-primary {

@@ -1,11 +1,32 @@
 import './App.css';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import AppRouter from './router/AppRouter';
 import { AuthProvider } from './context/AuthProvider';
 import { LoaderProvider } from './context/LoaderProvider';
 import { PreferencesProvider } from './context/PreferencesProvider';
 
 function App() {
+  const [isOffline, setIsOffline] = useState(() => {
+    if (typeof navigator !== 'undefined') {
+      return !navigator.onLine;
+    }
+
+    return false;
+  });
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   // Prevenir desplazamiento de la página cuando el teclado se abre en móviles
   useEffect(() => {
     const handleInputFocus = () => {
@@ -23,15 +44,14 @@ function App() {
     };
 
     const inputs = document.querySelectorAll('input, textarea, select');
-    inputs.forEach(input => {
+    inputs.forEach((input) => {
       input.addEventListener('focus', handleInputFocus);
       input.addEventListener('blur', handleInputBlur);
     });
 
-    // Usar MutationObserver para agregar listeners a inputs dinámicos
     const observer = new MutationObserver(() => {
       const newInputs = document.querySelectorAll('input, textarea, select');
-      newInputs.forEach(input => {
+      newInputs.forEach((input) => {
         if (!input.dataset.keyboardListenerAdded) {
           input.addEventListener('focus', handleInputFocus);
           input.addEventListener('blur', handleInputBlur);
@@ -44,7 +64,7 @@ function App() {
 
     return () => {
       observer.disconnect();
-      inputs.forEach(input => {
+      inputs.forEach((input) => {
         input.removeEventListener('focus', handleInputFocus);
         input.removeEventListener('blur', handleInputBlur);
       });
@@ -52,13 +72,39 @@ function App() {
   }, []);
 
   return (
-    <PreferencesProvider>
-      <AuthProvider>
-        <LoaderProvider>
-          <AppRouter />
-        </LoaderProvider>
-      </AuthProvider>
-    </PreferencesProvider>
+    <>
+      <PreferencesProvider>
+        <AuthProvider>
+          <LoaderProvider>
+            <AppRouter />
+          </LoaderProvider>
+        </AuthProvider>
+      </PreferencesProvider>
+
+      {isOffline && (
+        <div className="internet-saver" role="alert" aria-live="assertive">
+          <div className="internet-saver__panel">
+            <div className="internet-saver__icon" aria-hidden="true">
+              <img
+                            src="/logo.png"
+                            alt="AQUA Médica"
+                            className="offline-logo"
+                        />
+            </div>
+            <h2>Sin conexión a internet</h2>
+            <p>
+              La aplicación quedó en modo sin conexión. Cuando la red regrese,
+              se reactivará automáticamente.
+            </p>
+            <div className="internet-saver__signal" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
