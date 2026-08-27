@@ -71,26 +71,29 @@ export const exportInformacionUserPDF = async ({ usuario }) => {
     doc.text("AQUA Médica S.A. de C.V.", 14, 20);
 
     if (logo) {
-        doc.addImage(logo, "JPEG", 160, 12, 36, 26);
+        doc.addImage(logo, "JPEG", 160, 7, 36, 26);
     }
 
     doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
-    doc.text(`Información de Usuario:`, 105, 36, { align: "center" });
-    doc.text(`(${usuario.nombre || "-"})`, 105, 43, { align: "center" });
+    doc.text(`Información de Usuario:`, 105, 27, { align: "center" });
 
-    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`${usuario.nombre || "-"}`, 105, 33, { align: "center" });
+
+    doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.text(`Nómina: ${usuario.nomina || "-"}`, 78, 64);
-    doc.text(`Área: ${usuario.area || "-"}`, 14, 64);
-    doc.text(`Puesto: ${usuario.puesto || "-"}`, 14, 69);
-    doc.text(`Fecha: ${new Date().toLocaleDateString("es-MX")}`, 14 , 59);
+    doc.text(`Nómina: ${usuario.nomina || "-"}`, 14, 36);
+    doc.text(`Área: ${usuario.area || "-"}`, 14, 40);
+    doc.text(`Puesto: ${usuario.puesto || "-"}`, 14, 44);
+    doc.text(`Fecha: ${new Date().toLocaleDateString("es-MX")}`, 14 , 48);
 
     doc.setDrawColor(40, 40, 40);
-    doc.line(14, 72, 196, 72);
+    doc.line(14, 50, 196, 50);
 
     autoTable(doc, {
-        startY: 82,
+        startY: 54,
         tableWidth: 182,
         margin: { left: 14, right: 14 },
         head: [["Campo", "Detalle"]],

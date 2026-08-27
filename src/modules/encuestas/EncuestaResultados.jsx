@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { FaArrowLeft, FaChartBar } from "react-icons/fa";
+import {
+  FaArrowLeft,
+  FaChartBar,
+  FaFileExcel,
+  FaFilePdf,
+  FaGlobe,
+  FaCheckCircle,
+  FaExclamationCircle,
+  FaBan,
+  FaUndo
+} from "react-icons/fa";
 
 import {
   BarChart,
@@ -10,7 +20,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Radar, RadarChart, PolarGrid, Legend, PolarAngleAxis, PolarRadiusAxis 
 } from "recharts";
 
 import Loader from "../../components/Loader";
@@ -23,6 +32,8 @@ import { AREAS } from "../../catalogs/areas";
 
 import { MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { isSurveyTimeExpired } from "../../utils/surveyTiming";
+import { exportExcel } from "./components/ExcelGenerator";
+import { generatePersonalRecordPDF } from "./components/PdfGenerator";
 
 const GENERO_OPTIONS = [
   { value: "", label: "Todos los generos" },
@@ -48,8 +59,12 @@ export default function EncuestaResultados({ survey, onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("todos");
-
+  const [tablePage, setTablePage] = useState(1);
+  const [assignedPage, setAssignedPage] = useState(1);
   const [filters, setFilters] = useState(emptyFilters);
+
+  const TABLE_PAGE_SIZE = 10;
+  const ASSIGNED_PAGE_SIZE = 10;
 
   useEffect(() => {
     const load = async () => {
@@ -169,7 +184,8 @@ export default function EncuestaResultados({ survey, onBack }) {
       .map((user) => {
         const nomina = String(user.nomina ?? "").trim();
         const uid = String(user.uid ?? user.id ?? "").trim();
-        const respondido = respondedUserIds.has(uid) || respondedNominas.has(nomina);
+        const respondido =
+          respondedUserIds.has(uid) || respondedNominas.has(nomina);
 
         return {
           id: uid || nomina || user.nombre || "usuario",
@@ -177,7 +193,11 @@ export default function EncuestaResultados({ survey, onBack }) {
           area: user.area || "—",
           nomina: nomina || "—",
           respondido,
-          estado: respondido ? "realizado" : surveyExpired ? "reprobada" : "faltante",
+          estado: respondido
+            ? "realizado"
+            : surveyExpired
+              ? "reprobada"
+              : "faltante",
         };
       })
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -286,6 +306,25 @@ export default function EncuestaResultados({ survey, onBack }) {
     });
   }, [rows, filters]);
 
+  useEffect(() => {
+    setTablePage(1);
+  }, [filters.busqueda, filters.area, filters.genero, filters.puesto]);
+
+  useEffect(() => {
+    setAssignedPage(1);
+  }, [statusFilter]);
+
+  const totalTablePages = Math.max(1, Math.ceil(filteredRows.length / TABLE_PAGE_SIZE));
+
+  useEffect(() => {
+    setTablePage((prev) => Math.min(prev, totalTablePages));
+  }, [totalTablePages]);
+
+  const paginatedFilteredRows = filteredRows.slice(
+    (tablePage - 1) * TABLE_PAGE_SIZE,
+    tablePage * TABLE_PAGE_SIZE,
+  );
+
   const participacionPorArea = useMemo(() => {
     const counts = new Map();
 
@@ -322,13 +361,68 @@ export default function EncuestaResultados({ survey, onBack }) {
     }
 
     return usuariosAsignados;
-  }, [statusFilter, usuariosAsignados, usuariosFaltantes, usuariosReprobadas, usuariosRespondidos]);
+  }, [
+    statusFilter,
+    usuariosAsignados,
+    usuariosFaltantes,
+    usuariosReprobadas,
+    usuariosRespondidos,
+  ]);
+
+  const totalAssignedPages = Math.max(
+    1,
+    Math.ceil(usuariosFiltradosPorEstado.length / ASSIGNED_PAGE_SIZE),
+  );
+
+  useEffect(() => {
+    setAssignedPage((prev) => Math.min(prev, totalAssignedPages));
+  }, [totalAssignedPages]);
+
+  const paginatedUsuariosFiltradosPorEstado = usuariosFiltradosPorEstado.slice(
+    (assignedPage - 1) * ASSIGNED_PAGE_SIZE,
+    assignedPage * ASSIGNED_PAGE_SIZE,
+  );
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleClearFilters = () => setFilters(emptyFilters);
+
+  const handleExportExcel = () => {
+    const rowsToExport = filteredRows.filter((row) => !row.expiroSinResponder);
+    exportExcel(rowsToExport, survey);
+  };
+
+  const tituloUsuariosAsignados = {
+    todos: `Todos (${usuariosAsignados.length})`,
+    realizado: `Aprobados (${usuariosRespondidos.length})`,
+    reprobada: `Reprobados (${usuariosReprobadas.length})`,
+    faltante: `Faltantes (${usuariosFaltantes.length})`,
+  };
+
+  const handleExportPdf = () => {
+    const rowsByNomina = new Map(
+      filteredRows.map((row) => [String(row.nomina ?? "").trim(), row]),
+    );
+
+    const rowsForPdf = usuariosFiltradosPorEstado.map((user) => {
+      const match = rowsByNomina.get(String(user.nomina ?? "").trim());
+
+      return {
+        nomina: user.nomina || "—",
+        nombre: user.nombre || "Sin nombre",
+        area: user.area || "Sin área",
+        puntuacion: Number(match?.puntuacion ?? match?.calificacion ?? 0),
+      };
+    });
+
+    generatePersonalRecordPDF({
+      survey,
+      rows: rowsForPdf,
+      statusFilter,
+    });
+  };
 
   if (loading) {
     return <Loader text="Cargando respuestas..." />;
@@ -339,7 +433,7 @@ export default function EncuestaResultados({ survey, onBack }) {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="page mb-3">
           <button
-            className="btn btn-sm btn-outline-secondary mb-2"
+            className="btn-atras"
             onClick={onBack}
           >
             <FaArrowLeft className="me-2" />
@@ -415,10 +509,20 @@ export default function EncuestaResultados({ survey, onBack }) {
             </select>
 
             <button
-              className="btn btn-sm btn-outline-secondary"
+              className="btn-limpiar"
               onClick={handleClearFilters}
             >
+              <FaUndo className="me-1" />
               Limpiar filtros
+            </button>
+
+            <button
+              type="button"
+              className="btn-excel"
+              onClick={handleExportExcel}
+            >
+              <FaFileExcel className="me-1" />
+              Exportar a Excel
             </button>
           </div>
         </div>
@@ -429,11 +533,12 @@ export default function EncuestaResultados({ survey, onBack }) {
         <div className="card-body table-responsive-container">
           <h5>Resultados de la Encuesta</h5>
 
-          <table className="table table-hover">
+          <table className="table">
             <thead>
               <tr>
                 <th>Nómina</th>
                 <th>Nombre</th>
+                <th>Fecha de creación</th>
                 <th>Área</th>
                 <th>Género</th>
                 <th>Puesto</th>
@@ -451,10 +556,11 @@ export default function EncuestaResultados({ survey, onBack }) {
                 </tr>
               )}
 
-              {filteredRows.map((row) => (
+              {paginatedFilteredRows.map((row) => (
                 <tr key={row.id}>
                   <td>{row.nomina}</td>
                   <td>{row.nombre}</td>
+                  <td>{survey.fechaInicio || "—"}</td>
                   <td>{row.area}</td>
                   <td>{GENERO_LABEL[row.genero] || "—"}</td>
                   <td>{row.puesto}</td>
@@ -472,6 +578,30 @@ export default function EncuestaResultados({ survey, onBack }) {
               ))}
             </tbody>
           </table>
+
+          <div className="d-flex justify-content-center align-items-center mt-3 gap-2">
+            <button
+              type="button"
+              className="btn-paginacion"
+              disabled={tablePage === 1}
+              onClick={() => setTablePage((prev) => Math.max(1, prev - 1))}
+            >
+              Anterior
+            </button>
+
+            <span className="align-self-center">
+              Página {filteredRows.length === 0 ? 0 : tablePage} de {totalTablePages}
+            </span>
+
+            <button
+              type="button"
+              className="btn-paginacion"
+              disabled={tablePage >= totalTablePages || filteredRows.length === 0}
+              onClick={() => setTablePage((prev) => prev + 1)}
+            >
+              Siguiente
+            </button>
+          </div>
         </div>
       </div>
 
@@ -522,45 +652,51 @@ export default function EncuestaResultados({ survey, onBack }) {
               </BarChart>
             </ResponsiveContainer>
           )}
-
-
         </div>
       </div>
 
-{/* USUARIOS QUE HAN RESPONDIDO */}
+      {/* USUARIOS QUE HAN RESPONDIDO */}
 
       <div className="card shadow-sm mb-4">
         <div className="card-body">
-          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <h5 className="m-0">Usuarios que han respondido</h5>
+          <div className="pdf-container d-flex justify-content-between mb-3">
+            <h5 className="m-0">
+              Usuarios:{" "}
+              {tituloUsuariosAsignados[statusFilter] || "Usuarios asignados"}
+            </h5>
+            <button type="button" className="btn-pdf" onClick={handleExportPdf}>
+              <FaFilePdf /> PDF
+            </button>
+          </div>
+          <div className="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-3">
             <div className="d-flex gap-2 flex-wrap">
               <button
                 type="button"
                 className={`button text-todos ${statusFilter === "todos" ? "active" : ""}`}
                 onClick={() => setStatusFilter("todos")}
               >
-                Todos: {usuariosAsignados.length}
+                <FaGlobe /> Todos: {usuariosAsignados.length}
               </button>
               <button
                 type="button"
                 className={`button text-realizado ${statusFilter === "realizado" ? "active" : ""}`}
                 onClick={() => setStatusFilter("realizado")}
               >
-                Realizado: {usuariosRespondidos.length}
+                <FaCheckCircle /> Aprobados: {usuariosRespondidos.length}
               </button>
               <button
                 type="button"
                 className={`button text-reprobada ${statusFilter === "reprobada" ? "active" : ""}`}
                 onClick={() => setStatusFilter("reprobada")}
               >
-                Reprobada: {usuariosReprobadas.length}
+                <FaBan /> Reprobados: {usuariosReprobadas.length}
               </button>
               <button
                 type="button"
                 className={`button text-faltante ${statusFilter === "faltante" ? "active" : ""}`}
                 onClick={() => setStatusFilter("faltante")}
               >
-                Faltante: {usuariosFaltantes.length}
+                <FaExclamationCircle /> Faltantes: {usuariosFaltantes.length}
               </button>
             </div>
           </div>
@@ -571,7 +707,7 @@ export default function EncuestaResultados({ survey, onBack }) {
                 No hay usuarios asignados a esta encuesta.
               </p>
             ) : (
-              usuariosFiltradosPorEstado.map((user) => (
+              paginatedUsuariosFiltradosPorEstado.map((user) => (
                 <div key={user.id} className="usuario-asignado-item">
                   <div>
                     <div className="fw-semibold">{user.nombre}</div>
@@ -599,6 +735,30 @@ export default function EncuestaResultados({ survey, onBack }) {
               ))
             )}
           </div>
+
+          <div className="d-flex justify-content-center align-items-center mt-3 gap-2">
+            <button
+              type="button"
+              className="btn-paginacion"
+              disabled={assignedPage === 1}
+              onClick={() => setAssignedPage((prev) => Math.max(1, prev - 1))}
+            >
+              Anterior
+            </button>
+
+            <span className="align-self-center">
+              Página {usuariosFiltradosPorEstado.length === 0 ? 0 : assignedPage} de {totalAssignedPages}
+            </span>
+
+            <button
+              type="button"
+              className="btn-paginacion"
+              disabled={assignedPage >= totalAssignedPages || usuariosFiltradosPorEstado.length === 0}
+              onClick={() => setAssignedPage((prev) => prev + 1)}
+            >
+              Siguiente
+            </button>
+          </div>
         </div>
       </div>
 
@@ -612,13 +772,90 @@ export default function EncuestaResultados({ survey, onBack }) {
 
 .results-filter-grid .form-control,
 .results-filter-grid .form-select,
-.results-filter-grid .btn
+.results-filter-grid .btn,  
 .results-filter-grid .input {
     height: 50px;
     border-radius: 12px;
     border: 3px solid var(--operator-border);
     background: var(--operator-form);
     color: var(--operator-text);
+}
+
+.btn-atras{
+    height: 40px;
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    border: none;
+    color: var(--operator-text);
+    background: var(--operator-border);
+    justify-content: center;
+    padding: 6px 12px;
+    font-weight: 700;
+}
+    
+.btn-atras:hover {
+    transform: scale(1.02);
+    color: var(--operator-primary);
+    box-shadow: 0 0 8px 1px var(--operator-border);
+}
+
+.btn-limpiar {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    border: none;
+    color: var(--operator-text);
+    background: var(--operator-border);
+    justify-content: center;
+    padding: 6px 12px;
+    font-weight: 700;
+    gap: 6px;
+}
+
+.btn-limpiar:hover {
+    transform: scale(1.02);
+    color: var(--operator-primary-light);
+    box-shadow: 0 0 8px 1px var(--operator-border);
+}
+
+.btn-excel {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    border: none;
+    color: #ffff;
+    background: #0b7a0b;
+    justify-content: center;
+    padding: 6px 12px;
+    font-weight: 700;
+}
+
+.btn-excel:hover {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+    box-shadow: 0 0 8px 1px rgba(8, 88, 19, 0.94);
+}
+
+.btn-pdf {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    border: none;
+    color: #ffff;
+    background: rgba(204, 23, 23, 0.94);
+    justify-content: center;
+    padding: 6px 12px;
+    font-weight: 700;
+}
+
+.btn-pdf:hover {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+    box-shadow: 0 0 8px 1px rgba(220, 38, 38, 0.94);
 }
 
 .results-filter-grid .btn {
@@ -685,6 +922,7 @@ export default function EncuestaResultados({ survey, onBack }) {
 
 .table tbody tr:hover {
     transform: scale(1.01);
+    background: none !important;
 }
 
 .table td {
@@ -699,6 +937,14 @@ export default function EncuestaResultados({ survey, onBack }) {
     overflow-wrap: anywhere;
     max-width: 230px;
     min-width: 100px;
+}
+
+.table thead th:nth-child(3){
+    text-align: center;
+}
+
+.table tbody tr td:nth-child(3) {
+      text-align: center;
 }
 
 .text-success,
@@ -716,6 +962,7 @@ export default function EncuestaResultados({ survey, onBack }) {
 }
 
 .text-danger {
+    min-width: 100px;
     background: rgba(239, 68, 68, 0.12);
     color: #dc2626;
 }
@@ -787,7 +1034,40 @@ export default function EncuestaResultados({ survey, onBack }) {
     transform: scale(1.02);
 }
 
+/*  PAGINACION  */
 
+.btn-paginacion {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    gap: 12px;
+    padding: 6px 12px;
+    background: var(--operator-form);
+    color: var(--operator-text);
+    border-radius: 10px;
+    border: 3px solid var(--operator-form);
+}
+
+.btn-paginacion:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-paginacion:hover {
+    color: var(--operator-primary);
+    background: var(--operator-form);
+    transform: scale(1.02);
+}
+
+.btn-paginacion:disabled:hover {
+    color: var(--operator-text);
+    background: var(--operator-form);
+    border: 3px solid var(--operator-form);
+    filter: none;
+    transform: none;
+    cursor: not-allowed;
+}
 
 
 

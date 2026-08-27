@@ -4,11 +4,76 @@ import { db } from "../config/firebase";
 import { query, where } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { createNotification } from "../utils/createNotification";
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
 
 const surveyCollection = collection(db, "encuestas");
 
+const getUsersToNotifyForSurvey = async (surveyData) => {
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    const allUsers = usersSnapshot.docs.map(doc => ({
+        id: doc.id,
+        uid: doc.data().uid,
+        ...doc.data()
+    }));
+
+    const usersToNotify = [];
+
+    if (surveyData.asignacion?.tipo === "global") {
+        usersToNotify.push(...allUsers);
+    } else if (surveyData.asignacion?.tipo === "area") {
+        const areas = surveyData.asignacion.valores || [];
+        usersToNotify.push(
+            ...allUsers.filter(user => areas.includes(user.area))
+        );
+    } else if (surveyData.asignacion?.tipo === "usuarios") {
+        const nominas = surveyData.asignacion.valores || [];
+        usersToNotify.push(
+            ...allUsers.filter(user =>
+                nominas.includes(String(user.nomina))
+            )
+        );
+    }
+
+    return usersToNotify.filter(user => user.uid);
+};
+
+const createSurveyNotificationsBatch = async (surveyData, surveyId) => {
+    const usersToNotify = await getUsersToNotifyForSurvey(surveyData);
+
+    if (!usersToNotify.length) return 0;
+
+    const batchSize = 500;
+    let createdNotifications = 0;
+
+    for (let i = 0; i < usersToNotify.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const usersBatch = usersToNotify.slice(i, i + batchSize);
+
+        usersBatch.forEach((user) => {
+            const notificationRef = doc(collection(db, "notificaciones"));
+
+            batch.set(notificationRef, {
+                IdUsuario: user.uid,
+                Titulo: "📋 Nueva Encuesta",
+                Mensaje: `Se ha asignado una nueva encuesta: ${surveyData.titulo}`,
+                Destino: "surveys",
+                Accion: "nueva_encuesta",
+                extra: {
+                    encuestaId: surveyId,
+                    encuestaTitulo: surveyData.titulo
+                },
+                enviado: false,
+                fechaCreacion: serverTimestamp(),
+                fechaEnviado: null,
+            });
+        });
+
+        await batch.commit();
+        createdNotifications += usersBatch.length;
+    }
+
+    return createdNotifications;
+};
 
 // Obtener encuestas
 export const getSurveys = async () => {
@@ -35,55 +100,10 @@ export const createSurvey = async (surveyData) => {
 
     const surveyRef = await addDoc(surveyCollection, surveyData);
 
-    // Crear notificaciones para usuarios asignados
     try {
-        const usersSnapshot = await getDocs(collection(db, "users"));
-        const allUsers = usersSnapshot.docs.map(doc => ({
-            id: doc.id,
-            uid: doc.data().uid,
-            ...doc.data()
-        }));
-
-        const usersToNotify = [];
-
-        if (surveyData.asignacion?.tipo === "global") {
-            // Notificar a todos los usuarios
-            usersToNotify.push(...allUsers);
-        } else if (surveyData.asignacion?.tipo === "area") {
-            // Notificar a usuarios en las áreas seleccionadas
-            const areas = surveyData.asignacion.valores || [];
-            usersToNotify.push(
-                ...allUsers.filter(user => areas.includes(user.area))
-            );
-        } else if (surveyData.asignacion?.tipo === "usuarios") {
-            // Notificar a usuarios específicos por nómina
-            const nominas = surveyData.asignacion.valores || [];
-            usersToNotify.push(
-                ...allUsers.filter(user =>
-                    nominas.includes(String(user.nomina))
-                )
-            );
-        }
-
-        // Crear notificaciones para cada usuario con identificador único de encuesta
-        for (const user of usersToNotify) {
-            if (user.uid) {
-                await createNotification({
-                    IdUsuario: user.uid,
-                    Titulo: "📋 Nueva Encuesta",
-                    Mensaje: `Se ha asignado una nueva encuesta: ${surveyData.titulo}`,
-                    Destino: "surveys",
-                    Accion: "nueva_encuesta",
-                    extra: {
-                        encuestaId: surveyRef.id,
-                        encuestaTitulo: surveyData.titulo
-                    }
-                });
-            }
-        }
+        await createSurveyNotificationsBatch(surveyData, surveyRef.id);
     } catch (error) {
         console.error("Error creando notificaciones para encuesta:", error);
-        // No lanzamos el error para que la encuesta se haya creado aunque falle la notificación
     }
 
 }
@@ -94,6 +114,12 @@ export const updateSurvey = async (id, data) => {
     const ref = doc(db, "encuestas", id);
 
     await updateDoc(ref, data);
+
+    try {
+        await createSurveyNotificationsBatch(data, id);
+    } catch (error) {
+        console.error("Error creando notificaciones al actualizar encuesta:", error);
+    }
 
 }
 
