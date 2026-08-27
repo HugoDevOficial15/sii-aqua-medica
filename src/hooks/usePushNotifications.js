@@ -12,12 +12,10 @@ import { db } from '../config/firebase';
  */
 export const crearCanalDeNotificacion = async () => {
   if (!Capacitor.isNativePlatform()) {
-    console.log("ℹ No es plataforma Android, saltando creación de canal");
     return;
   }
 
   try {
-    console.log("📢 Creando/actualizando canal de notificaciones...");
 
     // Crear el canal con todas las propiedades necesarias
     await LocalNotifications.createChannel({
@@ -31,15 +29,9 @@ export const crearCanalDeNotificacion = async () => {
       lightColor: '#0066cc',   // Color LED (azul)
     });
 
-    console.log("✅ Canal de notificación CREADO exitosamente");
-    console.log("   - ID: sii_aqua_canal_v4");
-    console.log("   - Sonido: default ✓");
-    console.log("   - Vibración: true ✓");
-    console.log("   - Importancia: 5 (máxima) ✓");
 
   } catch (error) {
     // Este error es normal si el canal ya existe - Android lo ignora
-    console.warn("⚠ Nota al crear canal (puede ser normal si ya existe):", error?.message || error);
   }
 };
 
@@ -50,13 +42,11 @@ export const crearCanalDeNotificacion = async () => {
 export function usePushNotifications(user) {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
-      console.log("ℹ No es plataforma nativa (estás en web)");
       return;
     }
 
     const uidReal = user?.uid;
     if (!uidReal) {
-      console.log("ℹ Usuario no autenticado aún");
       return;
     }
 
@@ -67,10 +57,8 @@ export function usePushNotifications(user) {
 
         // 2. Solicitar permisos
         let permStatus = await PushNotifications.checkPermissions();
-        console.log("Estado actual de permisos:", permStatus);
 
         if (permStatus.receive === 'prompt') {
-          console.log("Solicitando permisos de notificación...");
           permStatus = await PushNotifications.requestPermissions();
         }
 
@@ -79,18 +67,14 @@ export function usePushNotifications(user) {
           return;
         }
 
-        console.log("✓ Permisos de notificación otorgados");
 
         // 3. Registrar con FCM
         await PushNotifications.register();
-        console.log("✓ Registrado con Firebase Cloud Messaging");
 
         // 4. Escuchar el token FCM (se dispara cuando se registra y cuando se renueva)
         const unsubscribeRegistration = PushNotifications.addListener(
           'registration',
           async (token) => {
-            console.log('✓ TOKEN_FCM_OBTENIDO:', token?.value);
-            console.log('→ Guardando token en Firestore para usuario:', uidReal);
 
             try {
               const userRef = doc(db, 'usuarios', uidReal);
@@ -100,7 +84,6 @@ export function usePushNotifications(user) {
                 fcmTokenActualizado: new Date().toISOString()
               }, { merge: true });
 
-              console.log('✓ Token guardado en Firestore correctamente');
             } catch (errFirestore) {
               console.error('✗ Error guardando token en Firestore:',
                 errFirestore.code, errFirestore.message);
@@ -113,7 +96,6 @@ export function usePushNotifications(user) {
         const unsubscribePushReceived = PushNotifications.addListener(
           'pushNotificationReceived',
           async (notification) => {
-            console.log('📬 Notificación recibida (app en foreground):', notification);
 
             // Mostrar como notificación local (para mejor UX)
             await LocalNotifications.schedule({
@@ -134,27 +116,23 @@ export function usePushNotifications(user) {
         const unsubscribeAction = PushNotifications.addListener(
           'pushNotificationActionPerformed',
           async (action) => {
-            console.log('👆 Usuario hizo click en notificación:', action);
 
             const notification = action.notification;
             const destino = notification?.data?.destino;
 
             if (destino) {
-              console.log('→ Navegando a:', destino);
               // Usar history.push() o navigate() según tu router
               window.location.href = destino;
             }
           }
         );
 
-        console.log("✓ Todos los listeners de notificación configurados");
 
         // Cleanup: Remover listeners cuando el componente se desmonta
         return () => {
           unsubscribeRegistration?.remove?.();
           unsubscribePushReceived?.remove?.();
           unsubscribeAction?.remove?.();
-          console.log("🧹 Listeners de notificación removidos");
         };
 
       } catch (error) {

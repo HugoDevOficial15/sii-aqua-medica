@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
     FiHome,
     FiClipboard,
@@ -5,11 +6,13 @@ import {
     FiUser,
     FiGrid
 } from "react-icons/fi";
+import { useKeyboardDetection } from "../../../hooks/useKeyboardDetection";
 
 export default function OperatorBottomNav({
     activeTab,
     onChange
 }) {
+    const isKeyboardVisible = useKeyboardDetection();
 
     const items = [
 
@@ -49,7 +52,15 @@ export default function OperatorBottomNav({
 
         <div className="nav-floating-wrapper">
 
-            <nav className="operator-nav-premium">
+            <nav
+                className="operator-nav-premium"
+                style={{
+                    opacity: isKeyboardVisible ? 0 : 1,
+                    visibility: isKeyboardVisible ? 'hidden' : 'visible',
+                    transition: 'opacity 0.2s ease-out, visibility 0.2s ease-out',
+                    pointerEvents: isKeyboardVisible ? 'none' : 'auto'
+                }}
+            >
 
                 {items.map(item => (
 

@@ -6,29 +6,29 @@ export default function OperatorNewsDetail({ onBack, noticia }) {
     const [descargandoArchivo, setDescargandoArchivo] = useState(false);
     const timeoutRef = useRef(null);
 
-    const handleDescargarArchivo = () => {
-        if (!noticia.archivo) {
-            notifyInfo("Sin archivo", "Esta noticia no tiene archivo adjunto.");
-            return;
-        }
+    const handleDescargarArchivo = async () => {
+        if (!noticia.archivo) return;
 
         setDescargandoArchivo(true);
 
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
         try {
-            // Intenta abrir/descargar el archivo
-            const link = document.createElement('a');
-            link.href = noticia.archivo;
-            link.download = noticia.archivoNombre || "documento_aqua";
-            link.click();
+            const archivo = noticia.archivo;
+            const nombreArchivo = noticia.archivoNombre || "documento_aqua.pdf";
 
-            notifyInfo("Descarga", "Archivo abierto/descargado");
+            // Firebase Storage URL - descargar directamente
+            const link = document.createElement('a');
+            link.href = archivo;
+            link.setAttribute('download', nombreArchivo);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
         } catch (error) {
-            console.error("Error:", error);
+            console.error("Error al descargar:", error);
             notifyInfo("Error", "No se pudo descargar el archivo");
         } finally {
-            // Resetear después de 2s
             timeoutRef.current = setTimeout(() => {
                 setDescargandoArchivo(false);
             }, 2000);

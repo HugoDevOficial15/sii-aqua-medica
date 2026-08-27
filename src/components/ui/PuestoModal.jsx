@@ -31,7 +31,6 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
             onClose();
 
         } catch (error) {
-            console.log("Error al crear usuario:", error);
             notifyError("Error", "No se pudo guardar el puesto");
         }
     }

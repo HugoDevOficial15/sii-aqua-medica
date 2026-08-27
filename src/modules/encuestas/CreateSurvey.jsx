@@ -213,7 +213,6 @@ export default function CreateSurvey() {
 
 
     });
-    console.log("errores:", errors);
 
     // array
     const { fields, append, remove, update } = useFieldArray({
@@ -408,9 +407,6 @@ export default function CreateSurvey() {
             reset();
 
         } catch (error) {
-
-            console.log("Error global:", error);
-
             notifyError("Error", "No se pudo crear la encuesta");
 
         } finally {

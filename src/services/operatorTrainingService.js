@@ -1,6 +1,7 @@
 import { getCapacitacionesDisponibles } from "./capacitacionesService";
+import { isSurveyTimeExpired } from "../utils/surveyTiming";
 
-// DEPRECATED: Usa useOperatorTrainings() hook o getCapacitacionesDisponibles directamente.
+// DEPRECATED: Usa useOperatorTrain ings() hook o getCapacitacionesDisponibles directamente.
 // Esta función se mantiene por compatibilidad, pero requiere el objeto usuario completo.
 export const getOperatorTrainings = async (userArea, userId, usuarioCompleto = null) => {
     try {

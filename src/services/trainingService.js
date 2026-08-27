@@ -1,8 +1,7 @@
 import { db } from "../config/firebase";
-import { query, where } from "firebase/firestore";
+import { query, where, writeBatch, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { createNotification } from "../utils/createNotification";
 
 const trainingCollection = collection(db, "capacitaciones");
 
@@ -29,7 +28,7 @@ export const getTrainings = async () => {
 export const createTraining = async (trainingData) => {
     const trainingRef = await addDoc(trainingCollection, trainingData);
 
-    // Crear notificaciones para usuarios asignados
+    // Crear notificaciones para usuarios asignados usando batch
     try {
         const usersSnapshot = await getDocs(collection(db, "users"));
         const allUsers = usersSnapshot.docs.map(doc => ({
@@ -43,16 +42,13 @@ export const createTraining = async (trainingData) => {
         const usersToNotify = [];
 
         if (trainingData.asignacion?.tipo === "global") {
-            // Notificar a todos los usuarios
             usersToNotify.push(...allUsers);
         } else if (trainingData.asignacion?.tipo === "area") {
-            // Notificar a usuarios en las áreas seleccionadas
             const areas = trainingData.asignacion.valores || [];
             usersToNotify.push(
                 ...allUsers.filter(user => areas.includes(user.area))
             );
         } else if (trainingData.asignacion?.tipo === "usuarios") {
-            // Notificar a usuarios específicos por nómina
             const nominas = trainingData.asignacion.valores || [];
             usersToNotify.push(
                 ...allUsers.filter(user =>
@@ -61,25 +57,33 @@ export const createTraining = async (trainingData) => {
             );
         }
 
-        // Crear notificaciones para cada usuario con identificador único de capacitación
-        for (const user of usersToNotify) {
-            if (user.uid) {
-                await createNotification({
-                    IdUsuario: user.uid,
-                    Titulo: "📚 Nueva Capacitación",
-                    Mensaje: `Se ha asignado una nueva capacitación: ${trainingData.titulo}`,
-                    Destino: "training",
-                    Accion: "nueva_capacitacion",
-                    extra: {
+        // Usar batch para crear todas las notificaciones de una vez
+        if (usersToNotify.length > 0) {
+            const batch = writeBatch(db);
+            const notifCollection = collection(db, "notificaciones");
+
+            for (const user of usersToNotify) {
+                if (user.uid) {
+                    const notifRef = doc(notifCollection);
+                    batch.set(notifRef, {
+                        IdUsuario: user.uid,
+                        Titulo: "📚 Nueva Capacitación",
+                        Mensaje: `Se ha asignado una nueva capacitación: ${trainingData.titulo}`,
+                        Destino: "training",
+                        Accion: "nueva_capacitacion",
                         capacitacionId: trainingRef.id,
-                        capacitacionTitulo: trainingData.titulo
-                    }
-                });
+                        capacitacionTitulo: trainingData.titulo,
+                        enviado: false,
+                        fechaCreacion: serverTimestamp(),
+                        fechaEnviado: null
+                    });
+                }
             }
+
+            await batch.commit();
         }
     } catch (error) {
         console.error("Error creando notificaciones para capacitación:", error);
-        // No lanzamos el error para que la capacitación se haya creado aunque falle la notificación
     }
 }
 

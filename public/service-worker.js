@@ -5,10 +5,7 @@
 
 // Escuchar eventos push del navegador (fallback)
 self.addEventListener("push", (event) => {
-    console.log("Push event recibido:", event);
-
     if (!event.data) {
-        console.log("Push recibido sin datos");
         return;
     }
 
@@ -36,8 +33,6 @@ self.addEventListener("push", (event) => {
             self.registration.showNotification(title, options)
         );
 
-        console.log("✓ Notificación push mostrada:", title);
-
     } catch (error) {
         console.error("Error procesando push notification:", error);
     }
@@ -45,8 +40,6 @@ self.addEventListener("push", (event) => {
 
 // Escuchar mensajes de la página (Firebase FCM)
 self.addEventListener("message", (event) => {
-    console.log("Message event recibido en SW:", event.data);
-
     if (event.data?.type === "SHOW_NOTIFICATION") {
         const payload = event.data.payload;
 
@@ -68,13 +61,11 @@ self.addEventListener("message", (event) => {
         const title = payload.notification?.title || "SII AQUA Médica";
 
         self.registration.showNotification(title, options);
-        console.log("✓ Notificación FCM mostrada:", title);
     }
 });
 
 // Escuchar cuando el usuario interactúa con la notificación
 self.addEventListener("notificationclick", (event) => {
-    console.log("Notificación clickeada:", event.notification.tag);
 
     event.notification.close();
 
@@ -100,16 +91,13 @@ self.addEventListener("notificationclick", (event) => {
 
 // Escuchar cierres de notificaciones
 self.addEventListener("notificationclose", (event) => {
-    console.log("Notificación cerrada:", event.notification.tag);
 });
 
 // Actualización del service worker
 self.addEventListener("install", (event) => {
-    console.log("Service Worker instalado");
     self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-    console.log("Service Worker activado");
     event.waitUntil(clients.claim());
 });

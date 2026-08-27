@@ -90,6 +90,13 @@ export default function CelebrationCard({ user, type }) {
                     transition: all .35s ease;
                 }
 
+                @media (prefers-color-scheme: dark) {
+                    .celebration-card {
+                        background: rgba(30,41,59,0.65);
+                        border: 1px solid rgba(71,85,105,0.5);
+                    }
+                }
+
                 .celebration-card:hover {
                     transform: translateY(-6px);
 
@@ -166,6 +173,15 @@ export default function CelebrationCard({ user, type }) {
                     margin-top: 3px;
                 }
 
+                @media (prefers-color-scheme: dark) {
+                    .name {
+                        color: #f1f5f9;
+                    }
+                    .nomina {
+                        color: #cbd5e1;
+                    }
+                }
+
                 .right {
                     display: flex;
                     align-items: center;
@@ -219,6 +235,15 @@ export default function CelebrationCard({ user, type }) {
                     font-size: 12px;
                     color: #6b7280;
                     margin-top: 2px;
+                }
+
+                @media (prefers-color-scheme: dark) {
+                    .main {
+                        color: #f1f5f9;
+                    }
+                    .sub {
+                        color: #cbd5e1;
+                    }
                 }
 
                 .highlight {

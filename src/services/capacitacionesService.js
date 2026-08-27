@@ -1,5 +1,6 @@
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { isSurveyTimeExpired } from "../utils/surveyTiming";
 
 // ============================================================
 // CONSULTA DE CAPACITACIONES DISPONIBLES PARA UN USUARIO
@@ -77,8 +78,14 @@ export const getCapacitacionesDisponibles = async (usuario) => {
             const fechaFin = capacitacion.fechaFin?.toDate?.()
                 || new Date(capacitacion.fechaFin);
 
-            const vencida = hoy > fechaFin;
-            const disponible = !vencida && !respondida;
+            const vencida = isSurveyTimeExpired({
+                fechaInicio: capacitacion.fechaInicio,
+                fechaFin: capacitacion.fechaFin,
+                horaInicio: capacitacion.horaInicio || "00:00",
+                horaFin: capacitacion.horaFin || "23:59"
+            }, hoy);
+
+            const disponible = !respondida && !vencida && (!capacitacion.horaInicio || hoy >= new Date(`${fechaInicio.toISOString().split("T")[0]}T${capacitacion.horaInicio}:00`));
 
             // Buscar respuesta para extraer puntaje y estado
             const miRespuesta = respuestasUsuario.find(r => r.capacitacionId === capacitacion.id);

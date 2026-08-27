@@ -9,6 +9,7 @@ import { db } from "../../config/firebase";
 import { createNotification } from "../../utils/createNotification";
 import { notifyInfo, notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
 import MobileBackButton from "./components/MobileBackButton";
+import { isSurveyTimeExpired, isSurveyInTimeWindow } from "../../utils/surveyTiming";
 
 const MIN_APROBATORIO = 80;
 
@@ -187,17 +188,33 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
 
     const handleStartTraining = (training) => {
         // 🔥 VALIDAR FECHAS: Solo permitir responder si está dentro del rango
-        const hoy = new Date().toISOString().split("T")[0];
-        const fechaInicio = training.fechaInicio;
-        const fechaFin = training.fechaFin;
+        const horaInicioSesion = training.horaInicio || "00:00";
+        const horaFinSesion = training.horaFin || "23:59";
+        const ahora = new Date();
 
-        if (hoy < fechaInicio) {
-            notifyInfo("Capacitación no disponible", `Esta capacitación estará disponible a partir del ${fechaInicio}`);
-            return;
-        }
+        const dentroRangoFechas = isSurveyInTimeWindow({
+            fechaInicio: training.fechaInicio,
+            fechaFin: training.fechaFin,
+            horaInicio: horaInicioSesion,
+            horaFin: horaFinSesion
+        }, ahora);
 
-        if (hoy > fechaFin) {
-            notifyInfo("Plazo vencido", `El plazo para responder esta capacitación venció el ${fechaFin}`);
+        if (!dentroRangoFechas) {
+            const hoy = new Date().toISOString().split("T")[0];
+            const fechaInicio = training.fechaInicio;
+            const fechaFin = training.fechaFin;
+
+            if (hoy < fechaInicio) {
+                notifyInfo("Capacitación no disponible", `Esta capacitación estará disponible a partir del ${fechaInicio}`);
+                return;
+            }
+
+            if (hoy > fechaFin) {
+                notifyInfo("Plazo vencido", `El plazo para responder esta capacitación venció el ${fechaFin}`);
+                return;
+            }
+
+            notifyInfo("Fuera de horario", `Esta capacitación está disponible de ${horaInicioSesion} a ${horaFinSesion}`);
             return;
         }
 
@@ -270,7 +287,8 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
                 titulo: ongoingTraining.titulo
             });
 
-            // 🔥 NOTIFICAR A TODOS LOS ADMINS
+            //DEBE REVISARSE SI SE MANDA UNA NOTIFICACION O NO, SI ES ASI A QUIENES SE LES MANDA 
+            /*
             try {
                 const usersSnapshot = await getDocs(collection(db, "users"));
                 const admins = usersSnapshot.docs
@@ -299,7 +317,7 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
                 }
             } catch (error) {
                 console.error("Error al notificar a admins sobre respuesta de capacitación:", error);
-            }
+            } */
 
             const mensaje = result.tieneRespuestasAbiertas
                 ? 'Tu respuesta será revisada por el administrador.'

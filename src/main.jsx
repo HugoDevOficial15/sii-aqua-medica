@@ -11,6 +11,12 @@ import "./styles/operator/operator-theme.css";
 import "./styles/auth/login-premium.css";
 
 import App from './App.jsx';
+import maskFirebaseKeys from './utils/maskFirebaseKeys.js';
+
+// Enmascarar keys sensibles de Firebase en consola
+// Desactivado temporalmente para evitar loops infinitos en development
+// Descomenta la siguiente línea si necesitas ocultar keys en consola:
+// maskFirebaseKeys();
 
 // Registrar Service Worker para notificaciones push offline
 if ('serviceWorker' in navigator) {

@@ -49,11 +49,38 @@ export default function OperatorPreferences({ onBack, usuarioActual, adminMode =
         }
     };
 
-    const convertirABase64 = (file) => {
+    const comprimirYConvertirABase64 = (file) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    const maxWidth = 800;
+                    const maxHeight = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width *= maxHeight / height;
+                            height = maxHeight;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL("image/webp", 0.8));
+                };
+                img.src = e.target.result;
+            };
             reader.onerror = (error) => reject(error);
         });
     };
@@ -74,7 +101,7 @@ export default function OperatorPreferences({ onBack, usuarioActual, adminMode =
         setSubiendoFoto(true);
 
         try {
-            const base64Img = await convertirABase64(archivoFoto);
+            const base64Img = await comprimirYConvertirABase64(archivoFoto);
 
             // 1. Buscamos en la colección "users" el documento que contenga este uid
             const q = query(collection(db, "users"), where("uid", "==", uidABuscar));

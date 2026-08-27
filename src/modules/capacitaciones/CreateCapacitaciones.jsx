@@ -331,19 +331,27 @@ export default function CreateCapacitaciones() {
 
             const cleanData = {
                 ...data,
-                preguntas: (data.preguntas || []).map(p => ({
-                    ...p,
-                    opciones: p.tipo === "abierta" ? [] : (p.opciones || []),
-                    respuestaCorrecta: p.tipo === "abierta" ? null : (p.respuestaCorrecta === undefined ? null : p.respuestaCorrecta)
-                }))
+                preguntas: data.preguntas.map(p => {
+                    let respuesta = p.respuestaCorrecta;
+                    if (respuesta === undefined || p.tipo === "abierta") {
+                        respuesta = null;
+                    }
+
+                    return {
+                        ...p,
+                        opciones: p.tipo === "abierta" ? [] : (p.opciones || []),
+                        pares: p.pares || [],
+                        respuestaCorrecta: respuesta
+                    };
+                })
             };
 
             const trainingData = {
                 ...cleanData,
                  horaInicio: formatToAmPm(data.horaInicio),
                 horaFin: formatToAmPm(data.horaFin),
-                modalidad: "digital",
-                formaEvaluacion: "digital",
+                modalidad: data.modalidad || "digital",
+                formaEvaluacion: data.formaEvaluacion || "digital",
                 duracionSesionMinutos: sessionMinutos,
                 duracionTotalMinutos: totalMinutos,
                 duracionHoras: String(totalHoras),
@@ -370,7 +378,6 @@ export default function CreateCapacitaciones() {
             reset();
 
         } catch (error) {
-            console.log("Error:", error);
             notifyError("Error", "No se pudo crear la capacitación");
         } finally {
             setSaving(false);
@@ -562,7 +569,7 @@ export default function CreateCapacitaciones() {
                                                         <div className="training-actions-menu">
                                                             <button
                                                                 type="button"
-                                                                className="training-action-item"
+                                                                className="training-action-item editar"
                                                                 onClick={() => {
                                                                     handleEdit(training);
                                                                     setOpenActionsId(null);
@@ -1237,10 +1244,45 @@ export default function CreateCapacitaciones() {
 
 .btn {
     transition: all 0.2s ease !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .btn:hover {
     transform: translateY(-1px);
+}
+
+/* ==================================================
+   BOTONES NORMALES
+================================================== */
+
+.btn-primary:not(.btn-sm),
+.btn-success:not(.btn-sm),
+.btn-danger:not(.btn-sm) {
+
+    height: 46px;
+
+    padding: 0 18px !important;
+
+    border-radius: 12px !important;
+
+    font-size: 14px !important;
+
+    font-weight: 600 !important;
+}
+
+/* ==================================================
+   BOTONES SMALL
+================================================== */
+
+.btn-custom.me-2{
+
+    height: 34px !important;
+    padding: 0 12px !important;
+    font-size: 12px !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+
 }
 
 /* ==================================================
@@ -1381,7 +1423,7 @@ export default function CreateCapacitaciones() {
     z-index: 9999;
     border: 1px solid var(--operator-background);
     border-radius: 10px;
-    background: var(--operator-card);
+    background: var(--operator-background);
     box-shadow: 0 12px 24px rgba(2, 6, 23, 0.14);
     margin-top: 5px;
 }
@@ -1398,12 +1440,32 @@ export default function CreateCapacitaciones() {
     color: var(--operator-text);
     font-size: 13px;
     font-weight: 800;
-    text-align: left; /* Alineado a la izquierda se ve más limpio */
-    white-space: nowrap; /* Obliga al texto a quedarse en una sola línea */
+    text-align: center;
 }
 
-.training-action-item:hover {
-    background: var(--operator-background);
+.training-action-item.editar:hover {
+    color: var(--operator-primary);
+    scale: 1.02;
+}
+
+.training-action-item.respuestas:hover {
+    color: var(--operator-warning);
+    scale: 1.02;
+}
+
+.training-action-item.borrar:hover {
+    color: var(--operator-danger);
+    scale: 1.02;
+}
+
+.training-action-item.desactivado:hover {
+    color: var(--operator-danger);
+    scale: 1.02;
+}
+
+.training-action-item.activado:hover {
+    color: var(--operator-success);
+    scale: 1.02;
 }
 
 /* ==================================================
@@ -1430,6 +1492,33 @@ export default function CreateCapacitaciones() {
 .badge.bg-success {
     background: rgba(16,185,129,0.12) !important;
     color: #059669 !important;
+}
+
+/* ==================================================
+   STATUS
+================================================== */
+
+.text-success,
+.text-danger {
+
+    width: fit-content;
+    padding: 6px 12px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+
+}
+
+.text-success {
+    background: rgba(16,185,129,0.12);
+    color: #059669 !important;
+}
+
+.text-danger {
+    background: rgba(239,68,68,0.12);
+    color: #dc2626 !important;
 }
 
 /* ==================================================

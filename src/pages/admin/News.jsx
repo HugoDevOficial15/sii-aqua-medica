@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { collection, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, getDocs, query, orderBy, where } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, getDocs, query, orderBy, where, writeBatch } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa";
 import { AREAS } from "../../catalogs/areas";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
 import { dismissNotification } from "../../utils/notificationPersistence";
+import { uploadNewsFile, uploadNewsImage, deleteNewsFile } from "../../services/newsStorageService";
 
 // 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
@@ -177,16 +178,22 @@ export default function News() {
 
     setLoading(true);
     try {
+      const noticeId = noticiaEditando?.id || `noticia_${Date.now()}`;
+
       let imagenUrl = noticiaEditando?.imagen || "";
-      if (imagen) {
-        imagenUrl = await comprimirImagen(imagen);
+      if (imagen && imagen instanceof File) {
+        imagenUrl = await uploadNewsImage(imagen, noticeId);
       }
 
       let archivoUrl = noticiaEditando?.archivo || "";
       let archivoNombre = noticiaEditando?.archivoNombre || "";
-      if (archivoSeleccionado) {
-        archivoUrl = await convertirABase64(archivoSeleccionado);
-        archivoNombre = archivoSeleccionado.name;
+      let archivoRuta = noticiaEditando?.archivoRuta || "";
+
+      if (archivoSeleccionado && archivoSeleccionado instanceof File) {
+        const resultado = await uploadNewsFile(archivoSeleccionado, noticeId);
+        archivoUrl = resultado.url;
+        archivoNombre = resultado.nombre;
+        archivoRuta = resultado.ruta;
       }
 
       if (noticiaEditando) {
@@ -199,6 +206,7 @@ export default function News() {
           imagen: imagenUrl,
           archivo: archivoUrl,
           archivoNombre: archivoNombre,
+          archivoRuta: archivoRuta,
           estado: "Activa"
         });
       } else {
@@ -210,6 +218,7 @@ export default function News() {
           imagen: imagenUrl,
           archivo: archivoUrl,
           archivoNombre: archivoNombre,
+          archivoRuta: archivoRuta,
           fechaCreacion: serverTimestamp(),
           estado: "Activa"
         });
@@ -240,22 +249,27 @@ export default function News() {
           })
         };
 
-        // 🍪 Usar Promise.all para esperar a que TODAS se creen
-        await Promise.all(
-          usersSnapshot.docs.map(userDoc =>
-            addDoc(collection(db, "notificaciones"), {
-              IdUsuario: userDoc.id,
-              Titulo: "📰 Nueva noticia",
-              Mensaje: `Nueva noticia: "${titulo}"`,
-              fechaCreacion: serverTimestamp(),
-              Destino: "/news",
-              extra: {
-                tipo: "news",
-                noticiaId: docRef.id
-              }
-            })
-          )
-        );
+        // Usar batch para crear todas las notificaciones de una vez
+        const batch = writeBatch(db);
+        const notifCollection = collection(db, "notificaciones");
+
+        usersSnapshot.docs.forEach(userDoc => {
+          const notifRef = doc(notifCollection);
+          batch.set(notifRef, {
+            IdUsuario: userDoc.id,
+            Titulo: "📰 Nueva noticia",
+            Mensaje: `Nueva noticia: "${titulo}"`,
+            fechaCreacion: serverTimestamp(),
+            Destino: "/news",
+            Accion: "nueva_noticia",
+            tipo: "news",
+            noticiaId: docRef.id,
+            enviado: false,
+            fechaEnviado: null
+          });
+        });
+
+        await batch.commit();
       }
 
       notifySuccess(

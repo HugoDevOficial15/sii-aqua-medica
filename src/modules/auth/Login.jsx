@@ -92,10 +92,8 @@ export default function Login() {
             }
 
             const email = username + "@aquamedica.com";
-            console.log("UserName: ", email);
 
             const result = await loginUser(email, password);
-            console.table("Resultado de Firebase:", result);
 
             if (!result.success) {
                 const failedLoginResult = await registerFailedLoginAttempt(username);
@@ -137,36 +135,30 @@ export default function Login() {
                 mustChangePassword: freshUserData.mustChangePassword || false
             }, permisosUsuario);
 
-            console.log("Usuario Guardado en sesión:", freshUserData, permisosUsuario);
 
             // 🔐 CAMBIO DE PASSWORD (PRIORIDAD)
             if (freshUserData.mustChangePassword === true) {
-                console.log("Redirigiendo a change-password");
                 navigate("/change-password", { replace: true });
                 return;
             }
 
             // 🔥 OPERADOR (NO SE TOCA)
             if (freshUserData.rol === "operador") {
-                console.log("Redirigiendo a App Operador");
                 navigate("/app", { replace: true });
                 return;
             }
 
             // 🔥 TODOS LOS ADMINS
             if (freshUserData.rol && freshUserData.rol.startsWith("admin")) {
-                console.log("Redirigiendo a Dashboard Admin");
                 navigate("/dashboard", { replace: true });
                 return;
             }
 
             // 🔥 FALLBACK (USUARIOS NORMALES)
             // Corregido: Los enviamos a /noticias para que no entren en bucle en /dashboard
-            console.log("Rol de usuario normal, enviando a noticias");
             navigate("/noticias", { replace: true });
 
         } catch (error) {
-            console.log("Login Error:", error);
             setError("Error en login");
             return;
         } finally {
@@ -174,7 +166,6 @@ export default function Login() {
             setIsSubmitting(false);
         }
 
-        console.table(userData);
 
 
     };

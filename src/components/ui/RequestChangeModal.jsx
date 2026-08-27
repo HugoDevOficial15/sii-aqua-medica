@@ -88,7 +88,6 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
 
         } catch (error) {
 
-            console.log("Error al solicitar cambio de perfil:", error);
             Swal.close();
 
             if (error.code === "unavailable") {
