@@ -1,75 +1,65 @@
-// import { getCurrentUser } from "../../../utils/session";
+// 
 
 import { useAuth } from "../../../hooks/useAuth";
-
-
-
-// const user = getCurrentUser();
+import "../styles/HomeHero.css";
 
 export default function HomeHero() {
-
     const { user } = useAuth();
 
     const nombreParts = (user?.nombre || "").trim().split(/\s+/);
-    const nombrePrimero = nombreParts[0] || "Usuario";
-    const nombreSegundo = nombreParts[2] || nombreParts[1] || "";
-    const nameFull = [nombrePrimero, nombreSegundo].filter(Boolean).join(" ");
-    const avatarSrc =
+
+    const firstName = nombreParts[0] || "Usuario";
+
+    const secondName =
+        nombreParts.length >= 3
+            ? nombreParts[2]
+            : nombreParts[1] || "";
+
+    const displayName = [firstName, secondName].filter(Boolean).join(" ");
+
+    const avatar =
         user?.fotoPerfil ||
         user?.photoURL ||
-        user?.photoUrl ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            nameFull || "Usuario"
+            displayName
         )}&background=ffffff&color=0A4D9D&bold=true&size=256`;
 
+    const hour = new Date().getHours();
+
+    const greeting =
+        hour < 12
+            ? "Buenos días"
+            : hour < 19
+                ? "Buenas tardes"
+                : "Buenas noches";
+
     return (
+        <section className="homeHero">
 
-        <div className="home-hero-v2">
+            <div className="heroContent">
 
+                <span className="heroGreeting">
+                    👋 Buenos días
+                </span>
 
+                <h1>{firstName}</h1>
 
-            <div className="hero-banner">
+                <p className="heroJob">
+                    {user?.puesto}
+                </p>
 
-                <div className="hero-info">
-
-                    <span className="welcome-label">
-                        Bienvenido nuevamente
-                    </span>
-
-                    <h2>
-                        {nombrePrimero}
-                        <br />
-                        {nombreSegundo}
-                    </h2>
-
-                    <p>
-                        {user?.puesto}
-                    </p>
-
-
-                    {/* <span>
-                        {user?.area.toUpperCase()}
-                    </span> */}
-
-                </div>
-
-                <div className="hero-avatar">
-
-                    {/* <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                            nameFull || "Usuario"
-                        )}&background=0A4D9D&color=ffffff&size=256`}
-                        alt="Avatar"
-                    /> */}
-
-                    <img src={avatarSrc} alt="Avatar" />
-
-                </div>
+                <p className="heroMessage">
+                    Qué gusto tenerte de vuelta.
+                </p>
 
             </div>
 
-        </div>
+            <img
+                src={avatar}
+                alt={displayName}
+                className="heroAvatar"
+            />
 
+        </section>
     );
-
 }

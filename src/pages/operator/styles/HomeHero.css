@@ -1,0 +1,52 @@
+.homeHero {
+
+    background: #0A4D9D;
+
+    color: white;
+
+    padding: 26px;
+
+    border-radius: 22px;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+
+    margin-bottom: 1.5rem;
+}
+
+.heroGreeting {
+
+    color: rgba(255, 255, 255, .75);
+
+    font-weight: 600;
+
+    font-size: .85rem;
+
+}
+
+.heroJob {
+
+    color: rgba(255, 255, 255, .82);
+
+}
+
+.heroMessage {
+
+    color: rgba(255, 255, 255, .65);
+
+}
+
+.heroAvatar {
+
+    width: 74px;
+    height: 74px;
+
+    border-radius: 50%;
+
+    border: 3px solid rgba(255, 255, 255, .9);
+
+}
