@@ -22,6 +22,14 @@
 
     --operator-danger: #EF4444;
 
+    --operator-raconocimiento: #334155 ;
+
+    --operator-incidencia: #334155 ;
+
+    --operator-incapacidad: #334155 ;
+
+    --operator-historialMedico: #334155 ;
+
     --operator-radius: 24px;
 
     --operator-shadow:
@@ -56,6 +64,14 @@ html[data-theme="dark"] {
         0 10px 30px rgba(0, 0, 0, .35);
 
     --operator-close: #485364;
+
+    --operator-raconocimiento: rgba(238, 204, 14, 0.87);;
+
+    --operator-incidencia: #f33030;
+
+    --operator-incapacidad: #d666f8;
+
+    --operator-historialMedico: #24c2c2;
 }
 
 /* Superficies principales del shell operador que no usan las variables

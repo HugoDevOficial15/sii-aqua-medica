@@ -9,7 +9,8 @@ import {
   FaCheckCircle,
   FaExclamationCircle,
   FaBan,
-  FaUndo
+  FaUndo,
+  FaPen
 } from "react-icons/fa";
 
 import {
@@ -24,8 +25,8 @@ import {
 
 import Loader from "../../components/Loader";
 
-import { getResponsesForSurvey } from "../../services/servicesOperator/operatorSurveyResponseService";
-import { getResponsesForTraining } from "../../services/servicesOperator/operatorTrainingResponseService";
+import { db } from "../../config/firebase";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { getUsers } from "../../services/usersService";
 
 import { AREAS } from "../../catalogs/areas";
@@ -34,6 +35,7 @@ import { MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { isSurveyTimeExpired } from "../../utils/surveyTiming";
 import { exportExcel } from "./components/ExcelGenerator";
 import { generatePersonalRecordPDF } from "./components/PdfGenerator";
+import CalificarEncuesta from "./components/calificar";
 
 const GENERO_OPTIONS = [
   { value: "", label: "Todos los generos" },
@@ -66,51 +68,62 @@ export default function EncuestaResultados({ survey, onBack }) {
   const TABLE_PAGE_SIZE = 10;
   const ASSIGNED_PAGE_SIZE = 10;
 
+  const loadResponses = async () => {
+    setError(null);
+
+    try {
+      const usersData = await getUsers();
+      setUsers(usersData);
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error("Error cargando usuarios de la encuesta:", err);
+      }
+
+      setError(
+        "No se pudieron cargar los usuarios. Intenta de nuevo más tarde.",
+      );
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError(null);
+    if (!survey?.id) return undefined;
 
-      try {
-        // Detectar si es encuesta o capacitación usando campo explícito "tipo"
-        const esCapacitacion = survey.tipo === "capacitacion";
+    setLoading(true);
+    loadResponses();
 
-        // 1 consulta de respuestas + 1 consulta de usuarios (ya
-        // existente, reutilizada). El cruce nómina→perfil se
-        // hace en memoria, nunca una consulta por respuesta.
-        const getResponses = esCapacitacion
-          ? getResponsesForTraining
-          : getResponsesForSurvey;
+    const esCapacitacion = survey.tipo === "capacitacion";
+    const responseCollection = collection(
+      db,
+      esCapacitacion ? "respuestasCapacitaciones" : "respuestasEncuestas",
+    );
+    const fieldName = esCapacitacion ? "capacitacionId" : "encuestaId";
+    const responsesQuery = query(responseCollection, where(fieldName, "==", survey.id));
 
+    const unsubscribe = onSnapshot(
+      responsesQuery,
+      (snapshot) => {
+        const nextResponses = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setResponses(nextResponses);
+        setLoading(false);
+      },
+      (err) => {
         if (import.meta.env.DEV) {
-          console.log(
-            `[EncuestaResultados] Tipo detectado: ${esCapacitacion ? "Capacitación" : "Encuesta"}`,
-            survey.tipo,
-          );
-        }
-
-        const [responsesData, usersData] = await Promise.all([
-          getResponses(survey.id),
-          getUsers(),
-        ]);
-
-        setResponses(responsesData);
-        setUsers(usersData);
-      } catch (err) {
-        if (import.meta.env.DEV) {
-          console.error("Error cargando respuestas de la encuesta:", err);
+          console.error("Error escuchando respuestas en tiempo real:", err);
         }
 
         setError(
-          "No se pudieron cargar las respuestas. Intenta de nuevo más tarde.",
+          "No se pudieron cargar las respuestas en tiempo real. Intenta de nuevo más tarde.",
         );
-      } finally {
         setLoading(false);
-      }
-    };
+      },
+    );
 
-    load();
-  }, [survey.id]);
+    return () => unsubscribe();
+  }, [survey?.id, survey?.tipo]);
 
   const usersByNomina = useMemo(() => {
     const map = new Map();
@@ -123,6 +136,25 @@ export default function EncuestaResultados({ survey, onBack }) {
 
     return map;
   }, [users]);
+
+  const latestResponses = useMemo(() => {
+    const map = new Map();
+
+    responses.forEach((response) => {
+      const key = String(response.userId ?? response.uid ?? response.nominaUsuario ?? response.nomina ?? "").trim();
+      if (!key) return; 
+
+      const current = map.get(key);
+      const currentTime = current?.fechaRespuesta ? Date.parse(current.fechaRespuesta) : 0;
+      const responseTime = response?.fechaRespuesta ? Date.parse(response.fechaRespuesta) : 0;
+
+      if (!current || responseTime >= currentTime) {
+        map.set(key, response);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [responses]);
 
   const surveyExpired = useMemo(() => {
     if (!survey) return false;
@@ -145,13 +177,13 @@ export default function EncuestaResultados({ survey, onBack }) {
     );
 
     const respondedUserIds = new Set(
-      responses
+      latestResponses
         .map((r) => String(r.userId ?? r.uid ?? "").trim())
         .filter(Boolean),
     );
 
     const respondedNominas = new Set(
-      responses
+      latestResponses
         .map((r) => String(r.nominaUsuario ?? r.nomina ?? "").trim())
         .filter(Boolean),
     );
@@ -184,8 +216,26 @@ export default function EncuestaResultados({ survey, onBack }) {
       .map((user) => {
         const nomina = String(user.nomina ?? "").trim();
         const uid = String(user.uid ?? user.id ?? "").trim();
-        const respondido =
-          respondedUserIds.has(uid) || respondedNominas.has(nomina);
+        const respuesta = latestResponses.find((r) => {
+          const sameUserId = uid && String(r.userId ?? r.uid ?? "").trim() === uid;
+          const sameNomina = nomina && String(r.nominaUsuario ?? r.nomina ?? "").trim() === nomina;
+          return sameUserId || sameNomina;
+        });
+        const respondido = Boolean(respuesta);
+        const estadoActual = String(respuesta?.estadoActual ?? "").trim().toLowerCase();
+        const puntuacion = Number(respuesta?.puntuacionObtenida ?? respuesta?.calificacion ?? 0);
+
+        let estado = "faltante";
+
+        if (respondido) {
+          if (["reprobada", "bloqueada"].includes(estadoActual) || puntuacion < MIN_APROBATORIO) {
+            estado = "reprobada";
+          } else {
+            estado = "realizado";
+          }
+        } else if (surveyExpired) {
+          estado = "reprobada";
+        }
 
         return {
           id: uid || nomina || user.nombre || "usuario",
@@ -193,45 +243,46 @@ export default function EncuestaResultados({ survey, onBack }) {
           area: user.area || "—",
           nomina: nomina || "—",
           respondido,
-          estado: respondido
-            ? "realizado"
-            : surveyExpired
-              ? "reprobada"
-              : "faltante",
+          estado,
+          respuesta,
         };
       })
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [responses, survey, surveyExpired, users]);
+  }, [latestResponses, survey, surveyExpired, users]);
 
   // Cruce respuestas + perfil (nunca se guarda embebido en la respuesta,
   // así el área/género/puesto siempre reflejan el perfil actual).
   const rows = useMemo(() => {
     const respondedIds = new Set(
-      responses
+      latestResponses
         .map((r) => String(r.userId ?? r.uid ?? "").trim())
         .filter(Boolean),
     );
     const respondedNominas = new Set(
-      responses
+      latestResponses
         .map((r) => String(r.nominaUsuario ?? r.nomina ?? "").trim())
         .filter(Boolean),
     );
 
-    const actualRows = responses.map((r) => {
+    const actualRows = latestResponses.map((r) => {
       const nomina = r.nominaUsuario ?? r.userId ?? "";
       const perfil = usersByNomina.get(String(nomina));
-      const puntuacion = r.puntuacionObtenida ?? r.calificacion ?? 0;
+      const puntuacion = Number(r.puntuacionObtenida ?? r.calificacion ?? 0);
+      const estadoActual = String(r.estadoActual ?? "").trim().toLowerCase();
+      const debeReprobar =
+        ["reprobada", "bloqueada"].includes(estadoActual) ||
+        (estadoActual === "" && puntuacion < MIN_APROBATORIO);
 
       return {
         id: r.id,
         nomina: String(nomina),
         nombre: perfil?.nombre || r.nombre || "—",
-        area: perfil?.area || "—",
+        area: perfil?.area || r.area || "—",
         genero: perfil?.Genero || "",
         puesto: perfil?.puesto || "—",
         puntuacion,
-        aprobada: puntuacion >= MIN_APROBATORIO,
-        estado: puntuacion >= MIN_APROBATORIO ? "aprobada" : "reprobada",
+        aprobada: !debeReprobar,
+        estado: debeReprobar ? "reprobada" : "aprobada",
         expiroSinResponder: false,
       };
     });
@@ -268,7 +319,7 @@ export default function EncuestaResultados({ survey, onBack }) {
       });
 
     return [...actualRows, ...expiredRows];
-  }, [responses, surveyExpired, usuariosAsignados, usersByNomina]);
+  }, [latestResponses, surveyExpired, usuariosAsignados, usersByNomina]);
 
   const puestoOptions = useMemo(() => {
     const set = new Set(users.map((u) => u.puesto).filter(Boolean));
@@ -338,10 +389,10 @@ export default function EncuestaResultados({ survey, onBack }) {
   }, [filteredRows]);
 
   const usuariosRespondidos = usuariosAsignados.filter(
-    (user) => user.respondido,
+    (user) => user.respondido && user.estado === "realizado",
   );
   const usuariosReprobadas = usuariosAsignados.filter(
-    (user) => !user.respondido && user.estado === "reprobada",
+    (user) => user.estado === "reprobada",
   );
   const usuariosFaltantes = usuariosAsignados.filter(
     (user) => !user.respondido && user.estado === "faltante",
@@ -389,17 +440,34 @@ export default function EncuestaResultados({ survey, onBack }) {
 
   const handleClearFilters = () => setFilters(emptyFilters);
 
+  const formatPuntuacionDisplay = (row) => {
+    const isMissingScore =
+      row?.estado === "faltante" ||
+      row?.expiroSinResponder ||
+      row?.respondido === false;
+
+    if (isMissingScore) return "Sin registro";
+
+    const score = Number(row?.puntuacion ?? row?.calificacion ?? 0);
+    return `${score}/100`;
+  };
+
   const handleExportExcel = () => {
     const rowsToExport = filteredRows.filter((row) => !row.expiroSinResponder);
     exportExcel(rowsToExport, survey);
   };
 
   const tituloUsuariosAsignados = {
-    todos: `Todos (${usuariosAsignados.length})`,
-    realizado: `Aprobados (${usuariosRespondidos.length})`,
-    reprobada: `Reprobados (${usuariosReprobadas.length})`,
-    faltante: `Faltantes (${usuariosFaltantes.length})`,
+    todos: `Todos los usuarios: ${usuariosAsignados.length}`,
+    realizado: `Usuarios aprobados: ${usuariosRespondidos.length}`,
+    reprobada: `Usuarios reprobados: ${usuariosReprobadas.length}`,
+    faltante: `Usuarios faltantes: ${usuariosFaltantes.length}`,
   };
+
+  const tienePreguntasAbiertas = useMemo(
+    () => (survey?.preguntas || []).some((pregunta) => pregunta?.tipo === "abierta"),
+    [survey],
+  );
 
   const handleExportPdf = () => {
     const rowsByNomina = new Map(
@@ -408,12 +476,13 @@ export default function EncuestaResultados({ survey, onBack }) {
 
     const rowsForPdf = usuariosFiltradosPorEstado.map((user) => {
       const match = rowsByNomina.get(String(user.nomina ?? "").trim());
+      const hasMissingScore = !match || user.estado === "faltante";
 
       return {
         nomina: user.nomina || "—",
         nombre: user.nombre || "Sin nombre",
         area: user.area || "Sin área",
-        puntuacion: Number(match?.puntuacion ?? match?.calificacion ?? 0),
+        puntuacion: hasMissingScore ? "Sin registro" : Number(match?.puntuacion ?? match?.calificacion ?? 0),
       };
     });
 
@@ -564,7 +633,7 @@ export default function EncuestaResultados({ survey, onBack }) {
                   <td>{row.area}</td>
                   <td>{GENERO_LABEL[row.genero] || "—"}</td>
                   <td>{row.puesto}</td>
-                  <td>{row.puntuacion}/100</td>
+                  <td>{formatPuntuacionDisplay(row)}</td>
                   <td>
                     {row.estado === "aprobada" ? (
                       <span className="text-success">Aprobada</span>
@@ -609,7 +678,7 @@ export default function EncuestaResultados({ survey, onBack }) {
       <div className="card shadow-sm mb-4">
         <div className="card-body">
           <div className="d-flex align-items-center gap-2 mb-3">
-            <FaChartBar className="text-primary" />
+            <FaChartBar />
             <h5 className="m-0">Participación por Área</h5>
           </div>
 
@@ -655,13 +724,23 @@ export default function EncuestaResultados({ survey, onBack }) {
         </div>
       </div>
 
+      
+
+      {tienePreguntasAbiertas && (
+        <CalificarEncuesta
+          survey={survey}
+          responses={responses}
+          onSaved={loadResponses}
+        />
+      )}
+
       {/* USUARIOS QUE HAN RESPONDIDO */}
 
       <div className="card shadow-sm mb-4">
         <div className="card-body">
           <div className="pdf-container d-flex justify-content-between mb-3">
             <h5 className="m-0">
-              Usuarios:{" "}
+              
               {tituloUsuariosAsignados[statusFilter] || "Usuarios asignados"}
             </h5>
             <button type="button" className="btn-pdf" onClick={handleExportPdf}>
@@ -693,7 +772,7 @@ export default function EncuestaResultados({ survey, onBack }) {
               </button>
               <button
                 type="button"
-                className={`button text-faltante ${statusFilter === "faltante" ? "active" : ""}`}
+                className={`button text-faltante ${statusFilter === "Faltante" ? "active" : ""}`}
                 onClick={() => setStatusFilter("faltante")}
               >
                 <FaExclamationCircle /> Faltantes: {usuariosFaltantes.length}

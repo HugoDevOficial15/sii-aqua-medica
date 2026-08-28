@@ -3,7 +3,7 @@ import MobileBackButton from "./components/MobileBackButton";
 import AppLoader from "./components/AppLoader";
 import { saveSurveyResponse } from "../../services/servicesOperator/operatorSurveyResponseService";
 import { useAuth } from "../../hooks/useAuth";
-import { MIN_APROBATORIO } from "../../constants/surveyConstants";
+import { MAX_SURVEY_ATTEMPTS, MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { createNotification } from "../../utils/createNotification";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../config/firebase";
@@ -238,12 +238,13 @@ export default function OperatorSurveyDetail({
 
             const intentosPrevios = survey.intentos || 0;
             const intentosActuales = intentosPrevios + 1;
+            const puedeReintentar = intentosActuales < MAX_SURVEY_ATTEMPTS;
 
             let nuevoEstado = "";
 
             if (result.tieneRespuestasAbiertas) nuevoEstado = "pendiente_validacion";
             else if (result.calificacion >= MIN_APROBATORIO) nuevoEstado = "completada";
-            else nuevoEstado = (intentosActuales >= 3) ? "bloqueada" : "reprobada";
+            else nuevoEstado = "reprobada";
 
             await saveSurveyResponse({
                 encuestaId: survey.id,
@@ -253,6 +254,7 @@ export default function OperatorSurveyDetail({
                 userId: user.uid,
                 username: user.username,
                 nombre: user.nombre,
+                area: user?.area || user?.Area || "",
                 respuestas: answers,
                 totalPreguntas: preguntas.length,
                 correctas: result.correctas,
@@ -304,7 +306,13 @@ export default function OperatorSurveyDetail({
                 correctas: result.correctas,
                 calificacion: result.calificacion,
                 total: preguntas.length,
-                tieneRespuestasAbiertas: result.tieneRespuestasAbiertas
+                tieneRespuestasAbiertas: result.tieneRespuestasAbiertas,
+                estadoActual: result.tieneRespuestasAbiertas
+                    ? "pendiente_validacion"
+                    : (result.calificacion >= MIN_APROBATORIO
+                        ? "completada"
+                        : "reprobada"),
+                puedeReintentar
             });
 
             // Limpiamos la caché tras enviar exitosamente

@@ -343,7 +343,7 @@ export default function InventarioPage() {
             )}
 
             {/* 🎨 ESTILOS */}
-            <style jsx>{`
+            <style >{`
 
                 .custom-users-header input{
                 height: 50px;

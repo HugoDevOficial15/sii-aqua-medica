@@ -66,6 +66,18 @@ const getMedicalHistoryPrimaryComment = (record) => {
   return String(primaryComment).trim() || "Sin diagnóstico";
 };
 
+const getRecordTypeLabel = (record, isMedicalHistory) => {
+  if (record?.type === "reconocimiento") return "Reconocimiento";
+  if (record?.type === "incapacidad") return "Incapacidad";
+  if (isMedicalHistory) return "Historial Médico";
+  return "Incidencia";
+};
+
+const getRecordTitle = (record, isMedicalHistory) => {
+  if (isMedicalHistory) return "Historial Médico";
+  return record?.titulo || record?.tipo || record?.motivo || record?.diagnostico || record?.nombrePaciente || "Sin título";
+};
+
 const getRecordDetails = (record, areaValue = "Sin área") => {
   if (!record) return [];
 
@@ -208,22 +220,13 @@ export default function RecordDetailModal({ record, onClose }) {
 
   if (!record) return null;
 
-  const details = getRecordDetails(record, areaValue);
-
-  // VISTA DEL MODAL DE DETALLE DE REGISTRO PERSONAL
   return (
     <div className="personal-modal-backdrop">
       <div className="personal-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
           <div>
-            <h2>
-              {isMedicalHistory ? "Historial Médico" : record.type === "reconocimiento" ? "Reconocimiento" : record.type === "incapacidad" ? "Incapacidad" : "Incidencia"}
-            </h2>
-            <h3>
-              {isMedicalHistory
-                ? "Historial Médico"
-                : record.titulo || record.tipo || record.motivo || record.diagnostico || record.nombrePaciente || "Sin título"}
-            </h3>
+            <h2>{getRecordTypeLabel(record, isMedicalHistory)}</h2>
+            <h3>{getRecordTitle(record, isMedicalHistory)}</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
             ×
@@ -233,13 +236,7 @@ export default function RecordDetailModal({ record, onClose }) {
         <div className="personal-record-modal-body">
           <div className="personal-record-modal-badge-wrap">
             <span className={`personal-record-badge ${isMedicalHistory ? "historialMedico" : record.type}`}>
-              {record.type === "reconocimiento"
-                ? "Reconocimiento"
-                : record.type === "incapacidad"
-                  ? "Incapacidad"
-                  : isMedicalHistory
-                    ? "Historial Médico"
-                    : "Incidencia"}
+              {getRecordTypeLabel(record, isMedicalHistory)}
             </span>
           </div>
 
@@ -270,9 +267,6 @@ export default function RecordDetailModal({ record, onClose }) {
       </div>
 
       <style>{`
-
-/* HEADER */
-
         .personal-modal-backdrop {
           position: fixed;
           inset: 0;
@@ -304,7 +298,7 @@ export default function RecordDetailModal({ record, onClose }) {
 
         .personal-modal-header h2 {
           margin: 0;
-          padding: 10px 0px;
+          padding: 10px 0;
           font-size: 1.5rem;
           font-weight: 700;
           color: var(--operator-text);
@@ -335,9 +329,6 @@ export default function RecordDetailModal({ record, onClose }) {
           background: var(--operator-border);
           color: var(--operator-primary);
         }
-
-/* BODY */
-
 
         .personal-record-modal-body {
           padding: 24px 30px;
@@ -386,8 +377,6 @@ export default function RecordDetailModal({ record, onClose }) {
           margin-top: 8px;
           padding: 0 24px 24px;
         }
-
-/* BOTONES FOOTER */
 
         .personal-modal-primary {
           height: 50px;

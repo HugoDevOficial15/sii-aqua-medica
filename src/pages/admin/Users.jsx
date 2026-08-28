@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { useLocation } from "react-router-dom";
 
 import { exportInformacionUserPDF } from "../../utils/exportInformacionUser";
@@ -997,15 +997,9 @@ export default function Users({ onClose }) {
     }
   }, [location.search]);
 
-  useEffect(() => {
-    if (loading || users.length === 0) return;
-
-    const interval = setInterval(async () => {
-      await syncUsersWithIncapacidades(users);
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [loading, users]);
+  // Auto-refresh desactivado para evitar peticiones repetitivas al servidor.
+  // La sincronización de incapacidades se realiza bajo demanda en lugar de
+  // dispararse cada 30 segundos desde la tabla.
 
   // Loading
   if (loading) {
@@ -1181,9 +1175,8 @@ export default function Users({ onClose }) {
                   );
 
                 return (
-                  <>
+                  <Fragment key={user.id}>
                     <tr
-                      key={user.id}
                       className={
                         openActionsId === user.id
                           ? "user-row-active user-row-open"
@@ -1394,7 +1387,7 @@ export default function Users({ onClose }) {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -1742,7 +1735,7 @@ export default function Users({ onClose }) {
       )}
 
       {/* 🎨 ESTILOS */}
-      <style jsx>{`
+      <style>{`
         /* PAGINA */
         .custom-users-header input {
           height: 50px;
