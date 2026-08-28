@@ -54,6 +54,7 @@ const resolveRecordType = (record) => {
   if (!record) return "incidencia";
   if (record.type === "reconocimiento") return "reconocimiento";
   if (record.type === "incapacidad") return "incapacidad";
+  if (record.type === "capacitacion") return "capacitacion";
   if (record.type === "historialMedico" || isMedicalHistoryRecord(record)) {
     return "historialMedico";
   }
@@ -63,6 +64,7 @@ const resolveRecordType = (record) => {
 const getRecordTypeLabel = (type) => {
   if (type === "reconocimiento") return "Reconocimiento";
   if (type === "incapacidad") return "Incapacidad";
+  if (type === "capacitacion") return "Capacitación";
   if (type === "historialMedico") return "Historial Médico";
   return "Incidencia";
 };
@@ -159,63 +161,71 @@ const getRecordFields = async (record) => {
     ],
     [
       "Prioridad",
-      recordType === "historialMedico" || recordType === "incapacidad" || recordType === "reconocimiento"
+      recordType === "historialMedico" || recordType === "incapacidad" || recordType === "reconocimiento" || recordType === "capacitacion"
         ? null
         : safeValue(record.prioridad || "No especificada", "No especificada"),
     ],
-    ["Estado", 
-      recordType === "incapacidad" || recordType === "reconocimiento" || recordType === "incidencia"
+    ["Estado",
+      recordType === "incapacidad" || recordType === "reconocimiento" || recordType === "incidencia" || recordType === "capacitacion"
         ? null
         : safeValue(record.estado || "No especificado", "No especificado")],
     [
       "Empleado",
-      safeValue(
-        record.empleadoNombre || record.nombrePaciente || record.nombre || "Sin empleado",
-        "Sin empleado",
-      ),
+      recordType === "capacitacion"
+        ? null
+        : safeValue(
+            record.empleadoNombre || record.nombrePaciente || record.nombre || "Sin empleado",
+            "Sin empleado",
+          ),
     ],
     [
       "Nómina",
-      safeValue(
-        record.empleadoNomina || record.nominaPaciente || record.nomina || "Sin nómina",
-        "Sin nómina",
-      ),
+      recordType === "capacitacion"
+        ? null
+        : safeValue(
+            record.empleadoNomina || record.nominaPaciente || record.nomina || "Sin nómina",
+            "Sin nómina",
+          ),
     ],
-    ["Área", safeValue(resolvedArea, "Sin área")],
-    [
-      recordType === "reconocimiento"
-        ? "Emitido por"
-        : recordType === "incapacidad"
-          ? "Tipo de incapacidad"
-          : recordType === "historialMedico"
-            ? "Diagnóstico"
-            : "Reportado por",
-      safeValue(
-        recordType === "incapacidad"
-          ? record.tipo || "Incapacidad"
-          : recordType === "historialMedico"
-            ? medicalHistoryComment
-            : record.emitidoPor || record.reportadoPor,
-        "Sin información",
-      ),
-    ],
-    [
-      recordType === "reconocimiento"
-        ? "Nómina del emisor"
-        : recordType === "incapacidad"
-          ? "Fecha inicio"
-          : recordType === "historialMedico"
-            ? "Fecha de inicio"
-            : "Nómina del reportante",
-      safeValue(
-        recordType === "incapacidad"
-          ? normalizeDate(record.fechaInicio || record.fecha || record.createdAt)
-          : recordType === "historialMedico"
-            ? normalizeDate(record.fechaInicio || record.fecha || record.fechaApertura || record.createdAt)
-            : record.emitidoPorNomina || record.reportadoPorNomina || "Sin información",
-        "Sin información",
-      ),
-    ],
+    ["Área", recordType === "capacitacion" ? null : safeValue(resolvedArea, "Sin área")],
+    ...(recordType === "capacitacion"
+      ? []
+      : [
+          [
+            recordType === "reconocimiento"
+              ? "Emitido por"
+              : recordType === "incapacidad"
+                ? "Tipo de incapacidad"
+                : recordType === "historialMedico"
+                  ? "Diagnóstico"
+                  : "Reportado por",
+            safeValue(
+              recordType === "incapacidad"
+                ? record.tipo || "Incapacidad"
+                : recordType === "historialMedico"
+                  ? medicalHistoryComment
+                  : record.emitidoPor || record.reportadoPor,
+              "Sin información",
+            ),
+          ],
+          [
+            recordType === "reconocimiento"
+              ? "Nómina del emisor"
+              : recordType === "incapacidad"
+                ? "Fecha inicio"
+                : recordType === "historialMedico"
+                  ? "Fecha de inicio"
+                  : "Nómina del reportante",
+            safeValue(
+              recordType === "incapacidad"
+                ? normalizeDate(record.fechaInicio || record.fecha || record.createdAt)
+                : recordType === "historialMedico"
+                  ? normalizeDate(record.fechaInicio || record.fecha || record.fechaApertura || record.createdAt)
+                  : record.emitidoPorNomina || record.reportadoPorNomina || "Sin información",
+              "Sin información",
+            ),
+          ],
+        ]),
     ...(recordType === "historialMedico"
       ? [["Fecha de cierre", normalizeDate(record.fechaCierre || record.fecha || record.fechaApertura || record.createdAt)]]
       : [[
@@ -228,11 +238,31 @@ const getRecordFields = async (record) => {
         ]]),
     [
       "Tipo específico",
-      recordType === "historialMedico" || recordType === "incapacidad"
+      recordType === "historialMedico" || recordType === "incapacidad" || recordType === "capacitacion"
         ? null
         : safeValue(record.tipo || record.motivo || record.estado || record.categoria || "Sin tipo", "Sin tipo"),
     ],
   ];
+
+  if (recordType === "capacitacion") {
+    return [
+      ...fields.filter(
+        ([, value]) => value !== null && value !== undefined && value !== "",
+      ),
+      [
+        "Calificación",
+        safeValue(`${Math.round(record.puntuacionObtenida || 0)}/100`, "Sin calificación"),
+      ],
+      ["Intentos", safeValue(record.intentos || 1, "1")],
+      [
+        "Certificado",
+        safeValue(
+          record.certificado ? "Certificado emitido" : "No certificado",
+          "No certificado",
+        ),
+      ],
+    ];
+  }
 
   return fields.filter(
     ([, value]) => value !== null && value !== undefined && value !== "",

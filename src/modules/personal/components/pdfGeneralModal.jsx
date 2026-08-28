@@ -64,6 +64,7 @@ const resolveRecordType = (record) => {
   if (record.type === "reconocimiento") return "reconocimiento";
   if (record.type === "incidencia") return "incidencia";
   if (record.type === "incapacidad") return "incapacidad";
+  if (record.type === "capacitacion") return "capacitacion";
   if (record.type === "historialMedico" || isMedicalHistoryRecord(record)) {
     return "historialMedico";
   }
@@ -81,6 +82,7 @@ const getRegistroTipoLabel = (record) => {
       record.tipo || record.categoria || "incidencia",
     );
   if (recordType === "incapacidad") return record?.tipo || "Incapacidad";
+  if (recordType === "capacitacion") return "Capacitación";
   if (recordType === "historialMedico") return "Historial Médico";
 
   return "General";
@@ -102,6 +104,7 @@ const getIncapacidadTipoLabel = (value) => {
   );
 };
 
+
 const loadLogo = async () => {
   return new Promise((resolve) => {
     const img = new Image();
@@ -116,34 +119,41 @@ const buildPdfHeader = async (doc, title, subtitle, fechaActual = null) => {
   const logo = await loadLogo();
 
   doc.setFillColor(255, 255, 255);
-  doc.rect(0, 0, pageWidth, 297, "F");
+  doc.rect(0, 0, pageWidth, doc.internal.pageSize.getHeight(), "F");
+
+  // Barra de identidad para que el encabezado se distinga al abrir el PDF.
+  doc.setFillColor(18, 109, 182);
+  doc.rect(0, 0, pageWidth, 10, "F");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.setTextColor(17, 24, 39);
-  doc.text("AQUA Médica S.A. de C.V.", 14, 20);
+  doc.setFontSize(12);
+  doc.setTextColor(255, 255, 255);
+  doc.text("AQUA Médica S.A. de C.V.", 14, 6.5);
 
   if (logo) {
-    doc.addImage(logo, "JPEG", 160, 7, 36, 26);
+    doc.addImage(logo, "JPEG", 174, 13, 20, 15);
   }
 
-  doc.setFontSize(15);
-  doc.text(title, 105, 33, { align: "center" });
+  doc.setTextColor(17, 24, 39);
+  doc.setFontSize(16);
+  doc.text(title, 14, 21);
 
   if (subtitle) {
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text(subtitle, 105, 40, { align: "center" });
+    doc.setTextColor(75, 85, 99);
+    doc.text(subtitle, 14, 28);
   }
 
   if (fechaActual) {
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Fecha: ${fechaActual}`, 28, 50, { align: "center" });
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(75, 85, 99);
+    doc.text(`Generado: ${fechaActual}`, 196, 35, { align: "right" });
   }
 
-  doc.setDrawColor(40, 40, 40);
-  doc.line(14, 52, 196, 52);
+  doc.setDrawColor(203, 213, 225);
+  doc.line(14, 39, 196, 39);
 };
 
 const buildPdfFooter = (doc) => {
@@ -249,12 +259,24 @@ export default function PdfGeneralModal({
   }, [nomina, tipoReporte, usuarios, showSuggestions]);
 
   const parseRecordDate = (record) => {
-    const value = record?.fecha || record?.createdAt;
+    const value =
+      record?.fecha ||
+      record?.createdAt ||
+      record?.fechaInicio ||
+      record?.fechaCierre ||
+      record?.fechaApertura ||
+      record?.fechaCurso ||
+      record?.fechaRespuesta;
 
     if (!value) return null;
 
     if (typeof value?.toDate === "function") {
       const date = value.toDate();
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    if (typeof value?.seconds === "number") {
+      const date = new Date(value.seconds * 1000);
       return Number.isNaN(date.getTime()) ? null : date;
     }
 
@@ -270,6 +292,17 @@ export default function PdfGeneralModal({
 
     const startDate = fechaInicio ? new Date(`${fechaInicio}T00:00:00`) : null;
     const endDate = fechaFin ? new Date(`${fechaFin}T23:59:59.999`) : null;
+
+    // Las incapacidades son periodos: deben aparecer cuando se traslapan con
+    // el rango seleccionado, no únicamente cuando inicia el periodo.
+    if (resolveRecordType(record) === "incapacidad" && record?.fechaFin) {
+      const recordEnd = new Date(`${record.fechaFin}T23:59:59.999`);
+      if (!Number.isNaN(recordEnd.getTime())) {
+        if (startDate && recordEnd < startDate) return false;
+        if (endDate && recordDate > endDate) return false;
+        return true;
+      }
+    }
 
     if (startDate && recordDate < startDate) return false;
     if (endDate && recordDate > endDate) return false;
@@ -321,13 +354,22 @@ export default function PdfGeneralModal({
         return;
       }
 
-      const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap, ordenesSnap] =
+      const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap, ordenesSnap, capacitacionesSnap, capacitacionesInfoSnap] =
         await Promise.all([
           getDocs(collection(db, "reconocimientos")),
           getDocs(collection(db, "incidencias_personal")),
           getDocs(collection(db, "incapacidades")),
           getDocs(collection(db, "ordenes_medicas")),
+          getDocs(collection(db, "respuestasCapacitaciones")),
+          getDocs(collection(db, "capacitaciones")),
         ]);
+
+      const capacitacionesMap = new Map(
+        capacitacionesInfoSnap.docs.map((trainingDoc) => [
+          trainingDoc.id,
+          trainingDoc.data(),
+        ]),
+      );
 
       const matchesUser = (record, usuario) => {
         const empleadoId = String(usuario?.id || usuario?.uid || "").trim();
@@ -335,7 +377,7 @@ export default function PdfGeneralModal({
           record?.empleadoId || record?.empleadoUid || record?.userId || record?.idPaciente || "",
         ).trim();
         const recordNomina = String(
-          record?.empleadoNomina || record?.nomina || record?.nominaPaciente || "",
+          record?.empleadoNomina || record?.nomina || record?.nominaPaciente || record?.nominaUsuario || "",
         ).trim();
         const userNomina = String(usuario?.nomina || "").trim();
         const recordNombre = String(
@@ -347,15 +389,22 @@ export default function PdfGeneralModal({
           .trim()
           .toLowerCase();
 
-        return (
-          (empleadoId &&
-            recordEmpleadoId &&
-            recordEmpleadoId.toLowerCase() === empleadoId.toLowerCase()) ||
-          (userNomina &&
-            recordNomina &&
-            recordNomina.toLowerCase() === userNomina.toLowerCase()) ||
-          (userNombre && recordNombre && recordNombre === userNombre)
-        );
+        // Match by ID
+        if (empleadoId && recordEmpleadoId && recordEmpleadoId.toLowerCase() === empleadoId.toLowerCase()) {
+          return true;
+        }
+
+        // Match by nomina (works for all record types including capacitaciones)
+        if (userNomina && recordNomina && recordNomina.toLowerCase() === userNomina.toLowerCase()) {
+          return true;
+        }
+
+        // Match by nombre
+        if (userNombre && recordNombre && recordNombre === userNombre) {
+          return true;
+        }
+
+        return false;
       };
 
       const rawRecords = [
@@ -385,12 +434,33 @@ export default function PdfGeneralModal({
             ...doc.data(),
             fecha: doc.data().fechaCierre || doc.data().fechaApertura,
           })),
+        ...capacitacionesSnap.docs.map((trainingDoc) => {
+          const response = trainingDoc.data();
+          const training = capacitacionesMap.get(
+            response.capacitacionId || response.idCapacitacion,
+          ) || {};
+
+          return {
+            id: trainingDoc.id,
+            type: "capacitacion",
+            ...response,
+            titulo: response.titulo || training.titulo || training.nombre,
+            descripcion: training.descripcion || response.descripcion || "",
+            fecha:
+              response.fechaRespuesta ||
+              response.createdAt ||
+              training.fechaCurso ||
+              training.fechaInicio,
+          };
+        }),
       ];
 
       const records = rawRecords
-        .filter((record) =>
-          targetUsers.some((usuario) => matchesUser(record, usuario)),
-        )
+        .filter((record) => {
+          // El reporte por nómina debe respetar el empleado también en las
+          // capacitaciones; el reporte general ya contiene a todo el personal.
+          return targetUsers.some((usuario) => matchesUser(record, usuario));
+        })
         .filter((record) => matchesDateRange(record))
         .filter((record) => {
           const recordType = resolveRecordType(record);
@@ -398,6 +468,7 @@ export default function PdfGeneralModal({
           if (categoria === "incidencias") return recordType === "incidencia";
           if (categoria === "reconocimientos") return recordType === "reconocimiento";
           if (categoria === "incapacidades") return recordType === "incapacidad";
+          if (categoria === "capacitacion") return recordType === "capacitacion";
           if (categoria === "historialMedico") return recordType === "historialMedico";
           return true;
         })
@@ -433,7 +504,9 @@ export default function PdfGeneralModal({
               ? "Reporte de reconocimientos"
               : categoria === "incapacidades"
                 ? "Reporte de incapacidades"
-                : "Reporte de historial médico";
+                : categoria === "capacitacion"
+                  ? "Reporte de capacitaciones"
+                  : "Reporte de historial médico";
 
       const subtitleBase =
         tipoReporte === "nomina"
@@ -453,8 +526,8 @@ export default function PdfGeneralModal({
         for (const record of records) {
           const usuario =
             targetUsers.find((item) => matchesUser(record, item)) || {};
-          const displayName = usuario?.nombre || record?.empleadoNombre || record?.nombre || record?.nombrePaciente;
-          const displayNomina = usuario?.nomina || record?.empleadoNomina || record?.nomina || record?.nominaPaciente;
+          const displayName = usuario?.nombre || record?.empleadoNombre || record?.nombre || record?.nombrePaciente || record?.nombre;
+          const displayNomina = usuario?.nomina || record?.empleadoNomina || record?.nomina || record?.nominaPaciente || record?.nominaUsuario;
 
           if (resolveRecordType(record) === "historialMedico" && record?.revisiones?.length > 0) {
             // Desglosa cada revisión médica en una fila separada
@@ -476,9 +549,11 @@ export default function PdfGeneralModal({
               ]);
             }
           } else if (resolveRecordType(record) !== "historialMedico") {
-            // Registros normales (no médicos)
+            // Registros normales (no médicos) e incluyendo capacitaciones
             const displayTitulo = record?.titulo || getIncapacidadTipoLabel(record?.tipo);
-            const displayDesc = record?.descripcion || record?.nota || "Sin descripción";
+            const displayDesc = resolveRecordType(record) === "capacitacion"
+              ? `Calificación: ${Math.round(record?.puntuacionObtenida || 0)}/100 | Certificado: ${record?.certificado ? "Sí" : "No"}`
+              : record?.descripcion || record?.nota || "Sin descripción";
 
             rows.push([
               safeValue(displayName, "Sin nombre"),
@@ -505,17 +580,33 @@ export default function PdfGeneralModal({
       }
 
       if (rows.length === 0) {
-        rows = [["Sin resultados", "—", "—", "—", "—", "—"]];
-      }
-
-      autoTable(doc, {
-        startY: 60,
-        margin: { left: 14, right: 14 },
-        pageBreak: "auto",
-        rowPageBreak: "avoid",
-        head: [["Nombre", "Nómina", "Tipo", "Título", "Descripción", "Fecha"]],
-        body: rows,
-        styles: {
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(14, 48, 182, 30, 3, 3, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(51, 65, 85);
+        doc.text("No hay registros para los filtros seleccionados", 105, 60, {
+          align: "center",
+        });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139);
+        doc.text(
+          "Prueba con otro rango de fechas o revisa que el empleado tenga registros.",
+          105,
+          68,
+          { align: "center" },
+        );
+      } else {
+        autoTable(doc, {
+          startY: 48,
+          margin: { left: 14, right: 14 },
+          pageBreak: "auto",
+          rowPageBreak: "avoid",
+          head: [["Nombre", "Nómina", "Tipo", "Título", "Descripción", "Fecha"]],
+          body: rows,
+          styles: {
           font: "helvetica",
           fontSize: 8,
           cellPadding: 3,
@@ -523,31 +614,32 @@ export default function PdfGeneralModal({
           valign: "middle",
           halign: "center",
           lineColor: [220, 220, 220],
-        },
-        bodyStyles: {
+          },
+          bodyStyles: {
           overflow: "linebreak",
           cellPadding: 3,
-        },
-        headStyles: {
+          },
+          headStyles: {
           fillColor: [18, 109, 182],
           textColor: [255, 255, 255],
           fontStyle: "bold",
           fontSize: 9,
           halign: "center",
           valign: "middle",
-        },
-        alternateRowStyles: {
+          },
+          alternateRowStyles: {
           fillColor: [245, 245, 245],
-        },
-        columnStyles: {
+          },
+          columnStyles: {
           0: { cellWidth: 29, overflow: "linebreak" },
           1: { cellWidth: 20, overflow: "linebreak" },
           2: { cellWidth: 27, overflow: "linebreak" },
           3: { cellWidth: 26, overflow: "linebreak" },
           4: { cellWidth: 58, overflow: "linebreak" },
           5: { cellWidth: 22, overflow: "linebreak" },
-        },
-      });
+          },
+        });
+      }
 
       buildPdfFooter(doc);
       openPdfPreview(doc, fileName);
@@ -669,6 +761,7 @@ export default function PdfGeneralModal({
               { key: "reconocimientos", label: "Reconocimientos" },
               { key: "incapacidades", label: "Incapacidades" },
               { key: "historialMedico", label: "Historial Médico" },
+              { key: "capacitacion", label: "Capacitación"},
             ].map((option) => (
               <button
                 key={option.key}
@@ -915,8 +1008,14 @@ export default function PdfGeneralModal({
 
         .personal-record-filter-btn.active.historialMedico {
           background: none;
-          border: 3px solid rgba(34, 159, 197, 0.31);
-          color: #24c2c2;
+          border: 3px solid #24c2c2;
+          color: rgba(20, 184, 166, 0.2);
+        }
+
+        .personal-record-filter-btn.active.capacitacion {
+          background: none;
+          border: 3px solid #rgba(20, 184, 166, 0.2);
+          color: #059669
         }
 
         .personal-record-filter-btn.active.general:hover {

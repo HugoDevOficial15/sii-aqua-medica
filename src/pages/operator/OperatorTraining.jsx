@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FiCheckCircle, FiClock, FiAlertCircle, FiClock as FiTimer } from "react-icons/fi";
 import { useAuth } from "../../hooks/useAuth";
-import { getOperatorTrainings } from "../../services/operatorTrainingService";
+import { useOperatorTrainings } from "../../hooks/hooksOperator/useOperatorTrainings";
 import { saveTrainingResponse } from "../../services/servicesOperator/operatorTrainingResponseService";
 import Loader from "../../components/Loader";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -10,8 +10,7 @@ import { createNotification } from "../../utils/createNotification";
 import { notifyInfo, notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
 import MobileBackButton from "./components/MobileBackButton";
 import { isSurveyTimeExpired, isSurveyInTimeWindow } from "../../utils/surveyTiming";
-
-const MIN_APROBATORIO = 80;
+import { MIN_APROBATORIO, MAX_SURVEY_ATTEMPTS } from "../../constants/surveyConstants";
 
 const ESTADO_LABEL = {
     pendiente: "Pendiente",
@@ -31,8 +30,7 @@ const ESTADO_BADGE_CLASS = {
 
 export default function OperatorTraining({ onTrainingComplete, onBack }) {
     const { user } = useAuth();
-    const [trainings, setTrainings] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { trainings: hookTrainings, loading, error } = useOperatorTrainings();
     const [activeTab, setActiveTab] = useState("Disponibles");
     const [ongoingTraining, setOngoingTraining] = useState(null);
     const [answers, setAnswers] = useState({});
@@ -44,13 +42,8 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
     const [userResponses, setUserResponses] = useState({});
 
     useEffect(() => {
-        const loadTrainings = async () => {
+        const loadUserResponses = async () => {
             try {
-                // Pasar el objeto usuario completo (con nomina, area, uid) para filtrado correcto
-                const data = await getOperatorTrainings(user?.area, user?.uid, user);
-                setTrainings(data.filter(t => t.activa !== false));
-
-                // Buscar respuestas del usuario en la colección correcta
                 if (user?.uid) {
                     const q = query(collection(db, "respuestasCapacitaciones"), where("userId", "==", user.uid));
                     const snap = await getDocs(q);
@@ -62,14 +55,12 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
                     setUserResponses(responsesMap);
                 }
             } catch (error) {
-                console.error("Error loading trainings:", error);
-            } finally {
-                setLoading(false);
+                console.error("Error loading user responses:", error);
             }
         };
 
-        if (user?.uid) loadTrainings();
-    }, [user?.uid, user?.area]);
+        if (user?.uid) loadUserResponses();
+    }, [user?.uid]);
 
     // 🔥 MEMORIA TEMPORAL PARA EL MODAL
     const timerKey = ongoingTraining ? `training_timer_${ongoingTraining.id}_${user?.uid}` : null;
@@ -157,7 +148,7 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    const capacitacionesCorregidas = trainings.map(training => {
+    const capacitacionesCorregidas = hookTrainings.map(training => {
         const userResp = userResponses[training.id];
         let estadoCorregido = training.estadoActual || "pendiente";
 
@@ -332,9 +323,8 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
             setOngoingTraining(null);
             setAnswers({});
 
-            // Recargar para que cambie de pestaña (con usuario completo para filtrado correcto)
-            const data = await getOperatorTrainings(user?.area, user?.uid, user);
-            setTrainings(data.filter(t => t.activa !== false));
+            // Actualizar hookTrainings localmente después de guardar respuesta
+            // (el hook useOperatorTrainings tiene la data más reciente)
 
             // Actualizar userResponses localmente
             setUserResponses(prev => ({

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { FaFilePdf } from "react-icons/fa";
+import { FaTimes, FaFilePdf } from "react-icons/fa";
+import { createPortal } from "react-dom";
 import { getUsers } from "../../../services/usersService";
 import { generatePersonalRecordPDF } from "./pdf-generator";
 
@@ -69,6 +70,7 @@ const getMedicalHistoryPrimaryComment = (record) => {
 const getRecordTypeLabel = (record, isMedicalHistory) => {
   if (record?.type === "reconocimiento") return "Reconocimiento";
   if (record?.type === "incapacidad") return "Incapacidad";
+  if (record?.type === "capacitacion") return "Capacitación";
   if (isMedicalHistory) return "Historial Médico";
   return "Incidencia";
 };
@@ -90,9 +92,10 @@ const getRecordDetails = (record, areaValue = "Sin área") => {
     record.fechaApertura;
   const isIncapacidad = record.type === "incapacidad";
   const isHistorialMedico = isMedicalHistoryRecord(record);
+  const isCapacitacion = record.type === "capacitacion";
   const medicalHistoryComment = getMedicalHistoryPrimaryComment(record);
 
-  return [
+  const baseDetails = [
     {
       label: "Tipo",
       value: isIncapacidad
@@ -121,18 +124,18 @@ const getRecordDetails = (record, areaValue = "Sin área") => {
           "Sin descripción",
     },
 
-    { label: "Estado", value: record.type === "incapacidad" || record.type === "reconocimiento" || record.type === "incidencia" ? null : record.estado || "Sin estado" },
+    { label: "Estado", value: record.type === "incapacidad" || record.type === "reconocimiento" || record.type === "incidencia" || record.type === "capacitacion" ? null : record.estado || "Sin estado" },
 
-    { label: "Prioridad", value: record.type === "historialMedico" || record.type === "incapacidad" || record.type === "reconocimiento" ? null : record.prioridad || "Sin prioridad" },
+    { label: "Prioridad", value: record.type === "historialMedico" || record.type === "incapacidad" || record.type === "reconocimiento" || record.type === "capacitacion" ? null : record.prioridad || "Sin prioridad" },
     {
       label: "Empleado",
-      value: record.empleadoNombre || record.nombrePaciente || record.nombre || "Sin empleado",
+      value: record.type === "capacitacion" ? null : record.empleadoNombre || record.nombrePaciente || record.nombre || "Sin empleado",
     },
     {
       label: "Nómina",
-      value: record.empleadoNomina || record.nominaPaciente || record.nomina || "Sin nómina",
+      value: record.type === "capacitacion" ? null : record.empleadoNomina || record.nominaPaciente || record.nomina || "Sin nómina",
     },
-    { label: "Área", value: areaValue || "Sin área" },
+    { label: "Área", value: record.type === "capacitacion" ? null : areaValue || "Sin área" },
     {
       label: isIncapacidad
         ? "Tipo de incapacidad"
@@ -140,12 +143,16 @@ const getRecordDetails = (record, areaValue = "Sin área") => {
           ? "Diagnóstico"
           : record.type === "reconocimiento"
             ? "Emitido por"
-            : "Reportado por",
+            : isCapacitacion
+              ? null
+              : "Reportado por",
       value: isIncapacidad
         ? record.tipo || "Incapacidad"
         : isHistorialMedico
           ? medicalHistoryComment
-          : record.emitidoPor || record.reportadoPor || "Sin información",
+          : isCapacitacion
+            ? null
+            : record.emitidoPor || record.reportadoPor || "Sin información",
     },
     {
       label: isIncapacidad
@@ -154,12 +161,16 @@ const getRecordDetails = (record, areaValue = "Sin área") => {
           ? "Fecha de inicio"
           : record.type === "reconocimiento"
             ? "Nómina del emisor"
-            : "Nómina del reportante",
+            : isCapacitacion
+              ? null
+              : "Nómina del reportante",
       value: isIncapacidad
         ? formatRecordDate(record.fechaInicio || rawDate)
         : isHistorialMedico
           ? formatRecordDate(record.fechaInicio || record.fecha || rawDate)
-          : record.emitidoPorNomina || record.reportadoPorNomina || "Sin información",
+          : isCapacitacion
+            ? null
+            : record.emitidoPorNomina || record.reportadoPorNomina || "Sin información",
     },
     {
       label: isIncapacidad ? "Fecha fin" : isHistorialMedico ? "Fecha de cierre" : "Fecha",
@@ -170,10 +181,30 @@ const getRecordDetails = (record, areaValue = "Sin área") => {
           : formatRecordDate(record.fecha || rawDate),
     },
     {
-      label: "Tipo específico", 
-      value: record.type === "historialMedico" || record.type === "incapacidad"  ? null : record.tipo || record.motivo || "Sin tipo",
+      label: "Tipo específico",
+      value: record.type === "historialMedico" || record.type === "incapacidad" || record.type === "capacitacion" ? null : record.tipo || record.motivo || "Sin tipo",
     },
-  ].filter((field) => field.value !== null && field.value !== undefined && field.value !== "");
+  ];
+
+  if (isCapacitacion) {
+    return [
+      ...baseDetails.filter((field) => field.value !== null && field.value !== undefined && field.value !== ""),
+      {
+        label: "Calificación",
+        value: `${Math.round(record.puntuacionObtenida || 0)}/100`,
+      },
+      {
+        label: "Intentos",
+        value: record.intentos || 1,
+      },
+      {
+        label: "Certificado",
+        value: record.certificado ? "✓ Certificado emitido" : "No certificado",
+      },
+    ];
+  }
+
+  return baseDetails.filter((field) => field.value !== null && field.value !== undefined && field.value !== "");
 };
 
 export default function RecordDetailModal({ record, onClose }) {
@@ -220,7 +251,7 @@ export default function RecordDetailModal({ record, onClose }) {
 
   if (!record) return null;
 
-  return (
+  const modal = (
     <div className="personal-modal-backdrop">
       <div className="personal-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
@@ -229,7 +260,7 @@ export default function RecordDetailModal({ record, onClose }) {
             <h3>{getRecordTitle(record, isMedicalHistory)}</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
-            ×
+            <FaTimes />
           </button>
         </div>
 
@@ -251,11 +282,9 @@ export default function RecordDetailModal({ record, onClose }) {
         </div>
 
         <div className="personal-modal-actions">
-
           <button type="button" className="personal-modal-primary" onClick={onClose}>
             Cerrar
           </button>
-                    
           <button
             type="button"
             className="personal-modal-pdf"
@@ -269,12 +298,15 @@ export default function RecordDetailModal({ record, onClose }) {
       <style>{`
         .personal-modal-backdrop {
           position: fixed;
-          inset: 0;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
           background: rgba(15, 23, 42, 0.55);
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 1200;
+          z-index: 9999;
           padding: 20px;
         }
 
@@ -315,14 +347,15 @@ export default function RecordDetailModal({ record, onClose }) {
           width: 36px;
           height: 36px;
           border: none;
-          border-radius: 10px;
-          background: var(--operator-card);
+          border-radius: 8px;
+          background: none;
           color: var(--operator-text);
-          font-size: 30px;
+          font-size: 24px;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: all 0.2s ease;
         }
 
         .personal-modal-close:hover {
@@ -340,8 +373,8 @@ export default function RecordDetailModal({ record, onClose }) {
 
         .personal-record-detail-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 14px;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
         }
 
         .personal-record-detail-item {
@@ -422,4 +455,6 @@ export default function RecordDetailModal({ record, onClose }) {
       `}</style>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

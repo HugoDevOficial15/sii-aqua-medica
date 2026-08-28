@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../../../config/firebase";
 import { createIncapacidad, getIncapacidadesByUser, getUsers, updateUser } from "../../../services/usersService";
 import { notifyError } from "../../../utils/notify";
 

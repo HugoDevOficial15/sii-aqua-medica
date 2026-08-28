@@ -242,6 +242,7 @@ export default function EncuestaResultados({ survey, onBack }) {
 
         return {
           id: uid || nomina || user.nombre || "usuario",
+          uid: uid || null,
           nombre: user.nombre || "Sin nombre",
           area: user.area || "—",
           nomina: nomina || "—",
@@ -510,11 +511,29 @@ export default function EncuestaResultados({ survey, onBack }) {
       if (survey.tipo === "capacitacion") {
         const batch = writeBatch(db);
         const responseCollection = collection(db, "respuestasCapacitaciones");
+        const notificationsCollection = collection(db, "notificaciones");
 
         usuariosRespondidos.forEach((user) => {
           if (!user.respuesta?.id) return;
           const docRef = doc(responseCollection, user.respuesta.id);
           batch.update(docRef, { certificado: true });
+
+          // Crear notificación para cada usuario certificado
+          if (user.uid) {
+            const notificationRef = doc(notificationsCollection);
+            batch.set(notificationRef, {
+              IdUsuario: user.uid,
+              Titulo: "📜 Certificado obtenido",
+              Mensaje: `¡Felicidades! Has sido certificado en "${survey.titulo}".`,
+              Destino: "certificates",
+              Accion: "certificado",
+              extra: {
+                capacitacionId: survey.id,
+                titulo: survey.titulo,
+              },
+              fechaCreacion: new Date(),
+            });
+          }
         });
 
         await batch.commit();

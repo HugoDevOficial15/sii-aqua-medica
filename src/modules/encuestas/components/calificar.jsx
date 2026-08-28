@@ -8,6 +8,9 @@ const getPreguntasAbiertas = (survey) =>
   (survey?.preguntas || []).filter((pregunta) => pregunta?.tipo === "abierta");
 
 export default function CalificarEncuesta({ survey, responses = [], onSaved }) {
+  const esCapacitacion = survey?.tipo === "capacitacion";
+  const collectionName = esCapacitacion ? "respuestasCapacitaciones" : "respuestasEncuestas";
+
   const preguntasAbiertas = useMemo(
     () => getPreguntasAbiertas(survey),
     [survey],
@@ -96,7 +99,7 @@ export default function CalificarEncuesta({ survey, responses = [], onSaved }) {
       const finalState =
         finalScore >= MIN_APROBATORIO ? "completada" : "reprobada";
 
-      await updateDoc(doc(db, "respuestasEncuestas", response.id), {
+      await updateDoc(doc(db, collectionName, response.id), {
         calificacion: finalScore,
         puntuacionObtenida: finalScore,
         calificacionAbiertas,
