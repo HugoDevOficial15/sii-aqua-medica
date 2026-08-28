@@ -28,56 +28,65 @@ export const getTrainings = async () => {
 export const createTraining = async (trainingData) => {
     const trainingRef = await addDoc(trainingCollection, trainingData);
 
-    // Crear notificaciones para usuarios asignados usando batch
+    // Crear notificaciones para usuarios asignados usando consultas filtradas y no la colección entera.
     try {
-        const usersSnapshot = await getDocs(collection(db, "users"));
-        const allUsers = usersSnapshot.docs.map(doc => ({
-            id: doc.id,
-            uid: doc.data().uid,
-            nomina: doc.data().nomina,
-            area: doc.data().area,
-            ...doc.data()
-        }));
+        const asignacion = trainingData?.asignacion || { tipo: "global", valores: [] };
+        let usersQuery = query(collection(db, "users"), where("rol", "==", "operador"));
 
-        const usersToNotify = [];
-
-        if (trainingData.asignacion?.tipo === "global") {
-            usersToNotify.push(...allUsers);
-        } else if (trainingData.asignacion?.tipo === "area") {
-            const areas = trainingData.asignacion.valores || [];
-            usersToNotify.push(
-                ...allUsers.filter(user => areas.includes(user.area))
-            );
-        } else if (trainingData.asignacion?.tipo === "usuarios") {
-            const nominas = trainingData.asignacion.valores || [];
-            usersToNotify.push(
-                ...allUsers.filter(user =>
-                    nominas.includes(String(user.nomina))
-                )
-            );
+        if (asignacion.tipo === "area") {
+            const areas = Array.isArray(asignacion.valores) ? asignacion.valores : [];
+            if (areas.length > 0) {
+                usersQuery = query(
+                    collection(db, "users"),
+                    where("rol", "==", "operador"),
+                    where("area", "in", areas)
+                );
+            }
         }
 
-        // Usar batch para crear todas las notificaciones de una vez
+        if (asignacion.tipo === "usuarios") {
+            const nominas = Array.isArray(asignacion.valores)
+                ? asignacion.valores.map((value) => Number(value)).filter((value) => !Number.isNaN(value))
+                : [];
+
+            if (nominas.length > 0) {
+                usersQuery = query(
+                    collection(db, "users"),
+                    where("rol", "==", "operador"),
+                    where("nomina", "in", nominas)
+                );
+            }
+        }
+
+        const usersSnapshot = await getDocs(usersQuery);
+        const usersToNotify = usersSnapshot.docs
+            .map(doc => ({
+                id: doc.id,
+                uid: doc.data().uid,
+                nomina: doc.data().nomina,
+                area: doc.data().area,
+                ...doc.data()
+            }))
+            .filter(user => user.uid);
+
         if (usersToNotify.length > 0) {
             const batch = writeBatch(db);
             const notifCollection = collection(db, "notificaciones");
 
             for (const user of usersToNotify) {
-                if (user.uid) {
-                    const notifRef = doc(notifCollection);
-                    batch.set(notifRef, {
-                        IdUsuario: user.uid,
-                        Titulo: "📚 Nueva Capacitación",
-                        Mensaje: `Se ha asignado una nueva capacitación: ${trainingData.titulo}`,
-                        Destino: "training",
-                        Accion: "nueva_capacitacion",
-                        capacitacionId: trainingRef.id,
-                        capacitacionTitulo: trainingData.titulo,
-                        enviado: false,
-                        fechaCreacion: serverTimestamp(),
-                        fechaEnviado: null
-                    });
-                }
+                const notifRef = doc(notifCollection);
+                batch.set(notifRef, {
+                    IdUsuario: user.uid,
+                    Titulo: "📚 Nueva Capacitación",
+                    Mensaje: `Se ha asignado una nueva capacitación: ${trainingData.titulo}`,
+                    Destino: "training",
+                    Accion: "nueva_capacitacion",
+                    capacitacionId: trainingRef.id,
+                    capacitacionTitulo: trainingData.titulo,
+                    enviado: false,
+                    fechaCreacion: serverTimestamp(),
+                    fechaEnviado: null
+                });
             }
 
             await batch.commit();

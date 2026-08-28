@@ -38,32 +38,47 @@ const getAssignmentSignature = (assignment = {}) => {
 };
 
 const getUsersToNotifyForSurvey = async (surveyData) => {
-    const usersSnapshot = await getDocs(collection(db, "users"));
+    const asignacion = surveyData?.asignacion || { tipo: "global", valores: [] };
+
+    let usersQuery = query(collection(db, "users"), where("rol", "==", "operador"));
+
+    if (asignacion.tipo === "area") {
+        const areas = Array.isArray(asignacion.valores) ? asignacion.valores : [];
+        if (areas.length > 0) {
+            usersQuery = query(
+                collection(db, "users"),
+                where("rol", "==", "operador"),
+                where("area", "in", areas)
+            );
+        }
+    }
+
+    if (asignacion.tipo === "usuarios") {
+        const nominas = Array.isArray(asignacion.valores)
+            ? asignacion.valores.map((value) => Number(value)).filter((value) => !Number.isNaN(value))
+            : [];
+
+        if (nominas.length > 0) {
+            usersQuery = query(
+                collection(db, "users"),
+                where("rol", "==", "operador"),
+                where("nomina", "in", nominas)
+            );
+        }
+    }
+
+    const usersSnapshot = await getDocs(usersQuery);
     const allUsers = usersSnapshot.docs.map(doc => ({
         id: doc.id,
         uid: doc.data().uid,
         ...doc.data()
     }));
 
-    const usersToNotify = [];
-
-    if (surveyData.asignacion?.tipo === "global") {
-        usersToNotify.push(...allUsers);
-    } else if (surveyData.asignacion?.tipo === "area") {
-        const areas = surveyData.asignacion.valores || [];
-        usersToNotify.push(
-            ...allUsers.filter(user => areas.includes(user.area))
-        );
-    } else if (surveyData.asignacion?.tipo === "usuarios") {
-        const nominas = surveyData.asignacion.valores || [];
-        usersToNotify.push(
-            ...allUsers.filter(user =>
-                nominas.includes(String(user.nomina))
-            )
-        );
+    if (asignacion.tipo === "global") {
+        return allUsers.filter(user => user.uid);
     }
 
-    return usersToNotify.filter(user => user.uid);
+    return allUsers.filter(user => user.uid);
 };
 
 const createSurveyNotificationsBatch = async (surveyData, surveyId, usersToNotifyOverride) => {

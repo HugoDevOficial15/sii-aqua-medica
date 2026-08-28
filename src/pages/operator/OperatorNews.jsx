@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import NewsCard from "./news/NewsCard";
 import { getCurrentUser } from "../../utils/session";
@@ -10,21 +10,26 @@ export default function OperatorNews({ onNavigate, onBack }) {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
 
-    useEffect(() => {
-        const q = query(collection(db, "noticias"), orderBy("fechaCreacion", "desc"));
+    const loadNews = async () => {
+        try {
+            const q = query(
+                collection(db, "noticias"),
+                orderBy("fechaCreacion", "desc"),
+                limit(30)
+            );
+            const snapshot = await getDocs(q);
 
-        const getHoy = () => {
-            const d = new Date();
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
-        const fechaHoy = getHoy();
+            const getHoy = () => {
+                const d = new Date();
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
 
-        const usuarioActual = getCurrentUser();
+            const fechaHoy = getHoy();
+            const usuarioActual = getCurrentUser();
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedNews = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
@@ -42,7 +47,6 @@ export default function OperatorNews({ onNavigate, onBack }) {
                 return noticia.fechaLimite >= fechaHoy;
             });
 
-            // Filtrar noticias por área del usuario
             if (usuarioActual?.area) {
                 noticiasVigentes = noticiasVigentes.filter((noticia) => {
                     return noticia.areaDestino === "Todas" || noticia.areaDestino === usuarioActual.area;
@@ -50,14 +54,16 @@ export default function OperatorNews({ onNavigate, onBack }) {
             }
 
             setNews(noticiasVigentes);
+        } catch (error) {
+            console.error("Error al cargar noticias:", error);
+            setNews([]);
+        } finally {
             setLoading(false);
+        }
+    };
 
-        }, (error) => {
-            console.error("Error al escuchar las noticias en tiempo real:", error);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
+    useEffect(() => {
+        loadNews();
     }, []);
 
     // Filtrar por buscador

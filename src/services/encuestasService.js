@@ -15,50 +15,57 @@ export const getEncuestasDisponibles = async (usuario) => {
     if (!usuario) return [];
 
     try {
-        // Traer todas las encuestas (sin filtro de activa para mejor compatibilidad)
-        const q = query(
-            collection(db, "encuestas"),
-            orderBy("fechaInicio", "desc")
+        const nominaStr = String(usuario.nomina || usuario.username || "").trim();
+        const queries = [];
+
+        queries.push(
+            query(
+                collection(db, "encuestas"),
+                where("asignacion.tipo", "==", "global"),
+                orderBy("fechaInicio", "desc")
+            )
         );
 
-        const snapshot = await getDocs(q);
-        const encuestas = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        if (usuario.area) {
+            queries.push(
+                query(
+                    collection(db, "encuestas"),
+                    where("asignacion.tipo", "==", "area"),
+                    where("asignacion.valores", "array-contains", usuario.area),
+                    orderBy("fechaInicio", "desc")
+                )
+            );
+        }
 
-        // Filtrar: solo activas (o que no tengan el campo activa definido)
-        const encuestasActivas = encuestas.filter(e => e.activa !== false);
+        if (nominaStr) {
+            queries.push(
+                query(
+                    collection(db, "encuestas"),
+                    where("asignacion.tipo", "==", "usuarios"),
+                    where("asignacion.valores", "array-contains", nominaStr),
+                    orderBy("fechaInicio", "desc")
+                )
+            );
+        }
 
-        // Filtrar por acceso (según asignacion)
-        const encuestasAccesibles = encuestasActivas.filter(encuesta => {
-            const asignacion = encuesta.asignacion || { tipo: "global", valores: [] };
+        const snapshots = await Promise.all(queries.map(q => getDocs(q)));
+        const encuestasMap = new Map();
 
-            switch (asignacion.tipo) {
-                case "global":
-                    return true;
-
-                case "area":
-                    // Comparar area del usuario con los valores de asignación
-                    return usuario.area && asignacion.valores.includes(usuario.area);
-
-                case "usuarios":
-                    // Comparar nómina (o username) con los valores de asignación
-                    const nominaStr = String(usuario.nomina || usuario.username || "").trim();
-                    return nominaStr && asignacion.valores.some(v => String(v).trim() === nominaStr);
-
-                default:
-                    return false;
-            }
+        snapshots.forEach(snapshot => {
+            snapshot.docs.forEach(docSnap => {
+                const data = { id: docSnap.id, ...docSnap.data() };
+                if (data.activa !== false && !encuestasMap.has(data.id)) {
+                    encuestasMap.set(data.id, data);
+                }
+            });
         });
 
-        // Traer respuestas del usuario para este conjunto de encuestas
-        // NOTA: Usar la colección centralizada "respuestasEncuestas"
+        const encuestasAccesibles = Array.from(encuestasMap.values());
+
         const idsEncuestas = encuestasAccesibles.map(e => e.id);
         let respuestasUsuario = [];
 
-        if (idsEncuestas.length > 0) {
-            // IMPORTANTE: Usar usuario.uid (UID de Firebase), NO usuario.id (ID del documento)
+        if (idsEncuestas.length > 0 && usuario.uid) {
             const qRespuestas = query(
                 collection(db, "respuestasEncuestas"),
                 where("userId", "==", usuario.uid),
@@ -68,7 +75,6 @@ export const getEncuestasDisponibles = async (usuario) => {
             respuestasUsuario = snapshotRespuestas.docs.map(doc => doc.data());
         }
 
-        // Enriquecer encuestas con información calculada
         const hoy = new Date();
         const encuestasEnriquecidas = encuestasAccesibles.map(encuesta => {
             const respondida = respuestasUsuario.some(r => r.encuestaId === encuesta.id);

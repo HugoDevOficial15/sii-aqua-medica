@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import Loader from "../../components/Loader";
-import { getUsers } from "../../services/usersService";
-import { AREAS } from "../../catalogs/areas";
+import { getDashboardStats, refreshDashboardStats, testDashboardSource } from "../../services/usersService";
 import {
     FaUsers,
     FaUserCheck,
@@ -25,6 +24,8 @@ import {
 import { motion } from "framer-motion";
 import CountUp from "react-countup";
 import { usePreferences } from "../../hooks/usePreferences";
+
+
 export default function Dashboard() {
 
     const { resolvedTheme } = usePreferences();
@@ -50,64 +51,107 @@ export default function Dashboard() {
     }, []);
 
     const [loading, setLoading] = useState(true);
-    const [users, setUsers] = useState([]);
+    const [stats, setStats] = useState({
+        totalOperadores: 0,
+        operadoresActivos: 0,
+        operadoresBaja: 0,
+        operadoresHombres: 0,
+        operadoresMujeres: 0,
+        administradores: 0,
+        usuariosPorArea: [],
+        porcentajeActivos: 0,
+        porcentajeBajas: 0,
+    });
     const [selectedArea, setSelectedArea] = useState(null);
     const [activeAreaIndex, setActiveAreaIndex] = useState(null);
 
     useEffect(() => {
+        let isMounted = true;
 
         const loadData = async () => {
+            try {
+                const sourceTest = await testDashboardSource();
+                console.log("[dashboard UI] source test result:", sourceTest);
 
-            const data = await getUsers();
-
-            setUsers(data);
-
-            setLoading(false);
+                const data = await getDashboardStats({ source: "cache" });
+                if (isMounted) {
+                    setStats(data || {
+                        totalOperadores: 0,
+                        operadoresActivos: 0,
+                        operadoresBaja: 0,
+                        operadoresHombres: 0,
+                        operadoresMujeres: 0,
+                        administradores: 0,
+                        usuariosPorArea: [],
+                        porcentajeActivos: 0,
+                        porcentajeBajas: 0,
+                    });
+                }
+            } catch (error) {
+                console.warn("No hay caché disponible para el dashboard:", error);
+                if (isMounted) {
+                    setStats({
+                        totalOperadores: 0,
+                        operadoresActivos: 0,
+                        operadoresBaja: 0,
+                        operadoresHombres: 0,
+                        operadoresMujeres: 0,
+                        administradores: 0,
+                        usuariosPorArea: [],
+                        porcentajeActivos: 0,
+                        porcentajeBajas: 0,
+                    });
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
         };
 
         loadData();
 
+        return () => {
+            isMounted = false;
+        };
     }, []);
+
+    const handleRefresh = async () => {
+        setLoading(true);
+
+        try {
+            const data = await refreshDashboardStats();
+            setStats(data || {
+                totalOperadores: 0,
+                operadoresActivos: 0,
+                operadoresBaja: 0,
+                operadoresHombres: 0,
+                operadoresMujeres: 0,
+                administradores: 0,
+                usuariosPorArea: [],
+                porcentajeActivos: 0,
+                porcentajeBajas: 0,
+            });
+        } catch (error) {
+            console.error("Error al actualizar el dashboard desde Firestore:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (loading) {
         return <Loader text="Cargando Dashboard..." />
     }
 
-    const operadores =
-        users.filter(u => u.rol === "operador");
-
-    const operadoresActivos =
-        operadores.filter(u => u.activo === true).length;
-
-    const operadoresBaja =
-        operadores.filter(
-            u => u.activo === false || u.activo === "false"
-        ).length;
-
-    const totalOperadores =
-        operadores.length;
-
-    const activos =
-        operadores.filter(u => u.activo === true);
-
-    const operadoresHombres =
-        activos.filter(u => u.Genero === "H").length;
-
-    const operadoresMujeres =
-        activos.filter(u => u.Genero === "M").length;
-
-    const administradores =
-        users.filter(u => u.rol !== "operador").length;
-
-    const porcentajeBajas =
-        totalOperadores > 0
-            ? ((operadoresBaja / totalOperadores) * 100).toFixed(0)
-            : 0;
-
-    const porcentajeActivos =
-        totalOperadores > 0
-            ? ((operadoresActivos / totalOperadores) * 100).toFixed(0)
-            : 0;
+    const totalOperadores = stats.totalOperadores ?? 0;
+    const operadoresActivos = stats.operadoresActivos ?? 0;
+    const operadoresBaja = stats.operadoresBaja ?? 0;
+    const operadoresHombres = stats.operadoresHombres ?? 0;
+    const operadoresMujeres = stats.operadoresMujeres ?? 0;
+    const administradores = stats.administradores ?? 0;
+    const porcentajeBajas = stats.porcentajeBajas ?? 0;
+    const porcentajeActivos = stats.porcentajeActivos ?? 0;
+    const usuariosPorArea = stats.usuariosPorArea ?? [];
 
     const operadoresChart = [
         {
@@ -119,20 +163,6 @@ export default function Dashboard() {
             value: operadoresBaja
         }
     ];
-
-    const usuariosPorArea = AREAS.map(area => {
-
-        const total =
-            operadores.filter(
-                u => u.area === area.nombre
-            ).length;
-
-        return {
-            area: area.nombre,
-            total
-        };
-
-    }).filter(a => a.total > 0);
 
     const pieChartColors = [
         "#ebe72b",
@@ -243,6 +273,22 @@ export default function Dashboard() {
 
         <div className="dashboard-container">
 
+            <div className="dashboard-toolbar">
+                <div className="dashboard-toolbar__title">
+                    <FaChartBar />
+                    <span>Dashboard</span>
+                </div>
+
+                <button
+                    type="button"
+                    className="dashboard-refresh-button"
+                    onClick={handleRefresh}
+                    disabled={loading}
+                >
+                    {loading ? "Actualizando..." : "Actualizar"}
+                </button>
+            </div>
+
             <div className="dashboard-layout">
 
                 <div className="left-column">
@@ -299,8 +345,9 @@ export default function Dashboard() {
 
                 <motion.div
                     className="chart-main-card"
-                    initial={{ opacity: 0 }}
+                    initial={false}
                     animate={{ opacity: 1 }}
+                    transition={{ duration: 0.15 }}
                 >
 
                     <div className="chart-title">
@@ -345,7 +392,7 @@ export default function Dashboard() {
                                     outerRadius={isMobile ? 90 : 185}
                                     paddingAngle={5}
                                     dataKey="value"
-                                    animationDuration={1400}
+                                    animationDuration={300}
                                     stroke="none"
                                     filter="url(#shadow)"
                                 >
@@ -597,6 +644,45 @@ export default function Dashboard() {
                         #f8fafc 0%,
                         #eef4ff 100%
                     );
+                }
+
+                .dashboard-toolbar{
+                    display:flex;
+                    align-items:center;
+                    justify-content:space-between;
+                    gap:16px;
+                    margin-bottom:22px;
+                }
+
+                .dashboard-toolbar__title{
+                    display:flex;
+                    align-items:center;
+                    gap:10px;
+                    color:#0f172a;
+                    font-size:22px;
+                    font-weight:700;
+                }
+
+                .dashboard-refresh-button{
+                    border:none;
+                    border-radius:12px;
+                    padding:12px 18px;
+                    background:linear-gradient(135deg, #2563eb, #1d4ed8);
+                    color:#fff;
+                    font-weight:700;
+                    cursor:pointer;
+                    box-shadow:0 10px 20px rgba(37, 99, 235, 0.2);
+                    transition:transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+                }
+
+                .dashboard-refresh-button:hover:not(:disabled){
+                    transform:translateY(-1px);
+                    box-shadow:0 14px 24px rgba(37, 99, 235, 0.26);
+                }
+
+                .dashboard-refresh-button:disabled{
+                    opacity:0.7;
+                    cursor:wait;
                 }
 
                 .dashboard-layout{

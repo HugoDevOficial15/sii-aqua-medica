@@ -744,6 +744,7 @@ export default function Solicitudes() {
 }
 
 .form-control {
+    height: 50px;
     background: var(--operator-form) !important;
     color: var(--operator-text) !important;
     border: 1px solid var(--operator-border);

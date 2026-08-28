@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi";
 import AppLoader from "../operator/components/AppLoader";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import MobileBackButton from "./components/MobileBackButton";
 import { isSurveyTimeExpired } from "../../utils/surveyTiming";
@@ -59,31 +57,22 @@ export default function OperatorSurveys({
     }, []);
 
     useEffect(() => {
-        if (!user?.uid) return;
+        if (!user?.uid || !Array.isArray(surveys)) return;
 
-        // Escuchamos la colección en tiempo real
-        // NOTA: Usar "respuestasEncuestas" como fuente centralizada
-        const q = query(collection(db, "respuestasEncuestas"), where("userId", "==", user.uid));
-        const unsubscribe = onSnapshot(q, (snap) => {
-            const map = {};
-            snap.forEach(doc => {
-                const d = doc.data();
-                const key = d.encuestaId || d.idEncuesta;
-                if (!key) return;
+        const map = {};
 
-                const current = map[key];
-                const currentTime = current?.fechaRespuesta ? Date.parse(current.fechaRespuesta) : 0;
-                const newTime = d.fechaRespuesta ? Date.parse(d.fechaRespuesta) : 0;
+        surveys.forEach((survey) => {
+            const response = survey?.miRespuesta || survey?.respuesta || null;
+            if (!response) return;
 
-                if (!current || newTime > currentTime) {
-                    map[key] = { id: doc.id, ...d };
-                }
-            });
-            setUserResponses(map);
+            const key = response.encuestaId || response.idEncuesta || survey.id;
+            if (!key) return;
+
+            map[key] = response;
         });
 
-        return () => unsubscribe();
-    }, [user?.uid]);
+        setUserResponses(map);
+    }, [user?.uid, surveys]);
 
     const handleStartSurvey = (survey) => {
         setTransitioning(true);

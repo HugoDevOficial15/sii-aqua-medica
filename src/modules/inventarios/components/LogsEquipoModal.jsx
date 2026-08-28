@@ -312,7 +312,7 @@ export default function LogsEquipoModal({
 
                 </div>
 
-                <style jsx>{`
+                <style>{`
                     
                     .btn-primary {
                         height: 50px;
@@ -332,6 +332,18 @@ export default function LogsEquipoModal({
                     .btn-primary:hover {
                         background: var(--operator-primary);
                         box-shadow: 0 0px 10px var(--operator-primary-light);
+                    }
+
+                    .input {
+                        height: 50px;
+                        border-radius: 12px;
+                        border: 1px solid var(--operator-border);
+                        padding: 0 14px;
+                        background: var(--operator-card);
+
+                        color: var(--operator-text);
+                        font-size: 14px;
+                        outline: none;
                     }
                 `}</style>
 

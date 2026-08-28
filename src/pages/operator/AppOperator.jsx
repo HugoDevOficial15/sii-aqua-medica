@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
+import { collection, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import { initPushNotifications, stopPushNotifications } from "../../services/pushNotificationService";
@@ -65,45 +65,55 @@ export default function AppOperator() {
         refetch: refetchTrainings
     } = useOperatorTrainings();
 
-    // Listener en tiempo real para contar notificaciones del operador
+    // Contamos solo la cola de notificaciones del usuario actual.
     useEffect(() => {
-        if (!user?.uid && !user?.id) return;
+        const currentUserId = user?.uid || user?.id;
 
-        // Contar TODAS las notificaciones (broadcast + personalizadas)
-        const q = query(collection(db, "notificaciones"));
+        if (!currentUserId) {
+            setNotificacionesCount(0);
+            return;
+        }
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const userIds = [user?.uid, user?.id].filter(Boolean);
-            const count = snapshot.docs.filter(doc => {
-                const data = doc.data();
-                // Mostrar si no tiene IdUsuario (broadcast) O si el IdUsuario coincide
-                return !data.IdUsuario || userIds.includes(data.IdUsuario);
-            }).length;
-            setNotificacionesCount(count);
-        }, (error) => {
-            console.error("Error escuchando notificaciones del usuario:", error);
-        });
+        const loadNotificationCount = async () => {
+            try {
+                const q = query(
+                    collection(db, "notificaciones"),
+                    where("IdUsuario", "==", currentUserId),
+                    orderBy("fechaCreacion", "desc"),
+                    limit(50)
+                );
 
-        return () => unsubscribe();
+                const snapshot = await getDocs(q);
+                setNotificacionesCount(snapshot.size);
+            } catch (error) {
+                console.error("Error contando notificaciones del usuario:", error);
+                setNotificacionesCount(0);
+            }
+        };
+
+        loadNotificationCount();
     }, [user?.uid, user?.id]);
 
-    // Sincronización en tiempo real del perfil propio
+    // Carga puntual del perfil propio para evitar un listener en vivo continuo a Firestore.
     useEffect(() => {
         const uid = user?.uid;
         if (!uid) return;
 
-        const q = query(collection(db, "users"), where("uid", "==", uid));
+        const syncUserProfile = async () => {
+            try {
+                const q = query(collection(db, "users"), where("uid", "==", uid));
+                const snapshot = await getDocs(q);
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-                updateUserProfile(snapshot.docs[0].data());
+                if (!snapshot.empty) {
+                    updateUserProfile(snapshot.docs[0].data());
+                }
+            } catch (error) {
+                console.error("Error cargando el perfil del usuario:", error);
             }
-        }, (error) => {
-            console.error("Error escuchando el perfil del usuario:", error);
-        });
+        };
 
-        return () => unsubscribe();
-    }, [user?.uid]);
+        syncUserProfile();
+    }, [user?.uid, updateUserProfile]);
 
     const handleNavigate = (view, data = null) => {
         setScreen(view);
@@ -182,12 +192,11 @@ export default function AppOperator() {
         }
     };
 
-    //  5. Sumamos las notificaciones de Firebase + Encuestas + Capacitaciones pendientes
-    const totalNotificaciones = notificacionesCount;
+    // Sumamos las notificaciones del usuario + encuestas + capacitaciones pendientes.
+    const totalNotificaciones =
         notificacionesCount +
         (metrics?.pendientesCount || 0) +
-        (trainingMetrics?.pendientesCount || 0) +
-        notificacionesCount;
+        (trainingMetrics?.pendientesCount || 0);
 
     return (
         <OperatorShell

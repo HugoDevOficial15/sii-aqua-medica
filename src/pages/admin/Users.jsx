@@ -12,10 +12,13 @@ import Loader from "../../components/Loader";
 // Servicio Users
 import {
   getUsers,
+  getUsersPageData,
   createUser,
   updateUser,
   createIncapacidad,
   getIncapacidadesByUser,
+  getIncapacidadesByUsers,
+  syncUsersWithIncapacidades,
   migrateNomina,
   nominaExists,
   findDuplicateNominas,
@@ -62,9 +65,6 @@ import {
 
 // Areas
 import { AREAS } from "../../catalogs/areas";
-
-// getPuestos
-import { getPuestos } from "../../services/puestos-service";
 
 export default function Users({ onClose }) {
   const location = useLocation();
@@ -259,137 +259,6 @@ export default function Users({ onClose }) {
     };
   };
 
-  const syncUsersWithIncapacidades = async (usersData = users) => {
-    if (!Array.isArray(usersData) || usersData.length === 0) {
-      setUsers([]);
-      return [];
-    }
-
-    const syncedUsers = await Promise.all(
-      usersData.map(async (user) => {
-        try {
-          const incapacidades = await getIncapacidadesByUser(
-            user.id,
-            user.nomina,
-          );
-          const activeIncapacidad = incapacidades.some((incapacidad) => {
-            const fechaInicio = incapacidad?.fechaInicio
-              ? new Date(`${incapacidad.fechaInicio}T00:00:00`)
-              : null;
-            const fechaFin = incapacidad?.fechaFin
-              ? new Date(`${incapacidad.fechaFin}T23:59:59`)
-              : null;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const startOk = !fechaInicio || fechaInicio <= today;
-            const endOk = !fechaFin || fechaFin >= today;
-            return startOk && endOk;
-          });
-
-          const currentState = String(user?.estado || "")
-            .trim()
-            .toLowerCase();
-          const isExpiredIncapacidad =
-            currentState === "incapacidad" && !activeIncapacidad;
-
-          if (activeIncapacidad && currentState !== "incapacidad") {
-            await updateUser(user.id, {
-              estado: "incapacidad",
-              activo: true,
-              tipoIncapacidad:
-                incapacidades.find((incapacidad) => {
-                  const fechaInicio = incapacidad?.fechaInicio
-                    ? new Date(`${incapacidad.fechaInicio}T00:00:00`)
-                    : null;
-                  const fechaFin = incapacidad?.fechaFin
-                    ? new Date(`${incapacidad.fechaFin}T23:59:59`)
-                    : null;
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  return (
-                    (!fechaInicio || fechaInicio <= today) &&
-                    (!fechaFin || fechaFin >= today)
-                  );
-                })?.tipo || "incapacidad",
-              fechaInicioIncapacidad:
-                incapacidades.find((incapacidad) => {
-                  const fechaInicio = incapacidad?.fechaInicio
-                    ? new Date(`${incapacidad.fechaInicio}T00:00:00`)
-                    : null;
-                  const fechaFin = incapacidad?.fechaFin
-                    ? new Date(`${incapacidad.fechaFin}T23:59:59`)
-                    : null;
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  return (
-                    (!fechaInicio || fechaInicio <= today) &&
-                    (!fechaFin || fechaFin >= today)
-                  );
-                })?.fechaInicio || null,
-              fechaFinIncapacidad:
-                incapacidades.find((incapacidad) => {
-                  const fechaInicio = incapacidad?.fechaInicio
-                    ? new Date(`${incapacidad.fechaInicio}T00:00:00`)
-                    : null;
-                  const fechaFin = incapacidad?.fechaFin
-                    ? new Date(`${incapacidad.fechaFin}T23:59:59`)
-                    : null;
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  return (
-                    (!fechaInicio || fechaInicio <= today) &&
-                    (!fechaFin || fechaFin >= today)
-                  );
-                })?.fechaFin || null,
-              notaIncapacidad:
-                incapacidades.find((incapacidad) => {
-                  const fechaInicio = incapacidad?.fechaInicio
-                    ? new Date(`${incapacidad.fechaInicio}T00:00:00`)
-                    : null;
-                  const fechaFin = incapacidad?.fechaFin
-                    ? new Date(`${incapacidad.fechaFin}T23:59:59`)
-                    : null;
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  return (
-                    (!fechaInicio || fechaInicio <= today) &&
-                    (!fechaFin || fechaFin >= today)
-                  );
-                })?.nota || "",
-            });
-          }
-
-          if (isExpiredIncapacidad) {
-            await updateUser(user.id, {
-              estado: "activo",
-              activo: true,
-              tipoIncapacidad: "",
-              fechaInicioIncapacidad: null,
-              fechaFinIncapacidad: null,
-              notaIncapacidad: "",
-            });
-          }
-
-          return {
-            ...user,
-            estado: activeIncapacidad
-              ? "incapacidad"
-              : isExpiredIncapacidad
-                ? "activo"
-                : user.estado,
-            activo: user.activo === false ? false : true,
-          };
-        } catch (error) {
-          console.error("Error sincronizando incapacidad del usuario:", error);
-          return user;
-        }
-      }),
-    );
-
-    setUsers(syncedUsers);
-    return syncedUsers;
-  };
-
   // Form React Hook Form
   const {
     register,
@@ -508,6 +377,14 @@ export default function Users({ onClose }) {
       if (editing) {
         await updateUser(currentId, userData);
 
+        setUsers((prev) =>
+          prev.map((item) =>
+            item.id === currentId
+              ? { ...item, ...userData }
+              : item,
+          ),
+        );
+
         Swal.close();
 
         notifySuccess(
@@ -515,7 +392,14 @@ export default function Users({ onClose }) {
           "El usuario ha sido actualizado correctamente.",
         );
       } else {
+        const createdUser = {
+          id: currentId || `tmp-${Date.now()}`,
+          ...userData,
+        };
+
         await createUser(userData);
+
+        setUsers((prev) => [createdUser, ...prev]);
 
         Swal.close();
 
@@ -524,9 +408,6 @@ export default function Users({ onClose }) {
           "El usuario fue registrado correctamente.",
         );
       }
-
-      const usersData = await getUsers();
-      setUsers(usersData);
 
       reset();
 
@@ -591,8 +472,18 @@ export default function Users({ onClose }) {
         newStatus ? "Usuario activado" : "Usuario dado de baja",
       );
 
-      const data = await getUsers();
-      setUsers(data);
+      setUsers((prev) =>
+        prev.map((item) =>
+          item.id === user.id
+            ? {
+                ...item,
+                activo: newStatus,
+                bloqueado: !newStatus,
+                intentosFallidos: newStatus ? 0 : item.intentosFallidos || 0,
+              }
+            : item,
+        ),
+      );
     } catch (error) {
       console.log("Error:", error);
 
@@ -797,10 +688,8 @@ export default function Users({ onClose }) {
     }));
 
     try {
-      const incapacidades = await getIncapacidadesByUser(user.id, user.nomina);
-      const validIncapacidades = Array.isArray(incapacidades)
-        ? incapacidades.filter(Boolean)
-        : [];
+      const incapacidadesMap = await getIncapacidadesByUsers([user.id]);
+      const validIncapacidades = incapacidadesMap[user.id] || [];
 
       setUserIncapacidades((prev) => ({
         ...prev,
@@ -885,8 +774,21 @@ export default function Users({ onClose }) {
         nota: incapacidadForm.nota,
       });
 
-      const refreshedUsers = await getUsers();
-      setUsers(refreshedUsers);
+      setUsers((prev) =>
+        prev.map((item) =>
+          item.id === selectedIncapacidadUser.id
+            ? {
+                ...item,
+                estado: "incapacidad",
+                activo: true,
+                tipoIncapacidad: tipo,
+                fechaInicioIncapacidad: incapacidadForm.fechaInicio,
+                fechaFinIncapacidad: incapacidadForm.fechaFin,
+                notaIncapacidad: incapacidadForm.nota,
+              }
+            : item,
+        ),
+      );
 
       notifySuccess(
         "Incapacidad registrada",
@@ -948,8 +850,19 @@ export default function Users({ onClose }) {
                 `,
       });
 
-      const usersData = await getUsers();
-      setUsers(usersData);
+      const now = Date.now();
+      const importedUsers = summary.updated.map((item) => ({
+        id: item.id || `import-${now}-${Math.random()}`,
+        ...item,
+      }));
+
+      if (importedUsers.length > 0) {
+        setUsers((prev) => {
+          const map = new Map(prev.map((item) => [item.id, item]));
+          importedUsers.forEach((item) => map.set(item.id, { ...map.get(item.id), ...item }));
+          return Array.from(map.values());
+        });
+      }
     } catch (error) {
       console.log("Error importando CSV:", error);
       Swal.close();
@@ -964,20 +877,14 @@ export default function Users({ onClose }) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const usersData = await getUsers();
-        const syncedUsers = await syncUsersWithIncapacidades(usersData);
-
-        const puestosData = await getPuestos();
+        const { users: syncedUsers, puestos: puestosData } = await getUsersPageData();
 
         const ordenados = [...puestosData].sort((a, b) =>
           a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
         );
 
         setUsers(syncedUsers);
-
         setPuestos(ordenados);
-
-        setLoading(false);
       } catch (error) {
         console.log("Error al acargar data:", error);
       } finally {
@@ -2434,11 +2341,20 @@ export default function Users({ onClose }) {
           background: var(--operator-card);
         }
 
+/*  BOTONES HEADER  */
+
         .btn-success {
           height: 50px;
           padding: 0 20px;
           break-word: break-word;
           min-width: 125px;
+        }
+
+        .btn-success:hover {
+          scale: 1.01;
+          transition: all 0.3s ease-in-out;
+          color: #fff;
+          box-shadow: 0 0px 6px 2px rgba(59, 88, 56, 0.87);
         }
 
         .btn-outline-secondary {
@@ -2447,11 +2363,39 @@ export default function Users({ onClose }) {
           min-width: 180px;
         }
 
+        .btn-outline-secondary:hover {
+          scale: 1.01;
+          transition: all 0.3s ease-in-out;
+          color: #fff;
+          box-shadow: 0 0px 6px 2px rgba(117, 121, 117, 0.87);
+        }
+
+        .btn-outline-warning {
+          height: 50px;
+          padding: 0 20px;
+          break-word: break-word;
+          min-width: 125px;
+        }
+
+        .btn-outline-warning:hover {
+          scale: 1.01;
+          transition: all 0.3s ease-in-out;
+          color: #fff;
+          box-shadow: 0 0px 6px 2px rgba(255, 193, 7, 0.87);
+        }
+
         .btn-outline-primary {
           height: 50px;
           padding: 0 20px;
           break-word: break-word;
           min-width: 125px;
+        }
+
+        .btn-outline-primary:hover {
+          scale: 1.01;
+          transition: all 0.3s ease-in-out;
+          color: #fff;
+          box-shadow: 0 0px 6px 2px rgba(75, 132, 207, 0.87);
         }
 
         .badge-title {

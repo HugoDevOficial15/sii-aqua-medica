@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
 
-import { db } from "../../config/firebase";
 import { useAuth } from "../useAuth";
 
 import { getEncuestasDisponibles } from "../../services/encuestasService";
@@ -55,34 +53,7 @@ export function useOperatorSurveys() {
             return;
         }
 
-        const unsubscribeSurveys = onSnapshot(
-            query(collection(db, "encuestas"), orderBy("fechaInicio", "desc")),
-            () => {
-                fetchData();
-            },
-            (err) => {
-                console.error("Error escuchando encuestas:", err);
-                setError("No se pudieron actualizar las encuestas en tiempo real.");
-            }
-        );
-
-        const unsubscribeResponses = onSnapshot(
-            query(collection(db, "respuestasEncuestas"), where("userId", "==", user.uid)),
-            () => {
-                fetchData();
-            },
-            (err) => {
-                console.error("Error escuchando respuestas de encuestas:", err);
-                setError("No se pudieron actualizar las respuestas en tiempo real.");
-            }
-        );
-
         fetchData();
-
-        return () => {
-            unsubscribeSurveys();
-            unsubscribeResponses();
-        };
     }, [fetchData, user?.uid, user?.nomina]);
 
     // Adapta la salida del servicio (estado/miPuntaje) al contrato que ya

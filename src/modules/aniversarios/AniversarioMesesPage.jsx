@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaGift } from "react-icons/fa";
 
-import { getCumpleaniosPorMes } from "../../services/aniversariosService";
+import { getCumpleaniosPorMes, refreshCumpleaniosPorMes } from "../../services/aniversariosService";
 
 export default function AniversarioMesesPage() {
     const navigate = useNavigate();
@@ -14,15 +14,35 @@ export default function AniversarioMesesPage() {
     ];
 
     const [conteoPorMes, setConteoPorMes] = useState(Array(12).fill(0));
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const cargarConteos = async () => {
-            const conteos = await getCumpleaniosPorMes();
-            setConteoPorMes(conteos);
+            try {
+                const conteos = await getCumpleaniosPorMes({ source: "cache" });
+                setConteoPorMes(conteos || Array(12).fill(0));
+            } catch (error) {
+                console.error("Error cargando aniversarios desde caché:", error);
+                setConteoPorMes(Array(12).fill(0));
+            } finally {
+                setLoading(false);
+            }
         };
 
         cargarConteos();
     }, []);
+
+    const handleRefresh = async () => {
+        setLoading(true);
+        try {
+            const conteos = await refreshCumpleaniosPorMes();
+            setConteoPorMes(conteos || Array(12).fill(0));
+        } catch (error) {
+            console.error("Error actualizando aniversarios:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <>
@@ -30,8 +50,22 @@ export default function AniversarioMesesPage() {
             <div className="container-fluid p-4">
                 
                 <div className="page mb-3">
-                    <h6><strong>Celebraciones</strong></h6>
-                    <span className="badge-title">AQUA Médica</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                        <div>
+                            <h6><strong>Celebraciones</strong></h6>
+                            <span className="badge-title">AQUA Médica</span>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="dashboard-refresh-button"
+                            onClick={handleRefresh}
+                            disabled={loading}
+                            style={{ marginTop: 0 }}
+                        >
+                            {loading ? "Actualizando..." : "Actualizar"}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="agenda-grid">
@@ -88,7 +122,7 @@ export default function AniversarioMesesPage() {
 
                 .agenda-card:hover {
                     transform: translateY(-8px) scale(1.02);
-                    box-shadow: 0 20px 40px rgba(99,102,241,.25);
+                    box-shadow: 0 0px 20px 15px rgba(110, 112, 231, 0.37);
                 }
 
                 .glow {

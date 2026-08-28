@@ -447,6 +447,11 @@ export default function InventarioPage() {
                     color: var(--operator-text);
                 }
 
+                .form-select:focus {
+                    background: var(--operator-card);
+                    border: 1px solid var(--operator-primary);
+                }
+
                 .custom-table tbody tr:hover {
                     transform: scale(1.02);
                     transition: transform 0.2s;

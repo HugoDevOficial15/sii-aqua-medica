@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, query, orderBy, doc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, doc, deleteDoc, writeBatch, limit } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { FaTrash } from "react-icons/fa";
 
@@ -55,39 +55,53 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!user?.uid && !user?.id) {
+        const currentUserId = user?.uid || user?.id;
+
+        if (!currentUserId) {
             setLoading(false);
+            setNotificaciones([]);
             return;
         }
 
-        const q = query(collection(db, "notificaciones"), orderBy("fechaCreacion", "desc"));
+        let cancelled = false;
 
-        // 🔥 LISTENER EN TIEMPO REAL: Se dispara cuando cambian los datos en Firebase
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const loadNotifications = async () => {
             try {
-                const currentUserIds = [user?.uid, user?.id].filter(Boolean);
+                const q = query(
+                    collection(db, "notificaciones"),
+                    where("IdUsuario", "==", currentUserId),
+                    orderBy("fechaCreacion", "desc"),
+                    limit(50)
+                );
 
-                let notifs = querySnapshot.docs
-                    .map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
+                const snapshot = await getDocs(q);
+                const notifs = filterDismissedNotifications(
+                    snapshot.docs.map(docItem => ({
+                        id: docItem.id,
+                        ...docItem.data()
                     }))
-                    .filter(n => !n.IdUsuario || currentUserIds.includes(n.IdUsuario));
+                );
 
-                notifs = filterDismissedNotifications(notifs);
-                setNotificaciones(notifs);
+                if (!cancelled) {
+                    setNotificaciones(notifs);
+                }
             } catch (error) {
-                console.error("Error procesando notificaciones:", error);
+                console.error("Error cargando notificaciones:", error);
+                if (!cancelled) {
+                    setNotificaciones([]);
+                }
             } finally {
-                setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
-        }, (error) => {
-            console.error("Error al escuchar notificaciones:", error);
-            setLoading(false);
-        });
+        };
 
-        // Limpiar listener cuando el componente se desmonta
-        return () => unsubscribe();
+        loadNotifications();
+
+        return () => {
+            cancelled = true;
+        };
     }, [user?.uid, user?.id]);
 
     //  FUNCIÓN PARA BORRAR Y NAVEGAR

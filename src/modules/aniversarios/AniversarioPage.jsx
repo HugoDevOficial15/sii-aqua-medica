@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { getAniversariosByMes } from "../../services/aniversariosService";
+import { getAniversariosByMes, refreshAniversariosByMes } from "../../services/aniversariosService";
 
 import BirthdayList from "./components/BirthdayList";
 import AnniversaryList from "./components/AnniversaryList";
@@ -13,16 +13,30 @@ export default function AniversarioPage() {
         cumpleanios: [],
         aniversarios: []
     });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         loadData();
     }, [mes]);
     
     const loadData = async () => {
+        try {
+            setLoading(true);
 
-        const res = await getAniversariosByMes(Number(mes));
+            const cached = await getAniversariosByMes(Number(mes), { source: "cache" });
+            if (cached) {
+                setData(cached);
+                return;
+            }
 
-        setData(res);
+            const res = await refreshAniversariosByMes(Number(mes));
+            setData(res || { cumpleanios: [], aniversarios: [] });
+        } catch (error) {
+            console.error("Error cargando celebraciones:", error);
+            setData({ cumpleanios: [], aniversarios: [] });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -30,9 +44,17 @@ export default function AniversarioPage() {
             <div className="page mb-3">
                 {/*  header*/}
 
-                <h6>
-                    <strong>Celebraciones del Mes</strong>
-                </h6>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                    <div>
+                        <h6>
+                            <strong>Celebraciones del Mes</strong>
+                        </h6>
+
+                        <span className="badge-title">
+                            AQUA Médica
+                        </span>
+                    </div>
+                </div>
 
                 <span className="badge-title">
                     AQUA Médica

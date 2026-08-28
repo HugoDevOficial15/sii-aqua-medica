@@ -552,7 +552,7 @@ export default function RacksPages() {
         .rack-action-menu {
           position: absolute;
           min-width: 200px;
-          background: var(--operator-card);
+          background: var(--operator-background);
           border: 1px solid var(--operator-border);
           border-radius: 10px;
           box-shadow: 0 10px 24px var(--operator-shadow);
@@ -566,7 +566,7 @@ export default function RacksPages() {
 
         .rack-action-menu-mantenimiento {
           border: none;
-          background: var(--operator-border);
+          background: var(--operator-card);
           padding: 8px 10px;
           text-align: left;
           border-radius: 8px;
@@ -582,7 +582,7 @@ export default function RacksPages() {
 
         .rack-action-menu-editar {
           border: none;
-          background: var(--operator-border);
+          background: var(--operator-card);
           padding: 8px 10px;
           text-align: left;
           border-radius: 8px;
@@ -592,13 +592,13 @@ export default function RacksPages() {
         }
 
         .rack-action-menu-editar:hover {
-          background: var(--operator-border);
+          background: var(--operator-card);
           color: var(--operator-primary);
         }
 
         .rack-action-menu-estatus {
           border: none;
-          background: var(--operator-border);
+          background: var(--operator-card);
           padding: 8px 10px;
           text-align: left;
           border-radius: 8px;

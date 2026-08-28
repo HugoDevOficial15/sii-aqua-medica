@@ -99,7 +99,7 @@ export default function PuestosPage() {
             )}
 
 
-            <style jsx>{`
+            <style>{`
 
             /* PAGINA */
 
@@ -166,7 +166,6 @@ export default function PuestosPage() {
                 background: var(--operator-card);
                 color: var(--operator-text);
                 border-color: var(--operator-primary);
-                box-shadow: 0 0 0 0.2rem var(--operator-primary-light);
             }
 
             .form-control::placeholder {

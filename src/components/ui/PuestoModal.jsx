@@ -66,10 +66,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                             <label style={styles.label}>Nombre</label>
 
                             <input
-                                style={{
-                                    ...styles.input,
-                                    ...(errors.nombre ? styles.inputError : {})
-                                }}
+                                className="form-nombre"
                                 {...register("nombre")}
                             />
 
@@ -106,7 +103,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                 </form>
 
             </div>
-            <style jsx>{`
+            <style>{`
 
             .close-button {
                 width: 36px;
@@ -125,6 +122,20 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
             .close-button:hover {
                 background: var(--operator-border);
                 color: var(--operator-primary);
+            }
+
+            .form-nombre {
+                background: var(--operator-form);
+                color: var(--operator-text);
+                border: 1px solid var(--operator-border);
+                border-radius: 10px;
+                padding: 12px 16px;
+                font-size: 0.95rem;
+                width: 100%;
+            }
+
+            .form-nombre:hover-visible {
+                border: none !important;
             }
 
             .btn-secondary {

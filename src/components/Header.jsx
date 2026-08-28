@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, deleteDoc, doc, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 
 import {
     FaBell,
@@ -16,10 +16,7 @@ import { db } from "../config/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { useLogout } from "../hooks/useLogout";
 
-import { getPendingRequests } from "../services/solicitudesCambiosService";
-import { getMedicamentos } from "../services/medicamentosService";
-import { getSemaforo } from "../utils/getSemaforo";
-import { getDismissedNotifications, dismissNotification, filterDismissedNotifications } from "../utils/notificationPersistence";
+import { getDismissedNotifications, dismissNotification } from "../utils/notificationPersistence";
 
 export default function Header({ toggleSidebar }) {
 
@@ -36,101 +33,31 @@ export default function Header({ toggleSidebar }) {
         `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.nombre || "Usuario")}&background=${fallbackBg}&color=${fallbackColor}&bold=true&size=256`;
 
     const [notifications, setNotifications] = useState([]);
-    const [staticNotifications, setStaticNotifications] = useState([]);
-    const [dynamicNotifications, setDynamicNotifications] = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef(null);
+    const notificationLoadRef = useRef(false);
 
-    const normalizeText = (value) =>
-        (value ?? "")
-            .toString()
-            .trim()
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "");
+    const loadNotifications = async () => {
+        const currentUserId = user?.uid || user?.id;
 
-    const isSaludOcupacionalCoordinator = (usuario) => {
-        if (!usuario) return false;
-
-        const area = normalizeText(usuario.area);
-        const rol = normalizeText(usuario.rol);
-        const puesto = normalizeText(usuario.puesto);
-
-        return area === "salud ocupacional" && (
-            rol.includes("coordinador") ||
-            rol.includes("jefe") ||
-            puesto.includes("coordinador") ||
-            puesto.includes("jefe")
-        );
-    };
-
-
-    useEffect(() => {
-        const loadStaticNotifications = async () => {
-            try {
-                const rolesPermitidos = ["admin_sistemas", "admin_super"];
-                const solicitudesPermitidas = rolesPermitidos.includes(user?.rol)
-                    ? await getPendingRequests()
-                    : [];
-
-                const [medicamentos] = await Promise.all([
-                    getMedicamentos()
-                ]);
-
-                const notifsSolicitudes = solicitudesPermitidas.map(s => ({
-                    id: `solicitud-${s.id}`,
-                    icon: <FaClipboardCheck />,
-                    title: "Nueva solicitud pendiente",
-                    subtitle: `${s.nombreActual || "Operador"} — Nómina ${s.nominaActual}`,
-                    ruta: "/solicitudes",
-                    source: "solicitud",
-                    persistedInDb: false
-                }));
-
-                const shouldShowMedicamentoNotifications = isSaludOcupacionalCoordinator(user);
-                const notifsMedicamentos = shouldShowMedicamentoNotifications
-                    ? medicamentos
-                        .filter(m => m.estado !== "inactivo")
-                        .map(m => {
-                            const fecha = m.fechaCaducidad?.toDate?.() || m.fechaCaducidad;
-                            return { ...m, semaforo: getSemaforo(fecha) };
-                        })
-                        .filter(m => m.semaforo.color !== "verde")
-                        .map(m => ({
-                            id: `medicamento-${m.id}-${m.semaforo.color}`,
-                            icon: <FaSyringe />,
-                            title: m.semaforo.color === "rojo"
-                                ? "Medicamento por vencer / vencido"
-                                : "Medicamento próximo a vencer",
-                            subtitle: `${m.nombreMedicamento} — ${m.semaforo.label}`,
-                            ruta: "/medicamento",
-                            source: "medicamento",
-                            persistedInDb: false
-                        }))
-                    : [];
-
-                setStaticNotifications([...notifsSolicitudes, ...notifsMedicamentos]);
-            } catch (error) {
-                console.error("Error al cargar notificaciones del administrador:", error);
-            }
-        };
-
-        loadStaticNotifications();
-    }, [user]);
-
-    useEffect(() => {
-        if (!user?.uid && !user?.id) {
-            setDynamicNotifications([]);
+        if (!currentUserId) {
+            setNotifications([]);
             return;
         }
 
-        const currentUserIds = [user?.uid, user?.id].filter(Boolean);
-        const q = query(collection(db, "notificaciones"), orderBy("fechaCreacion", "desc"));
+        notificationLoadRef.current = true;
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        try {
+            const q = query(
+                collection(db, "notificaciones"),
+                where("IdUsuario", "==", currentUserId),
+                orderBy("fechaCreacion", "desc"),
+                limit(50)
+            );
+
+            const snapshot = await getDocs(q);
             const notifs = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(n => !n.IdUsuario || currentUserIds.includes(n.IdUsuario))
                 .map(n => {
                     let icon = <FaUserCircle />;
                     if (n.Titulo?.includes("📅")) icon = <FaUserCircle />;
@@ -143,7 +70,7 @@ export default function Header({ toggleSidebar }) {
 
                     return {
                         id: n.id,
-                        icon: icon,
+                        icon,
                         title: n.Titulo || "Nueva notificación",
                         subtitle: n.Mensaje || n.extra?.motivo || "Sin detalles",
                         ruta: n.Destino || "/",
@@ -154,24 +81,41 @@ export default function Header({ toggleSidebar }) {
                     };
                 });
 
-            setDynamicNotifications(notifs);
-        });
+            const filtered = notifs.filter(n => !getDismissedNotifications().includes(n.id));
+            setNotifications(filtered);
+        } catch (error) {
+            console.error("Error cargando notificaciones:", error);
+            setNotifications([]);
+        } finally {
+            notificationLoadRef.current = false;
+        }
+    };
 
-        return () => unsubscribe();
-    }, [user?.uid, user?.id]);
+    useEffect(() => {
+        if (!showDropdown || !user?.uid && !user?.id) return;
+        if (notificationLoadRef.current) return;
+        loadNotifications();
+    }, [showDropdown, user?.uid, user?.id]);
 
     const isPersistentNotification = (notif) => {
         return notif?.persistedInDb !== false && notif?.source !== "medicamento" && notif?.source !== "solicitud";
     };
 
     useEffect(() => {
-        const allNotifications = [...staticNotifications, ...dynamicNotifications];
-        const filtered = allNotifications.filter(n => {
-            const isDismissed = getDismissedNotifications().includes(n.id);
-            return !isDismissed || !isPersistentNotification(n);
-        });
-        setNotifications(filtered);
-    }, [staticNotifications, dynamicNotifications]);
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowDropdown(false);
+            }
+        };
+
+        if (showDropdown) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showDropdown]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -280,7 +224,15 @@ export default function Header({ toggleSidebar }) {
 
                             <button
                                 className="notification-btn"
-                                onClick={() => setShowDropdown(prev => !prev)}
+                                onClick={() => {
+                                    setShowDropdown(prev => {
+                                        const next = !prev;
+                                        if (next) {
+                                            loadNotifications();
+                                        }
+                                        return next;
+                                    });
+                                }}
                             >
 
                                 <FaBell />

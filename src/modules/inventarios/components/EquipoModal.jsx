@@ -1,422 +1,342 @@
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { FaPlus } from "react-icons/fa";
+
 import { equipoSchema } from "../../../schemas/equipoSchema";
 import { notifySuccess, notifyError } from "../../../utils/notify";
 import Loader from "../../../components/Loader";
 import { getUsers } from "../../../services/usersService";
 import { AREAS } from "../../../catalogs/areas";
-import { FaPlus } from "react-icons/fa";
-import { useEffect, useState } from "react";
 import { createEquipo, updateEquipo } from "../../../services/equiposServices";
 import { createLogEquipo } from "../../../services/logsServices";
 import { useAuth } from "../../../hooks/useAuth";
 
 export default function EquipoModal({ onClose, onSuccess, data }) {
-    const { user } = useAuth();
-    const [loading, setLoading] = useState(false);
-    const [users, setUsers] = useState([]);
-    const [isCloseHovered, setIsCloseHovered] = useState(false);
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState([]);
 
-    const {
-        register,
-        handleSubmit,
-        setValue,
-        reset,
-        formState: { errors }
-    } = useForm({
-        resolver: zodResolver(equipoSchema),
-        defaultValues: {
-            codigo: "",
-            tipo: "",
-            usuarioId: "",
-            areaId: "",
-            observaciones: "",
-            servicioExterno: false,
-            garantia: false
-        }
-    });
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(equipoSchema),
+    defaultValues: {
+      codigo: "",
+      tipo: "",
+      usuarioId: "",
+      areaId: "",
+      observaciones: "",
+      servicioExterno: false,
+      garantia: false,
+    },
+  });
 
-    useEffect(() => {
-        getUsers().then(setUsers);
-    }, []);
-
-    useEffect(() => {
-        if (data) {
-            reset({
-                codigo: data.codigo || "",
-                tipo: data.tipo || "",
-                usuarioId: data.usuarioId || "",
-                areaId: data.areaId || "",
-                observaciones: data.observaciones || "",
-                servicioExterno: Boolean(data.servicioExterno),
-                garantia: Boolean(data.garantia)
-            });
-        } else {
-            reset({
-                codigo: "",
-                tipo: "",
-                usuarioId: "",
-                areaId: "",
-                observaciones: "",
-                servicioExterno: false,
-                garantia: false
-            });
-        }
-    }, [data, reset]);
-
-    const onSubmit = async (form) => {
-        try {
-            setLoading(true);
-            const userMatch = users.find(u => u.id === form.usuarioId);
-
-            const payload = {
-                ...form,
-                usuarioNombre: userMatch?.nombre
-            };
-
-            if (data) {
-                await updateEquipo(data.id, payload);
-
-                if (form.servicioExterno) {
-                    await createLogEquipo(
-                        data.id,
-                        {
-                            tipo: "servicio_externo",
-                            observacion: "Equipo enviado a servicio externo",
-                            realizadoPor: user?.nombre || "Sistema",
-                            equipoCodigo: form.codigo
-                        }
-                    );
-                }
-                notifySuccess("Equipo actualizado", "Actualizado correctamente");
-            } else {
-                const nuevoEquipo = await createEquipo(payload);
-
-                if (form.servicioExterno) {
-                    await createLogEquipo(
-                        nuevoEquipo.id,
-                        {
-                            tipo: "servicio_externo",
-                            observacion: "Equipo enviado a servicio externo",
-                            realizadoPor: user?.nombre || "Sistema",
-                            equipoCodigo: form.codigo
-                        }
-                    );
-                }
-                notifySuccess("Equipo creado", "Creado correctamente");
-            }
-
-            onSuccess();
-            onClose();
-        } catch {
-            notifyError("Error", "Error al guardar");
-        } finally {
-            setLoading(false);
-        }
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const list = await getUsers();
+        setUsers(list || []);
+      } catch {
+        setUsers([]);
+      }
     };
 
-    // INYECCIÓN DE ESTILOS DINÁMICOS (Soporta Claro y Oscuro)
-    useEffect(() => {
-        const style = document.createElement("style");
-        style.innerHTML = `
-        @keyframes modalFade {
-            from { opacity: 0; transform: translateY(10px) scale(.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
+    loadUsers();
+  }, []);
 
-        /* 1. VARIABLES MODO CLARO (Por defecto) */
-        :root {
-            --eq-overlay: rgba(15,23,42,0.4);
-            --eq-modal-bg: rgba(255,255,255,0.94);
-            --eq-modal-border: rgba(255,255,255,0.4);
-            --eq-text-main: #111827;
-            --eq-input-bg: #ffffff;
-            --eq-input-border: #d1d5db;
-            --eq-input-text: #111827;
-            --eq-btn-close-bg: #f3f4f6;
-            --eq-btn-close-text: #111827;
-        }
-
-        /* 2. VARIABLES MODO OSCURO (Se activan automáticamente si tu app cambia de tema) */
-        body.dark, body.dark-mode, [data-theme='dark'], [data-bs-theme='dark'] {
-            --eq-overlay: rgba(15,23,42,0.75);
-            --eq-modal-bg: #1e293b;
-            --eq-modal-border: #334155;
-            --eq-text-main: #f8fafc;
-            --eq-input-bg: #0f172a;
-            --eq-input-border: #475569;
-            --eq-input-text: #f8fafc;
-            --eq-btn-close-bg: #334155;
-            --eq-btn-close-text: #f8fafc;
-        }
-
-        /* 3. Respaldo por si usan la preferencia del sistema operativo */
-        @media (prefers-color-scheme: dark) {
-            body:not([data-theme='light']):not([data-bs-theme='light']):not(.light) {
-                --eq-overlay: rgba(15,23,42,0.75);
-                --eq-modal-bg: #1e293b;
-                --eq-modal-border: #334155;
-                --eq-text-main: #f8fafc;
-                --eq-input-bg: #0f172a;
-                --eq-input-border: #475569;
-                --eq-input-text: #f8fafc;
-                --eq-btn-close-bg: #334155;
-                --eq-btn-close-text: #f8fafc;
-            }
-        }
-    `;
-        document.head.appendChild(style);
-        return () => {
-            document.head.removeChild(style);
-        };
-    }, []);
-
-    const checkboxStyle = {
-        width: "18px",
-        height: "18px",
-        accentColor: "#2563eb"
+  useEffect(() => {
+    const defaultValues = {
+      codigo: "",
+      tipo: "",
+      usuarioId: "",
+      areaId: "",
+      observaciones: "",
+      servicioExterno: false,
+      garantia: false,
     };
 
-    return (
-        <div style={styles.backdrop}>
-            <div style={{ ...styles.modalCard, ...modalAnimation }}>
-                {/* HEADER */}
-                <div style={styles.header}>
-                    <h5 style={styles.title}>
-                        {data ? "Editar Equipo" : "Nuevo Equipo"}
-                    </h5>
-                    <button
-                        style={{ ...styles.closeButton, ...(isCloseHovered ? styles.closeButtonHover : {}) }}
-                        onClick={onClose}
-                        onMouseEnter={() => setIsCloseHovered(true)}
-                        onMouseLeave={() => setIsCloseHovered(false)}
-                    >
-                        ×
-                    </button>
-                </div>
+    if (data) {
+      reset({
+        ...defaultValues,
+        codigo: data.codigo || "",
+        tipo: data.tipo || "",
+        usuarioId: data.usuarioId || "",
+        areaId: data.areaId || "",
+        observaciones: data.observaciones || "",
+        servicioExterno: Boolean(data.servicioExterno),
+        garantia: Boolean(data.garantia),
+      });
+      return;
+    }
 
-                {/* BODY */}
-                <div style={styles.body}>
-                    {loading && <Loader />}
+    reset(defaultValues);
+  }, [data, reset]);
 
-                    <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
-                        <input
-                            style={{ ...styles.input, ...(errors.codigo ? styles.inputError : {}) }}
-                            placeholder="Código"
-                            {...register("codigo")}
-                        />
+  const onSubmit = async (form) => {
+    try {
+      setLoading(true);
 
-                        <select {...register("tipo")} style={styles.input}>
-                            <option value="">Tipo</option>
-                            <option value="radio">Radio</option>
-                            <option value="pc">PC</option>
-                            <option value="impresora">Impresora</option>
-                            <option value="pantalla">Pantalla</option>
-                        </select>
+      const payload = {
+        ...form,
+        usuarioNombre: users.find((u) => u.id === form.usuarioId)?.nombre,
+      };
 
-                        <select {...register("usuarioId")} style={styles.input}>
-                            <option value="">Usuario</option>
-                            {users.map(u => (
-                                <option key={u.id} value={u.id}>{u.nombre}</option>
-                            ))}
-                        </select>
+      if (data) {
+        await updateEquipo(data.id, payload);
 
-                        <select {...register("areaId")} style={styles.input}>
-                            <option value="">Área</option>
-                            {AREAS.map(a => (
-                                <option key={a.id} value={a.id}>{a.nombre}</option>
-                            ))}
-                        </select>
+        if (form.servicioExterno) {
+          await createLogEquipo(data.id, {
+            tipo: "servicio_externo",
+            observacion: "Equipo enviado a servicio externo",
+            realizadoPor: user?.nombre || "Sistema",
+            equipoCodigo: form.codigo,
+          });
+        }
 
-                        <textarea
-                            {...register("observaciones")}
-                            style={styles.textarea}
-                            placeholder="Observaciones"
-                        />
+        notifySuccess("Equipo actualizado", "Actualizado correctamente");
+      } else {
+        const nuevoEquipo = await createEquipo(payload);
 
-                        {/* Checkbox 1 */}
-                        <label style={styles.labelCheckbox}>
-                            <input
-                                type="checkbox"
-                                style={checkboxStyle}
-                                {...register("servicioExterno")}
-                            />
-                            Servicio externo
-                        </label>
+        if (form.servicioExterno) {
+          await createLogEquipo(nuevoEquipo.id, {
+            tipo: "servicio_externo",
+            observacion: "Equipo enviado a servicio externo",
+            realizadoPor: user?.nombre || "Sistema",
+            equipoCodigo: form.codigo,
+          });
+        }
 
-                        {/* Checkbox 2 */}
-                        <label style={styles.labelCheckbox}>
-                            <input
-                                type="checkbox"
-                                style={checkboxStyle}
-                                {...register("garantia")}
-                            />
-                            Cuenta con garantía
-                        </label>
+        notifySuccess("Equipo creado", "Creado correctamente");
+      }
 
-                        {/* FOOTER */}
-                        <div style={styles.footer}>
-                            <button
-                                className="btn btn-primary" 
-                                type="submit"
-                                
-                            >
-                                <FaPlus/>
-                                {loading ? "Guardando..." : "Guardar"}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+      onSuccess?.();
+      onClose?.();
+    } catch {
+      notifyError("Error", "Error al guardar");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                <style jsx>{`
-                    .btn-primary {
-                        height: 50px;
-                        padding: 0 24px;
-                        border-radius: 14px;
-                        border: none;
-                        background: var(--operator-primary);
-                        color: #fff;
-                        gap: 8px;
-                        font-weight: 700;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        box-shadow: 0 0px 20px var(--operator-primary-light);
-                    }
-
-                    .btn-primary:hover {
-                        background: var(--operator-primary);
-                        box-shadow: 0 0px 10px var(--operator-primary-light);
-                    }
-
-                `}</style>
-            </div>
+  return (
+    <div style={styles.backdrop}>
+      <div style={styles.modalCard}>
+        <div style={styles.header}>
+          <h5 style={styles.title}>{data ? "Editar Equipo" : "Nuevo Equipo"}</h5>
+          <button type="button" className="close-button" style={styles.closeButton} onClick={onClose}>
+            ×
+          </button>
         </div>
-    );
+
+        <div style={styles.body}>
+          {loading && <Loader />}
+
+          <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
+            <input
+              type="text"
+              {...register("codigo")}
+              placeholder="Código"
+              style={{
+                ...styles.input,
+                ...(errors.codigo ? styles.inputError : {}),
+              }}
+            />
+
+            <select {...register("tipo")} style={styles.input}>
+              <option value="">Tipo</option>
+              <option value="radio">Radio</option>
+              <option value="pc">PC</option>
+              <option value="impresora">Impresora</option>
+              <option value="pantalla">Pantalla</option>
+            </select>
+
+            <select {...register("usuarioId")} style={styles.input}>
+              <option value="">Usuario</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nombre}
+                </option>
+              ))}
+            </select>
+
+            <select {...register("areaId")} style={styles.input}>
+              <option value="">Área</option>
+              {AREAS.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre}
+                </option>
+              ))}
+            </select>
+
+            <textarea
+              {...register("observaciones")}
+              placeholder="Observaciones"
+              style={styles.textarea}
+            />
+
+            <label style={styles.labelCheckbox}>
+              <input type="checkbox" style={styles.checkbox} {...register("servicioExterno")} />
+              Servicio externo
+            </label>
+
+            <label style={styles.labelCheckbox}>
+              <input type="checkbox" style={styles.checkbox} {...register("garantia")} />
+              Cuenta con garantía
+            </label>
+
+            <div style={styles.footer}>
+              <button type="submit" style={styles.saveButton}>
+                <FaPlus />
+                {loading ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <style>{`
+        input:focus,
+        textarea:focus,
+        select:focus {
+          border: 1px solid var(--operator-primary) !important;
+          outline: none;
+        }
+
+        .close-button:hover {
+          color: var(--operator-primary);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+          color: var(--operator-text-soft, #64748b);
+          opacity: 1;
+        }
+
+        .
+      `}</style>
+    </div>
+  );
 }
 
-// OBJETO DE ESTILOS ADAPTATIVOS
 const styles = {
-    backdrop: {
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--eq-overlay)", // Variable CSS
-        backdropFilter: "blur(6px)",
-        padding: "20px",
-        zIndex: 9999,
-    },
-    modalCard: {
-        width: "420px",
-        maxWidth: "95%",
-        overflow: "hidden",
-        background: "var(--operator-card)", // Variable CSS
-        backdropFilter: "blur(12px)",
-        borderRadius: "20px",
-        border: "1px solid var(--operator-border)", // Variable CSS
-        boxShadow: "0 24px 48px var(--operator-shadow)", // Variable CSS
-    },
-    header: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "24px 30px",
-        background: "var(--operator-card)", // Variable CSS
-
-    },
-    title: {
-        margin: 0,
-        fontSize: "1.5rem",
-        fontWeight: "800",
-        color: "var(--operator-text", // Variable CSS
-    },
-    closeButton: {
-        width: "36px",
-        height: "36px",
-        border: "none", // Variable CSS
-        borderRadius: "10px",
-        background: "var(--operator-card)", // Variable CSS
-        color: "var(--operator-text)", // Variable CSS
-        fontSize: "30px",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
-    },
-
-    closeButtonHover: {
-        background: "var(--operator-border)",
-        color: "var(--operator-primary)",
-    },
-    body: {
-        padding: "30px",
-        background: "var(--operator-card)", // Variable CSS
-    },
-    form: {
-        display: "flex",
-        flexDirection: "column",
-        gap: "20px"
-    },
-    input: {
-        height: "50px",
-        borderRadius: "12px",
-        border: "1px solid var(--operator-border)", // Variable CSS
-        padding: "0 14px",
-        background: "var(--operator-form)", // Variable CSS
-        color: "var(--operator-text)", // Variable CSS
-        fontSize: "14px",
-        outline: "none"
-    },
-    textarea: {
-        padding: "14px",
-        borderRadius: "12px",
-        border: "1px solid var(--operator-border)",
-        background: "var(--operator-form)",
-        color: "var(--operator-text)",
-        fontSize: "14px",
-        minHeight: "100px",
-        resize: "vertical",
-        outline: "none"
-    },
-    labelCheckbox: {
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        color: "var(--operator-text)" // Cambia dinámicamente según el tema
-    },
-    inputError: {
-        border: "1px solid #ef4444",
-        boxShadow: "0 0 0 4px rgba(239,68,68,0.15)"
-    },
-    footer: {
-        marginTop: "12px",
-        gap: "12px",
-        display: "flex",
-        justifyContent: "flex-end"
-    },
-    saveButton: {
-        height: "50px",
-        padding: "0 24px",
-        borderRadius: "14px",
-        border: "none",
-        background: "var(--operator-primary)", // Variable CSS
-        color: "#fff",
-        fontWeight: "700",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 0px 20px var(--operator-primary-light)", // Variable CSS
-    }
-    
-};
-
-const modalAnimation = {
-    animation: "modalFade .18s ease"
+  backdrop: {
+    position: "fixed",
+    inset: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "var(--eq-overlay, rgba(15, 23, 42, 0.45))",
+    backdropFilter: "blur(6px)",
+    padding: "20px",
+    zIndex: 9999,
+  },
+  modalCard: {
+    width: "420px",
+    maxWidth: "95%",
+    background: "var(--operator-card)",
+    border: "1px solid var(--operator-border)",
+    borderRadius: "20px",
+    boxShadow: "0 24px 48px var(--operator-shadow, rgba(15, 23, 42, 0.22))",
+    overflow: "hidden",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "24px 30px",
+    background: "var(--operator-card)",
+  },
+  title: {
+    margin: 0,
+    fontSize: "1.5rem",
+    fontWeight: 800,
+    color: "var(--operator-text)",
+  },
+  closeButton: {
+    width: "36px",
+    height: "36px",
+    border: "none",
+    borderRadius: "10px",
+    background: "var(--operator-card)",
+    color: "var(--operator-text)",
+    fontSize: "30px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "color 0.2s ease",
+  },
+  body: {
+    padding: "30px",
+    background: "var(--operator-card)",
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+  },
+  input: {
+    width: "100%",
+    height: "50px",
+    borderRadius: "12px",
+    border: "1px solid var(--operator-border)",
+    padding: "0 14px",
+    background: "var(--operator-form)",
+    color: "var(--operator-text)",
+    fontSize: "14px",
+    outline: "none",
+    transition: "border-color 0.2s ease",
+  },
+  textarea: {
+    width: "100%",
+    minHeight: "100px",
+    padding: "14px",
+    borderRadius: "12px",
+    border: "1px solid var(--operator-border)",
+    background: "var(--operator-form)",
+    color: "var(--operator-text)",
+    fontSize: "14px",
+    resize: "vertical",
+    outline: "none",
+    transition: "border-color 0.2s ease",
+  },
+  labelCheckbox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    color: "var(--operator-text)",
+  },
+  checkbox: {
+    width: "18px",
+    height: "18px",
+    accentColor: "#2563eb",
+  },
+  inputError: {
+    border: "1px solid #ef4444",
+    boxShadow: "0 0 0 4px rgba(239, 68, 68, 0.15)",
+  },
+  footer: {
+    display: "flex",
+    justifyContent: "flex-end",
+    marginTop: "12px",
+  },
+  saveButton: {
+    height: "50px",
+    padding: "0 24px",
+    borderRadius: "14px",
+    border: "none",
+    background: "var(--operator-primary)",
+    color: "#fff",
+    fontWeight: 700,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    boxShadow: "0 0 20px var(--operator-primary-light, rgba(37, 99, 235, 0.35))",
+  },
 };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import {
   FaEllipsisV,
   FaMedal,
@@ -8,7 +8,6 @@ import {
   FaHouseUser,
   FaEye,
 } from "react-icons/fa";
-
 
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
@@ -125,6 +124,86 @@ const buildAllRecordsFromSnapshots = ({
   historialesMedicos: mapMedicalHistoryRecords(ordenesSnapshot.docs),
 });
 
+const chunkArray = (items = [], size = 30) => {
+  const chunks = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+};
+
+const dedupeRecords = (records = []) => {
+  const seen = new Set();
+  return records.filter((record) => {
+    const key = record?.id || JSON.stringify(record);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const fetchUserScopedRecords = async (usuarios = []) => {
+  const validUsers = (usuarios || []).filter((user) => user && (user.id || user.uid || user.nomina));
+  if (!validUsers.length) {
+    return {
+      reconocimientos: [],
+      incidencias: [],
+      incapacidades: [],
+      historialesMedicos: [],
+    };
+  }
+
+  const userIds = [...new Set(validUsers.map((user) => String(user.id || user.uid || "").trim()).filter(Boolean))];
+  const nominas = [...new Set(validUsers.map((user) => String(user.nomina || "").trim()).filter((value) => value && /^\d+$/.test(value)))];
+  const numericNominas = nominas.map(Number).filter((value) => Number.isFinite(value));
+
+  const recognitionQueries = [];
+  const incidenceQueries = [];
+  const incapacidadQueries = [];
+  const medicalQueries = [];
+
+  if (userIds.length) {
+    chunkArray(userIds, 30).forEach((chunk) => {
+      recognitionQueries.push(query(collection(db, "reconocimientos"), where("empleadoId", "in", chunk)));
+      incidenceQueries.push(query(collection(db, "incidencias_personal"), where("empleadoId", "in", chunk)));
+      incapacidadQueries.push(query(collection(db, "incapacidades"), where("userId", "in", chunk)));
+      medicalQueries.push(query(collection(db, "ordenes_medicas"), where("idPaciente", "in", chunk)));
+    });
+  }
+
+  if (nominas.length) {
+    chunkArray(nominas, 30).forEach((chunk) => {
+      recognitionQueries.push(query(collection(db, "reconocimientos"), where("empleadoNomina", "in", chunk)));
+      incidenceQueries.push(query(collection(db, "incidencias_personal"), where("empleadoNomina", "in", chunk)));
+      incapacidadQueries.push(query(collection(db, "incapacidades"), where("nomina", "in", chunk.map(Number).filter((value) => Number.isFinite(value)))));
+      medicalQueries.push(query(collection(db, "ordenes_medicas"), where("nominaPaciente", "in", chunk)));
+      medicalQueries.push(query(collection(db, "ordenes_medicas"), where("nominaPacienteNum", "in", chunk.map(Number).filter((value) => Number.isFinite(value)))));
+    });
+  }
+
+  const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap, ordenesSnap] = await Promise.all([
+    Promise.all(recognitionQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+    Promise.all(incidenceQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+    Promise.all(incapacidadQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+    Promise.all(medicalQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+  ]);
+
+  return {
+    reconocimientos: reconocimientosSnap,
+    incidencias: incidenciasSnap,
+    incapacidades: incapacidadesSnap,
+    historialesMedicos: mapMedicalHistoryRecords(
+      ordenesSnap.filter((record) => {
+        const estado = String(record?.estado ?? "").trim().toLowerCase();
+        return ["cerrada", "en tratamiento", "pendiente"].includes(estado);
+      }).map((record) => ({
+        id: record.id,
+        data: () => record,
+      }))
+    ),
+  };
+};
+
 export default function Personal() {
   const { user } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
@@ -152,7 +231,6 @@ export default function Personal() {
     setShowPdfModal(true);
   };
 
-  // Cerrar menu de acciones al hacer click fuera del mismo
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest(".personal-actions-cell")) {
@@ -161,37 +239,19 @@ export default function Personal() {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
     const fetchUsersAndRecords = async () => {
       try {
-        const [
-          usersData,
-          reconocimientosSnapshot,
-          incidenciasSnapshot,
-          incapacidadesSnapshot,
-          ordenesSnapshot,
-        ] = await Promise.all([
-          getUsers(),
-          getDocs(collection(db, "reconocimientos")),
-          getDocs(collection(db, "incidencias_personal")),
-          getDocs(collection(db, "incapacidades")),
-          getDocs(collection(db, "ordenes_medicas")),
-        ]);
-
+        const usersData = await getUsers();
         const syncedUsers = await syncUsersWithIncapacidades(usersData);
         setUsuarios(syncedUsers);
-        setAllRecords(
-          buildAllRecordsFromSnapshots({
-            reconocimientosSnapshot,
-            incidenciasSnapshot,
-            incapacidadesSnapshot,
-            ordenesSnapshot,
-          }),
-        );
+
+        const allowedUsers = getAllowedUsersForPersonal(syncedUsers, user);
+        const scopedRecords = await fetchUserScopedRecords(allowedUsers.length ? allowedUsers : syncedUsers);
+        setAllRecords(scopedRecords);
       } catch (error) {
         console.error("Error cargando personal y registros:", error);
         setUsuarios([]);
@@ -207,7 +267,7 @@ export default function Personal() {
     };
 
     fetchUsersAndRecords();
-  }, []);
+  }, [user]);
 
   const accesoPermitido = canAccessPersonalSection(user);
   const allowedUsers = useMemo(() => {
@@ -217,7 +277,6 @@ export default function Personal() {
 
   const usuariosFiltrados = useMemo(() => {
     const texto = filtro.trim().toLowerCase();
-
     if (!texto) return allowedUsers;
 
     return allowedUsers.filter((usuario) => {
@@ -240,39 +299,43 @@ export default function Personal() {
     setExpandedUserId(null);
   };
 
+  const toggleActionMenu = (usuario) => {
+    setOpenActionsId((current) => (current === usuario.id ? null : usuario.id));
+    setExpandedUserId((current) => {
+      if (current === usuario.id) return current;
+      return null;
+    });
+  };
+
   const closeActionModal = () => {
     setActionModal({ type: null, usuario: null });
   };
 
   const matchesEmpleado = (usuario, record) => {
-    const empleadoId =
-      usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
+    const empleadoId = usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
     const empleadoNomina = String(usuario?.nomina || "").trim();
-
-    const recordEmpleadoId = String(
-      record?.empleadoId || record?.userId || "",
-    ).trim();
-    const recordNomina = String(
-      record?.empleadoNomina || record?.nomina || "",
-    ).trim();
+    const recordEmpleadoId = String(record?.empleadoId || record?.userId || "").trim();
+    const recordNomina = String(record?.empleadoNomina || record?.nomina || "").trim();
 
     return (
       (empleadoId &&
         recordEmpleadoId &&
         recordEmpleadoId.toLowerCase() === String(empleadoId).toLowerCase()) ||
-      (empleadoNomina &&
-        recordNomina &&
-        recordNomina.toLowerCase() === empleadoNomina.toLowerCase())
+      (empleadoNomina && recordNomina && recordNomina.toLowerCase() === empleadoNomina.toLowerCase())
     );
   };
 
   const getUserRecords = (usuario) => {
-    const empleadoId =
-      usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
+    const empleadoId = usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
     const empleadoNomina = String(usuario?.nomina || "").trim();
 
     if (!empleadoId && !empleadoNomina) {
-      return { reconocimientos: [], incidencias: [], incapacidades: [], historialesMedicos: [] };
+      return {
+        reconocimientos: [],
+        incidencias: [],
+        incapacidades: [],
+        historialesMedicos: [],
+      };
     }
 
     const reconocimientos = allRecords.reconocimientos
@@ -308,38 +371,19 @@ export default function Personal() {
 
   const refreshAllRecords = async () => {
     try {
-      const [
-        reconocimientosSnapshot,
-        incidenciasSnapshot,
-        incapacidadesSnapshot,
-        ordenesSnapshot,
-      ] = await Promise.all([
-        getDocs(collection(db, "reconocimientos")),
-        getDocs(collection(db, "incidencias_personal")),
-        getDocs(collection(db, "incapacidades")),
-        getDocs(collection(db, "ordenes_medicas")),
-      ]);
-
-      setAllRecords(
-        buildAllRecordsFromSnapshots({
-          reconocimientosSnapshot,
-          incidenciasSnapshot,
-          incapacidadesSnapshot,
-          ordenesSnapshot,
-        }),
-      );
+      const scopedRecords = await fetchUserScopedRecords(usuarios);
+      setAllRecords(scopedRecords);
     } catch (error) {
       console.error("Error recargando registros del personal:", error);
     }
   };
 
   const toggleUserRecords = (usuario) => {
-    setExpandedUserId((current) =>
-      current === usuario.id ? null : usuario.id,
-    );
+    setExpandedUserId((current) => (current === usuario.id ? null : usuario.id));
   };
 
   if (loading) return <Loader text="Cargando personal..." />;
+
   if (!accesoPermitido) {
     return (
       <div style={{ padding: 24 }}>
@@ -351,7 +395,7 @@ export default function Personal() {
       </div>
     );
   }
-  // VISTA DE LA PAGINA PERSONAL
+
   return (
     <div style={{ padding: 24 }}>
       <div className="header-pagina">
@@ -361,10 +405,7 @@ export default function Personal() {
         <span className="badge-title">AQUA Médica</span>
       </div>
 
-      <div
-        className="filter-container"
-        style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}
-      >
+      <div className="filter-container" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <input
           type="text"
           className="personal-filter-input"
@@ -373,17 +414,12 @@ export default function Personal() {
           placeholder="Buscar por nombre o nómina"
           aria-label="Buscar por nombre o nómina"
         />
-        <button
-          type="button"
-          className="personal-pdf-button"
-          onClick={() => openPdfModal()}
-        >
+        <button type="button" className="personal-pdf-button" onClick={() => openPdfModal()}>
           <FaFilePdf className="personal-pdf-icon" /> PDF
         </button>
       </div>
 
       <div className="card">
-        <div className="personal-filter-wrap"></div>
         <table className="tabla-personal">
           <thead>
             <tr>
@@ -408,31 +444,13 @@ export default function Personal() {
                 const recordData = getUserRecords(usuario);
                 const categoryFilter = recordFilters[usuario.id] || "todos";
                 const historial = [
-                  ...recordData.reconocimientos.map((item) => ({
-                    ...item,
-                    type: "reconocimiento",
-                  })),
-                  ...recordData.incidencias.map((item) => ({
-                    ...item,
-                    type: "incidencia",
-                  })),
-                  ...recordData.incapacidades.map((item) => ({
-                    ...item,
-                    type: "incapacidad",
-                  })),
-                  ...recordData.historialesMedicos.map((item) => ({
-                    ...item,
-                    type: "historialMedico",
-                  })),
+                  ...recordData.reconocimientos.map((item) => ({ ...item, type: "reconocimiento" })),
+                  ...recordData.incidencias.map((item) => ({ ...item, type: "incidencia" })),
+                  ...recordData.incapacidades.map((item) => ({ ...item, type: "incapacidad" })),
+                  ...recordData.historialesMedicos.map((item) => ({ ...item, type: "historialMedico" })),
                 ]
-                  .filter(
-                    (item) =>
-                      categoryFilter === "todos" ||
-                      item.type === categoryFilter,
-                  )
-                  .sort(
-                    (a, b) => getRecordTimestamp(b) - getRecordTimestamp(a),
-                  );
+                  .filter((item) => categoryFilter === "todos" || item.type === categoryFilter)
+                  .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
 
                 const activeIncapacidad = hasActiveIncapacidad(
                   usuario,
@@ -442,12 +460,7 @@ export default function Personal() {
                 return (
                   <>
                     <tr
-                      className={
-                        openActionsId === usuario.id ||
-                        expandedUserId === usuario.id
-                          ? "personal-row-open"
-                          : ""
-                      }
+                      className={openActionsId === usuario.id || expandedUserId === usuario.id ? "personal-row-open" : ""}
                       style={{ borderBottom: "1px solid #e5e7eb" }}
                       onClick={() => toggleUserRecords(usuario)}
                     >
@@ -456,30 +469,18 @@ export default function Personal() {
                       <td>{usuario.puesto || "—"}</td>
                       <td>
                         {(() => {
-                          const status = getUserStatusBadge(
-                            usuario,
-                            activeIncapacidad,
-                          );
-                          return (
-                            <span className={status.className}>
-                              {status.label}
-                            </span>
-                          );
+                          const status = getUserStatusBadge(usuario, activeIncapacidad);
+                          return <span className={status.className}>{status.label}</span>;
                         })()}
                       </td>
                       <td className="personal-actions-cell">
-                        <div
-                          className="personal-actions-wrapper"
-                          onMouseDown={(event) => event.stopPropagation()}
-                        >
+                        <div className="personal-actions-wrapper" onMouseDown={(event) => event.stopPropagation()}>
                           <button
                             type="button"
                             className="personal-action-menu-button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              setOpenActionsId((current) =>
-                                current === usuario.id ? null : usuario.id,
-                              );
+                              toggleActionMenu(usuario);
                             }}
                             aria-label="Abrir menú de acciones"
                           >
@@ -512,16 +513,10 @@ export default function Personal() {
                               >
                                 <FaUserTimes /> Incidencia
                               </button>
-
                               <button
                                 type="button"
                                 className="personal-action-menu-item incapacidad"
-                                disabled={
-                                  activeIncapacidad ||
-                                  String(usuario?.estado || "")
-                                    .trim()
-                                    .toLowerCase() === "incapacidad"
-                                }
+                                disabled={activeIncapacidad || String(usuario?.estado || "").trim().toLowerCase() === "incapacidad"}
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   handleOpenIncapacidad(usuario);
@@ -536,25 +531,16 @@ export default function Personal() {
                     </tr>
 
                     {expandedUserId === usuario.id && (
-                      <tr
-                        key={`${usuario.id}-details`}
-                        className="personal-details-row"
-                      >
+                      <tr className="personal-details-row">
                         <td colSpan={5} className="personal-details-cell">
                           <div className="personal-details-box">
                             <div className="personal-record-filter">
                               {[
                                 { key: "todos", label: "Todos" },
-                                {
-                                  key: "reconocimiento",
-                                  label: "Reconocimientos",
-                                },
+                                { key: "reconocimiento", label: "Reconocimientos" },
                                 { key: "incidencia", label: "Incidencias" },
                                 { key: "incapacidad", label: "Incapacidades" },
-                                {
-                                  key: "historialMedico",
-                                  label: "Historial Médico",
-                                },
+                                { key: "historialMedico", label: "Historial Médico" },
                               ].map((option) => (
                                 <button
                                   key={option.key}
@@ -562,10 +548,7 @@ export default function Personal() {
                                   className={`personal-record-filter-btn ${categoryFilter === option.key ? "active" : ""} ${option.key}`}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    setRecordFilters((prev) => ({
-                                      ...prev,
-                                      [usuario.id]: option.key,
-                                    }));
+                                    setRecordFilters((prev) => ({ ...prev, [usuario.id]: option.key }));
                                   }}
                                 >
                                   {option.label}
@@ -575,8 +558,7 @@ export default function Personal() {
 
                             {historial.length === 0 ? (
                               <div className="personal-record-empty">
-                                No hay{" "}
-                                {categoryFilter === "todos"
+                                No hay {categoryFilter === "todos"
                                   ? "incidencias, reconocimientos, incapacidades ni historial médico"
                                   : categoryFilter === "reconocimiento"
                                     ? "reconocimientos"
@@ -584,8 +566,7 @@ export default function Personal() {
                                       ? "incapacidades"
                                       : categoryFilter === "historialMedico"
                                         ? "historial médico"
-                                        : "incidencias"}{" "}
-                                registrados.
+                                        : "incidencias"} registrados.
                               </div>
                             ) : (
                               <table className="personal-record-table">
@@ -600,15 +581,9 @@ export default function Personal() {
                                 </thead>
                                 <tbody>
                                   {historial.map((item) => (
-                                    <tr
-                                      key={
-                                        item.id || `${item.type}-${item.titulo}`
-                                      }
-                                    >
+                                    <tr key={item.id || `${item.type}-${item.titulo}`}>
                                       <td>
-                                        <span
-                                          className={`personal-record-badge ${item.type}`}
-                                        >
+                                        <span className={`personal-record-badge ${item.type}`}>
                                           {item.type === "reconocimiento"
                                             ? "Reconocimiento"
                                             : item.type === "incapacidad"
@@ -621,9 +596,7 @@ export default function Personal() {
                                       <td>
                                         {item.titulo ||
                                           item.tipo ||
-                                          (item.type === "historialMedico"
-                                            ? "Historial Médico"
-                                            : item.type) ||
+                                          (item.type === "historialMedico" ? "Historial Médico" : item.type) ||
                                           "Sin título"}
                                       </td>
                                       <td>
@@ -636,11 +609,7 @@ export default function Personal() {
                                             item.comentarios ||
                                             "Sin descripción"}
                                       </td>
-                                      <td>
-                                        {formatRecordDate(
-                                          item.fecha || item.createdAt,
-                                        )}
-                                      </td>
+                                      <td>{formatRecordDate(item.fecha || item.createdAt)}</td>
                                       <td className="personal-record-action-cell">
                                         <button
                                           type="button"
@@ -671,10 +640,7 @@ export default function Personal() {
       </div>
 
       {selectedRecord && (
-        <RecordDetailModal
-          record={selectedRecord}
-          onClose={() => setSelectedRecord(null)}
-        />
+        <RecordDetailModal record={selectedRecord} onClose={() => setSelectedRecord(null)} />
       )}
 
       {actionModal.type === "reconocimiento" && (
@@ -728,61 +694,12 @@ export default function Personal() {
       )}
 
       <style>{`
-
-/* HEADER PAGINA */
-
         .header-pagina {
-        align-items: center;
-        gap: 10px;
-        padding-bottom: 15px;
-        }
-
-        .personal-pdf-button {
-          height: 50px;
-          padding: 0 20px;
-          border-radius: 10px;
-          border: none;
-          background: var(--operator-danger);
-          color: #fff;
-          font-weight: 700;
-          cursor: pointer;
           display: flex;
           align-items: center;
-          justify-content: center;
-          box-shadow: 0 0px 10px var(--operator-danger);
-        }
-
-        .personal-pdf-button:hover {
-          background: var(--operator-danger);
-          scale: 1.01;
-          transition: 0.2s ease;
-          box-shadow: 0 0px 20px var(--operator-danger);
-        }
-
-        .personal-status-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 999px;
-          padding: 5px 10px;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.02em;
-        }
-
-        .personal-status-badge.success {
-          background: rgba(34, 197, 94, 0.12);
-          color: #15803d;
-        }
-
-        .personal-status-badge.warning {
-          background: #ca56ff48;
-          color: #c12fee;
-        }
-
-        .personal-status-badge.danger {
-          background: rgba(239, 68, 68, 0.12);
-          color: #b91c1c;
+          justify-content: space-between;
+          gap: 10px;
+          padding-bottom: 15px;
         }
 
         .filter-container {
@@ -790,14 +707,10 @@ export default function Personal() {
           gap: 12px;
           flex-wrap: wrap;
           margin-bottom: 16px;
-          justify-content: end;
+          justify-content: flex-end;
         }
 
-        .filter-container .badge-departamento {
-          margin-right: auto;
-        }
-
-          .personal-filter-input {
+        .personal-filter-input {
           width: min(100%, 320px);
           border: 1px solid var(--operator-border, #dfe7f1);
           border-radius: 12px;
@@ -813,126 +726,90 @@ export default function Personal() {
           box-shadow: 0 0 0 3px rgba(118, 147, 243, 0.15);
         }
 
-        .personal-filter-input::placeholder {
-          color: var(--operator-text);
+        .personal-pdf-button {
+          height: 50px;
+          padding: 0 20px;
+          border-radius: 10px;
+          border: none;
+          background: var(--operator-danger);
+          color: #fff;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 0 10px var(--operator-danger);
         }
-
-/* CONTAINER  */
 
         .card {
-        overflow-x: auto;
-        border-radius: 30px;
-        padding: 38px;
+          position: relative;
+          overflow-x: auto;
+          border-radius: 30px;
+          padding: 38px;
+          z-index: 0;
         }
-
-        .personal-filter-wrap {
-          display: flex;
-          justify-content: flex-end;
-          margin-bottom: 16px;
-        }
-
-/*  TABLA */
 
         .tabla-personal {
-        table-layout: fixed;
-        width: 100%;
-        border-collapse: separate !important;
-        border-spacing: 0 10px !important;
+          table-layout: fixed;
+          width: 100%;
+          border-collapse: separate;
+          border-spacing: 0 10px;
         }
 
-        .tabla-personal thead tr th {
-        border-bottom: 3px solid var(--operator-text);
-        font-size: 20px;
-        font-weight: 900;
-        padding: 5px 5px;
-        vertical-align: middle;
-        border-top: none !important;
-        white-space: normal;
-        justify-items: center;
-
-        word-break: break-word;
-        overflow-wrap: anywhere;
-        max-width: 230px;
-        min-width: 100px;
+        .tabla-personal thead th,
+        .tabla-personal tbody td {
+          border-bottom: 3px solid var(--operator-border);
+          font-size: 14px;
+          padding: 8px 10px;
+          vertical-align: middle;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          max-width: 230px;
+          min-width: 100px;
         }
 
-        .tabla-personal tbody tr td {
-        border-bottom: 3px solid var(--operator-border);
-        height: 50px;
-        font-size: 14px;
-        padding: 5px 5px;
-        vertical-align: middle;
-        border-top: none !important;
-        white-space: normal;
-
-        word-break: break-word;
-        overflow-wrap: anywhere;
-        max-width: 230px;
-        min-width: 100px;
+        .tabla-personal thead th {
+          border-bottom: 3px solid var(--operator-text);
+          font-size: 20px;
+          font-weight: 900;
         }
 
         .tabla-personal tbody tr {
           position: relative;
           z-index: 1;
-          transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+          overflow: visible;
+          transition: transform 180ms ease, box-shadow 180ms ease;
         }
 
         .tabla-personal tbody tr.personal-row-open {
-          z-index: 12;
+          z-index: 5;
         }
 
         .tabla-personal tbody tr:hover {
           transform: scale(1.02);
-
           box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
         }
 
         .tabla-personal tbody tr.personal-row-open:hover {
-                transform: none !important;
-                box-shadow: none !important;
+          transform: none;
+          box-shadow: none;
         }
 
-/* CORRECCIONES PUNTUALES DE FILAS Y TABLAS */
-
-        .tabla-personal thead th:nth-child(5){
+        .tabla-personal thead th:nth-child(2),
+        .tabla-personal tbody td:nth-child(2),
+        .tabla-personal thead th:nth-child(4),
+        .tabla-personal tbody td:nth-child(4),
+        .tabla-personal thead th:nth-child(5),
+        .tabla-personal tbody td:nth-child(5) {
           text-align: center;
         }
-        
-        .tabla-personal tbody td:nth-child(5){
-          text-align: center;
-        }
-
-        .tabla-personal thead th:nth-child(4){
-          text-align: center;
-        }
-
-        .tabla-personal tbody td:nth-child(4){
-          text-align: center;
-        }
-
-        .tabla-personal thead th:nth-child(2){
-          text-align: center;
-          padding-right: 60px;
-
-        }
-
-        .tabla-personal tbody td:nth-child(2){
-          text-align: center;
-          padding-right: 60px;
-
-        }
-
-        .tabla 
-
-
-
-/*  MENU ACCIONES */
 
         .personal-actions-cell {
-          text-align: center;
           position: relative;
           overflow: visible;
-          z-index: 15;
+          z-index: 10;
+          text-align: center;
         }
 
         .personal-actions-wrapper {
@@ -941,7 +818,7 @@ export default function Personal() {
           align-items: center;
           justify-content: center;
           min-width: 36px;
-          z-index: 20;
+          z-index: 100;
         }
 
         .personal-action-menu-button {
@@ -955,8 +832,6 @@ export default function Personal() {
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          padding: 10px;
-          transition: 0.2s ease;
         }
 
         .personal-action-menu-button:hover {
@@ -969,14 +844,13 @@ export default function Personal() {
           width: max-content;
           min-width: 170px;
           background: var(--operator-background);
-          border: 1px solid var(--operator-background);
           border-radius: 12px;
           box-shadow: 0 10px 24px var(--operator-shadow);
           padding: 8px;
           display: flex;
           flex-direction: column;
           gap: 6px;
-          z-index: 9999;
+          z-index: 1000;
         }
 
         .personal-action-menu-item {
@@ -992,7 +866,6 @@ export default function Personal() {
           border-radius: 8px;
           color: var(--operator-text);
           cursor: pointer;
-          transition: 0.2s ease;
         }
 
         .personal-action-menu-item:hover {
@@ -1001,22 +874,17 @@ export default function Personal() {
         }
 
         .personal-action-menu-item.danger:hover {
-          background: var(--operator-border);
           color: var(--operator-danger);
         }
 
         .personal-action-menu-item.incapacidad:hover {
-          background: var(--operator-border);
           color: rgba(143, 83, 253, 0.8);
         }
 
         .personal-action-menu-item.incapacidad:disabled {
-          background: var(--operator-border);
           opacity: 0.6;
+          cursor: not-allowed;
         }
-
-
-/* TABLA DESPLEGABLE */
 
         .personal-details-row td {
           background: rgba(255, 255, 255, 0.02);
@@ -1026,12 +894,7 @@ export default function Personal() {
 
         .personal-details-cell {
           padding: 0 !important;
-          transform-origin: top center;
-          animation: personalDetailsOpen 0.5s ease-out both;
-          overflow: hidden;
         }
-
-
 
         .personal-details-box {
           background: var(--operator-card, #ffffff);
@@ -1039,43 +902,7 @@ export default function Personal() {
           border-radius: 14px;
           padding: 16px;
           margin: 0 0 12px;
-          transform-origin: top center;
-          animation: personalDetailsOpen 0.5s ease-out both;
-          overflow: hidden;
-        }
-
-        .personal-details-box:hover {
-          transform: scale(1.02);
-          transition: 0.2s ease;
-
-        }
-
-        @keyframes personalDetailsOpen {
-          0% {
-            opacity: 0;
-            transform: translateY(-18px) scaleY(0.75);
-            max-height: 0;
-            padding-top: 0;
-            padding-bottom: 0;
-          }
-          18% {
-            opacity: 0.25;
-          }
-
-          30% {
-            opacity: 0.5;
-          }
-
-          60% {
-            opacity: 0.75;
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scaleY(1);
-            max-height: 900px;
-            padding-top: 16px;
-            padding-bottom: 16px;
-          }
+          z-index: 10;
         }
 
         .personal-record-filter {
@@ -1086,7 +913,7 @@ export default function Personal() {
         }
 
         .personal-record-filter-btn {
-        height: 36px;
+          min-height: 36px;
           border: 1px solid var(--operator-border, #dfe7f1);
           background: transparent;
           color: var(--operator-text, #1f2937);
@@ -1098,37 +925,29 @@ export default function Personal() {
         }
 
         .personal-record-filter-btn.active.todos {
-          background: none;
           border-color: rgba(118, 147, 243, 0.8);
           color: var(--operator-primary, #2563eb);
         }
 
         .personal-record-filter-btn.active.reconocimiento {
-          background: none;
           border: 3px solid rgba(155, 138, 43, 0.25);
           color: rgba(155, 133, 10, 0.87);
         }
 
-
         .personal-record-filter-btn.active.incidencia {
-          background: none;
           border: 3px solid rgba(239, 68, 68, 0.34);
           color: #f33030;
         }
 
-
         .personal-record-filter-btn.active.incapacidad {
-          background: none;
           border: 3px solid #ca56ff48;
           color: #c12fee;
         }
 
         .personal-record-filter-btn.active.historialMedico {
-          background: none;
           border: 3px solid rgba(34, 159, 197, 0.31);
           color: #24c2c2;
         }
-
 
         .personal-record-table {
           width: 100%;
@@ -1146,18 +965,6 @@ export default function Personal() {
           vertical-align: top;
           word-break: break-word;
           overflow-wrap: anywhere;
-        }
-
-/* HACE QUE LA TABLA DESPLEGABLE NO TENGA HOVER */
-
-        .tabla-personal tbody tr.personal-details-row:hover {
-          transform: none;
-          box-shadow: none;
-        }
-
-        .tabla-personal tbody tr.personal-details-row thead tr:hover {
-          transform: none;
-          box-shadow: none;
         }
 
         .personal-record-table thead th {
@@ -1179,12 +986,34 @@ export default function Personal() {
           font-size: 12px;
           font-weight: 700;
           cursor: pointer;
-          transition: 0.2s ease;
         }
 
-        .personal-record-view-btn:hover {
-          background: var(--operator-form);
-          color: var(--operator-primary-light);
+        .personal-status-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 10px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 500;
+          min-width: 92px;
+          border: 1px solid transparent;
+        }
+
+        .personal-status-badge.success {
+          background: rgba(34, 197, 94, 0.12);
+          color: var(--operator-success);
+
+        }
+
+        .personal-status-badge.warning {
+          background: rgba(146, 37, 235, 0.27) !important;
+          color: var(--operator-incapacidad);
+        }
+
+        .personal-status-badge.danger {
+          background: rgba(239, 68, 68, 0.1);
+          color: var(--operator-danger);
         }
 
         .personal-record-badge {
@@ -1203,14 +1032,13 @@ export default function Personal() {
         }
 
         .personal-record-badge.incidencia {
-          background: rgba(239, 68, 68, 0.34) !important;
-          color: var(--operator-incidencia) !important;
+          background: rgba(239, 68, 68, 0.34);
+          color: var(--operator-incidencia);
         }
 
         .personal-record-badge.incapacidad {
           background: #ca56ff48;
           color: var(--operator-incapacidad);
-
         }
 
         .personal-record-badge.historialMedico {
@@ -1218,15 +1046,12 @@ export default function Personal() {
           color: var(--operator-historialMedico);
         }
 
-
-
         .personal-record-empty {
           padding: 14px 8px 2px;
           color: var(--operator-text, #1f2937);
           font-size: 13px;
           opacity: 0.8;
         }
-
       `}</style>
     </div>
   );

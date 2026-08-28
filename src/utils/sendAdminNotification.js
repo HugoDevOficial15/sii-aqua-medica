@@ -1,4 +1,4 @@
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { createNotification } from "./createNotification";
 
@@ -9,15 +9,19 @@ import { createNotification } from "./createNotification";
  */
 export const sendAdminNotification = async (notification, rolesPermitidos = ["admin_sistemas", "admin_super"]) => {
   try {
-    const usersSnapshot = await getDocs(collection(db, "users"));
-    const admins = usersSnapshot.docs
-      .filter(doc => {
-        const rol = doc.data().rol || "";
-        return rolesPermitidos.includes(rol);
-      })
-      .map(doc => ({ docId: doc.id, uid: doc.data().uid, ...doc.data() }));
+    const usersQuery = query(
+      collection(db, "users"),
+      where("rol", "in", rolesPermitidos),
+      limit(100)
+    );
 
-    // Enviar notificación a cada admin permitido
+    const usersSnapshot = await getDocs(usersQuery);
+    const admins = usersSnapshot.docs.map(doc => ({
+      docId: doc.id,
+      uid: doc.data().uid,
+      ...doc.data()
+    }));
+
     for (const admin of admins) {
       const adminId = admin.uid || admin.docId;
       if (adminId) {
@@ -29,6 +33,5 @@ export const sendAdminNotification = async (notification, rolesPermitidos = ["ad
     }
   } catch (error) {
     console.error("Error al notificar a admins:", error);
-    // No lanzamos el error para que la operación principal se haya completado aunque falle la notificación
   }
 };
