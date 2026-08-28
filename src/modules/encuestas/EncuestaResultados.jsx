@@ -26,7 +26,7 @@ import {
 import Loader from "../../components/Loader";
 
 import { db } from "../../config/firebase";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, doc, onSnapshot, query, where, writeBatch } from "firebase/firestore";
 import { getUsers } from "../../services/usersService";
 
 import { AREAS } from "../../catalogs/areas";
@@ -36,6 +36,7 @@ import { isSurveyTimeExpired } from "../../utils/surveyTiming";
 import { exportExcel } from "./components/ExcelGenerator";
 import { generatePersonalRecordPDF } from "./components/PdfGenerator";
 import CalificarEncuesta from "./components/calificar";
+import { notifySuccess, notifyError } from "../../utils/notify";
 
 const GENERO_OPTIONS = [
   { value: "", label: "Todos los generos" },
@@ -64,6 +65,8 @@ export default function EncuestaResultados({ survey, onBack }) {
   const [tablePage, setTablePage] = useState(1);
   const [assignedPage, setAssignedPage] = useState(1);
   const [filters, setFilters] = useState(emptyFilters);
+  const [certifying, setCertifying] = useState(false);
+  const [certificadosCount, setCertificadosCount] = useState(0);
 
   const TABLE_PAGE_SIZE = 10;
   const ASSIGNED_PAGE_SIZE = 10;
@@ -411,6 +414,10 @@ export default function EncuestaResultados({ survey, onBack }) {
       return usuariosFaltantes;
     }
 
+    if (statusFilter === "certificado") {
+      return usuariosRespondidos;
+    }
+
     return usuariosAsignados;
   }, [
     statusFilter,
@@ -462,6 +469,7 @@ export default function EncuestaResultados({ survey, onBack }) {
     realizado: `Usuarios aprobados: ${usuariosRespondidos.length}`,
     reprobada: `Usuarios reprobados: ${usuariosReprobadas.length}`,
     faltante: `Usuarios faltantes: ${usuariosFaltantes.length}`,
+    certificado: `Certificados: ${certificadosCount}`,
   };
 
   const tienePreguntasAbiertas = useMemo(
@@ -493,6 +501,40 @@ export default function EncuestaResultados({ survey, onBack }) {
     });
   };
 
+  const handleCertifyAll = async () => {
+    setCertifying(true);
+    try {
+      const count = usuariosRespondidos.length;
+
+      // Solo actualizar certificados en capacitaciones
+      if (survey.tipo === "capacitacion") {
+        const batch = writeBatch(db);
+        const responseCollection = collection(db, "respuestasCapacitaciones");
+
+        usuariosRespondidos.forEach((user) => {
+          if (!user.respuesta?.id) return;
+          const docRef = doc(responseCollection, user.respuesta.id);
+          batch.update(docRef, { certificado: true });
+        });
+
+        await batch.commit();
+      }
+
+      setCertificadosCount(count);
+      notifySuccess(
+        "Certificación Completada",
+        `Se certificaron ${count} ${count === 1 ? "usuario" : "usuarios"} aprobados`,
+      );
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error("Error certificando usuarios:", err);
+      }
+      notifyError("Error", "No se pudieron certificar los usuarios");
+    } finally {
+      setCertifying(false);
+    }
+  };
+
   if (loading) {
     return <Loader text="Cargando respuestas..." />;
   }
@@ -506,7 +548,7 @@ export default function EncuestaResultados({ survey, onBack }) {
             onClick={onBack}
           >
             <FaArrowLeft className="me-2" />
-            Volver a Encuestas
+            Volver a {survey.tipo === "capacitacion" ? "Capacitaciones" : "Encuestas"}
           </button>
 
           <h6>
@@ -600,7 +642,7 @@ export default function EncuestaResultados({ survey, onBack }) {
       {/* TABLA */}
       <div className="card shadow-sm mb-4">
         <div className="card-body table-responsive-container">
-          <h5>Resultados de la Encuesta</h5>
+          <h5>Resultados de la {survey.tipo === "capacitacion" ? "Capacitación" : "Encuesta"}</h5>
 
           <table className="table">
             <thead>
@@ -738,14 +780,28 @@ export default function EncuestaResultados({ survey, onBack }) {
 
       <div className="card shadow-sm mb-4">
         <div className="card-body">
-          <div className="pdf-container d-flex justify-content-between mb-3">
+          <div className="pdf-container d-flex justify-content-between align-items-center mb-3">
             <h5 className="m-0">
-              
+              Usuarios:{" "}
               {tituloUsuariosAsignados[statusFilter] || "Usuarios asignados"}
             </h5>
-            <button type="button" className="btn-pdf" onClick={handleExportPdf}>
-              <FaFilePdf /> PDF
-            </button>
+            <div className="d-flex gap-2">
+              {survey.tipo === "capacitacion" && (
+                <button
+                  type="button"
+                  className="btn-excel"
+                  style={{ background: "#10b981" }}
+                  onClick={handleCertifyAll}
+                  disabled={certifying || usuariosRespondidos.length === 0}
+                >
+                  <FaCheckCircle className="me-1" />
+                  {certifying ? "Certificando..." : "Certificar a todos"}
+                </button>
+              )}
+              <button type="button" className="btn-pdf" onClick={handleExportPdf}>
+                <FaFilePdf /> PDF
+              </button>
+            </div>
           </div>
           <div className="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-3">
             <div className="d-flex gap-2 flex-wrap">
@@ -772,18 +828,27 @@ export default function EncuestaResultados({ survey, onBack }) {
               </button>
               <button
                 type="button"
-                className={`button text-faltante ${statusFilter === "Faltante" ? "active" : ""}`}
+                className={`button text-faltante ${statusFilter === "faltante" ? "active" : ""}`}
                 onClick={() => setStatusFilter("faltante")}
               >
                 <FaExclamationCircle /> Faltantes: {usuariosFaltantes.length}
               </button>
+              {survey.tipo === "capacitacion" && (
+                <button
+                  type="button"
+                  className={`button text-certificado ${statusFilter === "certificado" ? "active" : ""}`}
+                  onClick={() => setStatusFilter("certificado")}
+                >
+                  <FaCheckCircle /> Certificados: {certificadosCount}
+                </button>
+              )}
             </div>
           </div>
 
           <div className="usuarios-asignados-list">
             {usuariosFiltradosPorEstado.length === 0 ? (
               <p className="m-0 text-muted">
-                No hay usuarios asignados a esta encuesta.
+                No hay usuarios asignados a esta {survey.tipo === "capacitacion" ? "capacitación" : "encuesta"}.
               </p>
             ) : (
               paginatedUsuariosFiltradosPorEstado.map((user) => (
@@ -1071,7 +1136,7 @@ export default function EncuestaResultados({ survey, onBack }) {
 }
 
 
-.text-todos,.text-realizado,.text-reprobada,.text-faltante {
+.text-todos,.text-realizado,.text-reprobada,.text-faltante,.text-certificado {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1110,6 +1175,13 @@ export default function EncuestaResultados({ survey, onBack }) {
 .text-faltante.active {
     color: #f59e0b;
     border-color: #f59e0b;
+    transform: scale(1.02);
+}
+
+.text-certificado:hover,
+.text-certificado.active {
+    color: var(--operator-success);
+    border-color: var(--operator-success);
     transform: scale(1.02);
 }
 

@@ -2,6 +2,9 @@ import * as XLSX from "xlsx";
 
 export const exportExcel = (rows = [], survey = {}) => {
   const surveyName = survey.titulo || survey.nombre || "Encuesta";
+  const esCapacitacion = survey.tipo === "capacitacion";
+  const typeLabel = esCapacitacion ? "Capacitación" : "Encuesta";
+  const columnLabel = `Nombre de la ${typeLabel}`;
 
   const data = (rows || [])
     .filter((row) => row && !row.expiroSinResponder && row.nomina && row.nombre)
@@ -12,7 +15,7 @@ export const exportExcel = (rows = [], survey = {}) => {
       return {
         "Número de Nómina": row.nomina ?? "",
         Nombre: row.nombre ?? "",
-        "Nombre de la Encuesta": surveyName,
+        [columnLabel]: surveyName,
         Calificación: isMissingScore ? "Sin registro" : Number(row.puntuacion ?? row.calificacion ?? 0),
       };
     });
@@ -64,5 +67,8 @@ export const exportExcel = (rows = [], survey = {}) => {
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Resultados");
-  XLSX.writeFile(workbook, `${safeSurveyName}_resultados.xlsx`);
+  const fileName = esCapacitacion
+    ? `${safeSurveyName}_capacitacion_resultados.xlsx`
+    : `${safeSurveyName}_encuesta_resultados.xlsx`;
+  XLSX.writeFile(workbook, fileName);
 };

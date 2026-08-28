@@ -40,7 +40,9 @@ export const generatePersonalRecordPDF = async (payload) => {
 
   const { survey, rows = [], statusFilter = "todos" } = payload;
   const doc = new jsPDF();
-  const title = survey?.titulo || "Encuesta";
+  const esCapacitacion = survey?.tipo === "capacitacion";
+  const typeLabel = esCapacitacion ? "Capacitación" : "Encuesta";
+  const title = survey?.titulo || typeLabel;
   const subtitle = getPdfTitleByStatus(statusFilter);
   const pageWidth = doc.internal.pageSize.getWidth();
   const logo = await loadLogo();
@@ -64,7 +66,7 @@ export const generatePersonalRecordPDF = async (payload) => {
   }
 
   doc.setFontSize(15);
-  doc.text("Resultados de Encuesta", 105, 27, { align: "center" });
+  doc.text(`Resultados de ${typeLabel}`, 105, 27, { align: "center" });
 
   doc.setFontSize(13);
   doc.text(title, 105, 33, { align: "center" });
@@ -92,7 +94,7 @@ export const generatePersonalRecordPDF = async (payload) => {
       row.nomina || "—",
       row.nombre || "Sin nombre",
       row.area || "Sin área",
-      survey?.titulo || "Sin encuesta",
+      survey?.titulo || `Sin ${typeLabel.toLowerCase()}`,
       puntuacion,
     ];
   });
@@ -100,7 +102,7 @@ export const generatePersonalRecordPDF = async (payload) => {
   autoTable(doc, {
     startY: 51,
     margin: { left: 14, right: 14 },
-    head: [["Nómina", "Nombre de usuario", "Área", "Nombre de la encuesta", "Calificación de la encuesta"]],
+    head: [["Nómina", "Nombre de usuario", "Área", `Nombre de la ${typeLabel.toLowerCase()}`, `Calificación de la ${typeLabel.toLowerCase()}`]],
     body: dataRows,
     styles: {
       font: "helvetica",
