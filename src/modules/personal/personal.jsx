@@ -12,11 +12,12 @@ import {
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import Loader from "../../components/Loader";
+import { readSessionCache, writeSessionCache, readMemoryCache, writeMemoryCache } from "../../utils/cacheStore";
 import {
   getAllowedUsersForPersonal,
   canAccessPersonalSection,
 } from "../../services/personalConfig";
-import { getUsers } from "../../services/usersService";
+import { getUsersPageData } from "../../services/usersService";
 import ReconocimientoModal from "./components/reconocimiento";
 import IncidenciaModal from "./components/incidencia";
 import RecordDetailModal from "./components/RecordDetailModal";
@@ -124,7 +125,9 @@ const buildAllRecordsFromSnapshots = ({
   historialesMedicos: mapMedicalHistoryRecords(ordenesSnapshot.docs),
 });
 
-const chunkArray = (items = [], size = 30) => {
+const BATCH_IN_QUERY_LIMIT = 10;
+
+const chunkArray = (items = [], size = BATCH_IN_QUERY_LIMIT) => {
   const chunks = [];
   for (let index = 0; index < items.length; index += size) {
     chunks.push(items.slice(index, index + size));
@@ -142,20 +145,34 @@ const dedupeRecords = (records = []) => {
   });
 };
 
-const fetchUserScopedRecords = async (usuarios = []) => {
+const getPersonalRecordsCacheKey = (usuarioActual) => {
+  if (!usuarioActual) return "sii-aqua-personal-records:anon";
+
+  const uid = usuarioActual?.uid || usuarioActual?.id || usuarioActual?.nomina || "anon";
+  return `sii-aqua-personal-records:${String(uid)}`;
+};
+
+const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null) => {
+  const cacheKey = getPersonalRecordsCacheKey(usuarioActual);
+  const cachedRecords = readMemoryCache(cacheKey) ?? readSessionCache(cacheKey);
+  if (cachedRecords) {
+    return cachedRecords;
+  }
+
   const validUsers = (usuarios || []).filter((user) => user && (user.id || user.uid || user.nomina));
   if (!validUsers.length) {
-    return {
+    const empty = {
       reconocimientos: [],
       incidencias: [],
       incapacidades: [],
       historialesMedicos: [],
     };
+    writeSessionCache(cacheKey, empty);
+    return empty;
   }
 
   const userIds = [...new Set(validUsers.map((user) => String(user.id || user.uid || "").trim()).filter(Boolean))];
   const nominas = [...new Set(validUsers.map((user) => String(user.nomina || "").trim()).filter((value) => value && /^\d+$/.test(value)))];
-  const numericNominas = nominas.map(Number).filter((value) => Number.isFinite(value));
 
   const recognitionQueries = [];
   const incidenceQueries = [];
@@ -163,7 +180,7 @@ const fetchUserScopedRecords = async (usuarios = []) => {
   const medicalQueries = [];
 
   if (userIds.length) {
-    chunkArray(userIds, 30).forEach((chunk) => {
+    chunkArray(userIds, BATCH_IN_QUERY_LIMIT).forEach((chunk) => {
       recognitionQueries.push(query(collection(db, "reconocimientos"), where("empleadoId", "in", chunk)));
       incidenceQueries.push(query(collection(db, "incidencias_personal"), where("empleadoId", "in", chunk)));
       incapacidadQueries.push(query(collection(db, "incapacidades"), where("userId", "in", chunk)));
@@ -172,12 +189,17 @@ const fetchUserScopedRecords = async (usuarios = []) => {
   }
 
   if (nominas.length) {
-    chunkArray(nominas, 30).forEach((chunk) => {
+    chunkArray(nominas, BATCH_IN_QUERY_LIMIT).forEach((chunk) => {
+      const numericChunk = chunk.map(Number).filter((value) => Number.isFinite(value));
       recognitionQueries.push(query(collection(db, "reconocimientos"), where("empleadoNomina", "in", chunk)));
       incidenceQueries.push(query(collection(db, "incidencias_personal"), where("empleadoNomina", "in", chunk)));
-      incapacidadQueries.push(query(collection(db, "incapacidades"), where("nomina", "in", chunk.map(Number).filter((value) => Number.isFinite(value)))));
+      if (numericChunk.length) {
+        incapacidadQueries.push(query(collection(db, "incapacidades"), where("nomina", "in", numericChunk)));
+      }
       medicalQueries.push(query(collection(db, "ordenes_medicas"), where("nominaPaciente", "in", chunk)));
-      medicalQueries.push(query(collection(db, "ordenes_medicas"), where("nominaPacienteNum", "in", chunk.map(Number).filter((value) => Number.isFinite(value)))));
+      if (numericChunk.length) {
+        medicalQueries.push(query(collection(db, "ordenes_medicas"), where("nominaPacienteNum", "in", numericChunk)));
+      }
     });
   }
 
@@ -188,7 +210,7 @@ const fetchUserScopedRecords = async (usuarios = []) => {
     Promise.all(medicalQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
   ]);
 
-  return {
+  const records = {
     reconocimientos: reconocimientosSnap,
     incidencias: incidenciasSnap,
     incapacidades: incapacidadesSnap,
@@ -202,6 +224,10 @@ const fetchUserScopedRecords = async (usuarios = []) => {
       }))
     ),
   };
+
+  writeMemoryCache(cacheKey, records);
+  writeSessionCache(cacheKey, records);
+  return records;
 };
 
 export default function Personal() {
@@ -245,12 +271,11 @@ export default function Personal() {
   useEffect(() => {
     const fetchUsersAndRecords = async () => {
       try {
-        const usersData = await getUsers();
-        const syncedUsers = await syncUsersWithIncapacidades(usersData);
+        const { users: syncedUsers } = await getUsersPageData();
         setUsuarios(syncedUsers);
 
         const allowedUsers = getAllowedUsersForPersonal(syncedUsers, user);
-        const scopedRecords = await fetchUserScopedRecords(allowedUsers.length ? allowedUsers : syncedUsers);
+        const scopedRecords = await fetchUserScopedRecords(allowedUsers.length ? allowedUsers : syncedUsers, user);
         setAllRecords(scopedRecords);
       } catch (error) {
         console.error("Error cargando personal y registros:", error);
@@ -405,7 +430,7 @@ export default function Personal() {
         <span className="badge-title">AQUA Médica</span>
       </div>
 
-      <div className="filter-container" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+      <div className="filter-container">
         <input
           type="text"
           className="personal-filter-input"
@@ -703,11 +728,17 @@ export default function Personal() {
         }
 
         .filter-container {
+          width: 100%;
+          align-items: flex-end;
+          border-radius: 30px;
+          border: 1px solid var(--operator-border);
           display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-          margin-bottom: 16px;
-          justify-content: flex-end;
+          background: var(--operator-card);
+          margin-bottom: 20px;
+          padding: 30px;
+          box-shadow: 0 8px 25px var(--operator-shadow);
+          gap: 20px;
+          justify-content: end;
         }
 
         .personal-filter-input {

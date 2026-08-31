@@ -2,10 +2,6 @@ import {
     useState
 } from "react";
 
-import jsPDF from "jspdf";
-
-import autoTable from "jspdf-autotable";
-
 import {
     notifyError
 } from "../../../utils/notify";
@@ -93,6 +89,11 @@ export default function RackPdfModal({
             |--------------------------------------------------------------------------
             */
 
+            const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+                import("jspdf"),
+                import("jspdf-autotable")
+            ]);
+            const autoTable = autoTableModule.default || autoTableModule;
             const doc = new jsPDF();
             const img = await new Promise((resolve, reject) => {
                 const image = new Image();

@@ -14,10 +14,43 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../config/firebase";
+import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
 import { actualizarRack } from "./rackService";
 
 const COLLECTION = "rack_stock";
+const RACK_STOCK_CACHE_KEY = "sii-aqua-rack-stock-cache";
 
+const getRackStockCacheKey = (rackId) =>
+    rackId ? `${RACK_STOCK_CACHE_KEY}:${String(rackId)}` : RACK_STOCK_CACHE_KEY;
+
+const formatStockData = (data = []) => {
+    return [...(data || [])].sort((a, b) => {
+        const fechaA = Number(a?.createdAt?.seconds || a?.fechaEntrada || 0);
+        const fechaB = Number(b?.createdAt?.seconds || b?.fechaEntrada || 0);
+        return fechaA - fechaB;
+    });
+};
+
+const refreshRackStockCaches = async (rackId = null) => {
+    const snap = await getDocs(query(
+        collection(db, COLLECTION),
+        where("activo", "==", true)
+    ));
+
+    const stock = formatStockData(snap.docs.map(docItem => ({
+        id: docItem.id,
+        ...docItem.data()
+    })));
+
+    writeCachedData(RACK_STOCK_CACHE_KEY, stock);
+
+    if (rackId) {
+        const rackStock = stock.filter(item => String(item.rackId) === String(rackId));
+        writeCachedData(getRackStockCacheKey(rackId), rackStock);
+    }
+
+    return stock;
+};
 const normalizarTipo = (valor = "") => String(valor || "").toLowerCase().trim();
 
 const obtenerCapacidadPorTipo = (rack = {}) => ({
@@ -240,6 +273,8 @@ export const crearStock = async (data) => {
         }
     }
 
+    await refreshRackStockCaches(data?.rackId || null);
+    clearCachedData(getRackStockCacheKey(data?.rackId || "all"));
     return stockRef;
 };
 /*
@@ -254,11 +289,16 @@ export const actualizarCantidadStock = async (
 ) => {
 
     const ref = doc(db, COLLECTION, stockId);
+    const currentSnap = await getDoc(ref);
+    const rackId = currentSnap.exists() ? currentSnap.data()?.rackId : null;
 
     await updateDoc(ref, {
         cantidadActual: Number(cantidadActual),
         updatedAt: serverTimestamp()
     });
+
+    await refreshRackStockCaches(rackId || null);
+    clearCachedData(getRackStockCacheKey(rackId || "all"));
 };
 
 /*
@@ -270,8 +310,12 @@ export const actualizarCantidadStock = async (
 export const eliminarStock = async (stockId) => {
 
     const ref = doc(db, COLLECTION, stockId);
+    const currentSnap = await getDoc(ref);
+    const rackId = currentSnap.exists() ? currentSnap.data()?.rackId : null;
 
     await deleteDoc(ref);
+    await refreshRackStockCaches(rackId || null);
+    clearCachedData(getRackStockCacheKey(rackId || "all"));
 };
 
 export const actualizarColorStockPorItem = async (itemId, color) => {
@@ -309,6 +353,11 @@ export const obtenerStockPEPS = async (
     rackId,
     itemId
 ) => {
+    const cacheKey = `${RACK_STOCK_CACHE_KEY}:peps:${String(rackId || "all")}:${String(itemId || "all")}`;
+    const cached = readCachedData(cacheKey);
+    if (cached) {
+        return cached;
+    }
 
     const q = query(
         collection(db, COLLECTION),
@@ -321,11 +370,13 @@ export const obtenerStockPEPS = async (
     );
 
     const snap = await getDocs(q);
-
-    return snap.docs.map(docItem => ({
+    const stock = snap.docs.map(docItem => ({
         id: docItem.id,
         ...docItem.data()
     }));
+
+    writeCachedData(cacheKey, stock);
+    return stock;
 };
 
 
@@ -625,26 +676,15 @@ export const suscribirStockPorRack = (
 
     return onSnapshot(q, (snapshot) => {
 
-        const data = snapshot.docs.map(docItem => ({
+        const data = formatStockData(snapshot.docs.map(docItem => ({
 
             id: docItem.id,
 
             ...docItem.data()
 
-        }));
+        })));
 
-        data.sort((a, b) => {
-
-            const fechaA =
-                a.createdAt?.seconds || 0;
-
-            const fechaB =
-                b.createdAt?.seconds || 0;
-
-            return fechaA - fechaB;
-
-        });
-
+        writeCachedData(getRackStockCacheKey(rackId), data);
         callback(data);
 
     });
@@ -674,14 +714,15 @@ export const suscribirStock = (
 
     return onSnapshot(q, (snapshot) => {
 
-        const stock = snapshot.docs.map(doc => ({
+        const stock = formatStockData(snapshot.docs.map(doc => ({
 
             id: doc.id,
 
             ...doc.data()
 
-        }));
+        })));
 
+        writeCachedData(RACK_STOCK_CACHE_KEY, stock);
         callback(stock);
 
     });
@@ -696,6 +737,11 @@ export const suscribirStock = (
 */
 
 export const obtenerStockPorRack = async (rackId) => {
+    const cacheKey = getRackStockCacheKey(rackId);
+    const cached = readCachedData(cacheKey);
+    if (cached) {
+        return cached;
+    }
 
     const q = query(
         collection(db, COLLECTION),
@@ -707,21 +753,12 @@ export const obtenerStockPorRack = async (rackId) => {
 
     const snap = await getDocs(q);
 
-    const data = snap.docs.map(docItem => ({
+    const data = formatStockData(snap.docs.map(docItem => ({
         id: docItem.id,
         ...docItem.data()
-    }));
+    })));
 
-    return data.sort((a, b) => {
-
-        const fechaA =
-            a.createdAt?.seconds || 0;
-
-        const fechaB =
-            b.createdAt?.seconds || 0;
-
-        return fechaA - fechaB;
-
-    });
+    writeCachedData(cacheKey, data);
+    return data;
 
 };

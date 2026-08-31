@@ -49,7 +49,7 @@ export default function MaterialesPage() {
         </div>
       </div>
 
-      <div className="mb-3-header">
+      <div className="contenedor-header">
         <div className="filter-page">
           <FiltersMateriales filters={filters} setFilters={setFilters} />
 
@@ -110,14 +110,20 @@ export default function MaterialesPage() {
           box-shadow: 0 0px 20px var(--operator-primary-light);
         }
 
-        .mb-3-header {
-          display: flex;
-          justify-content: flex-end;
-          align-items: center;
-          gap: 10px;
-        margin-bottom: 20px;
-
+        .contenedor-header {
+            width: 100%;
+            align-items: flex-end;
+            border-radius: 30px;
+            border: 1px solid var(--operator-border);
+            display: flex;
+            background: var(--operator-card);
+            margin-bottom: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 25px var(--operator-shadow);
+            gap: 20px;
+            justify-content: end;
         }
+            
         .filter-page {
           display: flex;
           align-items: center;

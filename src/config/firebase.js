@@ -4,6 +4,7 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 import { getMessaging } from "firebase/messaging";
+import { FIREBASE_BOOTSTRAP_CACHE_KEY, writeMemoryCache, writeSessionCache } from "../utils/cacheStore";
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -15,6 +16,16 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+const firebaseBootState = {
+    projectId: firebaseConfig.projectId,
+    appId: firebaseConfig.appId,
+    bootedAt: Date.now(),
+    ready: true,
+};
+
+writeMemoryCache(FIREBASE_BOOTSTRAP_CACHE_KEY, firebaseBootState);
+writeSessionCache(FIREBASE_BOOTSTRAP_CACHE_KEY, firebaseBootState);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);

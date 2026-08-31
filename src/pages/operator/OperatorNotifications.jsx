@@ -69,17 +69,22 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
             try {
                 const q = query(
                     collection(db, "notificaciones"),
-                    where("IdUsuario", "==", currentUserId),
-                    orderBy("fechaCreacion", "desc"),
-                    limit(50)
+                    where("IdUsuario", "==", currentUserId)
                 );
 
                 const snapshot = await getDocs(q);
                 const notifs = filterDismissedNotifications(
-                    snapshot.docs.map(docItem => ({
-                        id: docItem.id,
-                        ...docItem.data()
-                    }))
+                    snapshot.docs
+                        .map(docItem => ({
+                            id: docItem.id,
+                            ...docItem.data()
+                        }))
+                        .sort((a, b) => {
+                            const aTime = a.fechaCreacion?.toDate ? a.fechaCreacion.toDate().getTime() : new Date(a.fechaCreacion || 0).getTime();
+                            const bTime = b.fechaCreacion?.toDate ? b.fechaCreacion.toDate().getTime() : new Date(b.fechaCreacion || 0).getTime();
+                            return bTime - aTime;
+                        })
+                        .slice(0, 50)
                 );
 
                 if (!cancelled) {

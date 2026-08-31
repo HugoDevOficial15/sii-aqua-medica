@@ -1,5 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import logoImg from "./img/logo2.jpg";
 
 const AREA_ORDER = [
@@ -157,6 +155,11 @@ export const exportMantenimientoPDF = async ({
 
         const orderedServicios = sortServicios(servicios);
 
+        const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+            import("jspdf"),
+            import("jspdf-autotable")
+        ]);
+        const autoTable = autoTableModule.default || autoTableModule;
         const pdf = new jsPDF({
             orientation: "landscape",
             unit: "mm",

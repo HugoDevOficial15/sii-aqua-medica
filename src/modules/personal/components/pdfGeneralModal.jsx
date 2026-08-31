@@ -1,7 +1,5 @@
 import { useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { db } from "../../../config/firebase";
 import logo2Image from "../../../utils/img/logo2.jpg";
 import { notifyError } from "../../../utils/notify";
@@ -488,6 +486,11 @@ export default function PdfGeneralModal({
           return bTime - aTime;
         });
 
+      const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable")
+      ]);
+      const autoTable = autoTableModule.default || autoTableModule;
       const doc = new jsPDF();
       const fileName = `reporte-personal-${new Date().toISOString().slice(0, 10)}.pdf`;
       const fechaActual = new Date().toLocaleDateString("es-MX", {

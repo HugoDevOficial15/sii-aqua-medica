@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { addDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, getDocs, serverTimestamp, writeBatch } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
 import { createNotification } from "../../../utils/createNotification";
+import { invalidateCacheGroup } from "../../../utils/cacheStore";
 import { notifyError } from "../../../utils/notify";
 
 export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
@@ -17,6 +18,20 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
   const [error, setError] = useState("");
 
   if (!empleado) return null;
+
+  const resolveUserFirestoreDocId = (empleadoData) => {
+    const candidates = [
+      empleadoData?.docId,
+      empleadoData?.id,
+      empleadoData?.uid,
+      empleadoData?.uidFirebase,
+      empleadoData?.firebaseUid,
+      empleadoData?.userUid,
+    ];
+
+    const found = candidates.find((value) => typeof value === "string" && value.trim().length > 0);
+    return found ? String(found).trim() : null;
+  };
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -37,7 +52,13 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
     setError("");
 
     try {
+      const userDocId = resolveUserFirestoreDocId(empleado);
+      if (!userDocId) {
+        throw new Error("No se encontró el id del documento del usuario para crear la ruta de incidencias.");
+      }
+
       const payload = {
+        usuarioDocId: userDocId,
         empleadoId: empleado.id || empleado.uid || null,
         empleadoNombre: empleado.nombre || "Trabajador",
         empleadoNomina: empleado.nomina || "",
@@ -54,7 +75,24 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
         createdAt: serverTimestamp(),
       };
 
-      const docRef = await addDoc(collection(db, "incidencias_personal"), payload);
+      const globalRef = doc(collection(db, "incidencias_personal"));
+      const anioActual = new Date().getFullYear();
+      const userYearIncidenciaCollection = collection(
+        db,
+        "users",
+        userDocId,
+        String(anioActual),
+        "informacion",
+        "Incidencias"
+      );
+      const userYearIncidenciaRef = doc(userYearIncidenciaCollection);
+
+      const batch = writeBatch(db);
+      batch.set(globalRef, { ...payload, id: globalRef.id });
+      batch.set(userYearIncidenciaRef, { ...payload, id: userYearIncidenciaRef.id, createdAt: serverTimestamp() });
+      await batch.commit();
+
+      invalidateCacheGroup("sii-aqua-personal-records:");
 
       const uidDestino = empleado?.uid || empleado?.uidFirebase || empleado?.firebaseUid || null;
 
@@ -72,7 +110,7 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
         Destino: "incidencias",
         Accion: "incidencia",
         extra: {
-          incidenciaId: docRef.id,
+          incidenciaId: globalRef.id,
           empleadoId: payload.empleadoId,
           prioridad: form.prioridad,
         },

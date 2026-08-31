@@ -223,31 +223,27 @@ export default function News() {
           estado: "Activa"
         });
 
-        // Obtener usuarios (operadores solo)
-        let usersSnapshot = await getDocs(query(collection(db, "users")));
+        // Obtener solo usuarios operadores y, si aplica, del área destino
+        const baseUsersQuery = areaDestino === "Todas"
+          ? query(collection(db, "users"), where("rol", "==", "operador"))
+          : query(
+              collection(db, "users"),
+              where("rol", "==", "operador"),
+              where("area", "==", areaDestino)
+            );
+
+        let usersSnapshot = await getDocs(baseUsersQuery);
 
         if (usersSnapshot.docs.length === 0) {
-          usersSnapshot = await getDocs(query(collection(db, "usuarios")));
+          const fallbackQuery = areaDestino === "Todas"
+            ? query(collection(db, "usuarios"), where("rol", "==", "operador"))
+            : query(
+                collection(db, "usuarios"),
+                where("rol", "==", "operador"),
+                where("area", "==", areaDestino)
+              );
+          usersSnapshot = await getDocs(fallbackQuery);
         }
-
-        // Filtrar: solo operadores del área destino
-        usersSnapshot = {
-          docs: usersSnapshot.docs.filter(doc => {
-            const userData = doc.data();
-            const rol = userData.rol || userData.Rol || "";
-
-            if (!rol.toLowerCase().includes("operador")) {
-              return false;
-            }
-
-            if (areaDestino === "Todas") {
-              return true;
-            }
-
-            const userArea = userData.area || userData.Area;
-            return userArea === areaDestino;
-          })
-        };
 
         // Usar batch para crear todas las notificaciones de una vez
         const batch = writeBatch(db);
@@ -302,8 +298,10 @@ export default function News() {
           </strong></h6>
           <span className="badge-title">AQUA Médica</span>
         </div>
+      </div>
+      <div className="contenedor-header">
         {vistaActual === "lista" ? (
-          <button className="btn btn-primary "
+          <button className="btn btn-sm btn-primary btn-custom "
            onClick={abrirFormularioCrear}>
             + Crear Noticia
           </button>
@@ -478,6 +476,20 @@ export default function News() {
         .table-responsive {
           padding: 6px;
           border-radius: 18px;
+        }
+
+        .contenedor-header {
+          width: 100%;
+          align-items: flex-end;
+          border-radius: 30px;
+          border: 1px solid var(--operator-border);
+          display: flex;
+          background: var(--operator-card);
+          margin-bottom: 20px;
+          padding: 30px;
+          box-shadow: 0 8px 25px var(--operator-shadow);
+          gap: 20px;
+          justify-content: end;
         }
 
         /* BOTONES */

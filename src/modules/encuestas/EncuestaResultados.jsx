@@ -13,17 +13,9 @@ import {
   FaPen
 } from "react-icons/fa";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-
 import Loader from "../../components/Loader";
+
+const chartModulesPromise = import("recharts");
 
 import { db } from "../../config/firebase";
 import { collection, doc, onSnapshot, query, where, writeBatch } from "firebase/firestore";
@@ -38,21 +30,10 @@ import { generatePersonalRecordPDF } from "./components/PdfGenerator";
 import CalificarEncuesta from "./components/calificar";
 import { notifySuccess, notifyError } from "../../utils/notify";
 
-const GENERO_OPTIONS = [
-  { value: "", label: "Todos los generos" },
-  { value: "H", label: "Masculino" },
-  { value: "M", label: "Femenino" },
-];
-
-const GENERO_LABEL = {
-  H: "Masculino",
-  M: "Femenino",
-};
 
 const emptyFilters = {
   busqueda: "",
   area: "",
-  genero: "",
   puesto: "",
 };
 
@@ -61,6 +42,7 @@ export default function EncuestaResultados({ survey, onBack }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [chartLib, setChartLib] = useState(null);
   const [statusFilter, setStatusFilter] = useState("todos");
   const [tablePage, setTablePage] = useState(1);
   const [assignedPage, setAssignedPage] = useState(1);
@@ -87,6 +69,19 @@ export default function EncuestaResultados({ survey, onBack }) {
       );
     }
   };
+
+  useEffect(() => {
+    let active = true;
+
+    chartModulesPromise.then((recharts) => {
+      if (!active) return;
+      setChartLib(recharts);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!survey?.id) return undefined;
@@ -139,6 +134,16 @@ export default function EncuestaResultados({ survey, onBack }) {
 
     return map;
   }, [users]);
+
+  const {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+  } = chartLib || {};
 
   const latestResponses = useMemo(() => {
     const map = new Map();
@@ -282,7 +287,6 @@ export default function EncuestaResultados({ survey, onBack }) {
         nomina: String(nomina),
         nombre: perfil?.nombre || r.nombre || "—",
         area: perfil?.area || r.area || "—",
-        genero: perfil?.Genero || "",
         puesto: perfil?.puesto || "—",
         puntuacion,
         aprobada: !debeReprobar,
@@ -313,7 +317,6 @@ export default function EncuestaResultados({ survey, onBack }) {
           nomina: nomina || "—",
           nombre: user.nombre || "Sin nombre",
           area: user.area || perfil?.area || "—",
-          genero: perfil?.Genero || perfil?.genero || "",
           puesto: perfil?.puesto || "—",
           puntuacion: 0,
           aprobada: false,
@@ -349,10 +352,6 @@ export default function EncuestaResultados({ survey, onBack }) {
         return false;
       }
 
-      if (filters.genero && row.genero !== filters.genero) {
-        return false;
-      }
-
       if (filters.puesto && row.puesto !== filters.puesto) {
         return false;
       }
@@ -363,7 +362,7 @@ export default function EncuestaResultados({ survey, onBack }) {
 
   useEffect(() => {
     setTablePage(1);
-  }, [filters.busqueda, filters.area, filters.genero, filters.puesto]);
+  }, [filters.busqueda, filters.area, filters.puesto]);
 
   useEffect(() => {
     setAssignedPage(1);
@@ -554,8 +553,8 @@ export default function EncuestaResultados({ survey, onBack }) {
     }
   };
 
-  if (loading) {
-    return <Loader text="Cargando respuestas..." />;
+  if (loading || !chartLib) {
+    return <Loader text="Cargando resultados..." />;
   }
 
   return (
@@ -615,18 +614,6 @@ export default function EncuestaResultados({ survey, onBack }) {
 
             <select
               className="form-select"
-              value={filters.genero}
-              onChange={(e) => handleFilterChange("genero", e.target.value)}
-            >
-              {GENERO_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="form-select"
               value={filters.puesto}
               onChange={(e) => handleFilterChange("puesto", e.target.value)}
             >
@@ -668,9 +655,7 @@ export default function EncuestaResultados({ survey, onBack }) {
               <tr>
                 <th>Nómina</th>
                 <th>Nombre</th>
-                <th>Fecha de creación</th>
                 <th>Área</th>
-                <th>Género</th>
                 <th>Puesto</th>
                 <th>Puntaje</th>
                 <th>Estado</th>
@@ -690,9 +675,7 @@ export default function EncuestaResultados({ survey, onBack }) {
                 <tr key={row.id}>
                   <td>{row.nomina}</td>
                   <td>{row.nombre}</td>
-                  <td>{survey.fechaInicio || "—"}</td>
                   <td>{row.area}</td>
-                  <td>{GENERO_LABEL[row.genero] || "—"}</td>
                   <td>{row.puesto}</td>
                   <td>{formatPuntuacionDisplay(row)}</td>
                   <td>

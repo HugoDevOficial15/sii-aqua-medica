@@ -2,11 +2,18 @@ import { db } from "../config/firebase";
 import { query, where, writeBatch, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { readSessionCache, writeSessionCache, clearCachedData } from "../utils/cacheStore";
 
 const trainingCollection = collection(db, "capacitaciones");
+const CACHE_KEY = "sii-aqua-trainings-cache";
 
 // Obtener capacitaciones (del admin que las crea)
 export const getTrainings = async () => {
+    const cached = readSessionCache(CACHE_KEY);
+    if (cached) {
+        return cached;
+    }
+
     const auth = getAuth();
 
     const q = query(
@@ -21,12 +28,14 @@ export const getTrainings = async () => {
         ...doc.data()
     }));
 
+    writeSessionCache(CACHE_KEY, trainings);
     return trainings;
 }
 
 // Crear capacitación y notificar a usuarios asignados
 export const createTraining = async (trainingData) => {
     const trainingRef = await addDoc(trainingCollection, trainingData);
+    clearCachedData(CACHE_KEY);
 
     // Crear notificaciones para usuarios asignados usando consultas filtradas y no la colección entera.
     try {
@@ -100,6 +109,7 @@ export const createTraining = async (trainingData) => {
 export const updateTraining = async (id, data) => {
     const ref = doc(db, "capacitaciones", id);
     await updateDoc(ref, data);
+    clearCachedData(CACHE_KEY);
 }
 
 // Borrar

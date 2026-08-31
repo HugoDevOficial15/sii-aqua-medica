@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../../config/firebase";
-import { createIncapacidad, getIncapacidadesByUser, getUsers, updateUser } from "../../../services/usersService";
+import {
+  createIncapacidad,
+  getIncapacidadesByUser,
+  getIncapacidadesByUsers,
+  getUsers,
+  updateUser,
+} from "../../../services/usersService";
 import { notifyError } from "../../../utils/notify";
 
 export const isWoman = (usuario) => {
@@ -32,24 +36,25 @@ export const getTodayDate = () => {
 export const hasActiveIncapacidad = (usuario, incapacidades = []) => {
   if (!usuario || usuario.activo === false) return false;
 
+  const estadoActual = String(usuario?.estado || "").trim().toLowerCase();
+  if (estadoActual === "incapacidad") {
+    return true;
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const active = incapacidades.some((incapacidad) => {
+  return incapacidades.some((incapacidad) => {
     const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
     const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
     const startOk = !fechaInicio || fechaInicio <= today;
     const endOk = !fechaFin || fechaFin >= today;
     return startOk && endOk;
   });
-
-  return active || String(usuario?.estado || "").trim().toLowerCase() === "incapacidad";
 };
 
 export const getUserStatusBadge = (usuario, hasActive = false) => {
-  const estado = String(usuario?.estado || "").trim().toLowerCase();
-
-  if (estado === "incapacidad" || hasActive) {
+  if (hasActive) {
     return {
       label: "Incapacidad",
       className: "personal-status-badge warning",
@@ -83,8 +88,6 @@ export const syncUserIncapacidadStatus = async (usuario, incapacidades = []) => 
     return startOk && endOk;
   });
 
-  const hasStaleStatus = String(usuario?.estado || "").trim().toLowerCase() === "incapacidad" && !activeIncapacidad;
-
   if (activeIncapacidad && String(usuario?.estado || "").trim().toLowerCase() !== "incapacidad") {
     await updateUser(usuario.id, {
       estado: "incapacidad",
@@ -97,19 +100,7 @@ export const syncUserIncapacidadStatus = async (usuario, incapacidades = []) => 
     return true;
   }
 
-  if (hasStaleStatus) {
-    await updateUser(usuario.id, {
-      estado: "activo",
-      activo: true,
-      tipoIncapacidad: "",
-      fechaInicioIncapacidad: null,
-      fechaFinIncapacidad: null,
-      notaIncapacidad: "",
-    });
-    return true;
-  }
-
-  return false;
+  return Boolean(activeIncapacidad);
 };
 
 export const syncUsersWithIncapacidades = async (usersData = []) => {
@@ -118,25 +109,13 @@ export const syncUsersWithIncapacidades = async (usersData = []) => {
   }
 
   try {
-    const incapacidadesSnapshot = await getDocs(collection(db, "incapacidades"));
-    const incapacidadesByUser = new Map();
-    const incapacidadesByNomina = new Map();
+    const userIds = usersData
+      .map((usuario) => usuario?.id)
+      .filter(Boolean);
 
-    incapacidadesSnapshot.docs.forEach((docSnap) => {
-      const data = { id: docSnap.id, ...docSnap.data() };
-      const userId = data.userId ? String(data.userId) : null;
-      const nomina = data.nomina !== null && data.nomina !== undefined && data.nomina !== "" ? String(data.nomina) : null;
-
-      if (userId) {
-        const current = incapacidadesByUser.get(userId) || [];
-        incapacidadesByUser.set(userId, [...current, data]);
-      }
-
-      if (nomina) {
-        const current = incapacidadesByNomina.get(nomina) || [];
-        incapacidadesByNomina.set(nomina, [...current, data]);
-      }
-    });
+    const incapacidadesByUser = userIds.length
+      ? await getIncapacidadesByUsers(userIds, usersData)
+      : {};
 
     const syncedUsers = await Promise.all(
       usersData.map(async (usuario) => {
@@ -155,8 +134,11 @@ export const syncUsersWithIncapacidades = async (usersData = []) => {
             });
           };
 
-          if (userId) addItems(incapacidadesByUser.get(userId) || []);
-          if (nomina) addItems(incapacidadesByNomina.get(nomina) || []);
+          if (userId) addItems(incapacidadesByUser[userId] || []);
+          if (nomina) {
+            const byNomina = Object.values(incapacidadesByUser).flat().filter((incapacidad) => String(incapacidad?.nomina ?? "") === nomina);
+            addItems(byNomina);
+          }
 
           const activeIncapacidad = incapacidades.some((incapacidad) => {
             const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
@@ -256,23 +238,11 @@ export const useUserIncapacidades = (usuarios = []) => {
 
     const loadUserIncapacidades = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "incapacidades"));
-        const byUser = {};
-        const byNomina = {};
+        const userIds = usuarios
+          .map((usuario) => usuario?.id)
+          .filter(Boolean);
 
-        snapshot.docs.forEach((docSnap) => {
-          const item = { id: docSnap.id, ...docSnap.data() };
-          const userId = item.userId ? String(item.userId) : null;
-          const nomina = item.nomina !== null && item.nomina !== undefined && item.nomina !== "" ? String(item.nomina) : null;
-
-          if (userId) {
-            byUser[userId] = [...(byUser[userId] || []), item];
-          }
-
-          if (nomina) {
-            byNomina[nomina] = [...(byNomina[nomina] || []), item];
-          }
-        });
+        const byUser = userIds.length ? await getIncapacidadesByUsers(userIds, usuarios) : {};
 
         const map = {};
 
@@ -291,7 +261,10 @@ export const useUserIncapacidades = (usuarios = []) => {
           };
 
           if (uid) addItems(byUser[uid] || []);
-          if (nomina) addItems(byNomina[nomina] || []);
+          if (nomina) {
+            const byNomina = Object.values(byUser).flat().filter((item) => String(item?.nomina ?? "") === nomina);
+            addItems(byNomina);
+          }
 
           map[usuario.id] = items.sort((a, b) => {
             const aDate = a.fechaInicio ? new Date(a.fechaInicio).getTime() : 0;

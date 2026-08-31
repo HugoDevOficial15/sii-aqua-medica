@@ -1,15 +1,24 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { PreferencesContext } from "./PreferencesContext";
+import { FONT_SIZE_CACHE_KEY, THEME_CACHE_KEY, readMemoryCache, writeMemoryCache } from "../utils/cacheStore";
 
-const THEME_KEY = "theme";
-const FONT_SIZE_KEY = "fontSize";
+const THEME_KEY = THEME_CACHE_KEY;
+const FONT_SIZE_KEY = FONT_SIZE_CACHE_KEY;
 
 const VALID_THEMES = ["light", "dark", "system"];
 const VALID_FONT_SIZES = ["small", "normal", "large"];
 
 function readStored(key, validValues, fallback) {
+    const memoryValue = readMemoryCache(key);
+    if (validValues.includes(memoryValue)) {
+        return memoryValue;
+    }
+
     const stored = localStorage.getItem(key);
-    return validValues.includes(stored) ? stored : fallback;
+    const nextValue = validValues.includes(stored) ? stored : fallback;
+
+    writeMemoryCache(key, nextValue);
+    return nextValue;
 }
 
 function getSystemTheme() {
@@ -54,12 +63,14 @@ export function PreferencesProvider({ children }) {
     const setTheme = useCallback((value) => {
         if (!VALID_THEMES.includes(value)) return;
         setThemeState(value);
+        writeMemoryCache(THEME_KEY, value);
         localStorage.setItem(THEME_KEY, value);
     }, []);
 
     const setFontSize = useCallback((value) => {
         if (!VALID_FONT_SIZES.includes(value)) return;
         setFontSizeState(value);
+        writeMemoryCache(FONT_SIZE_KEY, value);
         localStorage.setItem(FONT_SIZE_KEY, value);
     }, []);
 

@@ -1,5 +1,7 @@
 import { Await } from "react-router-dom";
 import { db } from "../config/firebase";
+import { clearSurveyCaches } from "./encuestasService";
+import { readSessionCache, writeSessionCache, clearCachedData } from "../utils/cacheStore";
 
 import { query, where, getDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
@@ -7,6 +9,7 @@ import { getAuth } from "firebase/auth";
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
 
 const surveyCollection = collection(db, "encuestas");
+const CACHE_KEY = "sii-aqua-surveys-cache";
 
 // AVISAR A NUEVOS ASIGNADOS
 
@@ -121,6 +124,10 @@ const createSurveyNotificationsBatch = async (surveyData, surveyId, usersToNotif
 
 // Obtener encuestas
 export const getSurveys = async () => {
+    const cached = readSessionCache(CACHE_KEY);
+    if (cached) {
+        return cached;
+    }
 
     const auth = getAuth();
 
@@ -136,6 +143,7 @@ export const getSurveys = async () => {
         ...doc.data()
     }));
 
+    writeSessionCache(CACHE_KEY, surveys);
     return surveys;
 }
 
@@ -150,6 +158,9 @@ export const createSurvey = async (surveyData) => {
         console.error("Error creando notificaciones para encuesta:", error);
     }
 
+    clearSurveyCaches();
+    clearCachedData(CACHE_KEY);
+
 }
 
 // Actualizar
@@ -162,6 +173,9 @@ export const updateSurvey = async (id, data) => {
     const nextSignature = getAssignmentSignature(data?.asignacion);
 
     await updateDoc(ref, data);
+
+    clearSurveyCaches();
+    clearCachedData(CACHE_KEY);
 
     if (!previousAssignment || previousSignature === nextSignature) {
         return;
@@ -187,5 +201,6 @@ export const deleteSurvey = async (id) => {
     const ref = doc(db, "encuestas", id);
 
     await deleteDoc(ref);
+    clearSurveyCaches();
 
 }

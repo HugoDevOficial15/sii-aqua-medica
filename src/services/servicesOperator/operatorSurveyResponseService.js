@@ -3,9 +3,11 @@ import { db } from "../../config/firebase";
 import {
     collection,
     addDoc,
+    doc,
     getDocs,
     query,
-    where
+    where,
+    writeBatch
 } from "firebase/firestore";
 
 // ============================================================
@@ -19,6 +21,19 @@ const responseCollection =
         "respuestasEncuestas"
     );
 
+const resolveUserDocIdByFirebaseUid = async (userId) => {
+    if (!userId) return null;
+
+    try {
+        const q = query(collection(db, "users"), where("uid", "==", userId));
+        const snapshot = await getDocs(q);
+        return snapshot.empty ? null : snapshot.docs[0].id;
+    } catch (error) {
+        console.error("Error resolviendo el docId del usuario para Resultados:", error);
+        return null;
+    }
+};
+
 // ======================
 // GUARDAR RESPUESTA
 // ======================
@@ -27,12 +42,30 @@ const responseCollection =
 // cálculos en tiempo real.
 export const saveSurveyResponse =
     async (data) => {
+        const responseRef = doc(responseCollection);
+        const userDocId = await resolveUserDocIdByFirebaseUid(data?.userId);
+        const anioActual = new Date().getFullYear();
 
-        await addDoc(
-            responseCollection,
-            data
-        );
+        const batch = writeBatch(db);
+        batch.set(responseRef, {
+            ...data,
+            id: responseRef.id,
+        });
 
+        if (userDocId) {
+            const userYearResultsRef = doc(
+                collection(db, "users", userDocId, String(anioActual), "informacion", "Resultados")
+            );
+
+            batch.set(userYearResultsRef, {
+                ...data,
+                id: userYearResultsRef.id,
+                usuarioDocId: userDocId,
+                createdAt: new Date().toISOString(),
+            });
+        }
+
+        await batch.commit();
     };
 
 // ======================

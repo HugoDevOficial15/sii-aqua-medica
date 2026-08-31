@@ -11,8 +11,10 @@ import {
     serverTimestamp
 } from 'firebase/firestore';
 import { sendAdminNotification } from '../utils/sendAdminNotification';
+import { readCachedData, writeCachedData, clearCachedData } from '../utils/cacheStore';
 
 const ideasCollection = collection(db, 'Ideas');
+const CACHE_KEY = 'sii-aqua-ideas-cache';
 
 export const createIdea = async ({ user, titulo, categoria, descripcion, imagenBase64, pdfBase64, pantalla }) => {
     const ideaDoc = {
@@ -57,9 +59,17 @@ export const createIdea = async ({ user, titulo, categoria, descripcion, imagenB
 };
 
 export const getAllIdeas = async () => {
+    const cached = readCachedData(CACHE_KEY);
+    if (cached) {
+        return cached;
+    }
+
     const q = query(ideasCollection, orderBy('fechaCreacion', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const ideas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    writeCachedData(CACHE_KEY, ideas);
+    return ideas;
 };
 
 export const getIdeasByUser = async (nomina) => {
@@ -76,5 +86,6 @@ export const updateIdeaStatus = async (ideaId, estado, comentarioAdmin, administ
         fechaRevision: serverTimestamp(),
         administradorRevision
     });
+    clearCachedData(CACHE_KEY);
     return { success: true };
 };

@@ -1,9 +1,8 @@
-import * as XLSX from "xlsx";
-
 // Genera un CSV con nomina, nombre, curp, rfc, nss para uno o varios
 // empleados (los campos vacíos quedan en blanco esperando ser completados),
 // y dispara la descarga en el navegador (misma mecánica que "Exportar Excel").
-export const generateEmployeeCSV = (employees, filename = "empleados_pendientes.csv") => {
+export const generateEmployeeCSV = async (employees, filename = "empleados_pendientes.csv") => {
+    const XLSX = await import("xlsx");
 
     const rows = employees.map((u) => ({
         nomina: u.nomina ?? "",

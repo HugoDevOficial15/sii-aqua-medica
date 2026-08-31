@@ -1,6 +1,5 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import logo2Image from "../../../utils/img/logo2.jpg";
+import { writeMemoryCache } from "../../../utils/cacheStore";
 
 const loadLogo = async () => {
   return new Promise((resolve) => {
@@ -38,6 +37,9 @@ const openPdfPreview = (doc, fileName) => {
 export const generatePersonalRecordPDF = async (payload) => {
   if (!payload) return null;
 
+  const { default: jsPDF } = await import("jspdf");
+  const autoTableModule = await import("jspdf-autotable");
+  const autoTable = autoTableModule.default || autoTableModule;
   const { survey, rows = [], statusFilter = "todos" } = payload;
   const doc = new jsPDF();
   const esCapacitacion = survey?.tipo === "capacitacion";
@@ -135,3 +137,5 @@ export const generatePersonalRecordPDF = async (payload) => {
     `${title.toLowerCase()}_${new Date().toISOString().slice(0, 10)}.pdf`,
   );
 };
+
+writeMemoryCache("pdf-generator-module", { generatePersonalRecordPDF });

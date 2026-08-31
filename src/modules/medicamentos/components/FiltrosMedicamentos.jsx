@@ -11,7 +11,7 @@ export const FiltrosMedicamentos = ({
     onExportPdf
 }) => {
     return (
-        <div className="d-flex gap-2 mb-3">
+        <div className="contenedor">
 
             <button className="btn btn-light" onClick={() => setFiltroSemaforo('todos')}>
                 Todos
@@ -58,33 +58,47 @@ export const FiltrosMedicamentos = ({
 
             <style>{`
 
+            .contenedor {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
             .btn-light {
+                align-items: center;
+                height: 50px;
                 color: black !important;
                 border-radius: 10px;
                 border: 1px solid var(--operator-border);
             }
 
             .btn-success {
+                height: 50px;
                 border-radius: 10px;
             }
 
             .btn-warning {
+                height: 50px;
                 border-radius: 10px;
             }
 
             .btn-danger {
+                height: 50px;
                 border-radius: 10px;
             }
 
             .btn-outline-dark {
+                height: 50px;
                 border-radius: 10px;
             }
 
             .btn-outline-primary {
+                height: 50px;
                 border-radius: 10px;
             }
 
             .btn-outline-secondary {
+                height: 50px;
                 border-radius: 10px;
             }
 

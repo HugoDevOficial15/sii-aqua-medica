@@ -1,41 +1,48 @@
-import { useState, useEffect } from "react";
-import { collection, getDocs, limit, orderBy, query, where } from "firebase/firestore";
+import { Suspense, lazy, useState, useEffect, useRef } from "react";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
-import { initPushNotifications, stopPushNotifications } from "../../services/pushNotificationService";
+import { useOperatorSurveys } from "../../hooks/hooksOperator/useOperatorSurveys";
+import { useOperatorTrainings } from "../../hooks/hooksOperator/useOperatorTrainings";
 
 import OperatorShell from "./layout/OperatorShell";
 
-import OperatorHome from "./OperatorHome";
-import OperatorSurveys from "./OperatorSurveys";
-import OperatorProfile from "./OperatorProfile";
-import OperatorMore from "./OperatorMore";
+const OperatorHome = lazy(() => import("./OperatorHome"));
+const OperatorSurveys = lazy(() => import("./OperatorSurveys"));
+const OperatorProfile = lazy(() => import("./OperatorProfile"));
+const OperatorMore = lazy(() => import("./OperatorMore"));
+const OperatorSuggestionDetail = lazy(() => import("./OperatorSuggestionDetail"));
+const OperatorSuggestionCreate = lazy(() => import("./OperatorSuggestionCreate"));
+const OperatorPoints = lazy(() => import("./OperatorPoints"));
+const OperatorRecognitions = lazy(() => import("./OperatorRecognitions"));
+const OperatorIncidences = lazy(() => import("./OperatorIncidences"));
+const OperatorTraining = lazy(() => import("./OperatorTraining"));
+const OperatorCertificates = lazy(() => import("./OperatorCertificates"));
+const OperatorNotifications = lazy(() => import("./OperatorNotifications"));
+const OperatorNews = lazy(() => import("./OperatorNews"));
+const OperatorNewsDetail = lazy(() => import("./OperatorNewsDetail"));
+const OperatorSurveyDetail = lazy(() => import("./OperatorSurveyDetail"));
+const OperatorSurveyResult = lazy(() => import("./OperatorSurveyResult"));
+const OperatorPreferences = lazy(() => import("./OperatorPreferences"));
+const OperatorSupport = lazy(() => import("./OperatorSupport"));
+const OperatorReportProblem = lazy(() => import("./OperatorReportProblem"));
+const OperatorLegal = lazy(() => import("./OperatorLegal"));
+const OperatorAbout = lazy(() => import("./OperatorAbout"));
+const OperadorCitasMedicas = lazy(() => import("./OperadorCitasMedicas"));
+const ExpedienteClinico = lazy(() => import("./ExpedienteClinico"));
 
-import OperatorSuggestionDetail from "./OperatorSuggestionDetail";
-import OperatorSuggestionCreate from "./OperatorSuggestionCreate";
-
-import OperatorPoints from "./OperatorPoints";
-import OperatorRecognitions from "./OperatorRecognitions";
-import OperatorIncidences from "./OperatorIncidences";
-import OperatorTraining from "./OperatorTraining";
-import OperatorCertificates from "./OperatorCertificates";
-import OperatorNotifications from "./OperatorNotifications";
-import OperatorNews from "./OperatorNews";
-
-import OperatorNewsDetail from "./OperatorNewsDetail";
-
-import OperatorSurveyDetail from "./OperatorSurveyDetail";
-import OperatorSurveyResult from "./OperatorSurveyResult";
-
-import OperatorPreferences from "./OperatorPreferences";
-import OperatorSupport from "./OperatorSupport";
-import OperatorReportProblem from "./OperatorReportProblem";
-import OperatorLegal from "./OperatorLegal";
-import OperatorAbout from "./OperatorAbout";
-import OperadorCitasMedicas from "./OperadorCitasMedicas";
-import ExpedienteClinico from "./ExpedienteClinico";
-import { useOperatorSurveys } from "../../hooks/hooksOperator/useOperatorSurveys";
-import { useOperatorTrainings } from "../../hooks/hooksOperator/useOperatorTrainings";
+const ScreenLoader = () => (
+    <div style={{
+        minHeight: "220px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#e2e8f0",
+        fontFamily: "sans-serif"
+    }}>
+        Cargando módulo...
+    </div>
+);
 
 export default function AppOperator() {
 
@@ -45,6 +52,7 @@ export default function AppOperator() {
     const [selectedSurvey, setSelectedSurvey] = useState(null);
     const [surveyResult, setSurveyResult] = useState(null);
     const [selectedNews, setSelectedNews] = useState(null);
+    const notificationCountKeyRef = useRef("");
 
     // Creamos un estado para guardar el número de notificaciones nuevas
     const [notificacionesCount, setNotificacionesCount] = useState(0);
@@ -55,7 +63,7 @@ export default function AppOperator() {
         loading: surveysLoading,
         error: surveysError,
         refetch: refetchSurveys
-    } = useOperatorSurveys();
+    } = useOperatorSurveys({ enabled: screen === "surveys" });
 
     const {
         trainings,
@@ -63,28 +71,44 @@ export default function AppOperator() {
         loading: trainingsLoading,
         error: trainingsError,
         refetch: refetchTrainings
-    } = useOperatorTrainings();
+    } = useOperatorTrainings({ enabled: screen === "training" });
 
-    // Contamos solo la cola de notificaciones del usuario actual.
+    // La cuenta de notificaciones solo se debe consultar cuando el usuario
+    // entra a la vista de notificaciones. El home no necesita ese fetch.
     useEffect(() => {
         const currentUserId = user?.uid || user?.id;
 
-        if (!currentUserId) {
+        if (!currentUserId || screen !== "notifications") {
+            notificationCountKeyRef.current = "";
             setNotificacionesCount(0);
             return;
         }
+
+        const cacheKey = `notif-count:${currentUserId}:${screen}`;
+        if (notificationCountKeyRef.current === cacheKey) {
+            return;
+        }
+
+        notificationCountKeyRef.current = cacheKey;
 
         const loadNotificationCount = async () => {
             try {
                 const q = query(
                     collection(db, "notificaciones"),
-                    where("IdUsuario", "==", currentUserId),
-                    orderBy("fechaCreacion", "desc"),
-                    limit(50)
+                    where("IdUsuario", "==", currentUserId)
                 );
 
                 const snapshot = await getDocs(q);
-                setNotificacionesCount(snapshot.size);
+                const notificacionesRecientes = snapshot.docs
+                    .map(docItem => ({ id: docItem.id, ...docItem.data() }))
+                    .sort((a, b) => {
+                        const aTime = a.fechaCreacion?.toDate ? a.fechaCreacion.toDate().getTime() : new Date(a.fechaCreacion || 0).getTime();
+                        const bTime = b.fechaCreacion?.toDate ? b.fechaCreacion.toDate().getTime() : new Date(b.fechaCreacion || 0).getTime();
+                        return bTime - aTime;
+                    })
+                    .slice(0, 50);
+
+                setNotificacionesCount(notificacionesRecientes.length);
             } catch (error) {
                 console.error("Error contando notificaciones del usuario:", error);
                 setNotificacionesCount(0);
@@ -92,28 +116,10 @@ export default function AppOperator() {
         };
 
         loadNotificationCount();
-    }, [user?.uid, user?.id]);
+    }, [user?.uid, user?.id, screen]);
 
-    // Carga puntual del perfil propio para evitar un listener en vivo continuo a Firestore.
-    useEffect(() => {
-        const uid = user?.uid;
-        if (!uid) return;
-
-        const syncUserProfile = async () => {
-            try {
-                const q = query(collection(db, "users"), where("uid", "==", uid));
-                const snapshot = await getDocs(q);
-
-                if (!snapshot.empty) {
-                    updateUserProfile(snapshot.docs[0].data());
-                }
-            } catch (error) {
-                console.error("Error cargando el perfil del usuario:", error);
-            }
-        };
-
-        syncUserProfile();
-    }, [user?.uid, updateUserProfile]);
+    // No sincronizamos el perfil del usuario en cada arranque: la sesión ya viene
+    // completa y se actualiza solo cuando el usuario hace cambios explícitos.
 
     const handleNavigate = (view, data = null) => {
         setScreen(view);
@@ -202,10 +208,12 @@ export default function AppOperator() {
         <OperatorShell
             activeTab={screen}
             onTabChange={setScreen}
-            notificationCount={totalNotificaciones} //  Conectado a la suma total
-            usuarioActual={user} //  LE PASAMOS EL USUARIO AL MENÚ LATERAL
+            notificationCount={totalNotificaciones}
+            usuarioActual={user}
         >
-            {renderScreen()}
+            <Suspense fallback={<ScreenLoader />}>
+                {renderScreen()}
+            </Suspense>
         </OperatorShell>
     );
 }

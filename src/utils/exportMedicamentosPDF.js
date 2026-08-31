@@ -1,6 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
 const logoImg = new URL("./img/logo2.jpg", import.meta.url).href;
 
 const parseLocalDate = (value) => {
@@ -125,6 +122,11 @@ export const buildMedicamentosPdfTableOptions = ({
 });
 
 export const exportMedicamentosPDF = async ({ medicamentos = [], filtroSemaforo = "todos", filtroEstado = "todos" } = {}) => {
+    const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable")
+    ]);
+    const autoTable = autoTableModule.default || autoTableModule;
     const doc = new jsPDF();
 
     const logo = await new Promise((resolve) => {

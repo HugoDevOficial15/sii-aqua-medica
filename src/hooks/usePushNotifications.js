@@ -41,7 +41,7 @@ export const crearCanalDeNotificacion = async () => {
  */
 export function usePushNotifications(user) {
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) {
+    if (!user || !Capacitor.isNativePlatform()) {
       return;
     }
 

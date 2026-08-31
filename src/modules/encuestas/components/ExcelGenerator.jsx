@@ -1,6 +1,7 @@
-import * as XLSX from "xlsx";
+import { writeMemoryCache } from "../../../utils/cacheStore";
 
-export const exportExcel = (rows = [], survey = {}) => {
+export const exportExcel = async (rows = [], survey = {}) => {
+  const XLSX = await import("xlsx");
   const surveyName = survey.titulo || survey.nombre || "Encuesta";
   const esCapacitacion = survey.tipo === "capacitacion";
   const typeLabel = esCapacitacion ? "Capacitación" : "Encuesta";
@@ -26,7 +27,6 @@ export const exportExcel = (rows = [], survey = {}) => {
     .replace(/\s+/g, "_")
     .toLowerCase() || "encuesta";
 
-// ANCHO DE LAS COLUMNAS
   const worksheet = XLSX.utils.json_to_sheet(data);
   worksheet["!cols"] = [
     { wch: Math.max(18, ...rows.map(r => String(r.nomina ?? "").length))},
@@ -34,9 +34,6 @@ export const exportExcel = (rows = [], survey = {}) => {
     { wch: Math.max(28, ...rows.map(r => String(surveyName).length)) },
     { wch: 10 },
   ];
-
- 
-// COLOR DE CABECERA Y FILTRO
 
   const range = worksheet["!ref"] ? XLSX.utils.decode_range(worksheet["!ref"]) : null;
 
@@ -72,3 +69,5 @@ export const exportExcel = (rows = [], survey = {}) => {
     : `${safeSurveyName}_encuesta_resultados.xlsx`;
   XLSX.writeFile(workbook, fileName);
 };
+
+writeMemoryCache("excel-generator-module", { exportExcel });

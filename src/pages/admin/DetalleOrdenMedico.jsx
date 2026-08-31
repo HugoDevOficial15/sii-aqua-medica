@@ -364,28 +364,19 @@ export default function DetalleOrdenMedica() {
       }
 
       try {
-        const usersSnapshot = await getDocs(collection(db, "users"));
-        let adminsANotificar = [];
+        const adminRoles = ["admin_area", "admin_medico", "admin_sistemas", "admin_sist"];
+        let adminsQuery = query(collection(db, "users"), where("rol", "in", adminRoles));
 
         if (esAltaMedica && ordenCargada?.areaPaciente) {
-          // Si es alta médica, notificar solo al admin del área del paciente
-          adminsANotificar = usersSnapshot.docs
-            .filter(doc => {
-              const rol = doc.data().rol || "";
-              const area = doc.data().area || "";
-              return (rol === "admin_area" || rol === "admin_medico" || rol === "admin_sistemas" || rol === "admin_sist")
-                && area.toLowerCase() === ordenCargada.areaPaciente.toLowerCase();
-            })
-            .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
-        } else if (!esAltaMedica) {
-          // Si es solo actualización, notificar a todos los admins
-          adminsANotificar = usersSnapshot.docs
-            .filter(doc => {
-              const rol = doc.data().rol || "";
-              return rol === "admin_medico" || rol === "admin_sistemas" || rol === "admin_sist";
-            })
-            .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
+          adminsQuery = query(
+            collection(db, "users"),
+            where("rol", "in", adminRoles),
+            where("area", "==", ordenCargada.areaPaciente)
+          );
         }
+
+        const usersSnapshot = await getDocs(adminsQuery);
+        const adminsANotificar = usersSnapshot.docs.map(doc => ({ uid: doc.data().uid, ...doc.data() }));
 
         for (const admin of adminsANotificar) {
           if (admin.uid) {
@@ -447,7 +438,9 @@ export default function DetalleOrdenMedica() {
           </span>
         </div>
 
-        <div className="d-flex gap-3">
+      </div>
+
+        <div className="contenedor-header">
           <form onSubmit={buscarPaciente} className="d-flex gap-3 m-0">
             <input
               type="text"
@@ -478,8 +471,6 @@ export default function DetalleOrdenMedica() {
             Atención Rápida
           </button>
         </div>
-
-      </div>
 
       {/* TARJETAS KPI - BOTONES DE FILTRO */}
       <div className="row g-3 mb-4">
@@ -838,6 +829,21 @@ export default function DetalleOrdenMedica() {
             font-size: 14px;
             outline: none;
             background: var(--operator-card);
+        }
+
+        /*  CONTENEDOR HEADER */
+        .contenedor-header {
+            width: 100%;
+            align-items: flex-end;
+            border-radius: 30px;
+            border: 1px solid var(--operator-border);
+            display: flex;
+            background: var(--operator-card);
+            margin-bottom: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 25px var(--operator-shadow);
+            gap: 20px;
+            justify-content: end;
         }
 
         .custom-users-header input:focus {

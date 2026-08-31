@@ -1,16 +1,35 @@
 // Import Firebase
 import { db } from "../config/firebase";
-import { getFirestore, doc, getDoc, query, collection, where, getDocs, addDoc, updateDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, query, collection, where, getDocs, addDoc, updateDoc, orderBy } from "firebase/firestore";
+import { readSessionCache, writeSessionCache, readMemoryCache, writeMemoryCache } from "../utils/cacheStore";
 
 const collectionName = "equipos";
+const CACHE_KEY = "sii-aqua-equipos-cache";
 
 // Obtener datos!
-export const getEquipos = async () => {
+export const getEquipos = async ({ estado = null, tipo = null } = {}) => {
+    const cacheKey = `${CACHE_KEY}:${estado === null ? "all" : String(estado)}:${tipo || "all"}`;
+    const cached = readMemoryCache(cacheKey) ?? readSessionCache(cacheKey);
+    if (cached) {
+        return cached;
+    }
 
-    const snap = await getDocs(collection(db, collectionName));
+    const constraints = [];
+    if (estado !== null && estado !== undefined) {
+        constraints.push(where("estado", "==", estado));
+    }
+    if (tipo) {
+        constraints.push(where("tipo", "==", tipo));
+    }
+    constraints.push(orderBy("codigo", "asc"));
 
-    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const q = query(collection(db, collectionName), ...constraints);
+    const snap = await getDocs(q);
+    const equipos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+    writeMemoryCache(cacheKey, equipos);
+    writeSessionCache(cacheKey, equipos);
+    return equipos;
 }
 
 // Crear uno

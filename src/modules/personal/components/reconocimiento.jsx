@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { addDoc, collection, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
 import { createNotification } from "../../../utils/createNotification";
+import { invalidateCacheGroup } from "../../../utils/cacheStore";
 import { notifyError } from "../../../utils/notify";
 
 export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
@@ -38,6 +39,33 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
 
   if (!empleado) return null;
 
+  const resolveUserFirestoreDocId = (empleadoData) => {
+    const candidates = [
+      empleadoData?.docId,
+      empleadoData?.id,
+      empleadoData?.uid,
+      empleadoData?.uidFirebase,
+      empleadoData?.firebaseUid,
+      empleadoData?.userUid,
+    ];
+
+    const found = candidates.find((value) => typeof value === "string" && value.trim().length > 0);
+    return found ? String(found).trim() : null;
+  };
+
+  const resolveUserFirebaseUid = (empleadoData) => {
+    const candidates = [
+      empleadoData?.uidFirebase,
+      empleadoData?.firebaseUid,
+      empleadoData?.userUid,
+      empleadoData?.uid,
+      empleadoData?.id,
+    ];
+
+    const found = candidates.find((value) => typeof value === "string" && value.trim().length > 0);
+    return found ? String(found).trim() : null;
+  };
+
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -59,7 +87,31 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
     try {
       const tipoReconocimiento = isPrimeraVez ? "primer_logro" : form.tipo;
 
+      const userDocId = resolveUserFirestoreDocId(empleado);
+      const userFirebaseUid = resolveUserFirebaseUid(empleado);
+      if (!userDocId) {
+        throw new Error("No se encontró el id del documento del usuario para crear la ruta de reconocimientos.");
+      }
+
+      const anioActual = new Date().getFullYear();
+      const reconocimientoRef = doc(collection(db, "reconocimientos"));
+
+      // En este proyecto, los usuarios en users/ se guardan por doc.id, no por uid.
+      // Firestore crea la ruta completa automáticamente si no existe:
+      // users/{userDocId}/{anioActual}/informacion/Reconocimientos/{docId}
+      const userYearRecognitionCollection = collection(
+        db,
+        "users",
+        userDocId,
+        String(anioActual),
+        "informacion",
+        "Reconocimientos"
+      );
+      const userYearRecognitionRef = doc(userYearRecognitionCollection);
       const payload = {
+        id: reconocimientoRef.id,
+        usuarioDocId: userDocId,
+        usuarioUid: userFirebaseUid,
         empleadoId: empleado.id || empleado.uid || null,
         empleadoNombre: empleado.nombre || "Trabajador",
         empleadoNomina: empleado.nomina || "",
@@ -71,14 +123,26 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
         descripcion,
         tipo: tipoReconocimiento,
         estado: "activo",
+        anio: anioActual,
         fecha: new Date().toISOString(),
         createdAt: serverTimestamp(),
       };
 
-      await addDoc(collection(db, "reconocimientos"), payload);
+      const batch = writeBatch(db);
+      batch.set(reconocimientoRef, payload);
 
-      const uidDestino = empleado?.uid || empleado?.uidFirebase || empleado?.firebaseUid || null;
-      if (!uidDestino) {
+      if (userYearRecognitionRef) {
+        batch.set(userYearRecognitionRef, {
+          ...payload,
+          id: userYearRecognitionRef.id,
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+      invalidateCacheGroup("sii-aqua-personal-records:");
+
+      if (!userFirebaseUid) {
         console.warn("No se pudo identificar al destinatario del reconocimiento; no se envió la notificación.");
         onSuccess?.();
         onClose?.();
@@ -86,14 +150,14 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
       }
 
       await createNotification({
-        IdUsuario: uidDestino,
+        IdUsuario: userFirebaseUid,
         Titulo: "🏆 Reconocimiento recibido",
         Mensaje: `${user?.nombre || "Tu líder"} te otorgó el reconocimiento "${titulo}".`,
         Destino: "reconocimientos",
         Accion: "reconocimiento",
         extra: {
           empleadoId: payload.empleadoId,
-          tipo: form.tipo,
+          tipo: tipoReconocimiento,
           titulo,
         },
       });

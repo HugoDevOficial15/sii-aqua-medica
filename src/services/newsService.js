@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, getDocs } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../services/firebaseConfig"; // Ajusta tu ruta
 import { createNotification } from "../utils/createNotification";
@@ -25,9 +25,12 @@ export const crearNoticia = async (titulo, contenido, archivoImagen) => {
       autor: "Administrador"
     });
 
-    // 3. Disparamos la notificación a todos los usuarios activos
-    // Obtener todos los usuarios
-    const usersSnapshot = await getDocs(collection(db, "usuarios"));
+    // 3. Disparamos la notificación solo a usuarios activos
+    const activeUsersQuery = query(
+      collection(db, "usuarios"),
+      where("activo", "==", true)
+    );
+    const usersSnapshot = await getDocs(activeUsersQuery);
 
     const notificacionesPromises = usersSnapshot.docs.map(userDoc => {
       const userId = userDoc.id;

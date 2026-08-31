@@ -388,6 +388,9 @@ export default function AgendaMedicaPage() {
                     <span className="badge-title">AQUA Médica</span>
                 </div>
 
+            </div>
+
+            <div className="contenedor-header">
                 <button 
                     className="btn btn-primary"
                     onClick={() => setVista("crear")}
@@ -534,6 +537,21 @@ export default function AgendaMedicaPage() {
                 .agenda-medica-input:focus { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
                 
                 
+                /* CONTENEDOR HEADER */
+                
+                .contenedor-header {
+                    width: 100%;
+                    align-items: flex-end;
+                    border-radius: 30px;
+                    border: 1px solid var(--operator-border);
+                    display: flex;
+                    background: var(--operator-card);
+                    margin-bottom: 20px;
+                    padding: 30px;
+                    box-shadow: 0 8px 25px var(--operator-shadow);
+                    gap: 20px;
+                    justify-content: end;
+                }
                 
                 .agenda-medica-table { 
                     table-layout: fixed;

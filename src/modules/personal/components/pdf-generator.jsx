@@ -1,5 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import logo2Image from "../../../utils/img/logo2.jpg";
 import { getUsers } from "../../../services/usersService";
 
@@ -347,6 +345,12 @@ const drawPdfHeader = async (
 export const generatePersonalRecordPDF = async (record) => {
   if (!record) return null;
 
+  const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable")
+  ]);
+  const autoTable = autoTableModule.default || autoTableModule;
+
   const resolvedType = resolveRecordType(record);
   const doc = new jsPDF();
   const title = `${getRecordTypeLabel(resolvedType)}: ${
@@ -429,6 +433,11 @@ export const generateEmployeeRecordsPDF = async ({
   records = [],
   title = "Historial de personal",
 }) => {
+  const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable")
+  ]);
+  const autoTable = autoTableModule.default || autoTableModule;
   const doc = new jsPDF();
   const fileName = `HISTORIAL-${usuario?.nomina || "personal"}-${new Date().toISOString().slice(0, 10)}.pdf`;
   const fechaActual = new Date().toISOString();

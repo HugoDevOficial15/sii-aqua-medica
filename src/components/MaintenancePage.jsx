@@ -1,5 +1,3 @@
-import { motion } from "framer-motion";
-
 export default function MaintenancePage({
 
     title = "Mantenimiento",
@@ -13,20 +11,11 @@ export default function MaintenancePage({
         <>
             <div className="maintenance-wrapper">
 
-                <motion.div
+                <div
                     className="maintenance-card"
-                    initial={{
-                        opacity: 0,
-                        y: 40,
-                        scale: 0.95
-                    }}
-                    animate={{
+                    style={{
                         opacity: 1,
-                        y: 0,
-                        scale: 1
-                    }}
-                    transition={{
-                        duration: 0.6
+                        transform: "translateY(0) scale(1)"
                     }}
                 >
 
@@ -46,7 +35,7 @@ export default function MaintenancePage({
 
                     <p>{message}</p>
 
-                </motion.div>
+                </div>
 
             </div>
 

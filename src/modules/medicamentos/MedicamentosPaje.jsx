@@ -72,12 +72,8 @@ export default function MedicamentosPage() {
                     </span>
                 </div>
 
-
-                <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleNew}>
-                    <FaPlus />
-                    Nuevo
-                </button>
             </div>
+            <div className="contenedor-header">
 
             {/* FILTROS */}
             <FiltrosMedicamentos
@@ -86,7 +82,13 @@ export default function MedicamentosPage() {
                 filtroEstado={filtroEstado}
                 setFiltroEstado={setFiltroEstado}
                 onExportPdf={handleExportPdf}
+                
             />
+                        <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleNew}>
+                    <FaPlus />
+                    Nuevo
+                </button>
+            </div>
 
             {/* TABLA */}
             {loading ?
@@ -110,6 +112,19 @@ export default function MedicamentosPage() {
 
 
             <style jsx>{`
+
+            /* CONTENEDOR HEADER */
+            .contenedor-header {
+                display: flex;
+                justify-content: end;
+                align-items: center;
+                padding: 20px;
+                border-radius: 14px;
+                background: var(--operator-card);
+                box-shadow: 0 0px 10px var(--operator-shadow);
+                margin-bottom: 20px;
+                gap: 20px;
+            }
 
             .btn-primary {
                 height: 50px;

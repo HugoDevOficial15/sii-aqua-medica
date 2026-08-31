@@ -1,10 +1,12 @@
 import { db } from "../config/firebase";
+import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
 
 import {
     collection,
     addDoc,
     doc,
     updateDoc,
+    deleteDoc,
     serverTimestamp,
     orderBy,
     query,
@@ -21,8 +23,17 @@ import {
     functions
 } from "../config/firebase";
 
-
 const ref = collection(db, "racks");
+const RACKS_CACHE_KEY = "sii-aqua-racks-cache";
+
+const normalizeRackList = (racks = []) => {
+    return [...(racks || [])].sort((a, b) => {
+        const rackA = Number(a?.numeroRack || 0);
+        const rackB = Number(b?.numeroRack || 0);
+        if (rackA !== rackB) return rackA - rackB;
+        return String(a?.id || "").localeCompare(String(b?.id || ""));
+    });
+};
 
 const lockRackFunction =
     httpsCallable(
@@ -31,20 +42,29 @@ const lockRackFunction =
     );
 
 export const crearRack = async (data) => {
-
-    return await addDoc(ref, {
+    const result = await addDoc(ref, {
         ...data,
         createdAt: serverTimestamp()
     });
 
+    clearCachedData(RACKS_CACHE_KEY);
+    return result;
 };
 
 export const actualizarRack = async (id, data) => {
-
     const rackRef = doc(db, "racks", id);
+    const result = await updateDoc(rackRef, data);
 
-    return await updateDoc(rackRef, data);
+    clearCachedData(RACKS_CACHE_KEY);
+    return result;
+};
 
+export const eliminarRack = async (id) => {
+    const rackRef = doc(db, "racks", id);
+    const result = await deleteDoc(rackRef);
+
+    clearCachedData(RACKS_CACHE_KEY);
+    return result;
 };
 
 /*
@@ -62,11 +82,12 @@ export const suscribirRacks = (callback) => {
 
     return onSnapshot(q, (snapshot) => {
 
-        const racks = snapshot.docs.map(doc => ({
+        const racks = normalizeRackList(snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-        }));
+        })));
 
+        writeCachedData(RACKS_CACHE_KEY, racks);
         callback(racks);
 
     });
@@ -172,12 +193,17 @@ export const liberarRack = async (
 };
 
 export const obtenerRacks = async () => {
+    const cached = readCachedData(RACKS_CACHE_KEY);
+    if (cached) {
+        return cached;
+    }
 
     const snap = await getDocs(ref);
-
-    return snap.docs.map(doc => ({
+    const racks = normalizeRackList(snap.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-    }));
+    })));
 
+    writeCachedData(RACKS_CACHE_KEY, racks);
+    return racks;
 };

@@ -248,8 +248,8 @@ export default function SoporteAdmin() {
 
       {/* BARRA DE FILTROS (Estilo Img 2) */}
       <div className="card border-0 mb-4" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px" }}>
-        <div className="card-body p-3">
-          <div className="row g-3">
+        <div className="contenedor-header">
+          <div className="row g-3 justify-content-end">
             <div className="col-12 col-md-4">
               <input
                 type="text"
@@ -600,6 +600,22 @@ export default function SoporteAdmin() {
               </button>
             </div>
           </div>
+                  <style jsx>{`
+          .contenedor-header {
+            width: 100%;
+            align-items: flex-end;
+            border-radius: 30px;
+            border: 1px solid var(--operator-border);
+            display: flex;
+            background: var(--operator-card);
+            margin-bottom: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 25px var(--operator-shadow);
+            gap: 20px;
+            justify-content: end;
+          }
+
+        `}</style>
         </div>
       )}
     </div>

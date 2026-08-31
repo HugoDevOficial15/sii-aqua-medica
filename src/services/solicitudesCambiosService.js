@@ -15,8 +15,10 @@ import {
 } from "firebase/firestore";
 
 import { updateUserFields } from "./usersService";
+import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
 
 const requestCollection = collection(db, "solicitudesCambios");
+const CACHE_KEY = "sii-aqua-solicitudes-cache";
 
 // Campos de perfil que un operador puede solicitar cambiar. Se usa tanto
 // para armar el snapshot de "datosActuales" como para limitar qué llaves
@@ -81,13 +83,20 @@ export const requestProfileChange = async (user, changes) => {
 // LISTAR (Administrador)
 // ======================
 export const getAllRequests = async () => {
+    const cached = readCachedData(CACHE_KEY);
+    if (cached) {
+        return cached;
+    }
+
     const q = query(requestCollection, orderBy("fechaSolicitud", "desc"));
     const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(d => ({
+    const requests = snapshot.docs.map(d => ({
         id: d.id,
         ...d.data()
     }));
+
+    writeCachedData(CACHE_KEY, requests);
+    return requests;
 };
 
 export const getPendingRequests = async () => {
@@ -153,6 +162,7 @@ export const approveRequest = async (requestId, administradorRevision) => {
         fechaRevision: serverTimestamp(),
         administradorRevision
     });
+    clearCachedData(CACHE_KEY);
 
     // 🔥 USAMOS LA UTILIDAD CREATE NOTIFICATION (Dispara la Push Notification)
     await createNotification({
@@ -186,6 +196,7 @@ export const rejectRequest = async (requestId, administradorRevision, comentario
         fechaRevision: serverTimestamp(),
         administradorRevision
     });
+    clearCachedData(CACHE_KEY);
 
     // 🔥 USAMOS LA UTILIDAD CREATE NOTIFICATION (Dispara la Push Notification)
     await createNotification({

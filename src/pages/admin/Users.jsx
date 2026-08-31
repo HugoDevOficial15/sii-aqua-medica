@@ -3,9 +3,6 @@ import { useLocation } from "react-router-dom";
 
 import { exportInformacionUserPDF } from "../../utils/exportInformacionUser";
 
-// Excel
-import * as XLSX from "xlsx";
-
 // Loader
 import Loader from "../../components/Loader";
 
@@ -16,10 +13,7 @@ import {
   createUser,
   updateUser,
   createIncapacidad,
-  getIncapacidadesByUser,
   getIncapacidadesByUsers,
-  syncUsersWithIncapacidades,
-  migrateNomina,
   nominaExists,
   findDuplicateNominas,
   findEmailNominaMismatch,
@@ -152,10 +146,18 @@ export default function Users({ onClose }) {
   const hasActiveIncapacidad = (user, incapacidades = []) => {
     if (!user || user.activo === false) return false;
 
+    const estadoActual = String(user?.estado || "")
+      .trim()
+      .toLowerCase();
+
+    if (estadoActual === "incapacidad") {
+      return true;
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const active = incapacidades.some((incapacidad) => {
+    return incapacidades.some((incapacidad) => {
       const fechaInicio = incapacidad?.fechaInicio
         ? new Date(`${incapacidad.fechaInicio}T00:00:00`)
         : null;
@@ -168,13 +170,6 @@ export default function Users({ onClose }) {
 
       return startOk && endOk;
     });
-
-    return (
-      active ||
-      String(user?.estado || "")
-        .trim()
-        .toLowerCase() === "incapacidad"
-    );
   };
 
   const syncUserIncapacidadStatus = async (user, incapacidades = []) => {
@@ -197,11 +192,6 @@ export default function Users({ onClose }) {
       return startOk && endOk;
     });
 
-    const hasStaleStatus =
-      String(user?.estado || "")
-        .trim()
-        .toLowerCase() === "incapacidad" && !activeIncapacidad;
-
     if (
       activeIncapacidad &&
       String(user?.estado || "")
@@ -219,27 +209,11 @@ export default function Users({ onClose }) {
       return true;
     }
 
-    if (hasStaleStatus) {
-      await updateUser(user.id, {
-        estado: "activo",
-        activo: true,
-        tipoIncapacidad: "",
-        fechaInicioIncapacidad: null,
-        fechaFinIncapacidad: null,
-        notaIncapacidad: "",
-      });
-      return true;
-    }
-
-    return false;
+    return Boolean(activeIncapacidad);
   };
 
   const getUserStatusBadge = (user, hasActive = false) => {
-    const estado = String(user?.estado || "")
-      .trim()
-      .toLowerCase();
-
-    if (estado === "incapacidad" || hasActive) {
+    if (hasActive) {
       return {
         label: "Incapacidad",
         className: "custom-badge-warning",
@@ -688,14 +662,20 @@ export default function Users({ onClose }) {
     }));
 
     try {
-      const incapacidadesMap = await getIncapacidadesByUsers([user.id]);
-      const validIncapacidades = incapacidadesMap[user.id] || [];
+      const visibleUserIds = users
+        .filter((item) => item?.id)
+        .map((item) => item.id);
+
+      const incapacidadesMap = visibleUserIds.length
+        ? await getIncapacidadesByUsers(visibleUserIds, users)
+        : {};
 
       setUserIncapacidades((prev) => ({
         ...prev,
-        [user.id]: validIncapacidades,
+        ...incapacidadesMap,
       }));
 
+      const validIncapacidades = incapacidadesMap[user.id] || [];
       const updated = await syncUserIncapacidadStatus(user, validIncapacidades);
 
       if (updated) {
@@ -760,7 +740,7 @@ export default function Users({ onClose }) {
         ? incapacidadForm.tipo
         : "incapacidad";
 
-      await createIncapacidad({
+      const createdIncapacidad = await createIncapacidad({
         userId: selectedIncapacidadUser.id,
         nomina: selectedIncapacidadUser.nomina,
         nombre: selectedIncapacidadUser.nombre,
@@ -773,6 +753,17 @@ export default function Users({ onClose }) {
         fechaFin: incapacidadForm.fechaFin,
         nota: incapacidadForm.nota,
       });
+
+      const nextIncapacidad = {
+        id: createdIncapacidad?.id || `temp-incapacidad-${Date.now()}`,
+        userId: selectedIncapacidadUser.id,
+        nomina: selectedIncapacidadUser.nomina,
+        nombre: selectedIncapacidadUser.nombre,
+        tipo,
+        fechaInicio: incapacidadForm.fechaInicio,
+        fechaFin: incapacidadForm.fechaFin,
+        nota: incapacidadForm.nota,
+      };
 
       setUsers((prev) =>
         prev.map((item) =>
@@ -789,6 +780,21 @@ export default function Users({ onClose }) {
             : item,
         ),
       );
+
+      setUserIncapacidades((prev) => {
+        const current = Array.isArray(prev[selectedIncapacidadUser.id])
+          ? prev[selectedIncapacidadUser.id]
+          : [];
+
+        return {
+          ...prev,
+          [selectedIncapacidadUser.id]: [nextIncapacidad, ...current].sort(
+            (a, b) =>
+              new Date(b.fechaInicio || "1970-01-01").getTime() -
+              new Date(a.fechaInicio || "1970-01-01").getTime(),
+          ),
+        };
+      });
 
       notifySuccess(
         "Incapacidad registrada",
@@ -926,7 +932,8 @@ export default function Users({ onClose }) {
   const totalPages = Math.ceil(sortedUsers.length / userPerPAge);
 
   // Exportar Excel
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
+    const XLSX = await import("xlsx");
     const data = users.map((user) => ({
       Nomina: user.nomina,
       Nombre: user.nombre,
@@ -957,9 +964,9 @@ export default function Users({ onClose }) {
           </h6>
 
           <span className="badge-title">AQUA Médica</span>
-        </div>
 
-        <div className="d-flex gap-3">
+
+            <div className="contenedor-header">
           <input
             type="text"
             className="form-control-page"
@@ -1034,6 +1041,8 @@ export default function Users({ onClose }) {
             Nuevo Usuario
           </button>
         </div>
+          </div>
+
       </div>
 
       {/* TABLE */}
@@ -1203,26 +1212,16 @@ export default function Users({ onClose }) {
                               <button
                                 type="button"
                                 className="user-action-menu-incapacidad"
-                                disabled={
-                                  hasActiveIncapacidad(
-                                    user,
-                                    userIncapacidades[user.id] || [],
-                                  ) ||
-                                  String(user?.estado || "")
-                                    .trim()
-                                    .toLowerCase() === "incapacidad"
-                                }
-                                title={
-                                  hasActiveIncapacidad(
-                                    user,
-                                    userIncapacidades[user.id] || [],
-                                  ) ||
-                                  String(user?.estado || "")
-                                    .trim()
-                                    .toLowerCase() === "incapacidad"
-                                    ? "Este usuario ya tiene una incapacidad vigente."
-                                    : "Registrar incapacidad"
-                                }
+                                disabled={hasActiveIncapacidad(
+                                  user,
+                                  userIncapacidades[user.id] || [],
+                                )}
+                                title={hasActiveIncapacidad(
+                                  user,
+                                  userIncapacidades[user.id] || [],
+                                )
+                                  ? "Este usuario ya tiene una incapacidad vigente."
+                                  : "Registrar incapacidad"}
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   setOpenActionsId(null);
@@ -1689,6 +1688,22 @@ export default function Users({ onClose }) {
 
         .btn-outline-warning {
           height: 50px;
+        }
+
+/* CONTENEDOR HEADER */
+
+        .contenedor-header {
+          width: 100%;
+          align-items: flex-end;
+          border-radius: 30px;
+          border: 1px solid var(--operator-border);
+          display: flex;
+          background: var(--operator-card);
+          padding: 30px;
+          box-shadow: 0 8px 25px var(--operator-shadow);
+          gap: 20px;
+          justify-content: end;
+
         }
 
 /* TABLA */
@@ -2403,7 +2418,8 @@ export default function Users({ onClose }) {
         }
 
         .mb-3 {
-          min-width: 120px;
+        width: 100%;
+          min-width: 140px;
         }
       `}</style>
     </div>

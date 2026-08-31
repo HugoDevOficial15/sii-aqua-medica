@@ -1,6 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
 const logoImg = new URL("./img/logo2.jpg", import.meta.url).href;
 
 const parseLocalDate = (value) => {
@@ -47,6 +44,9 @@ const loadLogo = async () => {
 export const exportInformacionUserPDF = async ({ usuario }) => {
     if (!usuario) return null;
 
+    const { default: jsPDF } = await import("jspdf");
+    const autoTableModule = await import("jspdf-autotable");
+    const autoTable = autoTableModule.default || autoTableModule;
     const doc = new jsPDF();
     const logo = await loadLogo();
 

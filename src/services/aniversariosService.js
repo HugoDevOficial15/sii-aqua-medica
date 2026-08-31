@@ -1,5 +1,6 @@
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { clearCachedData, clearCachedByPrefix, invalidateCacheGroup, readCachedData, writeCachedData } from "../utils/cacheStore";
 
 const ANIVERSARIOS_CACHE_KEY = "sii-aqua-aniversarios-summary";
 const ANIVERSARIOS_BY_MONTH_CACHE_KEY = "sii-aqua-aniversarios-by-month";
@@ -29,57 +30,55 @@ const getAniversariosByMesCacheKey = (mes) => {
 };
 
 const saveAniversariosCache = (data) => {
-    if (typeof window === "undefined") return;
-
-    try {
-        localStorage.setItem(getAniversariosCacheKey(), JSON.stringify(data));
-    } catch (error) {
-        console.warn("No se pudo guardar el cache de aniversarios:", error);
-    }
+    writeCachedData(getAniversariosCacheKey(), data);
 };
 
 const readAniversariosCache = () => {
-    if (typeof window === "undefined") return null;
-
-    try {
-        const raw = localStorage.getItem(getAniversariosCacheKey());
-        return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-        return null;
-    }
+    return readCachedData(getAniversariosCacheKey(), 20 * 60 * 1000);
 };
 
 const saveAniversariosByMesCache = (mes, data) => {
-    if (typeof window === "undefined") return;
-
-    try {
-        localStorage.setItem(getAniversariosByMesCacheKey(mes), JSON.stringify(data));
-    } catch (error) {
-        console.warn("No se pudo guardar el cache del mes de aniversarios:", error);
-    }
+    writeCachedData(getAniversariosByMesCacheKey(mes), data);
 };
 
 const readAniversariosByMesCache = (mes) => {
-    if (typeof window === "undefined") return null;
-
-    try {
-        const raw = localStorage.getItem(getAniversariosByMesCacheKey(mes));
-        return raw ? JSON.parse(raw) : null;
-    } catch (error) {
-        return null;
-    }
+    return readCachedData(getAniversariosByMesCacheKey(mes), 20 * 60 * 1000);
 };
 
-const parseFecha = (fechaStr) => {
-    if (!fechaStr) return null;
+const parseFecha = (fechaValue) => {
+    if (!fechaValue) return null;
 
-    const [year, month, day] = fechaStr.split("-").map(Number);
+    let fecha = null;
 
-    if ([year, month, day].some(value => Number.isNaN(value))) {
+    if (typeof fechaValue === "string") {
+        const value = fechaValue.trim();
+
+        if (!value) return null;
+
+        const isoMatch = value.match(/^\d{4}-\d{2}-\d{2}$/);
+        if (isoMatch) {
+            const [year, month, day] = value.split("-").map(Number);
+            if ([year, month, day].every((part) => !Number.isNaN(part))) {
+                fecha = new Date(year, month - 1, day);
+            }
+        }
+
+        if (!fecha) {
+            fecha = new Date(value);
+        }
+    } else if (fechaValue instanceof Date) {
+        fecha = fechaValue;
+    } else if (typeof fechaValue?.toDate === "function") {
+        fecha = fechaValue.toDate();
+    } else if (typeof fechaValue?.seconds === "number") {
+        fecha = new Date(fechaValue.seconds * 1000);
+    }
+
+    if (!(fecha instanceof Date) || Number.isNaN(fecha.getTime())) {
         return null;
     }
 
-    return new Date(year, month - 1, day);
+    return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
 };
 
 const calcularAnios = (fechaIngreso) => {
@@ -95,6 +94,23 @@ const calcularAnios = (fechaIngreso) => {
     return anios;
 };
 
+const normalizarRol = (rol) => String(rol ?? "").trim().toLowerCase();
+
+const esOperador = (user) => {
+    const rol = normalizarRol(user?.rol);
+    return rol === "operador" || rol.includes("operador");
+};
+
+const invalidateAniversariosCaches = (mes = null) => {
+    clearCachedData(getAniversariosCacheKey());
+    if (mes !== null && mes !== undefined) {
+        clearCachedData(getAniversariosByMesCacheKey(mes));
+    }
+    clearCachedByPrefix("sii-aqua-aniversarios-summary");
+    clearCachedByPrefix("sii-aqua-aniversarios-by-month");
+    invalidateCacheGroup("sii-aqua-aniversarios-summary", "sii-aqua-aniversarios-by-month");
+};
+
 export const getCumpleaniosPorMes = async ({ source = "cache" } = {}) => {
     if (source === "cache") {
         const cached = readAniversariosCache();
@@ -106,9 +122,7 @@ export const getCumpleaniosPorMes = async ({ source = "cache" } = {}) => {
         return null;
     }
 
-    const snapshot = await getDocs(
-        query(collection(db, "users"), where("cumpleanos", "!=", null))
-    );
+    const snapshot = await getDocs(collection(db, "users"));
 
     const usuarios = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -118,7 +132,7 @@ export const getCumpleaniosPorMes = async ({ source = "cache" } = {}) => {
     const conteoPorMes = Array(12).fill(0);
 
     usuarios.forEach(user => {
-        if (!user.cumpleanos) return;
+        if (!esOperador(user) || !user.cumpleanos) return;
 
         const fecha = parseFecha(user.cumpleanos);
 
@@ -132,6 +146,7 @@ export const getCumpleaniosPorMes = async ({ source = "cache" } = {}) => {
 };
 
 export const refreshCumpleaniosPorMes = async () => {
+    invalidateAniversariosCaches();
     return getCumpleaniosPorMes({ source: "server" });
 };
 
@@ -145,9 +160,7 @@ export const getAniversariosByMes = async (mes, { source = "cache" } = {}) => {
         return null;
     }
 
-    const snapshot = await getDocs(
-        query(collection(db, "users"), where("fechaIngreso", "!=", null))
-    );
+    const snapshot = await getDocs(collection(db, "users"));
 
     const usuarios = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -158,6 +171,7 @@ export const getAniversariosByMes = async (mes, { source = "cache" } = {}) => {
     const aniversarios = [];
 
     usuarios.forEach(user => {
+        if (!esOperador(user)) return;
 
         // 🎂 CUMPLEAÑOS
         if (user.cumpleanos) {
@@ -218,5 +232,6 @@ export const getAniversariosByMes = async (mes, { source = "cache" } = {}) => {
 };
 
 export const refreshAniversariosByMes = async (mes) => {
+    invalidateAniversariosCaches(mes);
     return getAniversariosByMes(mes, { source: "server" });
 };

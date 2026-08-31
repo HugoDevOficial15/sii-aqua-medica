@@ -490,7 +490,9 @@ export default function CreateCapacitaciones() {
                     </span>
                 </div>
 
-                <div className="d-flex gap-3">
+            </div>
+
+                <div className="contenedor-header">
 
                     <button className="btn btn-sm btn-primary btn-custom "
 
@@ -510,8 +512,6 @@ export default function CreateCapacitaciones() {
                     </button>
 
                 </div>
-
-            </div>
 
             <div className="card shadow-sm">
 
@@ -1208,6 +1208,20 @@ export default function CreateCapacitaciones() {
     font-size: 12px;
     font-weight: 600;
     border: 1px solid rgba(37,99,235,0.08);
+}
+
+.contenedor-header {
+    width: 100%;
+    align-items: flex-end;
+    border-radius: 30px;
+    border: 1px solid var(--operator-border);
+    display: flex;
+    background: var(--operator-card);
+    margin-bottom: 20px;
+    padding: 30px;
+    box-shadow: 0 8px 25px var(--operator-shadow);
+    gap: 20px;
+    justify-content: end;
 }
 
 /* ==================================================

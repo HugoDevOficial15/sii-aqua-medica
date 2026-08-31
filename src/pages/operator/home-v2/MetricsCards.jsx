@@ -7,54 +7,43 @@ import {
 } from "react-icons/fi";
 
 import { useAuth } from "../../../hooks/useAuth";
-import { getEncuestasDisponibles } from "../../../services/encuestasService";
+
+const readCachedSurveyCount = (user) => {
+    if (!user?.uid && !user?.nomina) return 0;
+
+    try {
+        const key = `siiAquaEncuestas:${String(user.uid || user.nomina || "anon")}`;
+        const raw = localStorage.getItem(key);
+        if (!raw) return 0;
+
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.data)) return 0;
+
+        const now = Date.now();
+        const ttl = 24 * 60 * 60 * 1000;
+
+        if (now - Number(parsed.cachedAt || 0) > ttl) {
+            localStorage.removeItem(key);
+            return 0;
+        }
+
+        return parsed.data.filter((survey) => survey.disponible).length;
+    } catch {
+        return 0;
+    }
+};
 
 export default function MetricsCards({ onNavigate }) {
 
     const { user } = useAuth();
 
-    const [pendientes, setPendientes] = useState(0);
+    const [pendientes, setPendientes] = useState(() => readCachedSurveyCount(user));
 
-    // Encuestas pendientes reales del usuario: no respondidas y aún
-    // vigentes. Se recalcula cuando cambia el usuario autenticado; el
-    // propio servicio ya resuelve global/área/usuarios y cruza con las
-    // respuestas en solo 2 lecturas a Firestore.
+    // Evitamos consultar Firestore en la pantalla principal. El conteo real se
+    // obtiene al entrar a la vista de encuestas, donde sí tiene sentido cargarlo.
     useEffect(() => {
-
-        let cancelado = false;
-
-        const cargarPendientes = async () => {
-
-            if (!user?.nomina) {
-                setPendientes(0);
-                return;
-            }
-
-            try {
-
-                const encuestas = await getEncuestasDisponibles(user);
-
-                if (!cancelado) {
-                    setPendientes(encuestas.filter(e => e.disponible).length);
-                }
-
-            } catch (error) {
-
-                if (import.meta.env.DEV) {
-                    console.error("Error cargando encuestas pendientes:", error);
-                }
-
-            }
-
-        };
-
-        cargarPendientes();
-
-        return () => {
-            cancelado = true;
-        };
-
-    }, [user?.nomina]);
+        setPendientes(readCachedSurveyCount(user));
+    }, [user?.uid, user?.nomina]);
 
     return (
 

@@ -95,7 +95,7 @@ export default function ListaServiciosPage() {
     setLoading(true);
     try {
       const data = await getServiciosProgramadosByMes(anio, mes);
-      const equiposData = await getEquipos();
+      const equiposData = await getEquipos({ estado: true });
 
       setEquipos(equiposData);
 
@@ -238,10 +238,7 @@ export default function ListaServiciosPage() {
 
       {/* FILTROS Y ACCIONES */}
       <div
-        className="d-grid gap-3 mb-4"
-        style={{
-          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-        }}
+        className="contenedor-header"
       >
         {/* AREA */}
         <div>
@@ -724,6 +721,21 @@ export default function ListaServiciosPage() {
 
         .card {
           border-radius: 30px;
+        }
+
+        /* CONTENEDOR HEADER */
+        .contenedor-header {
+          width: 100%;
+          align-items: flex-end;
+          border-radius: 30px;
+          border: 1px solid var(--operator-border);
+          display: flex;
+          background: var(--operator-card);
+          margin-bottom: 20px;
+          padding: 30px;
+          box-shadow: 0 8px 25px var(--operator-shadow);
+          gap: 20px;
+          justify-content: end;
         }
 
         /* CONTAINER */

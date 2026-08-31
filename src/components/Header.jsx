@@ -50,14 +50,18 @@ export default function Header({ toggleSidebar }) {
         try {
             const q = query(
                 collection(db, "notificaciones"),
-                where("IdUsuario", "==", currentUserId),
-                orderBy("fechaCreacion", "desc"),
-                limit(50)
+                where("IdUsuario", "==", currentUserId)
             );
 
             const snapshot = await getDocs(q);
             const notifs = snapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
+                .sort((a, b) => {
+                    const aTime = a.fechaCreacion?.toDate ? a.fechaCreacion.toDate().getTime() : new Date(a.fechaCreacion || 0).getTime();
+                    const bTime = b.fechaCreacion?.toDate ? b.fechaCreacion.toDate().getTime() : new Date(b.fechaCreacion || 0).getTime();
+                    return bTime - aTime;
+                })
+                .slice(0, 50)
                 .map(n => {
                     let icon = <FaUserCircle />;
                     if (n.Titulo?.includes("📅")) icon = <FaUserCircle />;

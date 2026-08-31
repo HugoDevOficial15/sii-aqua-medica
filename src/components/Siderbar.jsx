@@ -1,6 +1,8 @@
+import { useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { canAccessPersonalSection } from "../services/personalConfig";
+import { SIDEBAR_MENU_CACHE_KEY, readMemoryCache, writeMemoryCache } from "../utils/cacheStore";
 
 import {
     FaHome,
@@ -32,39 +34,59 @@ import {
 } from "react-icons/fa";
 
 import { FaMattressPillow } from "react-icons/fa6";
-import { Label } from "recharts";
 
 export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMenu }) {
 
     const { can, user } = useAuth();
 
-    const menu = [
-        { to: "/dashboard", icon: <FaHome />, label: "Dashboard", permiso: "dashboard.ver" },
-        { to: "/usuarios", icon: <FaUsers />, label: "Usuarios", permiso: "usuarios.ver" },
-        { to: "/puestos", icon: <FaUserTie />, label: "Puestos", permiso: "puestos.ver" },
-        { to: "/inventario", icon: <FaBoxes />, label: "Inventario", permiso: "inventario.ver" },
-        { to: "/agenda", icon: <FaLaptopCode />, label: "Agenda Servicios", permiso: "servicios.agendar" },
-        { to: "/servicioshoy", icon: <FaListAlt />, label: "Lista Servicios", permiso: "servicios.ver_global" },
-        { to: "/aniversarios", icon: <FaBirthdayCake />, label: "Aniversarios", permiso: "aniversarios.ver" },
-        { to: "/solicitudes", icon: <FaClipboardCheck />, label: "Solicitudes", permiso: "solicitudes.ver" },
-        { to: "/soporte", icon: <FaHeadset />, label: "Soporte" },
-        { to: "/ideas", icon: <FaMedapps />, label: "Ideas" },
-        { to: "/personal", icon: <FaUserFriends />, label: "Personal", permiso: "personal.ver" },
-        { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
-        { to: "/capacitaciones", icon: <FaGraduationCap />, label: "Capacitaciones", permiso: "capacitaciones.ver" },
-        { to: "/noticias", icon: <FaNewspaper />, label: "Noticias", permiso: "noticias.ver" },
-        { to: "/medicamento", icon: <FaSyringe />, label: "Medicamentos", permiso: "medicamentos.ver" },
-        { to: "/citas-medicas", icon: <FaAmbulance />, label: "Citas Médicas", permiso: "citas.ver" },
-        { to: "/detalle-orden-medico", icon: <FaFileMedical/>, label: "Orden Médico", permiso: "ordenes.ver"},
-        { to: "/almacen/materiales-stock", icon: <FaClipboardCheck />, label: "Inventario", permiso: "peps.ver" },
-        { to: "/almacen/peps", icon: <FaExchangeAlt />, label: "PEPS", permiso: "peps.ver" },
-        { to: "/almacen/materiales", icon: <FaBoxes />, label: "Agregar Material", permiso: "peps.ver" },
-        { to: "/almacen/racks", icon: <FaBuffer />, label: "Agregar Rack", permiso: "peps.ver" },
-        { to: "/notas", icon: <FaStickyNote />, label: "Notas", permiso: "notas.ver" },
-        { to: "/reporte-problemas", icon: <FaHandHoldingHeart />, label: "Reporte de Problemas" },
-        { to: "/configuracion", icon: <FaCog />, label: "Configuración", permiso: "config.ver" },
+    const menu = useMemo(() => {
+        const cacheKey = `${SIDEBAR_MENU_CACHE_KEY}:${user?.rol || "anon"}`;
+        const cachedMenu = readMemoryCache(cacheKey);
 
-    ];
+        if (cachedMenu) {
+            return cachedMenu;
+        }
+
+        const nextMenu = [
+            { to: "/dashboard", icon: <FaHome />, label: "Dashboard", permiso: "dashboard.ver" },
+            { to: "/usuarios", icon: <FaUsers />, label: "Usuarios", permiso: "usuarios.ver" },
+            { to: "/puestos", icon: <FaUserTie />, label: "Puestos", permiso: "puestos.ver" },
+            { to: "/inventario", icon: <FaBoxes />, label: "Inventario", permiso: "inventario.ver" },
+            { to: "/agenda", icon: <FaLaptopCode />, label: "Agenda Servicios", permiso: "servicios.agendar" },
+            { to: "/servicioshoy", icon: <FaListAlt />, label: "Lista Servicios", permiso: "servicios.ver_global" },
+            { to: "/aniversarios", icon: <FaBirthdayCake />, label: "Aniversarios", permiso: "aniversarios.ver" },
+            { to: "/solicitudes", icon: <FaClipboardCheck />, label: "Solicitudes", permiso: "solicitudes.ver" },
+            { to: "/soporte", icon: <FaHeadset />, label: "Soporte" },
+            { to: "/ideas", icon: <FaMedapps />, label: "Ideas" },
+            { to: "/personal", icon: <FaUserFriends />, label: "Personal", permiso: "personal.ver" },
+            { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
+            { to: "/capacitaciones", icon: <FaGraduationCap />, label: "Capacitaciones", permiso: "capacitaciones.ver" },
+            { to: "/noticias", icon: <FaNewspaper />, label: "Noticias", permiso: "noticias.ver" },
+            { to: "/medicamento", icon: <FaSyringe />, label: "Medicamentos", permiso: "medicamentos.ver" },
+            { to: "/citas-medicas", icon: <FaAmbulance />, label: "Citas Médicas", permiso: "citas.ver" },
+            { to: "/detalle-orden-medico", icon: <FaFileMedical/>, label: "Orden Médico", permiso: "ordenes.ver"},
+            { to: "/almacen/materiales-stock", icon: <FaClipboardCheck />, label: "Inventario", permiso: "peps.ver" },
+            { to: "/almacen/peps", icon: <FaExchangeAlt />, label: "PEPS", permiso: "peps.ver" },
+            { to: "/almacen/materiales", icon: <FaBoxes />, label: "Agregar Material", permiso: "peps.ver" },
+            { to: "/almacen/racks", icon: <FaBuffer />, label: "Agregar Rack", permiso: "peps.ver" },
+            { to: "/notas", icon: <FaStickyNote />, label: "Notas", permiso: "notas.ver" },
+            { to: "/reporte-problemas", icon: <FaHandHoldingHeart />, label: "Reporte de Problemas" },
+            { to: "/configuracion", icon: <FaCog />, label: "Configuración", permiso: "config.ver" },
+        ];
+
+        const filteredMenu = nextMenu.filter((item) => {
+            if (!item.permiso) return true;
+
+            if (item.to === "/personal") {
+                return canAccessPersonalSection(user) || can(item.permiso);
+            }
+
+            return can(item.permiso);
+        });
+
+        writeMemoryCache(cacheKey, filteredMenu);
+        return filteredMenu;
+    }, [can, user]);
 
     return (
 
@@ -112,17 +134,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
                 {/* MENU */}
                 <nav className="sidebar-menu">
 
-                    {menu
-                        .filter(item => {
-                            if (!item.permiso) return true;
-
-                            if (item.to === "/personal") {
-                                return canAccessPersonalSection(user) || can(item.permiso);
-                            }
-
-                            return can(item.permiso);
-                        })
-                        .map((item, index) => (
+                    {menu.map((item, index) => (
 
                             <NavLink
                                 key={index}
@@ -525,3 +537,5 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
         </>
     );
 }
+
+writeMemoryCache("sidebar-component", { Sidebar });

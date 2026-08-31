@@ -11,11 +11,20 @@ import {
     onSnapshot
 } from "firebase/firestore";
 
-const ref = collection(db, "movimientos");
+import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
 
+const ref = collection(db, "movimientos");
+const MOVIMIENTOS_CACHE_KEY = "sii-aqua-movimientos-cache";
+
+const getRackMovementsCacheKey = (rackId) => `${MOVIMIENTOS_CACHE_KEY}:${String(rackId || "all")}`;
 
 // 🔥 HISTORIAL
 export const obtenerMovimientosPorRack = async (rackId) => {
+    const cacheKey = getRackMovementsCacheKey(rackId);
+    const cached = readCachedData(cacheKey);
+    if (cached) {
+        return cached;
+    }
 
     const q = query(
         ref,
@@ -24,13 +33,14 @@ export const obtenerMovimientosPorRack = async (rackId) => {
     );
 
     const snap = await getDocs(q);
-
-    return snap.docs.map(doc => ({
+    const movimientos = snap.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
     }));
-};
 
+    writeCachedData(cacheKey, movimientos);
+    return movimientos;
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -39,9 +49,7 @@ export const obtenerMovimientosPorRack = async (rackId) => {
 */
 
 export const registrarMovimiento = async (data) => {
-
-    return await addDoc(
-        // collection(db, "movimientos"),
+    const result = await addDoc(
         ref,
         {
             ...data,
@@ -50,6 +58,13 @@ export const registrarMovimiento = async (data) => {
             updatedAt: serverTimestamp()
         }
     );
+
+    if (data?.rackId) {
+        clearCachedData(getRackMovementsCacheKey(data.rackId));
+    }
+
+    clearCachedData(MOVIMIENTOS_CACHE_KEY);
+    return result;
 };
 
 /*
@@ -63,6 +78,11 @@ export const obtenerMovimientosPorFecha = async (
     fechaInicio,
     fechaFin
 ) => {
+    const cacheKey = `${getRackMovementsCacheKey(rackId)}:fecha`;
+    const cached = readCachedData(cacheKey);
+    if (cached) {
+        return cached;
+    }
 
     const q = query(
         ref, (db, "movimientos"),
@@ -79,7 +99,7 @@ export const obtenerMovimientosPorFecha = async (
         ...docItem.data()
     }));
 
-    return movimientos.filter(mov => {
+    const filtered = movimientos.filter(mov => {
 
         const fecha = mov.fecha;
 
@@ -88,8 +108,10 @@ export const obtenerMovimientosPorFecha = async (
             fecha <= fechaFin
         );
     });
-};
 
+    writeCachedData(cacheKey, filtered);
+    return filtered;
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -129,6 +151,7 @@ export const suscribirMovimientos = (
 
             }));
 
+            writeCachedData(getRackMovementsCacheKey(rackId), movimientos);
             callback(movimientos);
 
         }
@@ -172,5 +195,7 @@ export const vaciarRack = async (rackId, user) => {
     });
 
     await Promise.all(operaciones);
+    clearCachedData(getRackMovementsCacheKey(rackId));
+    clearCachedData(MOVIMIENTOS_CACHE_KEY);
 
 };

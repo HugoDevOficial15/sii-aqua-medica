@@ -292,8 +292,9 @@ export default function AlmacenMaterialesPage() {
           </h6>
           <span className="badge-title">AQUA Médica</span>
         </div>
+      </div>
 
-        <div className="row g-3 mb-3">
+        <div className="contenedor-header">
           <div className="col-md-3">
             <div className="input-group">
               <input
@@ -357,7 +358,6 @@ export default function AlmacenMaterialesPage() {
             </select>
           </div>
         </div>
-      </div>
 
       <div className="card p-3 shadow-sm">
         <div className="table-responsive-container">
@@ -485,6 +485,20 @@ export default function AlmacenMaterialesPage() {
             .card {
                 border-radius: 30px;
                 box-shadow: 0 8px 25px var(--operator-shadow);
+            }
+
+            .contenedor-header {
+                width: 100%;
+                align-items: flex-end;
+                border-radius: 30px;
+                border: 1px solid var(--operator-border);
+                display: flex;
+                background: var(--operator-card);
+                margin-bottom: 20px;
+                padding: 30px;
+                box-shadow: 0 8px 25px var(--operator-shadow);
+                gap: 5px;
+                justify-content: center;
             }
 
 

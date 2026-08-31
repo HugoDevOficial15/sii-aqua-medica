@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import EquipoModal from "../../modules/inventarios/components/EquipoModal";
 
 // Icons
-import { FaPlus, FaEdit, FaArrowDown, FaClipboardList, FaEllipsisV, FaTrash, FaCheck } from "react-icons/fa";
+import {
+  FaPlus,
+  FaEdit,
+  FaArrowDown,
+  FaClipboardList,
+  FaEllipsisV,
+  FaTrash,
+  FaCheck,
+} from "react-icons/fa";
 
 // Loader
 import Loader from "../../components/Loader";
@@ -13,337 +21,307 @@ import Loader from "../../components/Loader";
 import { notifySuccess, notifyError } from "../../utils/notify";
 
 // Services
-import { getEquipos, bajaEquipo, activarEquipo } from "../../services/equiposServices";
+import {
+  getEquipos,
+  bajaEquipo,
+  activarEquipo,
+} from "../../services/equiposServices";
 
 // Logs
 import LogsEquipoModal from "../../modules/inventarios/components/LogsEquipoModal";
 
 export default function InventarioPage() {
+  const [equipos, setEquipos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [openActionsId, setOpenActionsId] = useState(null);
 
-    const [equipos, setEquipos] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [showModal, setShowModal] = useState(false);
-    const [selected, setSelected] = useState(null);
-    const [openActionsId, setOpenActionsId] = useState(null);
+  const [showLogs, setShowLogs] = useState(false);
+  const [selectedLogs, setSelectedLogs] = useState(null);
 
+  // Busqueda
+  const [search, setSearch] = useState("");
+  const [tipoFilter, setTipoFilter] = useState("");
 
-    const [showLogs, setShowLogs] = useState(false);
-    const [selectedLogs, setSelectedLogs] = useState(null);
+  // Fetch
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const data = await getEquipos();
 
-    // Busqueda
-    const [search, setSearch] = useState("");
-    const [tipoFilter, setTipoFilter] = useState("");
+      const ordenados = data.sort((a, b) =>
+        a.codigo.localeCompare(b.codigo, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      );
 
-    // Fetch
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const data = await getEquipos();
-
-            const ordenados = data.sort((a, b) =>
-                a.codigo.localeCompare(
-                    b.codigo,
-                    undefined,
-                    {
-                        numeric: true,
-                        sensitivity: "base"
-                    }
-                )
-            );
-
-            setEquipos(ordenados);
-        } catch (error) {
-            notifyError("Error al cargar los equipos", "error");
-        } finally {
-            setLoading(false);
-        }
+      setEquipos(ordenados);
+    } catch (error) {
+      notifyError("Error al cargar los equipos", "error");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    useEffect(() => {
-        fetchData()
-    }, [])
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-    const handleEdit = (item) => {
-        setSelected(item)
-        setShowModal(true)
+  const handleEdit = (item) => {
+    setSelected(item);
+    setShowModal(true);
+  };
+
+  const handleCreate = () => {
+    setSelected(null);
+    setShowModal(true);
+  };
+
+  const toggleBajaActivar = async (id, estado) => {
+    if (estado) {
+      await bajaEquipo(id);
+      notifySuccess("Equipo dado de baja", "Baja correcta");
+    } else {
+      await activarEquipo(id);
+      notifySuccess("Equipo activado", "Alta correcta");
     }
+    fetchData();
+  };
 
-    const handleCreate = () => {
-        setSelected(null)
-        setShowModal(true)
-    }
+  const capitalizar = (texto = "") =>
+    texto.charAt(0).toUpperCase() + texto.slice(1);
 
-    const toggleBajaActivar = async (id, estado) => {
-        if (estado) {
-            await bajaEquipo(id)
-            notifySuccess("Equipo dado de baja", "Baja correcta")
-        } else {
-            await activarEquipo(id)
-            notifySuccess("Equipo activado", "Alta correcta")
-        }
-        fetchData()
-    }
+  // Filtro
+  const equiposFiltrados = equipos.filter((e) => {
+    const matchSearch =
+      e.codigo.toLowerCase().includes(search.toLowerCase()) ||
+      e.usuarioNombre.toLowerCase().includes(search.toLowerCase());
 
-    const capitalizar = (texto = "") =>
-        texto.charAt(0).toUpperCase() + texto.slice(1);
+    const matchTipo = tipoFilter === "" || e.tipo === tipoFilter;
 
-    // Filtro
-    const equiposFiltrados = equipos.filter(e => {
-        const matchSearch =
-            e.codigo.toLowerCase().includes(search.toLowerCase()) ||
-            e.usuarioNombre.toLowerCase().includes(search.toLowerCase())
+    return matchSearch && matchTipo;
+  });
 
-        const matchTipo =
-            tipoFilter === "" || e.tipo === tipoFilter
+  // Cerrar menu cuando se hace click fuera
 
-        return matchSearch && matchTipo
-    });
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".action-menu")) {
+        setOpenActionsId(null);
+      }
+    };
 
+    document.addEventListener("mousedown", handleClickOutside);
 
-        // Cerrar menu cuando se hace click fuera
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (!event.target.closest(".action-menu")) {
-                setOpenActionsId(null);
-            }
-        };
+  // Loading
+  if (loading) {
+    return <Loader text="Cargando inventarios..." />;
+  }
 
-        document.addEventListener("mousedown", handleClickOutside);
+  return (
+    <div className="page-transition">
+      {/* HEADER */}
+      <div className="d-flex justify-content-between mb-4 custom-users-header">
+        <div className="page mb-3">
+          <h6>
+            <strong>Inventario</strong>
+          </h6>
 
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
+          <span className="badge-title">AQUA Médica</span>
+        </div>
+      </div>
+      <div className="contenedor-header">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Código o usuario..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: "16rem" }}
+        />
 
-    // Loading
-    if (loading) {
-        return <Loader text="Cargando inventarios..." />;
-    }
+        <select
+          className="form-select"
+          value={tipoFilter}
+          onChange={(e) => setTipoFilter(e.target.value)}
+          style={{ width: "12rem" }}
+        >
+          <option value="">Todos</option>
+          <option value="radio">Radio</option>
+          <option value="pc">PC</option>
+          <option value="impresora">Impresora</option>
+          <option value="pantalla">Pantalla</option>
+        </select>
 
-    return (
-        <div className="page-transition">
+        <button
+          className="btn btn-sm btn-primary custom-btn"
+          onClick={handleCreate}
+        >
+          <FaPlus className="me-2" />
+          Nuevo Equipo
+        </button>
+      </div>
 
-            {/* HEADER */}
-            <div className="d-flex justify-content-between mb-4 custom-users-header">
+      {/* TABLE */}
+      {loading ? (
+        <Loader />
+      ) : (
+        <div className="card shadow-sm custom-users-card">
+          <div className="card-body table-responsive-container">
+            <table className="table custom-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Tipo</th>
+                  <th>Usuario</th>
+                  <th>Área</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                  <th width="10%">Distintivos</th>
+                </tr>
+              </thead>
 
-                <div className="page mb-3">
-                    <h6 >
-                        <strong>Inventario</strong>
-                    </h6>
+              <tbody>
+                {equiposFiltrados.map((e) => (
+                  <tr
+                    key={e.id}
+                    className={openActionsId === e.id ? "table-row-active" : ""}
+                  >
+                    <td>{e.codigo}</td>
+                    <td>{e.tipo.toUpperCase()}</td>
+                    <td>{e.usuarioNombre}</td>
+                    <td>{e.areaId.toUpperCase()}</td>
 
-                    <span className="badge-title">
-                        AQUA Médica
-                    </span>
-                </div>
+                    <td>
+                      {e.estado ? (
+                        <span className="custom-badge-success">Activo</span>
+                      ) : (
+                        <span className="custom-badge-danger">Baja</span>
+                      )}
+                    </td>
 
-                <div className="d-flex gap-3">
+                    <td className="inventario-actions-cell">
+                      <div className="inventario-action-menu-wrapper">
+                        <button
+                          type="button"
+                          className="inventario-action-button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setOpenActionsId(
+                              openActionsId === e.id ? null : e.id,
+                            );
+                          }}
+                          aria-label="Acciones"
+                        >
+                          <FaEllipsisV />
+                        </button>
 
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Código o usuario..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        style={{ width: "16rem" }}
-                    />
+                        {openActionsId === e.id && (
+                          <div className="action-menu">
+                            <button
+                              type="button"
+                              className="action-menu-item-editar"
+                              onClick={() => {
+                                handleEdit(e);
+                                setOpenActionsId(null);
+                              }}
+                            >
+                              <FaEdit className="me-2" />
+                              Editar
+                            </button>
 
-                    <select
-                        className="form-select"
-                        value={tipoFilter}
-                        onChange={(e) => setTipoFilter(e.target.value)}
-                        style={{ width: "12rem" }}
-                    >
-                        <option value="">Todos</option>
-                        <option value="radio">Radio</option>
-                        <option value="pc">PC</option>
-                        <option value="impresora">Impresora</option>
-                        <option value="pantalla">Pantalla</option>
-                    </select>
+                            <button
+                              type="button"
+                              className={`action-menu-item-${e.estado ? "baja" : "activar"}`}
+                              onClick={() => {
+                                setOpenActionsId(null);
+                                toggleBajaActivar(e.id, e.estado);
+                              }}
+                            >
+                              {e.estado ? (
+                                <>
+                                  <FaTrash className="me-2" />
+                                  Dar de baja
+                                </>
+                              ) : (
+                                <>
+                                  <FaCheck className="me-2" />
+                                  Activar
+                                </>
+                              )}
+                            </button>
 
-                    <button
-                        className="btn btn-sm btn-primary custom-btn"
-                        onClick={handleCreate}
-                    >
-                        <FaPlus className="me-2" />
-                        Nuevo Equipo
-                    </button>
+                            <button
+                              type="button"
+                              className="action-menu-item-log"
+                              onClick={() => {
+                                setSelectedLogs(e);
+                                setShowLogs(true);
+                                setOpenActionsId(null);
+                              }}
+                            >
+                              <FaClipboardList className="me-2" />
+                              Ver Logs
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
 
-                </div>
+                    <td>
+                      {e.garantia && (
+                        <span className="custom-badge-info me-2">
+                          En garantía
+                        </span>
+                      )}
 
-            </div>
+                      {e.servicioExterno && (
+                        <span className="custom-badge-dark">
+                          Servicio externo
+                        </span>
+                      )}
 
-            {/* TABLE */}
-            {loading ? (
-                <Loader />
-            ) : (
-                <div className="card shadow-sm custom-users-card">
+                      {!e.garantia && !e.servicioExterno && (
+                        <span style={{ color: "#9ca3af", fontSize: "12px" }}>
+                          -
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-                    <div className="card-body table-responsive-container">
+      {/* MODAL */}
+      {showModal && (
+        <EquipoModal
+          show={showModal}
+          onClose={() => setShowModal(false)}
+          onSuccess={fetchData}
+          data={selected}
+        />
+      )}
 
-                        <table className="table custom-table">
+      {showLogs && (
+        <LogsEquipoModal
+          equipo={selectedLogs}
+          onClose={() => setShowLogs(false)}
+          onSuccess={fetchData}
+        />
+      )}
 
-                            <thead>
-                                <tr>
-                                    <th>Código</th>
-                                    <th>Tipo</th>
-                                    <th>Usuario</th>
-                                    <th>Área</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                    <th width="10%">Distintivos</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-
-                                {equiposFiltrados.map((e) => (
-                                    <tr key={e.id}
-                                        className= {openActionsId === e.id ? "table-row-active" : ""}>
-                                        <td>{e.codigo}</td>
-                                        <td>{e.tipo.toUpperCase()}</td>
-                                        <td>{e.usuarioNombre}</td>
-                                        <td>{e.areaId.toUpperCase()}</td>
-
-                                        <td>
-                                            {e.estado ? (
-                                                <span className="custom-badge-success">
-                                                    Activo
-                                                </span>
-                                            ) : (
-                                                <span className="custom-badge-danger">
-                                                    Baja
-                                                </span>
-                                            )}
-                                        </td>
-
-                                        
-                                        <td className="inventario-actions-cell">
-                                            <div className="inventario-action-menu-wrapper">
-                                                <button
-                                                    type="button"
-                                                    className="inventario-action-button"
-                                                    onClick={(event) => {
-                                                        event.stopPropagation();
-                                                        setOpenActionsId(openActionsId === e.id ? null : e.id);
-                                                    }}
-                                                    aria-label="Acciones"
-                                                >
-                                                    <FaEllipsisV />
-                                                    
-                                                    </button>
-
-                                                    {openActionsId === e.id && (
-                                                        <div className="action-menu">
-                                                            <button
-                                                                type="button"
-                                                                className="action-menu-item-editar"
-                                                                onClick={() => {
-                                                                    handleEdit(e);
-                                                                    setOpenActionsId(null);
-                                                                }}
-                                                            >
-                                                                <FaEdit className="me-2" />
-                                                                Editar
-                                                            </button>
-
-                                                            <button
-                                                                type="button"
-                                                                className={`action-menu-item-${e.estado ? 'baja' : 'activar'}`}
-                                                                onClick={() => {
-                                                                    setOpenActionsId(null);
-                                                                    toggleBajaActivar(e.id, e.estado);
-                                                                }}
-                                                            >
-                                                                {e.estado ? (
-                                                                    <>
-                                                                        <FaTrash className="me-2" />
-                                                                        Dar de baja
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <FaCheck className="me-2" />
-                                                                        Activar
-                                                                    </>
-                                                                )}
-                                                            </button>
-
-                                                            <button
-                                                                type="button"
-                                                                className="action-menu-item-log"
-                                                                onClick={() => {
-                                                                    setSelectedLogs(e);
-                                                                    setShowLogs(true);
-                                                                    setOpenActionsId(null);
-                                                                }}
-                                                            >
-                                                                <FaClipboardList className="me-2" />
-                                                                Ver Logs
-                                                            </button>
-
-                                                        </div>
-                                                    )}
-                                                
-                                            </div>
-                                        </td>
-
-
-
-
-
-                                        <td>
-
-                                            {e.garantia && (
-                                                <span className="custom-badge-info me-2">
-                                                    En garantía
-                                                </span>
-                                            )}
-
-                                            {e.servicioExterno && (
-                                                <span className="custom-badge-dark">
-                                                    Servicio externo
-                                                </span>
-                                            )}
-
-                                            {!e.garantia && !e.servicioExterno && (
-                                                <span style={{ color: "#9ca3af", fontSize: "12px" }}>
-                                                    -
-                                                </span>
-                                            )}
-
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                </div>
-            )}
-
-            {/* MODAL */}
-            {showModal && (
-                <EquipoModal
-                    show={showModal}
-                    onClose={() => setShowModal(false)}
-                    onSuccess={fetchData}
-                    data={selected}
-                />
-            )}
-
-
-            {showLogs && (
-                <LogsEquipoModal
-                    equipo={selectedLogs}
-                    onClose={() => setShowLogs(false)}
-                    onSuccess={fetchData}
-                />
-            )}
-
-            {/* 🎨 ESTILOS */}
-            <style >{`
+      {/* 🎨 ESTILOS */}
+      <style>{`
 
                 .custom-users-header input{
                 height: 50px;
@@ -361,6 +339,21 @@ export default function InventarioPage() {
                     border-radius: 10px;
                     color: var(--operator-text);
                     background: var(--operator-card);
+                }
+
+                /* CONTENEDOR HEADER */
+                .contenedor-header {
+                    width: 100%;
+                    align-items: flex-end;
+                    border-radius: 30px;
+                    border: 1px solid var(--operator-border);
+                    display: flex;
+                    background: var(--operator-card);
+                    margin-bottom: 20px;
+                    padding: 30px;
+                    box-shadow: 0 8px 25px var(--operator-shadow);
+                    gap: 20px;
+                    justify-content: end;
                 }
                 
                 .btn-primary {
@@ -591,7 +584,6 @@ export default function InventarioPage() {
 
 
             `}</style>
-
-        </div>
-    )
+    </div>
+  );
 }

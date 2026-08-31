@@ -7,99 +7,80 @@ import PuestoModal from "../../../components/ui/PuestoModal";
 
 import Loader from "../../../components/Loader";
 
-
-
-
-
 export default function PuestosPage() {
+  const { puestos, loading, refresh } = usePuestos();
 
-    const { puestos, loading, refresh } = usePuestos();
+  const [showModal, setShowModal] = useState(false);
+  const [puestoEdit, setPuestoEdit] = useState(null);
 
-    const [showModal, setShowModal] = useState(false);
-    const [puestoEdit, setPuestoEdit] = useState(null);
+  // Buscador
+  const [search, setSaerch] = useState("");
 
+  // Filtro
+  const filteredPuestos = puestos.filter((p) =>
+    (p.nombre || p.no || "").toLowerCase().includes(search.toLocaleLowerCase()),
+  );
 
-    
+  const handleNew = () => {
+    setPuestoEdit(null);
+    setShowModal(true);
+  };
 
-    // Buscador
-    const [search, setSaerch] = useState("");
+  const handleEdit = (puesto) => {
+    setPuestoEdit(puesto);
+    setShowModal(true);
+  };
 
-    // Filtro
-    const filteredPuestos = puestos.filter(p =>
-        (p.nombre || p.no || "")
-            .toLowerCase()
-            .includes(search.toLocaleLowerCase())
-    )
+  if (loading) {
+    return <Loader text="Cargando puestos..." />;
+  }
 
-    const handleNew = () => {
-        setPuestoEdit(null);
-        setShowModal(true);
-    }
+  return (
+    <div className="page-transition py-4 custom-page">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="page mb-3">
+          <h6>
+            <strong>Puestos</strong>
+          </h6>
 
-    const handleEdit = (puesto) => {
-        setPuestoEdit(puesto);
-        setShowModal(true);
-    }
+          <span className="badge-title">AQUA Médica</span>
+        </div>
+      </div>
+      <div className="contenedor-header">
+        <input
+          type="text"
+          className="form-control custom-input"
+          placeholder="Buscar puesto..."
+          value={search}
+          onChange={(e) => setSaerch(e.target.value)}
+          style={{ width: "16rem" }}
+        />
 
-    if (loading) {
-        return <Loader text="Cargando puestos..." />;
-    }
+        <button className="btn btn-primary custom-btn" onClick={handleNew}>
+          <FaPlus /> Nuevo
+        </button>
+      </div>
 
-    return (
-        <div className="page-transition py-4 custom-page">
+      {/* TABLE */}
+      <div className="card shadow-sm custom-users-card">
+        <div className="card-body">
+          <PuestoTable
+            puestos={filteredPuestos}
+            loading={loading}
+            onEdit={handleEdit}
+          />
+        </div>
+      </div>
 
-            <div className="d-flex justify-content-between align-items-center mb-4">
+      {showModal && (
+        <PuestoModal
+          onClose={() => setShowModal(false)}
+          onSuccess={refresh}
+          puestoEdit={puestoEdit}
+        />
+      )}
 
-                <div className="page mb-3">
-                    <h6 >
-                        <strong>Puestos</strong>
-                    </h6>
-
-                    <span className="badge-title">
-                        AQUA Médica
-                    </span>
-                </div>
-
-                <div className="d-flex gap-3">
-
-                    <input
-                        type="text"
-                        className="form-control custom-input"
-                        placeholder="Buscar puesto..."
-                        value={search}
-                        onChange={(e) => setSaerch(e.target.value)}
-                        style={{ width: "16rem" }}
-                    />
-
-                    <button className="btn btn-primary custom-btn" onClick={handleNew}>
-                        <FaPlus /> Nuevo
-                    </button>
-
-                </div>
-
-            </div>
-
-            {/* TABLE */}
-            <div className="card shadow-sm custom-users-card">
-                <div className="card-body">
-                    <PuestoTable
-                        puestos={filteredPuestos}
-                        loading={loading}
-                        onEdit={handleEdit}
-                    />
-                </div>
-            </div>
-
-            {showModal && (
-                <PuestoModal
-                    onClose={() => setShowModal(false)}
-                    onSuccess={refresh}
-                    puestoEdit={puestoEdit}
-                />
-            )}
-
-
-            <style>{`
+      <style>{`
 
             /* PAGINA */
 
@@ -110,6 +91,22 @@ export default function PuestosPage() {
 
             .card-body {
                 padding: 8px;
+            }
+
+            /* CONTENEDOR HEADER */
+
+            .contenedor-header {
+                width: 100%;
+                align-items: flex-end;
+                border-radius: 30px;
+                border: 1px solid var(--operator-border);
+                display: flex;
+                background: var(--operator-card);
+                margin-bottom: 20px;
+                padding: 30px;
+                box-shadow: 0 8px 25px var(--operator-shadow);
+                gap: 20px;
+                justify-content: end;
             }
 
             
@@ -263,12 +260,6 @@ export default function PuestosPage() {
 
 
             `}</style>
-
-        </div>
-
-
-
-
-    );
-
+    </div>
+  );
 }

@@ -1,18 +1,19 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "../useAuth";
 import { getCapacitacionesDisponibles } from "../../services/capacitacionesService";
 
 const MIN_APROBATORIO = 80;
 
-export function useOperatorTrainings() {
+export function useOperatorTrainings({ enabled = true } = {}) {
     const { user } = useAuth();
 
     const [rawTrainings, setRawTrainings] = useState([]);
+    const lastRequestRef = useRef("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     const fetchData = useCallback(async () => {
-        if (!user?.nomina && !user?.uid) return;
+        if (!enabled || (!user?.nomina && !user?.uid)) return;
 
         setLoading(true);
         setError(null);
@@ -32,8 +33,21 @@ export function useOperatorTrainings() {
     }, [user?.nomina, user?.uid]);
 
     useEffect(() => {
+        const key = `${user?.uid || ""}:${user?.nomina || ""}`;
+
+        if (!enabled || (!user?.uid && !user?.nomina)) {
+            lastRequestRef.current = "";
+            setRawTrainings([]);
+            return;
+        }
+
+        if (lastRequestRef.current === key) {
+            return;
+        }
+
+        lastRequestRef.current = key;
         fetchData();
-    }, [fetchData]);
+    }, [enabled, fetchData, user?.uid, user?.nomina]);
 
     const trainings = useMemo(() => {
         return rawTrainings.map(training => ({

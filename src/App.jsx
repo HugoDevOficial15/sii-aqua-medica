@@ -4,19 +4,51 @@ import AppRouter from './router/AppRouter';
 import { AuthProvider } from './context/AuthProvider';
 import { LoaderProvider } from './context/LoaderProvider';
 import { PreferencesProvider } from './context/PreferencesProvider';
+import { APP_BOOTSTRAP_CACHE_KEY, readMemoryCache, writeMemoryCache } from './utils/cacheStore';
+
+writeMemoryCache(APP_BOOTSTRAP_CACHE_KEY, {
+  ...(readMemoryCache(APP_BOOTSTRAP_CACHE_KEY) ?? {}),
+  appCssLoaded: true,
+  shellInitialized: true,
+});
 
 function App() {
   const [isOffline, setIsOffline] = useState(() => {
-    if (typeof navigator !== 'undefined') {
-      return !navigator.onLine;
+    const cachedState = readMemoryCache(APP_BOOTSTRAP_CACHE_KEY) ?? {};
+
+    if (typeof cachedState.isOffline === 'boolean') {
+      return cachedState.isOffline;
     }
 
-    return false;
+    const initialOfflineState = typeof navigator !== 'undefined' ? !navigator.onLine : false;
+
+    writeMemoryCache(APP_BOOTSTRAP_CACHE_KEY, {
+      ...cachedState,
+      isOffline: initialOfflineState,
+      cssLoaded: true,
+    });
+
+    return initialOfflineState;
   });
 
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => {
+      setIsOffline(false);
+      writeMemoryCache(APP_BOOTSTRAP_CACHE_KEY, {
+        ...(readMemoryCache(APP_BOOTSTRAP_CACHE_KEY) ?? {}),
+        isOffline: false,
+        cssLoaded: true,
+      });
+    };
+
+    const handleOffline = () => {
+      setIsOffline(true);
+      writeMemoryCache(APP_BOOTSTRAP_CACHE_KEY, {
+        ...(readMemoryCache(APP_BOOTSTRAP_CACHE_KEY) ?? {}),
+        isOffline: true,
+        cssLoaded: true,
+      });
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -26,6 +58,14 @@ function App() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    writeMemoryCache(APP_BOOTSTRAP_CACHE_KEY, {
+      ...(readMemoryCache(APP_BOOTSTRAP_CACHE_KEY) ?? {}),
+      isOffline,
+      cssLoaded: true,
+    });
+  }, [isOffline]);
 
   // Prevenir desplazamiento de la página cuando el teclado se abre en móviles
   useEffect(() => {

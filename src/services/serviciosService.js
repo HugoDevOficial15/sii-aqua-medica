@@ -9,9 +9,17 @@ import {
     updateDoc,
     deleteDoc
 } from "firebase/firestore";
+import { readSessionCache, writeSessionCache, clearCachedData } from "../utils/cacheStore";
+
+const SERVICIOS_CACHE_KEY = "sii-aqua-servicios-cache";
 
 // 🔹 Obtener servicios por área + mes + año (NO TOCAR)
 export const getServicios = async (areaId, anio, mes) => {
+    const cacheKey = `${SERVICIOS_CACHE_KEY}:${String(areaId || "global")}:${anio}:${mes}`;
+    const cached = readSessionCache(cacheKey);
+    if (cached) {
+        return cached;
+    }
 
     const areaID = areaId.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -23,15 +31,22 @@ export const getServicios = async (areaId, anio, mes) => {
     );
 
     const snap = await getDocs(q);
-
-    return snap.docs.map(doc => ({
+    const servicios = snap.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
     }));
+
+    writeCachedData(cacheKey, servicios);
+    return servicios;
 };
 
 // 🔥 GLOBAL (NO TOCAR)
 export const getServiciosGlobal = async (anio, mes) => {
+    const cacheKey = `${SERVICIOS_CACHE_KEY}:global:${anio}:${mes}`;
+    const cached = readSessionCache(cacheKey);
+    if (cached) {
+        return cached;
+    }
 
     const q = query(
         collection(db, "servicios_programados"),
@@ -40,11 +55,13 @@ export const getServiciosGlobal = async (anio, mes) => {
     );
 
     const snap = await getDocs(q);
-
-    return snap.docs.map(doc => ({
+    const servicios = snap.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
     }));
+
+    writeCachedData(cacheKey, servicios);
+    return servicios;
 };
 
 // 🔹 Crear servicio (NO TOCAR)
@@ -62,7 +79,9 @@ export const crearServicio = async (data) => {
 // 🔹 Actualizar (NO TOCAR)
 export const actualizarServicio = async (id, data) => {
     const ref = doc(db, "servicios_programados", id);
-    return await updateDoc(ref, data);
+    const result = await updateDoc(ref, data);
+    clearCachedData(SERVICIOS_CACHE_KEY);
+    return result;
 };
 
 export const crearLogEquipo = async (equipoId, log) => {

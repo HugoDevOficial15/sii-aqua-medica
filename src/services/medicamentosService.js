@@ -11,19 +11,28 @@ import {
     orderBy,
     Timestamp
 } from 'firebase/firestore'
+import { readCachedData, writeCachedData } from '../utils/cacheStore';
 
 const COLLECTION = 'inventario_medicamentos'
+const CACHE_KEY = 'sii-aqua-medicamentos-cache';
 
 //  GET
 export const getMedicamentos = async () => {
+    const cached = readCachedData(CACHE_KEY);
+    if (cached) {
+        return cached;
+    }
+
     const q = query(collection(db, COLLECTION), orderBy('fechaCaducidad'))
 
     const snapshot = await getDocs(q)
-
-    return snapshot.docs.map(doc => ({
+    const medicamentos = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
     }))
+
+    writeCachedData(CACHE_KEY, medicamentos);
+    return medicamentos;
 }
 
 export const createMedicamento = async (data) => {

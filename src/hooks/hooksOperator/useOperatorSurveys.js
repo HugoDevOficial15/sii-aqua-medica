@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
 import { useAuth } from "../useAuth";
 
@@ -6,18 +6,19 @@ import { getEncuestasDisponibles } from "../../services/encuestasService";
 
 import { MIN_APROBATORIO } from "../../constants/surveyConstants";
 
-export function useOperatorSurveys() {
+export function useOperatorSurveys({ enabled = true } = {}) {
 
     const { user } = useAuth();
 
     const [rawSurveys, setRawSurveys] = useState([]);
+    const lastRequestRef = useRef("");
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     const fetchData = useCallback(async () => {
 
-        if (!user?.nomina) return;
+        if (!enabled || !user?.nomina) return;
 
         setLoading(true);
         setError(null);
@@ -48,13 +49,21 @@ export function useOperatorSurveys() {
     }, [user?.nomina]);
 
     useEffect(() => {
-        if (!user?.uid || !user?.nomina) {
+        const key = `${user?.uid || ""}:${user?.nomina || ""}`;
+
+        if (!enabled || !user?.uid || !user?.nomina) {
+            lastRequestRef.current = "";
             setRawSurveys([]);
             return;
         }
 
+        if (lastRequestRef.current === key) {
+            return;
+        }
+
+        lastRequestRef.current = key;
         fetchData();
-    }, [fetchData, user?.uid, user?.nomina]);
+    }, [enabled, fetchData, user?.uid, user?.nomina]);
 
     // Adapta la salida del servicio (estado/miPuntaje) al contrato que ya
     // consumen las pantallas existentes (estadoActual/miPuntaje).

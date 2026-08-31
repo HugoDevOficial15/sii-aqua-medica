@@ -121,7 +121,7 @@ export default function RacksPages() {
 
           <span className="badge-title">AQUA Médica</span>
         </div>
-        <div className=" mb-3-filter">
+        <div className=" contenedor-header">
           <input
             className="form-control"
             type="text"
@@ -359,11 +359,18 @@ export default function RacksPages() {
           padding: 20px;
         }
 
-        .mb-3-filter {
+        .contenedor-header {
+          width: 100%;
+          align-items: flex-end;
+          border-radius: 30px;
+          border: 1px solid var(--operator-border);
           display: flex;
-          gap: 10px;
-          justify-content: flex-end;
-          padding: 30px 0;
+          background: var(--operator-card);
+          margin-bottom: 20px;
+          padding: 30px;
+          box-shadow: 0 8px 25px var(--operator-shadow);
+          gap: 20px;
+          justify-content: end;
         }
 
         .custom-users-header input,

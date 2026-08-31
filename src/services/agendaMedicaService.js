@@ -1,15 +1,32 @@
-import { collection, getDocs, Timestamp, updateDoc, doc, addDoc, writeBatch, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, Timestamp, updateDoc, doc, addDoc, writeBatch, serverTimestamp, query, where } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { queueCancelacionCitasPorAgenda } from "./citasMedicasService";
 import { createNotification } from "../utils/createNotification";
+import { readSessionCache, writeSessionCache, clearCachedData } from "../utils/cacheStore";
 
-export const getAgendasMedicas = async () => {
-    const snap = await getDocs(collection(db, "agendas_medicas"));
+const CACHE_KEY = "sii-aqua-agendas-medicas-cache";
 
-    return snap.docs.map(doc => ({
+export const getAgendasMedicas = async ({ estado = null } = {}) => {
+    const cacheKey = estado === null ? CACHE_KEY : `${CACHE_KEY}:${String(estado)}`;
+    const cached = readSessionCache(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
+    const constraints = [];
+    if (estado !== null && estado !== undefined) {
+        constraints.push(where("estado", "==", estado));
+    }
+
+    const q = query(collection(db, "agendas_medicas"), ...constraints);
+    const snap = await getDocs(q);
+    const agendas = snap.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
     }));
+
+    writeSessionCache(cacheKey, agendas);
+    return agendas;
 };
 
 export const crearAgenda = async (data) => {
@@ -18,10 +35,15 @@ export const crearAgenda = async (data) => {
         estado: "activa",
         createdAt: Timestamp.now()
     });
+    clearCachedData(CACHE_KEY);
 
-    // Crear notificación para todos los usuarios
+    // Crear notificación para usuarios activos
     try {
-        const usersSnapshot = await getDocs(collection(db, "usuarios"));
+        const activeUsersQuery = query(
+            collection(db, "usuarios"),
+            where("activo", "==", true)
+        );
+        const usersSnapshot = await getDocs(activeUsersQuery);
 
         const notificacionesPromises = usersSnapshot.docs.map(userDoc => {
             const userId = userDoc.id;
@@ -54,6 +76,7 @@ export const toggleAgendaEstado = async (id, estadoActual) => {
     await updateDoc(doc(db, "agendas_medicas", id), {
         estado: estadoActual === "activa" ? "inactiva" : "activa"
     });
+    clearCachedData(CACHE_KEY);
 };
 
 // ======================================================
@@ -74,6 +97,7 @@ export const updateAgendaWithBatch = async (agendaId, agendaUpdates, motivo, adm
     const citasCanceladas = await queueCancelacionCitasPorAgenda(batch, agendaId, motivo, adminUid);
 
     await batch.commit();
+    clearCachedData(CACHE_KEY);
 
     return { success: true, citasCanceladas };
 

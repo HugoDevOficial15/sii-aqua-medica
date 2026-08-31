@@ -9,14 +9,46 @@ import {
     query,
     where,
     writeBatch,
-    serverTimestamp
+    serverTimestamp,
+    setDoc
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { CITA_ESTADOS, ESTADOS_CANCELABLES } from "../constants/citasMedicasStates";
 import { createNotification } from "../utils/createNotification";
 
-export const getCitasMedicas = async () => {
-    const snap = await getDocs(collection(db, "citas_medicas"));
+const resolveUserDocIdByFirebaseUid = async (userId) => {
+    if (!userId) return null;
+
+    try {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("uid", "==", userId));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+            return snapshot.docs[0].id;
+        }
+    } catch (error) {
+        console.error("Error resolviendo docId del usuario para citas:", error);
+    }
+
+    return userId;
+};
+
+export const getCitasMedicas = async ({ agendaId = null, userId = null, estado = null } = {}) => {
+    const constraints = [];
+
+    if (agendaId) {
+        constraints.push(where("agendaId", "==", agendaId));
+    }
+    if (userId) {
+        constraints.push(where("userId", "==", userId));
+    }
+    if (estado) {
+        constraints.push(where("estado", "==", estado));
+    }
+
+    const q = query(collection(db, "citas_medicas"), ...constraints);
+    const snap = await getDocs(q);
 
     return snap.docs.map(doc => ({
         id: doc.id,
@@ -494,6 +526,21 @@ export const bookAppointment = async (appointmentData) => {
     };
 
     const docRef = await addDoc(collection(db, "citas_medicas"), nuevaCita);
+
+    const resolvedUserDocId = await resolveUserDocIdByFirebaseUid(userId);
+    if (resolvedUserDocId) {
+        const anioActual = new Date().getFullYear();
+        const userYearCitaRef = doc(
+            collection(db, "users", String(resolvedUserDocId), String(anioActual), "informacion", "CitasMedicas")
+        );
+
+        await setDoc(userYearCitaRef, {
+            ...nuevaCita,
+            id: userYearCitaRef.id,
+            usuarioDocId: resolvedUserDocId,
+            createdAt: serverTimestamp(),
+        });
+    }
 
     return {
         id: docRef.id,

@@ -18,10 +18,16 @@ export default function AniversarioPage() {
     useEffect(() => {
         loadData();
     }, [mes]);
-    
-    const loadData = async () => {
+
+    const loadData = async ({ forceRefresh = false } = {}) => {
         try {
             setLoading(true);
+
+            if (forceRefresh) {
+                const res = await refreshAniversariosByMes(Number(mes));
+                setData(res || { cumpleanios: [], aniversarios: [] });
+                return;
+            }
 
             const cached = await getAniversariosByMes(Number(mes), { source: "cache" });
             if (cached) {
@@ -39,6 +45,10 @@ export default function AniversarioPage() {
         }
     };
 
+    const handleRefresh = async () => {
+        await loadData({ forceRefresh: true });
+    };
+
     return (
         <>
             <div className="page mb-3">
@@ -54,6 +64,15 @@ export default function AniversarioPage() {
                             AQUA Médica
                         </span>
                     </div>
+
+                    <button
+                        type="button"
+                        className="dashboard-refresh-button"
+                        onClick={handleRefresh}
+                        disabled={loading}
+                    >
+                        {loading ? "Actualizando..." : "Actualizar"}
+                    </button>
                 </div>
 
                 <span className="badge-title">

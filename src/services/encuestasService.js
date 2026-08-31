@@ -1,6 +1,70 @@
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { isSurveyTimeExpired } from "../utils/surveyTiming";
+
+const SURVEYS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export const clearSurveyCaches = () => {
+    if (typeof window === "undefined") return;
+
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key?.startsWith("siiAquaEncuestas:")) {
+            keysToRemove.push(key);
+        }
+    }
+
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+};
+
+const getSurveyCacheKey = (usuario) => {
+    if (!usuario) return "";
+    const userId = usuario.uid || usuario.nomina || usuario.username || "anon";
+    return `siiAquaEncuestas:${String(userId)}`;
+};
+
+const readSurveyCache = (usuario) => {
+    if (typeof window === "undefined") return null;
+
+    const cacheKey = getSurveyCacheKey(usuario);
+    if (!cacheKey) return null;
+
+    try {
+        const raw = localStorage.getItem(cacheKey);
+        if (!raw) return null;
+
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.data)) return null;
+
+        const isFresh = Date.now() - Number(parsed.cachedAt || 0) < SURVEYS_CACHE_TTL_MS;
+        if (!isFresh) {
+            localStorage.removeItem(cacheKey);
+            return null;
+        }
+
+        return parsed.data;
+    } catch (error) {
+        console.warn("No se pudo leer la caché de encuestas:", error);
+        return null;
+    }
+};
+
+const writeSurveyCache = (usuario, data) => {
+    if (typeof window === "undefined") return;
+
+    const cacheKey = getSurveyCacheKey(usuario);
+    if (!cacheKey) return;
+
+    try {
+        localStorage.setItem(cacheKey, JSON.stringify({
+            cachedAt: Date.now(),
+            data
+        }));
+    } catch (error) {
+        console.warn("No se pudo guardar la caché de encuestas:", error);
+    }
+};
 
 // ============================================================
 // CONSULTA DE ENCUESTAS DISPONIBLES PARA UN USUARIO
@@ -14,6 +78,11 @@ import { isSurveyTimeExpired } from "../utils/surveyTiming";
 export const getEncuestasDisponibles = async (usuario) => {
     if (!usuario) return [];
 
+    const cached = readSurveyCache(usuario);
+    if (cached) {
+        return cached;
+    }
+
     try {
         const nominaStr = String(usuario.nomina || usuario.username || "").trim();
         const queries = [];
@@ -21,8 +90,7 @@ export const getEncuestasDisponibles = async (usuario) => {
         queries.push(
             query(
                 collection(db, "encuestas"),
-                where("asignacion.tipo", "==", "global"),
-                orderBy("fechaInicio", "desc")
+                where("asignacion.tipo", "==", "global")
             )
         );
 
@@ -31,8 +99,7 @@ export const getEncuestasDisponibles = async (usuario) => {
                 query(
                     collection(db, "encuestas"),
                     where("asignacion.tipo", "==", "area"),
-                    where("asignacion.valores", "array-contains", usuario.area),
-                    orderBy("fechaInicio", "desc")
+                    where("asignacion.valores", "array-contains", usuario.area)
                 )
             );
         }
@@ -42,8 +109,7 @@ export const getEncuestasDisponibles = async (usuario) => {
                 query(
                     collection(db, "encuestas"),
                     where("asignacion.tipo", "==", "usuarios"),
-                    where("asignacion.valores", "array-contains", nominaStr),
-                    orderBy("fechaInicio", "desc")
+                    where("asignacion.valores", "array-contains", nominaStr)
                 )
             );
         }
@@ -60,19 +126,25 @@ export const getEncuestasDisponibles = async (usuario) => {
             });
         });
 
-        const encuestasAccesibles = Array.from(encuestasMap.values());
+        const encuestasAccesibles = Array.from(encuestasMap.values())
+            .sort((a, b) => {
+                const aTime = a.fechaInicio?.toDate ? a.fechaInicio.toDate().getTime() : new Date(a.fechaInicio || 0).getTime();
+                const bTime = b.fechaInicio?.toDate ? b.fechaInicio.toDate().getTime() : new Date(b.fechaInicio || 0).getTime();
+                return bTime - aTime;
+            });
 
         const idsEncuestas = encuestasAccesibles.map(e => e.id);
         let respuestasUsuario = [];
 
-        if (idsEncuestas.length > 0 && usuario.uid) {
+        if (usuario.uid) {
             const qRespuestas = query(
                 collection(db, "respuestasEncuestas"),
-                where("userId", "==", usuario.uid),
-                where("encuestaId", "in", idsEncuestas)
+                where("userId", "==", usuario.uid)
             );
             const snapshotRespuestas = await getDocs(qRespuestas);
-            respuestasUsuario = snapshotRespuestas.docs.map(doc => doc.data());
+            respuestasUsuario = snapshotRespuestas.docs
+                .map(doc => doc.data())
+                .filter(respuesta => idsEncuestas.includes(respuesta.encuestaId));
         }
 
         const hoy = new Date();
@@ -131,6 +203,7 @@ export const getEncuestasDisponibles = async (usuario) => {
             };
         });
 
+        writeSurveyCache(usuario, encuestasEnriquecidas);
         return encuestasEnriquecidas;
 
     } catch (error) {

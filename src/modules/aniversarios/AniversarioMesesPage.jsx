@@ -16,32 +16,35 @@ export default function AniversarioMesesPage() {
     const [conteoPorMes, setConteoPorMes] = useState(Array(12).fill(0));
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const cargarConteos = async () => {
-            try {
-                const conteos = await getCumpleaniosPorMes({ source: "cache" });
-                setConteoPorMes(conteos || Array(12).fill(0));
-            } catch (error) {
-                console.error("Error cargando aniversarios desde caché:", error);
-                setConteoPorMes(Array(12).fill(0));
-            } finally {
-                setLoading(false);
-            }
-        };
+    const cargarConteos = async ({ forceRefresh = false } = {}) => {
+        try {
+            setLoading(true);
 
+            let conteos = null;
+
+            if (!forceRefresh) {
+                conteos = await getCumpleaniosPorMes({ source: "cache" });
+            }
+
+            if (!conteos || forceRefresh) {
+                conteos = await refreshCumpleaniosPorMes();
+            }
+
+            setConteoPorMes(conteos || Array(12).fill(0));
+        } catch (error) {
+            console.error("Error cargando aniversarios:", error);
+            setConteoPorMes(Array(12).fill(0));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         cargarConteos();
     }, []);
 
     const handleRefresh = async () => {
-        setLoading(true);
-        try {
-            const conteos = await refreshCumpleaniosPorMes();
-            setConteoPorMes(conteos || Array(12).fill(0));
-        } catch (error) {
-            console.error("Error actualizando aniversarios:", error);
-        } finally {
-            setLoading(false);
-        }
+        await cargarConteos({ forceRefresh: true });
     };
 
     return (

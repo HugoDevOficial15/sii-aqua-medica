@@ -105,8 +105,10 @@ export default function NotasPage() {
                     </span>
                 </div>
 
+            </div>
 
-                <button
+            <div className="contenedor-header">
+                    <button
                     className="btn btn-primary"
                     onClick={() => {
                         setNotaEditar(null);
@@ -115,6 +117,7 @@ export default function NotasPage() {
                 >
                     <FaPlus /> Nueva Nota
                 </button>
+
             </div>
 
             {notas.length === 0 && (
@@ -145,6 +148,19 @@ export default function NotasPage() {
             />
 
             <style jsx>{`
+
+                .contenedor-header {
+                    display: flex;
+                    align-items: flex-end;
+                    border-radius: 30px;
+                    border: 1px solid var(--operator-border);
+                    background: var(--operator-card);
+                    margin-bottom: 20px;
+                    padding: 30px;
+                    box-shadow: 0 8px 25px var(--operator-shadow);
+                    gap: 20px;
+                    justify-content: end;
+                }
 
                 .btn-primary {
                 height: 50px;

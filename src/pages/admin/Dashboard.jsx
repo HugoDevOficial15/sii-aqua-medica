@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Loader from "../../components/Loader";
-import { getDashboardStats, refreshDashboardStats, testDashboardSource } from "../../services/usersService";
+import { getDashboardStats, refreshDashboardStats } from "../../services/usersService";
 import {
     FaUsers,
     FaUserCheck,
@@ -12,24 +12,48 @@ import {
     FaChartBar
 } from "react-icons/fa";
 
-import {
-    PieChart,
-    Pie,
-    Cell,
-    Sector,
-    Tooltip,
-    ResponsiveContainer,
-} from "recharts";
-
-import { motion } from "framer-motion";
 import CountUp from "react-countup";
 import { usePreferences } from "../../hooks/usePreferences";
+
+const chartModulesPromise = Promise.all([
+    import("recharts"),
+    import("framer-motion")
+]);
 
 
 export default function Dashboard() {
 
     const { resolvedTheme } = usePreferences();
     const isDark = resolvedTheme === "dark";
+    const [chartLib, setChartLib] = useState(null);
+
+    useEffect(() => {
+        let active = true;
+
+        chartModulesPromise.then(([recharts, motionLib]) => {
+            if (!active) return;
+
+            setChartLib({
+                ...recharts,
+                motion: motionLib.motion,
+            });
+        });
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const {
+        PieChart,
+        Pie,
+        Cell,
+        Sector,
+        Tooltip,
+        ResponsiveContainer,
+    } = chartLib || {};
+
+    const motion = chartLib?.motion;
 
     const chartTextColor = isDark ? "#F1F5F9" : "#0F172A";
     const chartMutedColor = isDark ? "#94A3B8" : "#64748B";
@@ -70,9 +94,6 @@ export default function Dashboard() {
 
         const loadData = async () => {
             try {
-                const sourceTest = await testDashboardSource();
-                console.log("[dashboard UI] source test result:", sourceTest);
-
                 const data = await getDashboardStats({ source: "cache" });
                 if (isMounted) {
                     setStats(data || {

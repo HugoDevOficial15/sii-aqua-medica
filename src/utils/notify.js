@@ -1,4 +1,7 @@
-import Swal from "sweetalert2";
+const loadSwal = async () => {
+  const module = await import("sweetalert2");
+  return module.default;
+};
 
 const getDarkMode = () => {
   const htmlElement = document.documentElement;
@@ -56,8 +59,9 @@ const getBaseConfig = () => {
   };
 };
 
-export const notifySuccess = (title, text) => {
-  Swal.fire({
+export const notifySuccess = async (title, text) => {
+  const Swal = await loadSwal();
+  return Swal.fire({
     ...getBaseConfig(),
     icon: "success",
     iconColor: "#10b981",
@@ -66,9 +70,10 @@ export const notifySuccess = (title, text) => {
   });
 };
 
-export const notifyError = (title, text) => {
+export const notifyError = async (title, text) => {
+  const Swal = await loadSwal();
   const config = getBaseConfig();
-  Swal.fire({
+  return Swal.fire({
     ...config,
     icon: "error",
     iconColor: "#ef4444",
@@ -78,9 +83,10 @@ export const notifyError = (title, text) => {
   });
 };
 
-export const notifyWarning = (title, text) => {
+export const notifyWarning = async (title, text) => {
+  const Swal = await loadSwal();
   const config = getBaseConfig();
-  Swal.fire({
+  return Swal.fire({
     ...config,
     icon: "warning",
     iconColor: "#f59e0b",
@@ -90,9 +96,10 @@ export const notifyWarning = (title, text) => {
   });
 };
 
-export const notifyInfo = (title, text) => {
+export const notifyInfo = async (title, text) => {
+  const Swal = await loadSwal();
   const config = getBaseConfig();
-  Swal.fire({
+  return Swal.fire({
     ...config,
     icon: "info",
     iconColor: "#3b82f6",
@@ -102,7 +109,8 @@ export const notifyInfo = (title, text) => {
   });
 };
 
-export const confirmDelete = (title, text) => {
+export const confirmDelete = async (title, text) => {
+  const Swal = await loadSwal();
   const config = getBaseConfig();
   const colors = getThemeColors();
   const isDark = getDarkMode();
@@ -125,7 +133,6 @@ export const confirmDelete = (title, text) => {
       if (titleElement) titleElement.style.color = colors.textColor;
       if (htmlElement) htmlElement.style.color = colors.subtextColor;
 
-      // Mejorar estilos de los botones
       const confirmBtn = modal.querySelector(".swal2-confirm");
       const cancelBtn = modal.querySelector(".swal2-cancel");
 

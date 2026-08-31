@@ -1,9 +1,29 @@
-import { useState, useEffect } from "react";
-import Sidebar from "../components/Siderbar";
-import Header from "../components/Header";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { Outlet } from "react-router-dom";
 
 import "../styles/layouts.css";
+
+const Sidebar = lazy(() => import("../components/Siderbar"));
+const Header = lazy(() => import("../components/Header"));
+
+const SidebarFallback = () => (
+    <div style={{
+        width: 260,
+        minWidth: 260,
+        background: "rgba(15, 23, 42, 0.85)",
+        borderRight: "1px solid rgba(148, 163, 184, 0.16)",
+        minHeight: "100vh"
+    }} />
+);
+
+const HeaderFallback = () => (
+    <div style={{
+        height: 72,
+        width: "100%",
+        background: "rgba(15, 23, 42, 0.4)",
+        borderBottom: "1px solid rgba(148, 163, 184, 0.12)"
+    }} />
+);
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -50,15 +70,19 @@ export default function MainLayout() {
 
         <div className={`layout ${collapsed ? "collapsed" : ""}`}>
 
-            <Sidebar
-                collapsed={collapsed}
-                mobileOpen={mobileMenuOpen}
-                onCloseMobileMenu={closeMobileMenu}
-            />
+            <Suspense fallback={<SidebarFallback />}>
+                <Sidebar
+                    collapsed={collapsed}
+                    mobileOpen={mobileMenuOpen}
+                    onCloseMobileMenu={closeMobileMenu}
+                />
+            </Suspense>
 
             <div className="main">
 
-                <Header toggleSidebar={handleToggleSidebar} />
+                <Suspense fallback={<HeaderFallback />}>
+                    <Header toggleSidebar={handleToggleSidebar} />
+                </Suspense>
 
                 <div className="content">
                     <Outlet />

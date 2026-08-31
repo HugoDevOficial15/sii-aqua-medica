@@ -126,7 +126,7 @@ export default function AgendaMesPage() {
 
         try {
 
-            const eq = await getEquipos();
+            const eq = await getEquipos({ estado: true });
 
             const global = await getServiciosGlobal(
                 anio,
@@ -269,6 +269,9 @@ export default function AgendaMesPage() {
 
                 <h6>Agenda del Mes {mes} - AQUA Médica</h6>
 
+            </div>
+
+            <div className="contenedor-header">
                 <button
                     className="btn btm-sm btn-primary"
                     onClick={async () => {
@@ -283,7 +286,6 @@ export default function AgendaMesPage() {
                     <FaCalendarDay className="me-2" />
                     Ver disponibilidad
                 </button>
-
             </div>
 
             {loading ? <Loader /> : (
@@ -452,6 +454,20 @@ export default function AgendaMesPage() {
             /* HEADER */
             .custom-users-header h6 {
                 font-weight: 600;
+            }
+
+            .contenedor-header {
+                width: 100%;
+                align-items: flex-end;
+                border-radius: 30px;
+                border: 1px solid var(--operator-border);
+                display: flex;
+                background: var(--operator-card);
+                margin-bottom: 20px;
+                padding: 30px;
+                box-shadow: 0 8px 25px var(--operator-shadow);
+                gap: 20px;
+                justify-content: end;
             }
 
             /* CARD */

@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
 
 import { db } from "../config/firebase";
@@ -10,7 +9,7 @@ const BATCH_LIMIT = 400;
 
 // Lee el archivo CSV seleccionado por el admin y lo convierte en filas {nomina, nombre, curp, rfc, nss}.
 export const parseEmployeeCSV = async (file) => {
-
+    const XLSX = await import("xlsx");
     const buffer = await file.arrayBuffer();
 
     const workbook = XLSX.read(buffer, { type: "array" });
@@ -24,6 +23,7 @@ export const parseEmployeeCSV = async (file) => {
 // únicamente curp/rfc/nss mediante updateDoc() (vía writeBatch). Nunca crea
 // documentos nuevos; una fila sin nómina encontrada se reporta y se continúa.
 export const importEmployeeCSV = async (rows) => {
+    const XLSX = await import("xlsx");
 
     const start = performance.now();
 
