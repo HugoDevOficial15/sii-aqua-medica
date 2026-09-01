@@ -235,16 +235,14 @@ export default function SoporteAdmin() {
   };
 
   return (
-    <div className="container-fluid p-4 fade-in" style={{ color: "var(--operator-text)" }}>
-      {/* HEADER */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h4 className="fw-bold mb-1" style={{ color: "var(--operator-text)" }}>Soporte</h4>
-          <span className="badge bg-primary px-3 py-1" style={{ borderRadius: "20px", fontSize: "0.75rem" }}>
-            AQUA Médica
-          </span>
-        </div>
-      </div>
+    <div className="page-transition">
+
+            <div className="d-flex justify-content-between mb-4">
+                <div className="page mb-3">
+                    <h6><strong>Soporte</strong></h6>
+                    <span className="badge-title">AQUA Médica</span>
+                </div>
+            </div>
 
       {/* BARRA DE FILTROS (Estilo Img 2) */}
       <div className="card border-0 mb-4" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px" }}>

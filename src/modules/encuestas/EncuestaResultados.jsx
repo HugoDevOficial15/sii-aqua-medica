@@ -48,7 +48,6 @@ export default function EncuestaResultados({ survey, onBack }) {
   const [assignedPage, setAssignedPage] = useState(1);
   const [filters, setFilters] = useState(emptyFilters);
   const [certifying, setCertifying] = useState(false);
-  const [certificadosCount, setCertificadosCount] = useState(0);
 
   const TABLE_PAGE_SIZE = 10;
   const ASSIGNED_PAGE_SIZE = 10;
@@ -104,6 +103,15 @@ export default function EncuestaResultados({ survey, onBack }) {
           id: doc.id,
           ...doc.data(),
         }));
+
+        if (import.meta.env.DEV) {
+          console.log("Respuestas actualizadas:", nextResponses.map(r => ({
+            id: r.id,
+            certificado: r.certificado,
+            nominaUsuario: r.nominaUsuario,
+            puntuacionObtenida: r.puntuacionObtenida,
+          })));
+        }
 
         setResponses(nextResponses);
         setLoading(false);
@@ -391,8 +399,11 @@ export default function EncuestaResultados({ survey, onBack }) {
       .sort((a, b) => b.total - a.total);
   }, [filteredRows]);
 
+  const usuariosCertificados = usuariosAsignados.filter(
+    (user) => user.respuesta?.certificado === true,
+  );
   const usuariosRespondidos = usuariosAsignados.filter(
-    (user) => user.respondido && user.estado === "realizado",
+    (user) => user.respondido && user.estado === "realizado" && !user.respuesta?.certificado,
   );
   const usuariosReprobadas = usuariosAsignados.filter(
     (user) => user.estado === "reprobada",
@@ -400,6 +411,10 @@ export default function EncuestaResultados({ survey, onBack }) {
   const usuariosFaltantes = usuariosAsignados.filter(
     (user) => !user.respondido && user.estado === "faltante",
   );
+
+  const certificadosCount = useMemo(() => {
+    return usuariosCertificados.length;
+  }, [usuariosCertificados]);
 
   const usuariosFiltradosPorEstado = useMemo(() => {
     if (statusFilter === "realizado") {
@@ -415,7 +430,7 @@ export default function EncuestaResultados({ survey, onBack }) {
     }
 
     if (statusFilter === "certificado") {
-      return usuariosRespondidos;
+      return usuariosCertificados;
     }
 
     return usuariosAsignados;
@@ -425,6 +440,7 @@ export default function EncuestaResultados({ survey, onBack }) {
     usuariosFaltantes,
     usuariosReprobadas,
     usuariosRespondidos,
+    usuariosCertificados,
   ]);
 
   const totalAssignedPages = Math.max(
@@ -538,7 +554,6 @@ export default function EncuestaResultados({ survey, onBack }) {
         await batch.commit();
       }
 
-      setCertificadosCount(count);
       notifySuccess(
         "Certificación Completada",
         `Se certificaron ${count} ${count === 1 ? "usuario" : "usuarios"} aprobados`,

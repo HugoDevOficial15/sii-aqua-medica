@@ -955,18 +955,19 @@ export default function Users({ onClose }) {
   // ... TODO tu código anterior sin cambios arriba
 
   return (
-    <div className="page-transition">
+    <div className="container-fluid page-transition">
       {/* HEADER */}
       <div className="d-flex justify-content-between mb-4 custom-users-header">
         <div className="page mb-3">
           <h6>
-            <strong>Servicios</strong>
+            <strong>Usuarios</strong>
           </h6>
 
           <span className="badge-title">AQUA Médica</span>
+        </div>
+      </div>
 
-
-            <div className="contenedor-header">
+      <div className="contenedor-header mb-4">
           <input
             type="text"
             className="form-control-page"
@@ -1040,9 +1041,6 @@ export default function Users({ onClose }) {
             <FaUserPlus className="me-2" />
             Nuevo Usuario
           </button>
-        </div>
-          </div>
-
       </div>
 
       {/* TABLE */}
@@ -1703,7 +1701,6 @@ export default function Users({ onClose }) {
           box-shadow: 0 8px 25px var(--operator-shadow);
           gap: 20px;
           justify-content: end;
-
         }
 
 /* TABLA */

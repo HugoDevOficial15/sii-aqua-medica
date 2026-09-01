@@ -5,78 +5,205 @@ import {
     FiCalendar,
     FiAward
 } from "react-icons/fi";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../../config/firebase";
+
+
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { Capacitor } from "@capacitor/core";
+import { Directory, Encoding, Filesystem } from "@capacitor/filesystem";
+import { jsPDF } from "jspdf";
+import { db, storage } from "../../config/firebase";
 import MobileBackButton from "./components/MobileBackButton";
 import Loader from "../../components/Loader";
+import { generatePersonalRecordPDF } from "../../modules/personal/components/pdf-generator";
+import { notifyError, notifySuccess } from "../../utils/notify";
+
+const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        const result = typeof reader.result === "string" ? reader.result : "";
+        resolve(result.includes(",") ? result.split(",")[1] : result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+});
 
 export default function OperatorCertificates({ onBack, usuarioActual }) {
     const [certificates, setCertificates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ certificados: 0, cursosAprobados: 0 });
+    const [filterType, setFilterType] = useState("certificados");
 
     useEffect(() => {
         const loadCertificates = async () => {
             try {
-                if (!usuarioActual?.uid) {
+                if (!usuarioActual?.uid && !usuarioActual?.id) {
                     setLoading(false);
                     return;
                 }
 
-                // Obtener respuestas de capacitaciones certificadas
+                const userId = usuarioActual.id || usuarioActual.uid;
+
+                // Obtener TODAS las respuestas de capacitaciones
                 const q = query(
-                    collection(db, "respuestasCapacitaciones"),
-                    where("userId", "==", usuarioActual.id),
-                    where("certificado", "==", true),
-                    where("tipo", "==", "capacitacion")
+                    collection(db, "respuestasCapacitaciones")
                 );
 
                 const snapshot = await getDocs(q);
-                const certs = snapshot.docs.map(doc => ({
+                const allCerts = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
 
-                setCertificates(certs);
+                // Filtrar por usuario (userId, uid, o nominaUsuario)
+                const userCerts = allCerts.filter(cert =>
+                    cert.userId === userId ||
+                    cert.uid === userId ||
+                    (cert.nominaUsuario && usuarioActual.nomina && String(cert.nominaUsuario) === String(usuarioActual.nomina))
+                );
+
+                // Separar certificados (certificado === true) de cursos aprobados (puntuación >= 60)
+                const certificados = userCerts.filter(cert => cert.certificado === true);
+                const cursosAprobados = userCerts.filter(cert => {
+                    const puntuacion = Number(cert.puntuacionObtenida || 0);
+                    return puntuacion >= 60;
+                });
+
+                // Mostrar según el filtro seleccionado
+                const toShow = filterType === "certificados" ? certificados : cursosAprobados;
+                setCertificates(toShow);
                 setStats({
-                    certificados: certs.length,
-                    cursosAprobados: certs.length
+                    certificados: certificados.length,
+                    cursosAprobados: cursosAprobados.length
                 });
             } catch (error) {
                 console.error("Error loading certificates:", error);
-                // Si falla por índice, intentar sin filtro de tipo
-                try {
-                    const q = query(
-                        collection(db, "respuestasCapacitaciones"),
-                        where("userId", "==", usuarioActual.id),
-                        where("certificado", "==", true)
-                    );
-                    const snapshot = await getDocs(q);
-                    const certs = snapshot.docs
-                        .map(doc => ({ id: doc.id, ...doc.data() }))
-                        .filter(c => c.tipo === "capacitacion" || c.tipo === undefined);
-
-                    setCertificates(certs);
-                    setStats({
-                        certificados: certs.length,
-                        cursosAprobados: certs.length
-                    });
-                } catch (fallbackError) {
-                    console.error("Error in fallback:", fallbackError);
-                }
+                setLoading(false);
             } finally {
                 setLoading(false);
             }
         };
 
         loadCertificates();
-    }, [usuarioActual]);
+    }, [usuarioActual, filterType]);
+
+    const handleDownloadPDF = async (cert) => {
+        notifySuccess("Generando", "Preparando certificado...");
+
+        try {
+            const capacitacionRef = doc(db, "capacitaciones", cert.capacitacionId);
+            const capacitacionSnap = await getDoc(capacitacionRef);
+            const capacitacionData = capacitacionSnap.data() || {};
+
+            // Construir objeto de registro para usar generatePersonalRecordPDF
+            const recordData = {
+                id: cert.id,
+                type: "capacitacion",
+                titulo: cert.titulo || capacitacionData.titulo || "Sin título",
+                descripcion: cert.descripcion || capacitacionData.descripcion || "Sin descripción",
+                fecha: cert.fechaEnviado,
+                puntuacionObtenida: cert.puntuacionObtenida || 0,
+                intentos: cert.intentos || 1,
+                certificado: true
+            };
+
+            // Usar generatePersonalRecordPDF que genera PDFs profesionales
+            const result = await generatePersonalRecordPDF(recordData);
+            const pdfBlob = result?.blob || result;
+
+            console.log("PDF Blob generado, tamaño:", pdfBlob.size);
+
+            const fileName = `certificado-${cert.id}.pdf`;
+
+            // En Capacitor: guardar en Documents (accesible para el usuario)
+            if (Capacitor.isNativePlatform()) {
+                try {
+                    console.log("Guardando en Capacitor...");
+                    const base64Data = await blobToBase64(pdfBlob);
+
+                    // Crear carpeta Certificados en Documents si no existe
+                    const folderPath = "Certificados";
+                    const filePath = `${folderPath}/${fileName}`;
+
+                    // Guardar en Documents (accesible para el usuario)
+                    await Filesystem.writeFile({
+                        path: filePath,
+                        data: base64Data,
+                        directory: Directory.Documents,
+                        encoding: Encoding.Base64,
+                        recursive: true, // Crea carpeta si no existe
+                    });
+
+                    console.log("Archivo guardado en Documents/Certificados");
+
+                    // Obtener URI del archivo guardado
+                    const fileUri = await Filesystem.getUri({
+                        path: filePath,
+                        directory: Directory.Documents,
+                    });
+
+                    console.log("URI del archivo:", fileUri.uri);
+                    notifySuccess("Guardado", `Certificado en:\nDocumentos/Certificados/${fileName}`);
+                } catch (error) {
+                    console.error("Error guardando PDF:", error);
+                    console.error("Detalles:", JSON.stringify(error));
+                    notifyError("Error", error.message);
+                }
+            } else {
+                // En navegadores web: descargar blob URL
+                try {
+                    const url = URL.createObjectURL(pdfBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = fileName;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    notifySuccess("Descargado", `${fileName} descargado`);
+                } catch (error) {
+                    console.error("Error en web:", error);
+                    notifyError("Error", error.message);
+                }
+            }
+
+            // Guardar referencia en Firebase (asíncrono, sin bloquear descarga)
+            Promise.resolve().then(async () => {
+                try {
+                    const fileName = `certificado-${cert.id}-${Date.now()}.pdf`;
+                    const storageRef = ref(storage, `certificados/${fileName}`);
+                    await uploadBytes(storageRef, pdfBlob);
+                    const downloadURL = await getDownloadURL(storageRef);
+
+                    const respuestaId = cert?.id;
+                    if (respuestaId) {
+                        const respuestaRef = doc(db, "respuestasCapacitaciones", respuestaId);
+                        await updateDoc(respuestaRef, {
+                            pdfUrl: downloadURL,
+                            certificadoUrl: downloadURL,
+                            certificado: true,
+                            fechaCertificado: serverTimestamp(),
+                            actualizadoEn: serverTimestamp(),
+                        });
+                    }
+                } catch (error) {
+                    console.warn("Error guardando en Firebase (no crítico):", error);
+                }
+            });
+
+        } catch (error) {
+            console.error("Error descargando certificado:", error);
+            notifyError("Error", "Error al descargar certificado");
+        }
+    };
 
     if (loading) {
         return <Loader text="Cargando certificados..." />;
     }
 
     return (
+        <>
         <div className="certificates-screen">
 
             <MobileBackButton onBack={onBack} />
@@ -99,7 +226,11 @@ export default function OperatorCertificates({ onBack, usuarioActual }) {
 
             <div className="certificate-stats">
 
-                <div className="certificate-stat-card">
+                <div
+                    className={`certificate-stat-card ${filterType === "certificados" ? "active" : ""}`}
+                    onClick={() => setFilterType("certificados")}
+                    style={{ cursor: "pointer" }}
+                >
 
                     <FiAward />
 
@@ -111,7 +242,11 @@ export default function OperatorCertificates({ onBack, usuarioActual }) {
 
                 </div>
 
-                <div className="certificate-stat-card">
+                <div
+                    className={`certificate-stat-card ${filterType === "aprobados" ? "active" : ""}`}
+                    onClick={() => setFilterType("aprobados")}
+                    style={{ cursor: "pointer" }}
+                >
 
                     <FiCheckCircle />
 
@@ -163,11 +298,14 @@ export default function OperatorCertificates({ onBack, usuarioActual }) {
 
                         </div>
 
-                        <button className="certificate-download-btn" disabled>
+                        <button
+                            className="certificate-download-btn"
+                            onClick={() => handleDownloadPDF(cert)}
+                        >
 
                             <FiDownload />
 
-                            Descargar PDF (próximamente)
+                            Descargar PDF
 
                         </button>
 
@@ -175,6 +313,19 @@ export default function OperatorCertificates({ onBack, usuarioActual }) {
                 ))
             )}
 
+            <style>{`
+                .certificate-stat-card.active {
+                    border: 3px solid var(--operator-primary);
+                    background: rgba(37, 99, 235, 0.1);
+                    transform: scale(1.02);
+                }
+
+                .certificate-stat-card:hover {
+                    transform: scale(1.02);
+                    border-color: var(--operator-primary);
+                }
+            `}</style>
         </div>
+        </>
     );
 }

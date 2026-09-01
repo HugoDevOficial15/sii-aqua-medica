@@ -156,6 +156,27 @@ export default function AniversarioMesesPage() {
                     font-size: 22px;
                 }
 
+                .dashboard-refresh-button {
+                border:none;
+                border-radius: 12px;
+                padding:12px 18px;
+                background:linear-gradient(135deg, #6366f1, #8b5cf6);
+                color:#fff;
+                fornt-weight:700;
+                cursor:pointer;
+                box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+                trsition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+
+                .dashboard-refresh-button:hover:not(:disabled){
+                    transform:translateY(-1px);
+                    box-shadow:0 14px 24px rgba(37, 99, 235, 0.26);
+                }
+
+                .dashboard-refresh-button:disabled{
+                    opacity:0.7;
+                    cursor:wait;
+                }
+
                 /* Se renombró para no chocar con el .badge de Bootstrap */
                 .badge-month {
                     background: white;

@@ -152,11 +152,19 @@ const getPersonalRecordsCacheKey = (usuarioActual) => {
   return `sii-aqua-personal-records:${String(uid)}`;
 };
 
-const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null) => {
+const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null, options = {}) => {
+  const { forceRefresh = false } = options;
   const cacheKey = getPersonalRecordsCacheKey(usuarioActual);
-  const cachedRecords = readMemoryCache(cacheKey) ?? readSessionCache(cacheKey);
-  if (cachedRecords) {
-    return cachedRecords;
+
+  if (!forceRefresh) {
+    const cachedRecords = readMemoryCache(cacheKey) ?? readSessionCache(cacheKey);
+    const hasCachedData =
+      cachedRecords &&
+      Object.values(cachedRecords).some((records) => Array.isArray(records) && records.length > 0);
+
+    if (hasCachedData) {
+      return cachedRecords;
+    }
   }
 
   const validUsers = (usuarios || []).filter((user) => user && (user.id || user.uid || user.nomina));
@@ -166,18 +174,27 @@ const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null) => {
       incidencias: [],
       incapacidades: [],
       historialesMedicos: [],
+      capacitaciones: [],
     };
     writeSessionCache(cacheKey, empty);
     return empty;
   }
 
-  const userIds = [...new Set(validUsers.map((user) => String(user.id || user.uid || "").trim()).filter(Boolean))];
+  const userIds = [
+    ...new Set(
+      validUsers.flatMap((user) => {
+        const values = [user.uid, user.id, user.uidFirebase].filter(Boolean).map((value) => String(value).trim());
+        return values;
+      }),
+    ),
+  ].filter(Boolean);
   const nominas = [...new Set(validUsers.map((user) => String(user.nomina || "").trim()).filter((value) => value && /^\d+$/.test(value)))];
 
   const recognitionQueries = [];
   const incidenceQueries = [];
   const incapacidadQueries = [];
   const medicalQueries = [];
+  const capacitacionQueries = [];
 
   if (userIds.length) {
     chunkArray(userIds, BATCH_IN_QUERY_LIMIT).forEach((chunk) => {
@@ -185,6 +202,7 @@ const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null) => {
       incidenceQueries.push(query(collection(db, "incidencias_personal"), where("empleadoId", "in", chunk)));
       incapacidadQueries.push(query(collection(db, "incapacidades"), where("userId", "in", chunk)));
       medicalQueries.push(query(collection(db, "ordenes_medicas"), where("idPaciente", "in", chunk)));
+      capacitacionQueries.push(query(collection(db, "respuestasCapacitaciones"), where("userId", "in", chunk)));
     });
   }
 
@@ -200,15 +218,32 @@ const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null) => {
       if (numericChunk.length) {
         medicalQueries.push(query(collection(db, "ordenes_medicas"), where("nominaPacienteNum", "in", numericChunk)));
       }
+      capacitacionQueries.push(query(collection(db, "respuestasCapacitaciones"), where("nominaUsuario", "in", chunk)));
     });
   }
 
-  const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap, ordenesSnap] = await Promise.all([
+  const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap, ordenesSnap, capacitacionesSnap, capacitacionesMetaSnap] = await Promise.all([
     Promise.all(recognitionQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
     Promise.all(incidenceQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
     Promise.all(incapacidadQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
     Promise.all(medicalQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+    Promise.all(capacitacionQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+    getDocs(collection(db, "capacitaciones")).then((snapshot) => snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))),
   ]);
+
+  const capacitacionesMetaMap = new Map(
+    (capacitacionesMetaSnap || []).map((doc) => [doc.id, doc])
+  );
+
+  const capacitacionesArray = (Array.isArray(capacitacionesSnap) ? capacitacionesSnap : []).map((respuesta) => {
+    const metadata = capacitacionesMetaMap.get(respuesta.capacitacionId);
+    return {
+      ...respuesta,
+      descripcion: metadata?.descripcion || respuesta.descripcion || "",
+      fecha: respuesta.fechaEnviado || respuesta.fechaRespuesta || respuesta.createdAt,
+      titulo: respuesta.titulo || metadata?.titulo || metadata?.nombre || "",
+    };
+  });
 
   const records = {
     reconocimientos: reconocimientosSnap,
@@ -223,6 +258,7 @@ const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null) => {
         data: () => record,
       }))
     ),
+    capacitaciones: capacitacionesArray,
   };
 
   writeMemoryCache(cacheKey, records);
@@ -241,6 +277,7 @@ export default function Personal() {
     incidencias: [],
     incapacidades: [],
     historialesMedicos: [],
+    capacitaciones: [],
   });
   const [recordFilters, setRecordFilters] = useState({});
   const [actionModal, setActionModal] = useState({ type: null, usuario: null });
@@ -271,11 +308,15 @@ export default function Personal() {
   useEffect(() => {
     const fetchUsersAndRecords = async () => {
       try {
-        const { users: syncedUsers } = await getUsersPageData();
+        const { users: syncedUsers } = await getUsersPageData({ forceRefresh: true });
         setUsuarios(syncedUsers);
 
         const allowedUsers = getAllowedUsersForPersonal(syncedUsers, user);
-        const scopedRecords = await fetchUserScopedRecords(allowedUsers.length ? allowedUsers : syncedUsers, user);
+        const scopedRecords = await fetchUserScopedRecords(
+          allowedUsers.length ? allowedUsers : syncedUsers,
+          user,
+          { forceRefresh: true },
+        );
         setAllRecords(scopedRecords);
       } catch (error) {
         console.error("Error cargando personal y registros:", error);
@@ -285,6 +326,7 @@ export default function Personal() {
           incidencias: [],
           incapacidades: [],
           historialesMedicos: [],
+          capacitaciones: [],
         });
       } finally {
         setLoading(false);
@@ -337,29 +379,37 @@ export default function Personal() {
   };
 
   const matchesEmpleado = (usuario, record) => {
-    const empleadoId = usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
+    const empleadoIds = [usuario?.uid, usuario?.id, usuario?.uidFirebase]
+      .filter(Boolean)
+      .map((value) => String(value).trim().toLowerCase());
     const empleadoNomina = String(usuario?.nomina || "").trim();
-    const recordEmpleadoId = String(record?.empleadoId || record?.userId || "").trim();
-    const recordNomina = String(record?.empleadoNomina || record?.nomina || "").trim();
+    const recordEmpleadoIds = [record?.empleadoId, record?.userId, record?.usuarioId, record?.uid]
+      .filter(Boolean)
+      .map((value) => String(value).trim().toLowerCase());
+    const recordNomina = String(
+      record?.empleadoNomina || record?.nomina || record?.nominaUsuario || record?.nominaPaciente || record?.nominaEmpleado || "",
+    ).trim();
 
-    return (
-      (empleadoId &&
-        recordEmpleadoId &&
-        recordEmpleadoId.toLowerCase() === String(empleadoId).toLowerCase()) ||
-      (empleadoNomina && recordNomina && recordNomina.toLowerCase() === empleadoNomina.toLowerCase())
-    );
+    const sameId = empleadoIds.length > 0 && recordEmpleadoIds.some((id) => empleadoIds.includes(id));
+    const sameNomina =
+      empleadoNomina &&
+      recordNomina &&
+      String(recordNomina).toLowerCase() === String(empleadoNomina).toLowerCase();
+
+    return sameId || sameNomina;
   };
 
   const getUserRecords = (usuario) => {
-    const empleadoId = usuario?.id || usuario?.uid || usuario?.uidFirebase || null;
+    const empleadoIds = [usuario?.uid, usuario?.id, usuario?.uidFirebase].filter(Boolean).map((value) => String(value).trim());
     const empleadoNomina = String(usuario?.nomina || "").trim();
 
-    if (!empleadoId && !empleadoNomina) {
+    if (!empleadoIds.length && !empleadoNomina) {
       return {
         reconocimientos: [],
         incidencias: [],
         incapacidades: [],
         historialesMedicos: [],
+        capacitaciones: [],
       };
     }
 
@@ -383,15 +433,46 @@ export default function Personal() {
         const recordNombre = String(record?.nombrePaciente || "").toLowerCase().trim();
         const userName = String(usuario?.nombre || "").toLowerCase().trim();
 
+        const empleadoIds = [usuario?.uid, usuario?.id, usuario?.uidFirebase]
+          .filter(Boolean)
+          .map((value) => String(value).trim().toLowerCase());
+
         return (
-          (empleadoId && recordEmpleadoId && recordEmpleadoId.toLowerCase() === empleadoId.toLowerCase()) ||
+          (empleadoIds.length > 0 &&
+            recordEmpleadoId &&
+            empleadoIds.includes(String(recordEmpleadoId).trim().toLowerCase())) ||
           (userNomina && recordNomina && recordNomina === userNomina) ||
           (userName && recordNombre && recordNombre === userName)
         );
       })
       .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
 
-    return { reconocimientos, incidencias, incapacidades, historialesMedicos };
+    const capacitaciones = (allRecords.capacitaciones || [])
+      .filter((record) => {
+        const isAnsweredTraining =
+          record?.certificado === true ||
+          record?.certificado === "true" ||
+          Boolean(record?.capacitacionId || record?.idCapacitacion) ||
+          Boolean(record?.estadoActual) ||
+          Boolean(record?.respuestas) ||
+          Boolean(record?.titulo) ||
+          Boolean(record?.puntuacionObtenida || record?.calificacion);
+
+        return matchesEmpleado(usuario, record) && isAnsweredTraining;
+      })
+      .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+
+    if (import.meta.env.DEV && usuario.nombre === "HUGO ARMANDO RODRIGUEZ VILLALBA") {
+      console.log("DEBUG - getUserRecords para HUGO ARMANDO:", {
+        totalCapacitaciones: allRecords.capacitaciones?.length,
+        filtradas: capacitaciones.length,
+        usuarioNomina: usuario.nomina,
+        usuarioId: usuario.id,
+        capacitacionesRaw: allRecords.capacitaciones?.slice(0, 3),
+      });
+    }
+
+    return { reconocimientos, incidencias, incapacidades, historialesMedicos, capacitaciones };
   };
 
   const refreshAllRecords = async () => {
@@ -422,13 +503,14 @@ export default function Personal() {
   }
 
   return (
-    <div style={{ padding: 24 }}>
-      <div className="header-pagina">
-        <h6 className="titulo">
-          <strong>Personal</strong>
-        </h6>
-        <span className="badge-title">AQUA Médica</span>
-      </div>
+    <div className="page-transition">
+
+            <div className="d-flex justify-content-between mb-4">
+                <div className="page mb-3">
+                    <h6><strong>Personal</strong></h6>
+                    <span className="badge-title">AQUA Médica</span>
+                </div>
+            </div>
 
       <div className="filter-container">
         <input
@@ -473,6 +555,7 @@ export default function Personal() {
                   ...recordData.incidencias.map((item) => ({ ...item, type: "incidencia" })),
                   ...recordData.incapacidades.map((item) => ({ ...item, type: "incapacidad" })),
                   ...recordData.historialesMedicos.map((item) => ({ ...item, type: "historialMedico" })),
+                  ...recordData.capacitaciones.map((item) => ({ ...item, type: "capacitacion" })),
                 ]
                   .filter((item) => categoryFilter === "todos" || item.type === categoryFilter)
                   .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
@@ -566,6 +649,7 @@ export default function Personal() {
                                 { key: "incidencia", label: "Incidencias" },
                                 { key: "incapacidad", label: "Incapacidades" },
                                 { key: "historialMedico", label: "Historial Médico" },
+                                { key: "capacitacion", label: "Capacitaciones" },
                               ].map((option) => (
                                 <button
                                   key={option.key}
@@ -584,14 +668,16 @@ export default function Personal() {
                             {historial.length === 0 ? (
                               <div className="personal-record-empty">
                                 No hay {categoryFilter === "todos"
-                                  ? "incidencias, reconocimientos, incapacidades ni historial médico"
+                                  ? "incidencias, reconocimientos, incapacidades, historial médico ni capacitaciones"
                                   : categoryFilter === "reconocimiento"
                                     ? "reconocimientos"
                                     : categoryFilter === "incapacidad"
                                       ? "incapacidades"
                                       : categoryFilter === "historialMedico"
                                         ? "historial médico"
-                                        : "incidencias"} registrados.
+                                        : categoryFilter === "capacitacion"
+                                          ? "capacitaciones"
+                                          : "incidencias"} registrados.
                               </div>
                             ) : (
                               <table className="personal-record-table">
@@ -615,7 +701,9 @@ export default function Personal() {
                                               ? "Incapacidad"
                                               : item.type === "historialMedico"
                                                 ? "Historial Médico"
-                                                : "Incidencia"}
+                                                : item.type === "capacitacion"
+                                                  ? "Capacitación"
+                                                  : "Incidencia"}
                                         </span>
                                       </td>
                                       <td>
@@ -980,6 +1068,11 @@ export default function Personal() {
           color: #24c2c2;
         }
 
+        .personal-record-filter-btn.active.capacitacion {
+          border: 3px solid rgba(20, 184, 166, 0.5);
+          color: #0d9488;
+        }
+
         .personal-record-table {
           width: 100%;
           border-collapse: collapse;
@@ -1075,6 +1168,11 @@ export default function Personal() {
         .personal-record-badge.historialMedico {
           background: rgba(34, 159, 197, 0.31);
           color: var(--operator-historialMedico);
+        }
+
+        .personal-record-badge.capacitacion {
+          background: rgba(20, 184, 166, 0.25);
+          color: #0d9488;
         }
 
         .personal-record-empty {

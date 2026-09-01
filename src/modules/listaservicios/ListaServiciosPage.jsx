@@ -735,7 +735,8 @@ export default function ListaServiciosPage() {
           padding: 30px;
           box-shadow: 0 8px 25px var(--operator-shadow);
           gap: 20px;
-          justify-content: end;
+          justify-content: flex-start;
+          flex-wrap: wrap;
         }
 
         /* CONTAINER */
