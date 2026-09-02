@@ -1,5 +1,5 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { db, admin } = require("../../config/firebase");
+const { db, admin } = require("../config/firebase");
 
 // Dispara un mensaje FCM cuando se crea un documento en la colección
 // `notificaciones` dirigido a un `IdUsuario` que tenga `fcmToken`.

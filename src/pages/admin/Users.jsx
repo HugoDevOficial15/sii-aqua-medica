@@ -337,6 +337,7 @@ export default function Users({ onClose }) {
         nomina: Number(data.nomina),
         email: data.nomina + "@aquamedica.com",
         activo: true,
+        estado: "activo",
         curp: (data.curp || "")
           .trim()
           .replace(/[\s\-_/\\]+/g, "")

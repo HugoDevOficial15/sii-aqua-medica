@@ -280,7 +280,8 @@ export const createUser = async (userData) => {
       uid,
       email,
       activo: true,
-      mustChangePassword: true,
+      estado: "activo",
+      mustChangePassword: false,
     });
 
     invalidateCacheGroup(

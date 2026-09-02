@@ -7,7 +7,7 @@
     "node": "22"
   },
   "scripts": {
-    "serve": "firebase emulators:start --only functions",
+    "serve": "firebase emulators:start --only hosting,functions",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log"
   },

@@ -164,6 +164,10 @@ export default function Dashboard() {
         return <Loader text="Cargando Dashboard..." />
     }
 
+    if (!chartLib) {
+        return <Loader text="Preparando gráficos..." />
+    }
+
     const totalOperadores = stats.totalOperadores ?? 0;
     const operadoresActivos = stats.operadoresActivos ?? 0;
     const operadoresBaja = stats.operadoresBaja ?? 0;
