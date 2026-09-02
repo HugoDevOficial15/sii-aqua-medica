@@ -75,12 +75,16 @@ const writeSurveyCache = (usuario, data) => {
 // 3. Por usuario: solo si user.nomina está en asignacion.valores
 // Además, cruza con la colección "respuestas" para determinar
 // si ya respondió y otros estados.
-export const getEncuestasDisponibles = async (usuario) => {
+export const getEncuestasDisponibles = async (usuario, options = {}) => {
     if (!usuario) return [];
 
-    const cached = readSurveyCache(usuario);
-    if (cached) {
-        return cached;
+    const { forceRefresh = false } = options;
+
+    if (!forceRefresh) {
+        const cached = readSurveyCache(usuario);
+        if (cached) {
+            return cached;
+        }
     }
 
     try {

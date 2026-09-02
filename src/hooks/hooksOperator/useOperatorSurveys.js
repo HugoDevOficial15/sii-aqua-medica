@@ -11,7 +11,6 @@ export function useOperatorSurveys({ enabled = true } = {}) {
     const { user } = useAuth();
 
     const [rawSurveys, setRawSurveys] = useState([]);
-    const lastRequestRef = useRef("");
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -25,10 +24,9 @@ export function useOperatorSurveys({ enabled = true } = {}) {
 
         try {
 
-            // Única fuente de verdad: el servicio centralizado ya hace el
-            // filtrado por asignación (global/área/usuarios) y el cruce
-            // con las respuestas del usuario en 2 lecturas a Firestore.
-            const data = await getEncuestasDisponibles(user);
+            // Cada vez que se entra al módulo se debe consultar Firestore para
+            // reflejar encuestas recién creadas o reasignadas.
+            const data = await getEncuestasDisponibles(user, { forceRefresh: true });
 
             setRawSurveys(data);
 
@@ -46,22 +44,14 @@ export function useOperatorSurveys({ enabled = true } = {}) {
 
         }
 
-    }, [user?.nomina]);
+    }, [enabled, user]);
 
     useEffect(() => {
-        const key = `${user?.uid || ""}:${user?.nomina || ""}`;
-
         if (!enabled || !user?.uid || !user?.nomina) {
-            lastRequestRef.current = "";
             setRawSurveys([]);
             return;
         }
 
-        if (lastRequestRef.current === key) {
-            return;
-        }
-
-        lastRequestRef.current = key;
         fetchData();
     }, [enabled, fetchData, user?.uid, user?.nomina]);
 
