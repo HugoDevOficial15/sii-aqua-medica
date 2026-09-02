@@ -49,16 +49,22 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 if (channel == null) {
                     CharSequence name = "Notificaciones AQUA Médica";
                     String description = "Notificaciones de la aplicación AQUA Médica";
-                    int importance = NotificationManager.IMPORTANCE_HIGH;
+                    // Usar IMPORTANCE_MAX para máxima visibilidad
+                    int importance = NotificationManager.IMPORTANCE_MAX;
                     channel = new NotificationChannel(CHANNEL_ID, name, importance);
                     channel.setDescription(description);
                     channel.enableLights(true);
                     channel.setLightColor(Color.BLUE);
                     channel.enableVibration(true);
                     channel.setShowBadge(true);
+                    channel.setBypassDnd(true); // Bypass Do Not Disturb
+
                     Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                    NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                            .setSound(soundUri);
+                    android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                            .build();
+                    channel.setSound(soundUri, audioAttributes);
+
                     notificationManager.createNotificationChannel(channel);
                 }
             }
@@ -72,7 +78,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setAutoCancel(true)
@@ -80,7 +86,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 .setVibrate(new long[]{1000, 500, 1000})
                 .setLights(Color.BLUE, 3000, 3000)
                 .setContentIntent(pendingIntent)
-                .setPriority(NotificationCompat.PRIORITY_HIGH);
+                .setFullScreenIntent(pendingIntent, true)
+                .setPriority(NotificationCompat.PRIORITY_MAX);
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (notificationManager != null) {
             notificationManager.notify(0, notificationBuilder.build());
