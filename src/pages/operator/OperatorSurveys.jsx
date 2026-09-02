@@ -19,7 +19,7 @@ const ESTADO_BADGE_CLASS = {
     pendiente: "badge pending",
     vencida: "badge expired",
     completada: "badge approved",
-    reprobada: "badge expired", 
+    reprobada: "badge expired",
     bloqueada: "badge expired",
     pendiente_validacion: "badge pending"
 };
@@ -36,7 +36,7 @@ export default function OperatorSurveys({
     const [transitioning, setTransitioning] = useState(false);
     const [activeTab, setActiveTab] = useState("Disponibles");
     const [closeNotice, setCloseNotice] = useState(null);
-    
+
     // 🔥 ESTADO REACTIVO PARA RESPUESTAS (Garantiza que se muevan de pestaña en tiempo real)
     const [userResponses, setUserResponses] = useState({});
 
@@ -100,7 +100,7 @@ export default function OperatorSurveys({
         if (userResp) {
             puntaje = userResp.calificacion ?? userResp.puntuacionObtenida;
             intentos = userResp.intentos || 0;
-            
+
             if (userResp.estadoActual === "pendiente_validacion" || userResp.tieneRespuestasAbiertas) {
                 estadoCorregido = "pendiente_validacion";
             } else {
@@ -117,11 +117,11 @@ export default function OperatorSurveys({
             }
         }
 
-        return { 
-            ...survey, 
-            estadoActual: estadoCorregido, 
+        return {
+            ...survey,
+            estadoActual: estadoCorregido,
             miPuntaje: puntaje,
-            intentos: intentos 
+            intentos: intentos
         };
     });
 
@@ -138,7 +138,7 @@ export default function OperatorSurveys({
         return true;
     });
 
-// TIEMPO RESTANTE PARA EXPIRACIÓN DE ENCUESTA    
+    // TIEMPO RESTANTE PARA EXPIRACIÓN DE ENCUESTA    
 
     const parseHourToMinutes = (value) => {
         if (value === null || value === undefined || value === "") return 0;
@@ -297,42 +297,192 @@ export default function OperatorSurveys({
                     const puedeReintentar = survey.estadoActual === "reprobada" && reintentosRestantes > 0;
 
                     return (
+                        // <div key={survey.id} className="survey-card-v2">
+                        //     <div className="survey-card-top">
+                        //         <span className={ESTADO_BADGE_CLASS[survey.estadoActual] || "badge default"}>
+                        //             {ESTADO_LABEL[survey.estadoActual] || survey.estadoActual}
+                        //         </span>
+                        //     </div>
+
+                        //     <h3>{survey.titulo}</h3>
+                        //     <p>{survey.descripcion}</p>
+
+                        //     <p><strong>Instructor:</strong> {survey.instructor}</p>
+                        //     <p><strong>Tipo de curso:</strong> {survey.tipoCurso}</p>
+                        //     <p><strong>Expiración:</strong> {getRemainingSurveyTime(survey)}</p>
+
+                        //     {survey.estadoActual === "completada" && <p style={{ color: "#10b981", marginTop:"10px" }}><strong>Puntaje obtenido:</strong> {survey.miPuntaje}/100 ✔️</p>}
+                        //     {survey.estadoActual === "pendiente_validacion" && <p style={{ color: "#3b82f6", marginTop:"10px" }}><strong>Estado:</strong> Pendiente de revisión ⏱️</p>}
+
+                        //     {(survey.estadoActual === "reprobada" || survey.estadoActual === "bloqueada") && (
+                        //         <div style={{ marginTop:"10px" }}>
+                        //             <p style={{ color: "#ef4444" }}><strong>Último puntaje:</strong> {survey.miPuntaje}/100 ❌ (Mínimo 80)</p>
+                        //             <p><strong>Intentos utilizados:</strong> {intentosUsados} de {MAX_SURVEY_ATTEMPTS}</p>
+                        //         </div>
+                        //     )}
+
+                        //     {survey.estadoActual === "pendiente" && <button onClick={() => handleStartSurvey(survey)}>Comenzar</button>}
+                        //     {puedeReintentar && (
+                        //         <button onClick={() => handleStartSurvey(survey)} style={{ background: "#f59e0b", color: "#fff", border: "none" }}>
+                        //             Reintentar ({reintentosRestantes} intentos restantes)
+                        //         </button>
+                        //     )}
+                        //     {!puedeReintentar && survey.estadoActual === "reprobada" && (
+                        //         <button disabled style={{ opacity: 0.6, cursor: "not-allowed", background: "#64748b", color: "#fff", border: "none" }}>
+                        //             Reprobado (sin intentos restantes)
+                        //         </button>
+                        //     )}
+                        //     {survey.estadoActual === "bloqueada" && <button disabled style={{ opacity: 0.6, cursor: "not-allowed", background: "#64748b", color: "#fff", border: "none" }}>Bloqueada (Límite alcanzado)</button>}
+                        // </div>
+
                         <div key={survey.id} className="survey-card-v2">
-                            <div className="survey-card-top">
-                                <span className={ESTADO_BADGE_CLASS[survey.estadoActual] || "badge default"}>
-                                    {ESTADO_LABEL[survey.estadoActual] || survey.estadoActual}
+
+                            <div className="survey-header">
+
+                                <div>
+
+                                    <h3>{survey.titulo}</h3>
+
+                                    <div className="survey-meta">
+
+                                        <span>{survey.instructor}</span>
+
+                                        <span> • </span>
+
+                                        <span>{survey.tipoCurso}</span>
+
+                                    </div>
+
+                                </div>
+                                <br />
+                                <span className={ESTADO_BADGE_CLASS[survey.estadoActual]}>
+                                    {ESTADO_LABEL[survey.estadoActual]}
                                 </span>
+                                
+
                             </div>
 
-                            <h3>{survey.titulo}</h3>
-                            <p>{survey.descripcion}</p>
+                            <br />
 
-                            <p><strong>Instructor:</strong> {survey.instructor}</p>
-                            <p><strong>Tipo de curso:</strong> {survey.tipoCurso}</p>
-                            <p><strong>Expiración:</strong> {getRemainingSurveyTime(survey)}</p>
+                            <p className="survey-description">
+                                {survey.descripcion}
+                            </p>
 
-                            {survey.estadoActual === "completada" && <p style={{ color: "#10b981", marginTop:"10px" }}><strong>Puntaje obtenido:</strong> {survey.miPuntaje}/100 ✔️</p>}
-                            {survey.estadoActual === "pendiente_validacion" && <p style={{ color: "#3b82f6", marginTop:"10px" }}><strong>Estado:</strong> Pendiente de revisión ⏱️</p>}
+                            <div className="survey-details">
 
-                            {(survey.estadoActual === "reprobada" || survey.estadoActual === "bloqueada") && (
-                                <div style={{ marginTop:"10px" }}>
-                                    <p style={{ color: "#ef4444" }}><strong>Último puntaje:</strong> {survey.miPuntaje}/100 ❌ (Mínimo 80)</p>
-                                    <p><strong>Intentos utilizados:</strong> {intentosUsados} de {MAX_SURVEY_ATTEMPTS}</p>
+                                <div className="detail-card">
+                                    <small>Instructor: </small>
+                                    <strong>{survey.instructor}</strong>
                                 </div>
+
+                                <div className="detail-card">
+                                    <small>Tipo: </small>
+                                    <strong>{survey.tipoCurso}</strong>
+                                </div>
+
+                                <div className="detail-card">
+                                    <small>Expira: </small>
+                                    <strong>{getRemainingSurveyTime(survey)}</strong>
+                                </div>
+
+                            </div>
+
+                            {survey.estadoActual === "completada" && (
+
+                                <div className="survey-result success">
+
+                                    <span>✔ Puntaje obtenido: </span>
+
+                                    <strong>{survey.miPuntaje}/100</strong>
+
+                                </div>
+
                             )}
 
-                            {survey.estadoActual === "pendiente" && <button onClick={() => handleStartSurvey(survey)}>Comenzar</button>}
-                            {puedeReintentar && (
-                                <button onClick={() => handleStartSurvey(survey)} style={{ background: "#f59e0b", color: "#fff", border: "none" }}>
-                                    Reintentar ({reintentosRestantes} intentos restantes)
-                                </button>
+                            {survey.estadoActual === "pendiente_validacion" && (
+
+                                <div className="survey-result pending">
+
+                                    ⏳ Pendiente de revisión por el instructor
+
+                                </div>
+
                             )}
-                            {!puedeReintentar && survey.estadoActual === "reprobada" && (
-                                <button disabled style={{ opacity: 0.6, cursor: "not-allowed", background: "#64748b", color: "#fff", border: "none" }}>
-                                    Reprobado (sin intentos restantes)
-                                </button>
-                            )}
-                            {survey.estadoActual === "bloqueada" && <button disabled style={{ opacity: 0.6, cursor: "not-allowed", background: "#64748b", color: "#fff", border: "none" }}>Bloqueada (Límite alcanzado)</button>}
+
+                            {(survey.estadoActual === "reprobada" ||
+                                survey.estadoActual === "bloqueada") && (
+
+                                    <div className="survey-result danger">
+
+                                        <div>
+
+                                            <span>Último puntaje</span>
+
+                                            <strong>{survey.miPuntaje}/100</strong>
+
+                                        </div>
+
+                                        <div>
+
+                                            <span>Intentos</span>
+
+                                            <strong>{intentosUsados}/{MAX_SURVEY_ATTEMPTS}</strong>
+
+                                        </div>
+
+                                    </div>
+
+                                )}
+
+                            <div className="survey-actions">
+
+                                {survey.estadoActual === "pendiente" && (
+
+                                    <button
+                                        className="btn-primary"
+                                        onClick={() => handleStartSurvey(survey)}
+                                    >
+                                        Comenzar evaluación
+                                    </button>
+
+                                )}
+
+                                {puedeReintentar && (
+
+                                    <button
+                                        className="btn-warning"
+                                        onClick={() => handleStartSurvey(survey)}
+                                    >
+                                        Reintentar ({reintentosRestantes})
+                                    </button>
+
+                                )}
+
+                                {!puedeReintentar &&
+                                    survey.estadoActual === "reprobada" && (
+
+                                        <button
+                                            disabled
+                                            className="btn-disabled"
+                                        >
+                                            Sin intentos restantes
+                                        </button>
+
+                                    )}
+
+                                {survey.estadoActual === "bloqueada" && (
+
+                                    <button
+                                        disabled
+                                        className="btn-disabled"
+                                    >
+                                        Bloqueada
+                                    </button>
+
+                                )}
+
+                            </div>
+
                         </div>
                     );
                 })}

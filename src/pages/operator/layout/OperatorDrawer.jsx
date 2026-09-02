@@ -241,6 +241,13 @@ export default function OperatorDrawer({
 
                 </div>
 
+                <br />
+
+
+                <div className="text-center">
+                    <span>HARV 2026 | V. 4.0.1</span>
+                </div>
+
                 <button
                     className="drawer-logout-v2"
                     onClick={handleLogout}
