@@ -196,14 +196,6 @@ export default function OperatorProfile({ usuarioActual, onBack, onNavigate }) {
                 ))}
             </div>
 
-            <div className="profile-action-card">
-                <div>
-                    <h4>Mi expediente</h4>
-                    <small>Documentos y archivos</small>
-                </div>
-                <FiChevronRight />
-            </div>
-
             <div className="profile-action-card" onClick={() => onNavigate && onNavigate("certificates")} style={{ cursor: "pointer" }}>
                 <div>
                     <h4>Certificados</h4>

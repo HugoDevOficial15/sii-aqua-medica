@@ -135,6 +135,31 @@ export default function Login() {
                 mustChangePassword: freshUserData.mustChangePassword || false
             }, permisosUsuario);
 
+            // 📱 OBTENER Y GUARDAR FCM TOKEN (en background, no bloquea login)
+            setTimeout(async () => {
+                try {
+                    const { messaging } = await import("../../config/firebase");
+                    const { getToken } = await import("firebase/messaging");
+                    const { doc, updateDoc } = await import("firebase/firestore");
+                    const { db } = await import("../../config/firebase");
+
+                    if (messaging && import.meta.env.VITE_FIREBASE_VAPID_KEY) {
+                        const token = await getToken(messaging, {
+                            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
+                        });
+
+                        if (token && result.user.uid) {
+                            await updateDoc(doc(db, "usuarios", result.user.uid), {
+                                fcmToken: token,
+                                fcmTokenActualizado: new Date().toISOString()
+                            });
+                            console.log("✅ FCM Token registrado");
+                        }
+                    }
+                } catch (err) {
+                    console.warn("⚠️ FCM:", err?.message);
+                }
+            }, 500);
 
             // 🔐 CAMBIO DE PASSWORD (PRIORIDAD)
             if (freshUserData.mustChangePassword === true) {

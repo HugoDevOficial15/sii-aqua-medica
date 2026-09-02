@@ -18,10 +18,23 @@ exports.sendNotificationOnCreate = onDocumentCreated("notificaciones/{notifId}",
         if (!destinatario) return;
 
         // Intentamos leer el token FCM del usuario
-        const userRef = db.collection("users").doc(String(destinatario));
-        const userSnap = await userRef.get();
-        const userData = userSnap.exists ? userSnap.data() : null;
-        const token = userData?.fcmToken;
+        // Buscar en ambas colecciones (usuarios y users) por compatibilidad
+        let token = null;
+        let userRef = db.collection("usuarios").doc(String(destinatario));
+        let userSnap = await userRef.get();
+        let userData = userSnap.exists ? userSnap.data() : null;
+
+        if (userData) {
+            token = userData.fcmToken;
+        } else {
+            // Si no encuentra en usuarios, buscar en users
+            userRef = db.collection("users").doc(String(destinatario));
+            userSnap = await userRef.get();
+            userData = userSnap.exists ? userSnap.data() : null;
+            if (userData) {
+                token = userData.fcmToken;
+            }
+        }
 
         if (!token) {
             console.log(`No FCM token for user ${destinatario}, skipping.`);

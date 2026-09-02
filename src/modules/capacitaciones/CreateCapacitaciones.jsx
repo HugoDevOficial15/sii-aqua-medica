@@ -10,8 +10,9 @@ import { trainingSchema } from "../../schemas/trainingSchema";
 import { getAuth } from "firebase/auth";
 import EncuestaResultados from "../../modules/encuestas/EncuestaResultados";
 import { collection, getDocs, query, where, deleteDoc, doc } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { db, storage } from "../../config/firebase";
 import { dismissNotification } from "../../utils/notificationPersistence";
+import { ref, deleteObject } from "firebase/storage";
 import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar,FaWindowClose,FaEllipsisV,FaGlobe,FaWarehouse,FaFlask,FaUtensils,FaUserTie,FaCalculator,FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaShieldAlt,FaHeartbeat,FaHandsHelping,FaStethoscope,FaLaptopCode,FaClipboardCheck,FaEye,FaShoppingCart,FaFileUpload } from "react-icons/fa";
 import '../../styles/index.css';
 
@@ -424,6 +425,65 @@ export default function CreateCapacitaciones() {
         const result = await confirmDelete("¿Eliminar capacitación?", "Esta acción no se puede deshacer.");
         if (result.isConfirmed) {
             try {
+                // Eliminar respuestas de capacitaciones
+                try {
+                    const qResponses = query(collection(db, "respuestasCapacitaciones"), where("capacitacionId", "==", training.id));
+                    const snapshotResponses = await getDocs(qResponses);
+
+                    const extractFilePathFromUrl = (url) => {
+                        if (!url) return null;
+                        try {
+                            const urlObj = new URL(url);
+                            const searchParams = urlObj.searchParams;
+
+                            // Intenta obtener la ruta del parámetro 'o' en la URL
+                            const pathname = urlObj.pathname;
+                            const match = pathname.match(/\/o\/(.+?)(?:\?|$)/);
+                            if (match && match[1]) {
+                                return decodeURIComponent(match[1]);
+                            }
+
+                            // Fallback: busca en toda la URL
+                            const fullMatch = url.match(/\/o\/([^?]+)/);
+                            if (fullMatch && fullMatch[1]) {
+                                return decodeURIComponent(fullMatch[1]);
+                            }
+                        } catch (error) {
+                            console.warn("Error extrayendo ruta de URL:", error);
+                        }
+                        return null;
+                    };
+
+                    const deleteResponsePromises = snapshotResponses.docs.map(async (docResponse) => {
+                        const responseData = docResponse.data();
+
+                        // Intentar eliminar archivos en storage si existen (sin bloquear el proceso)
+                        if (responseData.certificadoUrl) {
+                            Promise.resolve().then(async () => {
+                                try {
+                                    const filePath = extractFilePathFromUrl(responseData.certificadoUrl);
+                                    if (filePath) {
+                                        const certRef = ref(storage, filePath);
+                                        await deleteObject(certRef).catch(() => {
+                                            // Ignorar si el archivo no existe
+                                        });
+                                    }
+                                } catch (storageError) {
+                                    // Silenciosamente ignorar errores de storage
+                                }
+                            });
+                        }
+
+
+                        // Eliminar documento de respuesta (esto sí es crítico)
+                        return deleteDoc(doc(db, "respuestasCapacitaciones", docResponse.id));
+                    });
+                    await Promise.all(deleteResponsePromises);
+                } catch (responseError) {
+                    console.warn("No se encontraron respuestas asociadas o error al eliminarlas:", responseError);
+                    // Continuar sin fallar
+                }
+
                 // Eliminar notificaciones asociadas
                 try {
                     const qNotif = query(collection(db, "notificaciones"), where("extra.capacitacionId", "==", training.id));
@@ -444,7 +504,7 @@ export default function CreateCapacitaciones() {
                 await deleteTraining(training.id);
                 const data = await getTrainings();
                 setTrainings(data);
-                notifySuccess("Capacitación eliminada", "La capacitación y notificaciones fueron eliminadas correctamente");
+                notifySuccess("Capacitación eliminada", "La capacitación, respuestas y archivos fueron eliminados correctamente");
             } catch (error) {
                 console.error("Error eliminando capacitación:", error);
                 notifyError("Error", "No se pudo eliminar la capacitación");
