@@ -355,12 +355,11 @@ CSS:
 
 
 .actions-cell {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: visible;
-    isolation: auto;
+          text-align: center;
+          overflow: visible;
+          justify-content: center;
+          position: relative;
+          z-index: 60;
 }
 
 .actions-toggle {

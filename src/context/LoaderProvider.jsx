@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LoaderContext } from "./LoaderContext";
 import Loader from "../components/Loader";
 
@@ -14,7 +14,7 @@ export function LoaderProvider({ children }) {
         }
     };
 
-    const showLoader = (duration = 350) => {
+    const showLoader = useCallback((duration = 350) => {
         clearLoaderTimeout();
         setLoading(true);
 
@@ -24,12 +24,12 @@ export function LoaderProvider({ children }) {
                 timeoutRef.current = null;
             }, duration);
         }
-    };
+    }, []);
 
-    const hideLoader = () => {
+    const hideLoader = useCallback(() => {
         clearLoaderTimeout();
         setLoading(false);
-    };
+    }, []);
 
     useEffect(() => {
         return () => {

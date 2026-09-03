@@ -128,8 +128,9 @@ const registerServiceWorker = () => {
     return;
   }
 
+  const isViteDevServer = import.meta.env.DEV || window.location.port === '5173';
   const allowedHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
-  const isAllowedHost = allowedHosts.includes(window.location.hostname) || window.location.protocol === 'https:';
+  const isAllowedHost = (allowedHosts.includes(window.location.hostname) && !isViteDevServer) || window.location.protocol === 'https:';
 
   if (!isAllowedHost) {
     return;

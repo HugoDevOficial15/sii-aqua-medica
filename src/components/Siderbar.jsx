@@ -29,7 +29,8 @@ import {
     FaHeadset,
     FaHandHoldingHeart,
     FaMedapps,
-    FaUserFriends
+    FaUserFriends,
+    FaUserCheck
 
 } from "react-icons/fa";
 
@@ -59,10 +60,11 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
             { to: "/soporte", icon: <FaHeadset />, label: "Soporte" },
             { to: "/ideas", icon: <FaMedapps />, label: "Ideas" },
             { to: "/personal", icon: <FaUserFriends />, label: "Personal", permiso: "personal.ver" },
+            { to: "/comportamiento-conductual", icon: <FaUserCheck />, label: "Comp. Conductual", permiso: "comportamiento.ver" },
             { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
             { to: "/capacitaciones", icon: <FaGraduationCap />, label: "Capacitaciones", permiso: "capacitaciones.ver" },
             { to: "/noticias", icon: <FaNewspaper />, label: "Noticias", permiso: "noticias.ver" },
-            { to: "/medicamento", icon: <FaSyringe />, label: "Medicamentos", permiso: "medicamentos.ver" },
+            { to: "/medicamento", icon: <FaSyringe />, label: "Medicamentos", permiso: "medicamentos.ver" }, 
             { to: "/citas-medicas", icon: <FaAmbulance />, label: "Citas Médicas", permiso: "citas.ver" },
             { to: "/detalle-orden-medico", icon: <FaFileMedical/>, label: "Orden Médico", permiso: "ordenes.ver"},
             { to: "/almacen/materiales-stock", icon: <FaClipboardCheck />, label: "Inventario", permiso: "peps.ver" },
@@ -72,6 +74,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
             { to: "/notas", icon: <FaStickyNote />, label: "Notas", permiso: "notas.ver" },
             { to: "/reporte-problemas", icon: <FaHandHoldingHeart />, label: "Reporte de Problemas" },
             { to: "/configuracion", icon: <FaCog />, label: "Configuración", permiso: "config.ver" },
+
         ];
 
         const filteredMenu = nextMenu.filter((item) => {

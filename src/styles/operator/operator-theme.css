@@ -30,6 +30,10 @@
 
     --operator-historialMedico: #334155 ;
 
+    --operator-aprobado: #36f077ce;
+
+    --operator-aprobado-text: #334155;
+
     --operator-radius: 24px;
 
     --operator-shadow:
@@ -94,6 +98,9 @@ html[data-theme="dark"] {
 
     --date-icon-filter: invert(1);
 
+    --operator-aprobado: #24794262;
+
+    --operator-aprobado-text: #51e444d5;
 
 }
 

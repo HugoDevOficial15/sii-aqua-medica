@@ -1,0 +1,273 @@
+.comp-conductual-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  width: 100%;
+}
+
+.comp-conductual-card {
+  background: var(--operator-card, #ffffff);
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  overflow: visible;
+}
+
+.filtro-contenedor {
+  background: var(--operator-card, #ffffff);
+  display: flex;
+  width: 100%;
+  justify-content: end;
+  align-items: center;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+}
+
+.filtro-contenido {
+  background: var(--operator-card, #ffffff);
+  display: flex;
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--operator-text);
+  gap: 10px;
+}
+
+.pdf-button {
+  height: 50px;
+  width: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--operator-border);
+  border-radius: 12px;
+  background: var(--operator-danger);
+  color: white;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  gap: 5px;
+}
+
+.pdf-button:hover {
+  transform: scale(1.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0px 10px rgba(255, 39, 39, 0.397);
+}
+
+.filtro-input {
+  width: 100%;
+  border: 1px solid var(--operator-border);
+  background: transparent;
+  padding: 10px;
+  border-radius: 12px;
+  outline: none;
+  color: var(--operator-text);
+  font-size: 0.95rem;
+}
+
+.filtro-input:focus {
+  border-color: var(--operator-primary);
+}
+
+.filtro-input::placeholder {
+  color: var(--operator-text-soft);
+}
+
+.comp-conductual-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(52, 152, 219, 0.06);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.tabla-compotamiento {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0 10px !important;
+}
+
+.tabla-compotamiento th,
+.tabla-compotamiento td {
+  border-bottom: 3px solid var(--operator-border);
+  height: 50px;
+  font-size: 14px;
+  padding: 5px 5px;
+  vertical-align: middle;
+  border-top: none !important;
+  white-space: wrap;
+
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 230px;
+  min-width: 100px;
+}
+
+.tabla-compotamiento thead th:nth-child(3) {
+  text-align: center;
+}
+
+.tabla-compotamiento thead th {
+  border-bottom: 3px solid var(--operator-text);
+  font-size: 20px;
+  font-weight: 900;
+  padding: 5px 5px;
+  vertical-align: middle;
+  border-top: none !important;
+  white-space: wrap;
+
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 230px;
+  min-width: 100px;
+}
+
+.tabla-compotamiento tbody tr {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  overflow: visible;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tabla-compotamiento tbody tr:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+}
+
+.tabla-compotamiento tbody tr.comp-conductual-row-open,
+.tabla-compotamiento tbody tr.comportamiento-row-active {
+  z-index: 50;
+}
+
+.tabla-compotamiento tbody tr.comportamiento-row-active:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.comp-conductual-action {
+  min-width: 88px;
+}
+
+.comp-conductual-loading,
+.comp-conductual-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  text-align: center;
+  color: #475569;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .comp-conductual-container {
+    padding: 12px;
+  }
+
+  .tabla-compotamiento th,
+  .tabla-compotamiento td {
+    padding: 10px 8px;
+    font-size: 0.8rem;
+  }
+}
+
+/*  ESTILOS PARA EL MENU DE ACCIONES  */
+
+.conductual-actions-cell {
+  text-align: center;
+  position: relative;
+  overflow: visible;
+  z-index: 60;
+}
+
+.conductual-actions-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  overflow: visible;
+  z-index: 70;
+}
+
+.card-header {
+  background: none;
+  border: none;
+}
+
+.conductual-actions-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--operator-border);
+  border-radius: 999px;
+  background: var(--operator-card);
+  color: var(--operator-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.conductual-actions-button:hover {
+  background: var(--operator-border);
+  color: var(--operator-primary);
+}
+
+.conductual-actions-dropdown,
+.conductual-actions-menu {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 180px;
+  background: var(--operator-background);
+  border: 1px solid var(--operator-background);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px var(--operator-shadow);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.conductual-actions-dropdown button,
+.conductual-actions-menu button {
+  border: none;
+  background: var(--operator-card);
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 8px;
+  color: var(--operator-text);
+  cursor: pointer;
+  width: 100%;
+}
+
+.conductual-actions-dropdown button:hover,
+.conductual-actions-menu button:hover {
+  background: var(--operator-card);
+  color: var(--operator-primary);
+}
+
+.conductual-actions-dropdown button:last-child:hover,
+.conductual-actions-menu button:last-child:hover {
+  color: var(--operator-primary-light);
+  background: var(--operator-border);
+}

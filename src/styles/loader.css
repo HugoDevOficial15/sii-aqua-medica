@@ -41,17 +41,21 @@
 /* SPINNER */
 
 .loader-spinner {
+    display: block;
     width: 55px;
     height: 55px;
+    min-width: 55px;
+    min-height: 55px;
+    box-sizing: border-box;
 
     border: 5px solid #e3e3e3;
     border-top: 5px solid #0d6efd;
-
     border-radius: 50%;
 
     animation: spin 1s linear infinite;
 
     margin: 0 auto 15px auto;
+    flex-shrink: 0;
 }
 
 /* TEXTO */

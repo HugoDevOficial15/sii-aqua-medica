@@ -10,13 +10,6 @@ const APP_SHELL_ASSETS = [
     "/logo.png",
     "/logosmall.svg",
     "/favicon.ico",
-    "/src/index.css",
-    "/src/App.css",
-    "/src/styles/auth/login-premium.css",
-    "/src/styles/operator/operator-shell.css",
-    "/src/styles/operator/operator-home.css",
-    "/src/styles/operator/operator-theme.css",
-    "/bootstrap.min.css",
     "/assets/"
 ];
 

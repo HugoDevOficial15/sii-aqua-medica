@@ -39,6 +39,7 @@ const Ideas = lazy(() => import("../pages/admin/Ideas"));
 const Personal = lazy(() => import("../modules/personal/personal"));
 const MaintenancePage = lazy(() => import("../components/MaintenancePage"));
 const Capacitaciones = lazy(() => import("../pages/admin/Capacitaciones"));
+const CompConductual = lazy(() => import("../modules/comp-conductual/CompConductual"));
 const MisCitasMedicas = lazy(() => import("../pages/operator/MisCitasMedicas"));
 const ExpedienteClinico = lazy(() => import("../pages/operator/ExpedienteClinico"));
 
@@ -174,6 +175,16 @@ export default function AppRouter() {
                                 </ProtectedRoute>
                             }
                             />
+
+                        {/* COMPORTAMIENTO CONDUCTUAL */}
+                        <Route
+                            path="/comportamiento-conductual"
+                            element={
+                                <ProtectedRoute permiso="comportamiento.ver">
+                                    <CompConductual />
+                                </ProtectedRoute>
+                            }
+                        />
 
                         {/* SOLICITUDES DE CAMBIOS */}
                         <Route

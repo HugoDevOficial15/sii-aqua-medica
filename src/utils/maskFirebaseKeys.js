@@ -1,101 +1,106 @@
 /**
- * Enmascara keys sensibles de Firebase en logs
- * Evita que las credenciales se expongan en consola
+ * Enmascara keys sensibles de Firebase en logs.
+ * Mantiene la consola segura sin romper la serialización nativa del navegador.
  */
 
-export const maskFirebaseKeys = () => {
-  // Función para enmascarar strings sensibles
-  const originalLog = console.log;
-  const originalError = console.error;
-  const originalWarn = console.warn;
+const maskSensitiveString = (value = "") => {
+  let masked = String(value);
 
-  const maskSensitiveData = (args) => {
-    return args.map((arg) => {
-      if (typeof arg === "string") {
-        // Ocultar API keys
-        arg = arg.replace(/AIzaSy[A-Za-z0-9_-]{35}/g, "AIzaSy***MASKED***");
+  masked = masked.replace(/AIzaSy[A-Za-z0-9_-]{35}/g, "AIzaSy***MASKED***");
+  masked = masked.replace(/eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*/g, "JWT***MASKED***");
+  masked = masked.replace(/(\?.*auth=)[A-Za-z0-9_-]*/g, "?auth=***MASKED***");
+  masked = masked.replace(/uid["\']?\s*:\s*["\']?[A-Za-z0-9]{28}["\']?/gi, "uid: ***MASKED***");
+  masked = masked.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "***UUID_MASKED***");
+  masked = masked.replace(/session["\']?\s*:\s*["\']?[A-Za-z0-9_-]{50,}["\']?/gi, "session: ***MASKED***");
+  masked = masked.replace(/nómina["\']?\s*:\s*["\']?[A-Z0-9#]{4,}["\']?/gi, "nómina: ***MASKED***");
+  masked = masked.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, (email) => {
+    const [local, domain] = email.split("@");
+    return local.substring(0, 2) + "***@" + domain;
+  });
 
-        // Ocultar tokens JWT
-        arg = arg.replace(/eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*/g, "JWT***MASKED***");
+  return masked;
+};
 
-        // Ocultar URLs de Firebase con credenciales
-        arg = arg.replace(/(\?.*auth=)[A-Za-z0-9_-]*/g, "?auth=***MASKED***");
+const maskConsoleValue = (value, seen = new WeakSet()) => {
+  if (typeof value === "string") {
+    return maskSensitiveString(value);
+  }
 
-        // Ocultar UIDs de Firebase (formato típico)
-        arg = arg.replace(/uid["\']?\s*:\s*["\']?[A-Za-z0-9]{28}["\']?/gi, "uid: ***MASKED***");
+  if (typeof value === "number" || typeof value === "boolean" || value == null || typeof value === "bigint") {
+    return value;
+  }
 
-        // Ocultar UUIDs
-        arg = arg.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "***UUID_MASKED***");
+  if (typeof value === "function") {
+    return `[Function ${value.name || "anonymous"}]`;
+  }
 
-        // Ocultar tokens de sesión
-        arg = arg.replace(/session["\']?\s*:\s*["\']?[A-Za-z0-9_-]{50,}["\']?/gi, "session: ***MASKED***");
+  if (typeof value === "symbol") {
+    return value.toString();
+  }
 
-        // Ocultar nóminas/IDs de usuario
-        arg = arg.replace(/nómina["\']?\s*:\s*["\']?[A-Z0-9#]{4,}["\']?/gi, "nómina: ***MASKED***");
+  if (Array.isArray(value)) {
+    return value.map((item) => maskConsoleValue(item, seen));
+  }
 
-        // Ocultar emails en logs
-        arg = arg.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, (email) => {
-          const [local, domain] = email.split("@");
-          return local.substring(0, 2) + "***@" + domain;
-        });
-      } else if (typeof arg === "object" && arg !== null) {
-        // Enmascarar objetos recursivamente
-        return maskObjectData(arg);
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: maskSensitiveString(value.message),
+      stack: value.stack ? maskSensitiveString(value.stack) : undefined,
+    };
+  }
+
+  if (typeof value === "object") {
+    if (seen.has(value)) {
+      return "[Circular]";
+    }
+    seen.add(value);
+
+    const masked = {};
+    for (const [key, entryValue] of Object.entries(value)) {
+      const lowerKey = String(key).toLowerCase();
+
+      if (lowerKey.includes("uid") || lowerKey.includes("token") || lowerKey.includes("key") || lowerKey.includes("secret")) {
+        masked[key] = "***MASKED***";
+        continue;
       }
-      return arg;
-    });
-  };
 
-  const maskObjectData = (obj) => {
-    if (Array.isArray(obj)) {
-      return obj.map(maskObjectData);
+      masked[key] = maskConsoleValue(entryValue, seen);
     }
 
-    if (typeof obj === "object" && obj !== null) {
-      const masked = {};
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          const value = obj[key];
-          const lowerKey = key.toLowerCase();
+    return masked;
+  }
 
-          if (lowerKey.includes("uid") || lowerKey.includes("token") || lowerKey.includes("key") || lowerKey.includes("secret")) {
-            masked[key] = "***MASKED***";
-          } else if (typeof value === "string") {
-            masked[key] = maskSensitiveData([value])[0];
-          } else if (typeof value === "object") {
-            masked[key] = maskObjectData(value);
-          } else {
-            masked[key] = value;
-          }
+  return value;
+};
+
+export const maskFirebaseKeys = () => {
+  const wrapConsoleMethod = (methodName) => {
+    const originalMethod = console[methodName];
+
+    if (!originalMethod || originalMethod.__isMasked) {
+      return;
+    }
+
+    const safeWrapper = (...args) => {
+      try {
+        return originalMethod.apply(console, args.map((arg) => maskConsoleValue(arg)));
+      } catch (error) {
+        try {
+          return originalMethod.apply(console, args);
+        } catch (fallbackError) {
+          return undefined;
         }
       }
-      return masked;
-    }
+    };
 
-    return obj;
+    safeWrapper.__isMasked = true;
+    console[methodName] = safeWrapper;
   };
 
-  // Reemplazar funciones de consola SOLO si no están ya reemplazadas
-  if (!console.log.__isMasked) {
-    console.log = function (...args) {
-      originalLog(...maskSensitiveData(args));
-    };
-    console.log.__isMasked = true;
-  }
-
-  if (!console.error.__isMasked) {
-    console.error = function (...args) {
-      originalError(...maskSensitiveData(args));
-    };
-    console.error.__isMasked = true;
-  }
-
-  if (!console.warn.__isMasked) {
-    console.warn = function (...args) {
-      originalWarn(...maskSensitiveData(args));
-    };
-    console.warn.__isMasked = true;
-  }
+  wrapConsoleMethod("log");
+  wrapConsoleMethod("error");
+  wrapConsoleMethod("warn");
 };
 
 export default maskFirebaseKeys;
