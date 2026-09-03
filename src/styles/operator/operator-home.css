@@ -1170,6 +1170,13 @@ SURVEYS V2
     color: #16a34a;
 }
 
+.badge.danger {
+
+    background: #fee2e2;
+
+    color: #dc2626;
+}
+
 .badge.expired {
 
     background: #f1f5f9;

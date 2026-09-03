@@ -19,7 +19,7 @@ const ESTADO_BADGE_CLASS = {
     pendiente: "badge pending",
     vencida: "badge expired",
     completada: "badge approved",
-    reprobada: "badge expired",
+    reprobada: "badge danger",
     bloqueada: "badge expired",
     pendiente_validacion: "badge pending"
 };
@@ -354,7 +354,7 @@ export default function OperatorSurveys({
                                     </div>
 
                                 </div>
-                                <br />
+
                                 <span className={ESTADO_BADGE_CLASS[survey.estadoActual]}>
                                     {ESTADO_LABEL[survey.estadoActual]}
                                 </span>
@@ -389,11 +389,12 @@ export default function OperatorSurveys({
 
                             {survey.estadoActual === "completada" && (
 
-                                <div className="survey-result success">
+                                <div className="detail-card" style={{background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)"}}>
 
-                                    <span>✔ Puntaje obtenido: </span>
-
-                                    <strong>{survey.miPuntaje}/100</strong>
+                                    <div>
+                                        <span>Puntaje obtenido</span>
+                                        <strong>{survey.miPuntaje !== undefined && survey.miPuntaje !== null ? `${survey.miPuntaje}/100` : "N/A"}</strong>
+                                    </div>
 
                                 </div>
 
@@ -401,7 +402,7 @@ export default function OperatorSurveys({
 
                             {survey.estadoActual === "pendiente_validacion" && (
 
-                                <div className="survey-result pending">
+                                <div className="detail-card" style={{background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.2)"}}>
 
                                     ⏳ Pendiente de revisión por el instructor
 
@@ -412,22 +413,16 @@ export default function OperatorSurveys({
                             {(survey.estadoActual === "reprobada" ||
                                 survey.estadoActual === "bloqueada") && (
 
-                                    <div className="survey-result danger">
+                                    <div className="detail-card" style={{background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)"}}>
 
-                                        <div>
-
-                                            <span>Último puntaje</span>
-
-                                            <strong>{survey.miPuntaje}/100</strong>
-
+                                        <div style={{marginBottom: "12px"}}>
+                                            <small>Último puntaje</small>
+                                            <strong style={{display: "block", color: "#ef4444"}}>{survey.miPuntaje !== undefined && survey.miPuntaje !== null ? `${survey.miPuntaje}/100` : "N/A"}</strong>
                                         </div>
 
                                         <div>
-
-                                            <span>Intentos</span>
-
-                                            <strong>{intentosUsados}/{MAX_SURVEY_ATTEMPTS}</strong>
-
+                                            <small>Intentos</small>
+                                            <strong style={{display: "block"}}>{intentosUsados}/{MAX_SURVEY_ATTEMPTS}</strong>
                                         </div>
 
                                     </div>

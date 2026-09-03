@@ -1,11 +1,13 @@
-import { MIN_APROBATORIO } from "../../constants/surveyConstants";
+import { MIN_APROBATORIO, MAX_SURVEY_ATTEMPTS } from "../../constants/surveyConstants";
 
-export default function OperatorSurveyResult({ result, onBack }) {
+export default function OperatorSurveyResult({ result, onBack, onRetry }) {
   const pendingReview = Boolean(
     result?.tieneRespuestasAbiertas ||
     result?.estadoActual === "pendiente_validacion",
   );
   const approved = !pendingReview && result?.calificacion >= MIN_APROBATORIO;
+  const intentosUsados = result?.intentos || 0;
+  const reintentosRestantes = Math.max(0, MAX_SURVEY_ATTEMPTS - intentosUsados);
 
   return (
     <div className="op-result-page">
@@ -39,12 +41,46 @@ export default function OperatorSurveyResult({ result, onBack }) {
             <p>
               {result?.correctas} respuestas correctas de {result?.total}
             </p>
+
+            {!approved && (
+              <div className="op-result-attempts">
+                <p>
+                  <strong>Intentos utilizados:</strong> {intentosUsados} de {MAX_SURVEY_ATTEMPTS}
+                </p>
+                {reintentosRestantes > 0 && (
+                  <p style={{ color: "#f59e0b" }}>
+                    📌 Te quedan <strong>{reintentosRestantes}</strong> intento{reintentosRestantes !== 1 ? "s" : ""} más
+                  </p>
+                )}
+              </div>
+            )}
           </>
         )}
 
-        <button className="op-result-btn" onClick={onBack}>
-          Volver a Encuestas
-        </button>
+        <div className="op-result-actions">
+          {!approved && result?.puedeReintentar && (
+            <button
+              className="op-result-btn op-result-retry"
+              onClick={onRetry}
+            >
+              Reintentar ({reintentosRestantes})
+            </button>
+          )}
+
+          {!approved && !result?.puedeReintentar && (
+            <button
+              className="op-result-btn"
+              disabled
+              style={{ opacity: 0.6, cursor: "not-allowed" }}
+            >
+              Sin intentos restantes
+            </button>
+          )}
+
+          <button className="op-result-btn" onClick={onBack}>
+            Volver a Encuestas
+          </button>
+        </div>
       </div>
     </div>
   );

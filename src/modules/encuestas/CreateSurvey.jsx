@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar,FaWindowClose,FaEllipsisV,FaGlobe,FaWarehouse,FaFlask,FaUtensils,FaUserTie,FaCalculator,FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaShieldAlt,FaHeartbeat,FaHandsHelping,FaStethoscope,FaLaptopCode,FaClipboardCheck,FaEye,FaShoppingCart } from "react-icons/fa";
 // Service
 import { createSurvey, getSurveys, updateSurvey, deleteSurvey } from "../../services/surveyService";
-
+// Firebase
+import { collection, getDocs, query, where, deleteDoc, doc } from "firebase/firestore";
+import { db } from "../../config/firebase";
 // Resultados/respuestas
 import EncuestaResultados from "./EncuestaResultados";
 // Notificaciones
@@ -486,10 +488,37 @@ export default function CreateSurvey() {
         const result = await confirmDelete("¿Eliminar encuesta?", "Esta acción no se puede deshacer.");
         if (result.isConfirmed) {
             try {
+                // Eliminar respuestas de encuestas
+                try {
+                    const qResponses = query(collection(db, "respuestasEncuestas"), where("encuestaId", "==", survey.id));
+                    const snapshotResponses = await getDocs(qResponses);
+
+                    const deleteResponsePromises = snapshotResponses.docs.map(docResponse => {
+                        return deleteDoc(doc(db, "respuestasEncuestas", docResponse.id));
+                    });
+                    await Promise.all(deleteResponsePromises);
+                } catch (responseError) {
+                    console.warn("No se encontraron respuestas asociadas o error al eliminarlas:", responseError);
+                }
+
+                // Eliminar notificaciones asociadas
+                try {
+                    const qNotif = query(collection(db, "notificaciones"), where("extra.encuestaId", "==", survey.id));
+                    const snapshotNotif = await getDocs(qNotif);
+
+                    const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
+                        return deleteDoc(doc(db, "notificaciones", docNotif.id));
+                    });
+                    await Promise.all(deleteNotifPromises);
+                } catch (notifError) {
+                    console.warn("No se encontraron notificaciones asociadas o error al eliminarlas:", notifError);
+                }
+
+                // Eliminar encuesta
                 await deleteSurvey(survey.id);
                 const data = await getSurveys();
                 setSurveys(data);
-                notifySuccess("Encuesta eliminada", "La encuesta fue eliminada correctamente");
+                notifySuccess("Encuesta eliminada", "La encuesta, respuestas y notificaciones fueron eliminadas correctamente");
             } catch (error) {
                 console.error("Error eliminando encuesta:", error);
                 notifyError("Error", "No se pudo eliminar la encuesta");
@@ -722,6 +751,7 @@ export default function CreateSurvey() {
                             {/* STEPS */}
                             <div className="survey-steps mb-4">
 
+                                
                                 <button
                                     type="button"
                                     className={`step-btn ${currentStep === 1 ? "active" : ""}`}
@@ -1738,7 +1768,8 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
     width: 80%;
     display: flex;
     gap: 8px;
-    margin-bottom: 6px;
+    margin: 0 auto 6px auto;
+    justify-content: center;
     color: var(--operator-text);
 }
 

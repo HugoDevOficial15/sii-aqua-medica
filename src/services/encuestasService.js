@@ -153,7 +153,8 @@ export const getEncuestasDisponibles = async (usuario, options = {}) => {
 
         const hoy = new Date();
         const encuestasEnriquecidas = encuestasAccesibles.map(encuesta => {
-            const respondida = respuestasUsuario.some(r => r.encuestaId === encuesta.id);
+            const respuestasDeEncuesta = respuestasUsuario.filter(r => r.encuestaId === encuesta.id);
+            const respondida = respuestasDeEncuesta.length > 0;
 
             const fechaInicio = encuesta.fechaInicio?.toDate?.()
                 || new Date(encuesta.fechaInicio);
@@ -169,11 +170,20 @@ export const getEncuestasDisponibles = async (usuario, options = {}) => {
 
             const disponible = !respondida && !vencida && (!encuesta.horaInicio || hoy >= new Date(`${fechaInicio.toISOString().split("T")[0]}T${encuesta.horaInicio}:00`));
 
-            const miRespuesta = respuestasUsuario.find(r => r.encuestaId === encuesta.id);
+            const miRespuesta = respuestasDeEncuesta.reduce((latest, response) => {
+                if (!latest) return response;
+
+                const latestDate = new Date(latest.fechaRespuesta || latest.fechaEnviado || 0).getTime();
+                const responseDate = new Date(response.fechaRespuesta || response.fechaEnviado || 0).getTime();
+                return responseDate >= latestDate ? response : latest;
+            }, null);
             const miPuntaje = miRespuesta?.puntuacionObtenida ?? miRespuesta?.puntajeFinal ?? null;
             const miEstado = miRespuesta?.estadoActual || null;
 
             let estadoFinal = miEstado;
+            if (miEstado === "completada" && Number(miPuntaje) < 80) {
+                estadoFinal = "reprobada";
+            }
             if (!estadoFinal) {
                 estadoFinal = vencida ? "vencida" : (respondida ? "completada" : "pendiente");
             }
@@ -197,6 +207,7 @@ export const getEncuestasDisponibles = async (usuario, options = {}) => {
                 duracionHoras: encuesta.duracionHoras || "0",
                 duracionMinutos: encuesta.duracionMinutos || "0",
                 intentos: miRespuesta?.intentos || 0,
+                miRespuesta: miRespuesta || null,
 
                 estado: estadoFinal,
                 estadoActual: estadoFinal,

@@ -29,6 +29,7 @@ import { exportExcel } from "./components/ExcelGenerator";
 import { generatePersonalRecordPDF } from "./components/PdfGenerator";
 import CalificarEncuesta from "./components/calificar";
 import { notifySuccess, notifyError } from "../../utils/notify";
+import { generateSurveyResponsePDF } from "../../utils/generateSurveyResponsePDF";
 
 
 const emptyFilters = {
@@ -517,6 +518,37 @@ export default function EncuestaResultados({ survey, onBack }) {
     });
   };
 
+  const handleDownloadUserResponsePDF = async (row) => {
+    try {
+      if (row.expiroSinResponder) {
+        notifyError("Error", "Este usuario no respondió la encuesta.");
+        return;
+      }
+
+      const userResponse = latestResponses.find(
+        (r) => String(r.nominaUsuario ?? r.nomina ?? "") === String(row.nomina)
+      );
+
+      if (!userResponse) {
+        notifyError("Error", "No se encontraron respuestas para este usuario.");
+        return;
+      }
+
+      await generateSurveyResponsePDF({
+        survey,
+        responses: userResponse.respuestas || {},
+        userName: row.nombre,
+        calificacion: userResponse.puntuacionObtenida || userResponse.calificacion || 0,
+      });
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error("Error descargando PDF de respuestas:", error);
+      }
+
+      notifyError("Error", "No se pudo descargar el PDF. Intenta de nuevo.");
+    }
+  };
+
   const handleCertifyAll = async () => {
     setCertifying(true);
     try {
@@ -674,6 +706,7 @@ export default function EncuestaResultados({ survey, onBack }) {
                 <th>Puesto</th>
                 <th>Puntaje</th>
                 <th>Estado</th>
+                <th>Acciones</th>
               </tr>
             </thead>
 
@@ -700,6 +733,18 @@ export default function EncuestaResultados({ survey, onBack }) {
                       <span className="text-danger">Reprobada</span>
                     ) : (
                       <span className="text-danger">Faltante</span>
+                    )}
+                  </td>
+                  <td>
+                    {!row.expiroSinResponder && (
+                      <button
+                        type="button"
+                        className="btn-pdf-row"
+                        onClick={() => handleDownloadUserResponsePDF(row)}
+                        title="Descargar PDF de respuestas"
+                      >
+                        <FaFilePdf /> PDF
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -1237,7 +1282,33 @@ export default function EncuestaResultados({ survey, onBack }) {
     cursor: not-allowed;
 }
 
+.btn-pdf-row {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
 
+.btn-pdf-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+.btn-pdf-row:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
 
 @media (max-width: 992px) {
     .results-filter-grid {

@@ -1,16 +1,47 @@
 import { useEffect, useState } from "react";
-import { FiCheckCircle, FiClock, FiAlertCircle, FiClock as FiTimer } from "react-icons/fi";
+import { FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi";
 import { useAuth } from "../../hooks/useAuth";
 import { useOperatorTrainings } from "../../hooks/hooksOperator/useOperatorTrainings";
-import { saveTrainingResponse } from "../../services/servicesOperator/operatorTrainingResponseService";
 import Loader from "../../components/Loader";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { createNotification } from "../../utils/createNotification";
-import { notifyInfo, notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
+import { notifyInfo } from "../../utils/notify";
 import MobileBackButton from "./components/MobileBackButton";
-import { isSurveyTimeExpired, isSurveyInTimeWindow } from "../../utils/surveyTiming";
-import { MIN_APROBATORIO, MAX_SURVEY_ATTEMPTS } from "../../constants/surveyConstants";
+import { isSurveyInTimeWindow, buildSurveyDateTime } from "../../utils/surveyTiming";
+import { MAX_SURVEY_ATTEMPTS } from "../../constants/surveyConstants";
+
+// Mismo cálculo de "Expira" que se usa en Encuestas
+const getRemainingSurveyTime = (item) => {
+    if (!item?.fechaInicio && !item?.fechaFin) return "Sin fecha";
+
+    const now = new Date();
+    const startDate = buildSurveyDateTime(item.fechaInicio, item.horaInicio, "00:00");
+    const endDate = buildSurveyDateTime(item.fechaFin, item.horaFin, "23:59");
+
+    if (!startDate || !endDate) return "Sin fecha";
+
+    const formatParts = (totalMinutes) => {
+        const days = Math.floor(totalMinutes / (60 * 24));
+        const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+        const minutes = totalMinutes % 60;
+
+        const parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0 || parts.length > 0) parts.push(`${hours}h`);
+        parts.push(`${minutes}m`);
+        return parts.join(" ");
+    };
+
+    if (now < startDate) {
+        const totalMinutes = Math.max(0, Math.ceil((startDate.getTime() - now.getTime()) / 60000));
+        return `Inicia en ${formatParts(totalMinutes)}`;
+    }
+
+    const diffMs = endDate.getTime() - now.getTime();
+    if (diffMs <= 0) return "Expirada";
+
+    return formatParts(Math.max(0, Math.floor(diffMs / 60000)));
+};
 
 const ESTADO_LABEL = {
     pendiente: "Pendiente",
@@ -24,21 +55,15 @@ const ESTADO_BADGE_CLASS = {
     pendiente: "badge pending",
     vencida: "badge expired",
     completada: "badge approved",
-    reprobada: "badge expired",
+    reprobada: "badge danger",
     bloqueada: "badge expired"
 };
 
-export default function OperatorTraining({ onTrainingComplete, onBack }) {
+export default function OperatorTraining({ onTrainingComplete, onBack, onSelectTraining }) {
     const { user } = useAuth();
     const { trainings: hookTrainings, loading, error } = useOperatorTrainings();
     const [activeTab, setActiveTab] = useState("Disponibles");
-    const [ongoingTraining, setOngoingTraining] = useState(null);
-    const [answers, setAnswers] = useState({});
-    const [timeLeft, setTimeLeft] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [keyboardOpen, setKeyboardOpen] = useState(false);
 
-    // 🔥 ESTADOS PARA RESPUESTAS EN FIREBASE
     const [userResponses, setUserResponses] = useState({});
 
     useEffect(() => {
@@ -62,91 +87,6 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
         if (user?.uid) loadUserResponses();
     }, [user?.uid]);
 
-    // 🔥 MEMORIA TEMPORAL PARA EL MODAL
-    const timerKey = ongoingTraining ? `training_timer_${ongoingTraining.id}_${user?.uid}` : null;
-    const answersKey = ongoingTraining ? `training_answers_${ongoingTraining.id}_${user?.uid}` : null;
-
-    useEffect(() => {
-        if (ongoingTraining) {
-            const savedAnswers = localStorage.getItem(answersKey);
-            if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
-            else setAnswers({});
-
-            const savedTime = localStorage.getItem(timerKey);
-            if (savedTime !== null) {
-                setTimeLeft(parseInt(savedTime, 10));
-            } else {
-                const horas = parseInt(ongoingTraining.duracionHoras) || 0;
-                const mins = parseInt(ongoingTraining.duracionMinutos) || 0;
-                const totalSeconds = (horas * 3600) + (mins * 60);
-                setTimeLeft(totalSeconds > 0 ? totalSeconds : null);
-            }
-        } else {
-            setTimeLeft(null);
-        }
-    }, [ongoingTraining?.id, user?.uid]);
-
-    useEffect(() => {
-        if (timeLeft === null || timeLeft <= 0) return;
-        const timerId = setInterval(() => {
-            setTimeLeft(prev => {
-                const newVal = prev - 1;
-                if (newVal <= 0) {
-                    clearInterval(timerId);
-                    localStorage.removeItem(timerKey);
-                    if (!isSubmitting) handleSubmitTraining();
-                    return 0;
-                }
-                localStorage.setItem(timerKey, newVal);
-                return newVal;
-            });
-        }, 1000);
-        return () => clearInterval(timerId);
-    }, [timeLeft, isSubmitting]);
-
-    // Detectar cuando el teclado móvil se abre/cierra
-    useEffect(() => {
-        const handleInputFocus = () => setKeyboardOpen(true);
-        const handleInputBlur = () => setKeyboardOpen(false);
-
-        // Agregar listeners a todos los inputs y textareas
-        const inputs = document.querySelectorAll('input, textarea');
-        inputs.forEach(input => {
-            input.addEventListener('focus', handleInputFocus);
-            input.addEventListener('blur', handleInputBlur);
-        });
-
-        return () => {
-            inputs.forEach(input => {
-                input.removeEventListener('focus', handleInputFocus);
-                input.removeEventListener('blur', handleInputBlur);
-            });
-        };
-    }, []);
-
-    // Alternativa: Detectar usando visualViewport (más preciso en móviles)
-    useEffect(() => {
-        if (!('visualViewport' in window)) return;
-
-        const handleViewportResize = () => {
-            const viewport = window.visualViewport;
-            const heightDiff = window.innerHeight - viewport.height;
-            setKeyboardOpen(heightDiff > 100);
-        };
-
-        window.visualViewport.addEventListener('resize', handleViewportResize);
-        return () => {
-            window.visualViewport.removeEventListener('resize', handleViewportResize);
-        };
-    }, []);
-
-    const formatTime = (seconds) => {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
 
     const capacitacionesCorregidas = hookTrainings.map(training => {
         const userResp = userResponses[training.id];
@@ -178,7 +118,6 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
     });
 
     const handleStartTraining = (training) => {
-        // 🔥 VALIDAR FECHAS: Solo permitir responder si está dentro del rango
         const horaInicioSesion = training.horaInicio || "00:00";
         const horaFinSesion = training.horaFin || "23:59";
         const ahora = new Date();
@@ -209,135 +148,8 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
             return;
         }
 
-        setOngoingTraining(training);
-    };
-
-    const handleCloseModal = async () => {
-        const result = await confirmDelete("¿Deseas salir?", "Tu progreso y tiempo se quedarán pausados.");
-        if (result.isConfirmed) setOngoingTraining(null);
-    };
-
-    const handleAnswerChange = (preguntaId, respuesta) => {
-        setAnswers(prev => {
-            const newAnswers = { ...prev, [preguntaId]: respuesta };
-            localStorage.setItem(answersKey, JSON.stringify(newAnswers));
-            return newAnswers;
-        });
-    };
-
-    const calculateScore = () => {
-        let correctas = 0;
-        let tieneRespuestasAbiertas = false;
-
-        ongoingTraining.preguntas?.forEach(pregunta => {
-            const respuestaUsuario = answers[pregunta.id];
-            if (pregunta.tipo === "multiple" && respuestaUsuario === String(pregunta.respuestaCorrecta)) correctas++;
-            if (pregunta.tipo === "boolean" && String(respuestaUsuario) === String(pregunta.respuestaCorrecta)) correctas++;
-            if (pregunta.tipo === "abierta" && respuestaUsuario) tieneRespuestasAbiertas = true;
-        });
-
-        const preguntasAutomaticas = ongoingTraining.preguntas?.filter(p => p.tipo !== "abierta").length || 0;
-        let calificacion = 100;
-        if (preguntasAutomaticas > 0) calificacion = Math.round((correctas / preguntasAutomaticas) * 100);
-
-        return { correctas, calificacion, tieneRespuestasAbiertas };
-    };
-
-    const handleSubmitTraining = async () => {
-        if (!ongoingTraining || isSubmitting) return;
-
-        try {
-            setIsSubmitting(true);
-            const result = calculateScore();
-
-            const intentosPrevios = ongoingTraining.intentos || 0;
-            const intentosActuales = intentosPrevios + 1;
-
-            let nuevoEstado = "";
-            if (result.tieneRespuestasAbiertas) nuevoEstado = "pendiente_validacion";
-            else if (result.calificacion >= MIN_APROBATORIO) nuevoEstado = "completada";
-            else nuevoEstado = "reprobada";
-
-            await saveTrainingResponse({
-                idCapacitacion: ongoingTraining.id,
-                capacitacionId: ongoingTraining.id,
-                nominaUsuario: user.nomina,
-                userId: user.uid,
-                username: user.username,
-                nombre: user.nombre,
-                respuestas: answers,
-                totalPreguntas: ongoingTraining.preguntas?.length || 0,
-                correctas: result.correctas,
-                calificacion: result.calificacion,
-                puntuacionObtenida: result.calificacion,
-                aprobada: result.calificacion >= MIN_APROBATORIO,
-                tieneRespuestasAbiertas: result.tieneRespuestasAbiertas,
-                intentos: intentosActuales,
-                estadoActual: nuevoEstado,
-                fechaEnviado: new Date(),
-                titulo: ongoingTraining.titulo
-            });
-
-            //DEBE REVISARSE SI SE MANDA UNA NOTIFICACION O NO, SI ES ASI A QUIENES SE LES MANDA 
-            /*
-            try {
-                const usersSnapshot = await getDocs(collection(db, "users"));
-                const admins = usersSnapshot.docs
-                    .filter(doc => {
-                        const rol = doc.data().rol || "";
-                        return rol.startsWith("admin");
-                    })
-                    .map(doc => ({ uid: doc.data().uid, ...doc.data() }));
-
-                for (const admin of admins) {
-                    if (admin.uid) {
-                        await createNotification({
-                            IdUsuario: admin.uid,
-                            Titulo: "📚 Capacitación Respondida",
-                            Mensaje: `${user.nombre} completó: "${ongoingTraining.titulo}"`,
-                            Destino: "training",
-                            Accion: "capacitacion_respondida",
-                            extra: {
-                                capacitacionId: ongoingTraining.id,
-                                usuarioNombre: user.nombre,
-                                calificacion: result.calificacion,
-                                aprobada: result.calificacion >= MIN_APROBATORIO
-                            }
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error("Error al notificar a admins sobre respuesta de capacitación:", error);
-            } */
-
-            const mensaje = result.tieneRespuestasAbiertas
-                ? 'Tu respuesta será revisada por el administrador.'
-                : `Puntaje: ${result.calificacion}/100`;
-
-            notifySuccess("Capacitación enviada", mensaje);
-
-            // Limpiar memoria
-            localStorage.removeItem(timerKey);
-            localStorage.removeItem(answersKey);
-
-            setOngoingTraining(null);
-            setAnswers({});
-
-            // Actualizar hookTrainings localmente después de guardar respuesta
-            // (el hook useOperatorTrainings tiene la data más reciente)
-
-            // Actualizar userResponses localmente
-            setUserResponses(prev => ({
-                ...prev,
-                [ongoingTraining.id]: { estadoActual: nuevoEstado, calificacion: result.calificacion, intentos: intentosActuales }
-            }));
-
-            if (typeof onTrainingComplete === 'function') onTrainingComplete();
-        } catch (error) {
-            console.error("Error al guardar respuesta:", error);
-            notifyError("Error", "No se pudo enviar la capacitación. Intenta nuevamente.");
-        } finally {
-            setIsSubmitting(false);
+        if (typeof onSelectTraining === 'function') {
+            onSelectTraining(training);
         }
     };
 
@@ -456,10 +268,10 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
                                     <strong>{survey.tipoCurso}</strong>
                                 </div>
 
-                                {/* <div className="detail-card">
+                                <div className="detail-card">
                                     <small>Expira: </small>
                                     <strong>{getRemainingSurveyTime(survey)}</strong>
-                                </div> */}
+                                </div>
 
                             </div>
 
@@ -516,7 +328,7 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
 
                                     <button
                                         className="btn-primary"
-                                        onClick={() => handleStartSurvey(survey)}
+                                        onClick={() => handleStartTraining(survey)}
                                     >
                                         Comenzar evaluación
                                     </button>
@@ -527,7 +339,7 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
 
                                     <button
                                         className="btn-warning"
-                                        onClick={() => handleStartSurvey(survey)}
+                                        onClick={() => handleStartTraining(survey)}
                                     >
                                         Reintentar ({reintentosRestantes})
                                     </button>
@@ -564,108 +376,7 @@ export default function OperatorTraining({ onTrainingComplete, onBack }) {
                 })}
             </div>
 
-            {ongoingTraining && (
-                <div
-                    className="training-modal-backdrop"
-                    style={{
-                        zIndex: keyboardOpen ? 10001 : 10000,
-                        transition: 'z-index 0.3s ease'
-                    }}
-                >
-                    <div className="training-modal-content">
-                        <div className="training-modal-header">
-                            <h2>{ongoingTraining.titulo}</h2>
-                            {timeLeft !== null && (
-                                <div className={`timer-badge ${timeLeft < 60 ? 'danger' : ''}`}>
-                                    <FiTimer /> {formatTime(timeLeft)}
-                                </div>
-                            )}
-                            <button className="modal-close-btn" onClick={handleCloseModal}>×</button>
-                        </div>
-
-                        <div className="training-modal-body">
-                            {(!ongoingTraining.preguntas || ongoingTraining.preguntas.length === 0) ? (
-                                <div style={{ textAlign: "center", padding: "40px" }}>
-                                    <p>Esta capacitación no requiere evaluación digital.</p>
-                                    <button className="training-submit-btn" disabled={isSubmitting} onClick={handleSubmitTraining}>
-                                        {isSubmitting ? "Guardando..." : "Marcar como leída"}
-                                    </button>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="alert-info-box">Tu tiempo y progreso se guardan automáticamente.</div>
-
-                                    {ongoingTraining.preguntas.map((pregunta, idx) => (
-                                        <div key={pregunta.id} className="training-question">
-                                            <h4>{idx + 1}. {pregunta.pregunta}</h4>
-
-                                            {pregunta.tipo === "multiple" && (
-                                                <div className="training-options">
-                                                    {pregunta.opciones?.map((opcion, optIdx) => (
-                                                        <label key={optIdx} className="training-option">
-                                                            <input type="radio" name={pregunta.id} value={optIdx} checked={answers[pregunta.id] === String(optIdx)} onChange={(e) => handleAnswerChange(pregunta.id, e.target.value)} />
-                                                            {opcion.texto}
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {pregunta.tipo === "boolean" && (
-                                                <div className="training-options">
-                                                    <label className="training-option">
-                                                        <input type="radio" name={pregunta.id} value="true" checked={answers[pregunta.id] === "true"} onChange={(e) => handleAnswerChange(pregunta.id, e.target.value)} />
-                                                        Verdadero
-                                                    </label>
-                                                    <label className="training-option">
-                                                        <input type="radio" name={pregunta.id} value="false" checked={answers[pregunta.id] === "false"} onChange={(e) => handleAnswerChange(pregunta.id, e.target.value)} />
-                                                        Falso
-                                                    </label>
-                                                </div>
-                                            )}
-
-                                            {pregunta.tipo === "abierta" && (
-                                                <textarea className="training-open-answer" placeholder="Escribe tu respuesta aquí..." value={answers[pregunta.id] || ""} onChange={(e) => handleAnswerChange(pregunta.id, e.target.value)} />
-                                            )}
-                                        </div>
-                                    ))}
-
-                                    <button className="training-submit-btn" disabled={isSubmitting} onClick={handleSubmitTraining}>
-                                        {isSubmitting ? "Enviando..." : "Enviar Respuestas"}
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <style>{`
-.training-modal-backdrop { 
-position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; }
-.training-modal-content { background: var(--operator-card); color: var(--operator-text); border: 1px solid var(--operator-border); border-radius: 20px; max-width: 650px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4); }
-.training-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--operator-border); position: sticky; top: 0; background: var(--operator-card); z-index: 10; }
-.training-modal-header h2 { margin: 0; font-size: 18px; font-weight: 700; flex: 1; }
-.timer-badge { display: flex; align-items: center; gap: 6px; background: var(--operator-background); padding: 6px 12px; border-radius: 999px; font-weight: 700; font-size: 14px; margin-right: 14px; border: 1px solid var(--operator-border); }
-.timer-badge.danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: #ef4444; animation: pulse 1s infinite; }
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-.modal-close-btn { background: var(--operator-background); border: 1px solid var(--operator-border); font-size: 24px; cursor: pointer; color: var(--operator-text); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; transition: all 0.2s; }
-.modal-close-btn:hover { background: var(--operator-border); }
-.training-modal-body { padding: 24px; }
-.alert-info-box { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); padding: 12px 16px; border-radius: 12px; font-weight: 600; margin-bottom: 24px; text-align: center; }
-.training-question { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px dashed var(--operator-border); }
-.training-question:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-.training-question h4 { margin: 0 0 16px; font-size: 16px; font-weight: 600; }
-.training-options { display: flex; flex-direction: column; gap: 12px; }
-.training-option { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; background: var(--operator-background); border: 1px solid var(--operator-border); cursor: pointer; transition: all 0.2s; font-weight: 500; }
-.training-option:hover { border-color: var(--operator-primary); }
-.training-option input[type="radio"] { cursor: pointer; width: 20px; height: 20px; accent-color: var(--operator-primary); }
-.training-submit-btn { width: 100%; padding: 16px; background: var(--operator-primary); color: white; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: all 0.2s; box-shadow: 0 4px 14px var(--operator-primary-light); }
-.training-submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px var(--operator-primary-light); }
-.training-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.training-open-answer { width: 100%; min-height: 140px; padding: 14px; border-radius: 12px; border: 1px solid var(--operator-border); background: var(--operator-background); color: var(--operator-text); font-family: inherit; font-size: 15px; resize: vertical; marginTop: 12px; box-sizing: border-box; transition: all 0.2s; }
-.training-open-answer:focus { border-color: var(--operator-primary); box-shadow: 0 0 0 4px var(--operator-primary-light); outline: none; }
-@media (max-width: 640px) { .training-modal-backdrop { padding: 0; } .training-modal-content { max-height: 100vh; border-radius: 0; border: none; } .training-modal-header { padding: 16px; } }
-
 /* ===========================
    SURVEY CARD V2
 =========================== */
@@ -1043,6 +754,40 @@ position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blu
    RESPONSIVE
 =========================== */
 
+/* Reloj superior: debe quedar POR ENCIMA del modal (backdrop usa z-index 10000/10001) */
+.training-timer-top {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10002;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 10px 18px;
+    border-radius: 999px;
+
+    background: var(--operator-card);
+    color: var(--operator-text);
+    border: 1px solid var(--operator-border);
+
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: .5px;
+
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .25);
+}
+
+.training-timer-top.critical {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+    animation: pulse .8s infinite;
+}
+
 @media(max-width:768px){
 
     .survey-header{
@@ -1051,6 +796,12 @@ position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blu
 
         align-items:flex-start;
 
+    }
+
+    .training-timer-top {
+        top: 10px;
+        font-size: 15px;
+        padding: 8px 14px;
     }
 
     .survey-details{

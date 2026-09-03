@@ -49,7 +49,12 @@ export default function MetricsCards({ onNavigate }) {
 
         <div className="metrics-grid">
 
-            <div className="metric-box">
+
+                <button
+                    type="button"
+                    className="metric-box metric-box-action"
+                    onClick={() => onNavigate && onNavigate("points")}
+                >
 
                 <div className="metric-icon blue">
                     <FiStar />
@@ -62,10 +67,13 @@ export default function MetricsCards({ onNavigate }) {
                 <span>
                     Puntos
                 </span>
+                </button>
 
-            </div>
-
-            <div className="metric-box">
+            <button
+                type="button"
+                className="metric-box metric-box-action"
+                onClick={() => onNavigate && onNavigate("ranking")}
+            >
 
                 <div className="metric-icon green">
                     <FiAward />
@@ -79,7 +87,7 @@ export default function MetricsCards({ onNavigate }) {
                     Ranking
                 </span>
 
-            </div>
+            </button>
 
             <button
                 type="button"

@@ -23,6 +23,7 @@ const OperatorNews = lazy(() => import("./OperatorNews"));
 const OperatorNewsDetail = lazy(() => import("./OperatorNewsDetail"));
 const OperatorSurveyDetail = lazy(() => import("./OperatorSurveyDetail"));
 const OperatorSurveyResult = lazy(() => import("./OperatorSurveyResult"));
+const OperatorTrainingDetail = lazy(() => import("./OperatorTrainingDetail"));
 const OperatorPreferences = lazy(() => import("./OperatorPreferences"));
 const OperatorSupport = lazy(() => import("./OperatorSupport"));
 const OperatorReportProblem = lazy(() => import("./OperatorReportProblem"));
@@ -50,6 +51,7 @@ export default function AppOperator() {
 
     const [screen, setScreen] = useState("home");
     const [selectedSurvey, setSelectedSurvey] = useState(null);
+    const [selectedTraining, setSelectedTraining] = useState(null);
     const [surveyResult, setSurveyResult] = useState(null);
     const [selectedNews, setSelectedNews] = useState(null);
     const notificationCountKeyRef = useRef("");
@@ -156,7 +158,25 @@ export default function AppOperator() {
             case "incidences":
                 return <OperatorIncidences usuarioActual={user} onBack={() => setScreen("more")} />;
             case "training":
-                return <OperatorTraining onTrainingComplete={refetchTrainings} onBack={() => setScreen("more")} />;
+                return (
+                    <OperatorTraining
+                        onTrainingComplete={refetchTrainings}
+                        onBack={() => setScreen("more")}
+                        onSelectTraining={(training) => {
+                            setSelectedTraining(training);
+                            setScreen("training-detail");
+                        }}
+                    />
+                );
+            case "training-detail":
+                return (
+                    <OperatorTrainingDetail
+                        training={selectedTraining}
+                        onBack={() => setScreen("training")}
+                        onNavigate={setScreen}
+                        onFinished={refetchTrainings}
+                    />
+                );
             case "certificates":
                 return <OperatorCertificates usuarioActual={user} onBack={() => setScreen("more")} />;
             case "notifications":
@@ -192,7 +212,13 @@ export default function AppOperator() {
                     />
                 );
             case "survey-result":
-                return <OperatorSurveyResult result={surveyResult} onBack={() => setScreen("surveys")} />;
+                return (
+                    <OperatorSurveyResult
+                        result={surveyResult}
+                        onBack={() => setScreen("surveys")}
+                        onRetry={() => setScreen("survey-detail")}
+                    />
+                );
             default:
                 return <OperatorHome onNavigate={setScreen} />;
         }

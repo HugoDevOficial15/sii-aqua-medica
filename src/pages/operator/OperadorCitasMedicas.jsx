@@ -212,7 +212,7 @@ export default function OperadorCitasMedicas() {
             });
 
             try {
-                // 🔥 Expandimos roles para garantizar que le llegue a Luis Ángel y a cualquier admin
+                //  Expandimos roles para notificar a admins sobre la nueva cita
                 await sendAdminNotification(
                     {
                         Titulo: "📅 Nueva Cita Médica Agendada",

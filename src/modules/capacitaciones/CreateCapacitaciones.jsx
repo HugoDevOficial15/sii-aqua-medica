@@ -754,7 +754,7 @@ export default function CreateCapacitaciones() {
                                     <div className="modal-body-content">
                                         <div className="form-grid">
                                             <div className="col-span-6">
-                                                <label className="text-primary">
+                                                <label>
                                                     <strong>Título</strong>
                                                 </label>
                                                 <input
@@ -1666,7 +1666,8 @@ export default function CreateCapacitaciones() {
     width: 70%;
     display: flex;
     gap: 8px;
-    margin-bottom: 6px;
+    margin: 0 auto 6px auto;
+    justify-content: center;
     color: var(--operator-text);
 }
 

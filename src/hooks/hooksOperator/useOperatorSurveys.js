@@ -59,11 +59,21 @@ export function useOperatorSurveys({ enabled = true } = {}) {
     // consumen las pantallas existentes (estadoActual/miPuntaje).
     const surveys = useMemo(() => {
 
-        return rawSurveys.map(survey => ({
-            ...survey,
-            estadoActual: survey.respondida ? "completada" : survey.estado,
-            miPuntaje: survey.miPuntaje
-        }));
+        return rawSurveys.map(survey => {
+            const estadoActual = survey.estado || "pendiente";
+            const estadoNormalizado = estadoActual === "completada"
+                && Number(survey.miPuntaje) < MIN_APROBATORIO
+                ? "reprobada"
+                : estadoActual;
+
+            return {
+                ...survey,
+                estadoActual: estadoNormalizado,
+                miPuntaje: survey.miPuntaje,
+                intentos: survey.intentos || 0,
+                miRespuesta: survey.miRespuesta || null
+            };
+        });
 
     }, [rawSurveys]);
 
@@ -82,9 +92,8 @@ export function useOperatorSurveys({ enabled = true } = {}) {
                 vencidas++;
             } else if (survey.estadoActual === "completada") {
                 completadas++;
-                if ((survey.miPuntaje ?? 0) < MIN_APROBATORIO) {
-                    reprobadas++;
-                }
+            } else if (["reprobada", "bloqueada", "vencida"].includes(survey.estadoActual)) {
+                reprobadas++;
             }
 
         });
