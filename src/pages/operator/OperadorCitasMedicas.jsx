@@ -186,7 +186,7 @@ export default function OperadorCitasMedicas() {
         
         if (!fechaElegida || !horaElegida) return;
         
-        // 🔥 BLOQUEO ESTRICTO: Evita que spam de clics genere duplicados
+        // BLOQUEO ESTRICTO: Evita que spam de clics genere duplicados
         if (isSubmitting.current) return;
 
         if (!user?.uid) {
@@ -301,12 +301,12 @@ export default function OperadorCitasMedicas() {
     if (loading) return <Loader text="Cargando campañas médicas..." />;
 
     return (
-        <div className="container-fluid p-4 citas-op-page fade-in">
+        <div className="container-fluid p-3 citas-op-page fade-in" style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}>
 
-            <div className="mb-4 d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div className="mb-3 d-flex justify-content-between align-items-start flex-wrap gap-2">
                 <div>
-                    <h2 className="fw-bold mb-1">Servicio Médico</h2>
-                    <p className="citas-op-muted">
+                    <h2 className="fw-bold mb-0" style={{ fontSize: '1.5rem' }}>Servicio Médico</h2>
+                    <p className="citas-op-muted mb-0" style={{ fontSize: '0.9rem' }}>
                         {vista === "lista" && "Campañas médicas activas disponibles para ti."}
                         {vista === "agendar" && "Agenda tu consulta seleccionando fecha y hora."}
                         {vista === "mis-citas" && "Tus citas activas. Puedes cancelarlas si ya no las necesitas."}
@@ -315,53 +315,63 @@ export default function OperadorCitasMedicas() {
 
                 {vista === "lista" && (
                     <button
-                        className="btn btn-outline-primary d-flex align-items-center gap-2"
-                        style={{ borderRadius: '10px' }}
+                        className="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
+                        style={{ borderRadius: '10px', whiteSpace: 'nowrap' }}
                         onClick={irAMisCitas}
                     >
-                        <FiList /> Mis Citas Agendadas
+                        <FiList /> Mis Citas
                     </button>
                 )}
             </div>
 
             {vista === "lista" && (
                 <div className="card border-0 shadow-sm citas-op-card" style={{ borderRadius: '12px' }}>
-                    <div className="card-body p-0">
+                    <div className="card-body p-0" style={{ maxHeight: 'calc(100vh - 250px)', overflowY: 'auto' }}>
                         {agendas.length === 0 ? (
-                            <div className="p-4 text-center citas-op-muted">No hay campañas activas.</div>
+                            <div className="p-3 text-center citas-op-muted" style={{ fontSize: '0.9rem' }}>No hay campañas activas.</div>
                         ) : (
-                            <div className="table-responsive" style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
-                                <table className="table table-borderless table-hover mb-0 citas-op-table">
-                                    <thead>
-                                        <tr>
-                                            <th className="px-4 py-3 citas-op-muted">Nombre</th>
-                                            <th className="px-4 py-3 citas-op-muted">Rango</th>
-                                            <th className="px-4 py-3 citas-op-muted">Duración</th>
-                                            <th className="px-4 py-3 citas-op-muted">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {agendas.map((agenda) => (
-                                            <tr key={agenda.id}>
-                                                <td className="px-4 py-3 align-middle">{agenda.nombre}</td>
-                                                <td className="px-4 py-3 align-middle">{agenda.fechaInicio} a {agenda.fechaFin}</td>
-                                                <td className="px-4 py-3 align-middle">{agenda.duracionMin} min</td>
-                                                <td className="px-4 py-3 align-middle">
-                                                    <button
-                                                        className="btn btn-sm btn-primary d-flex align-items-center gap-2"
-                                                        onClick={() => {
-                                                            setAgendaActiva(agenda);
-                                                            setDiasValidos(calcularDiasDisponibles(agenda));
-                                                            setVista("agendar");
-                                                        }}
-                                                    >
-                                                        <FiCalendar /> Agendar
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem' }}>
+                                {agendas.map((agenda) => (
+                                    <div
+                                        key={agenda.id}
+                                        style={{
+                                            background: 'var(--operator-background)',
+                                            border: '1px solid var(--operator-border)',
+                                            borderRadius: '8px',
+                                            padding: '1rem',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '1rem'
+                                        }}
+                                    >
+                                        <div>
+                                            <h6 className="fw-bold mb-2" style={{ fontSize: '0.95rem', color: 'var(--operator-text)' }}>
+                                                {agenda.nombre}
+                                            </h6>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.85rem', color: 'var(--operator-text-soft)' }}>
+                                                <div>
+                                                    <small className="d-block citas-op-muted">Fechas</small>
+                                                    <span style={{ color: 'var(--operator-text)' }}>{agenda.fechaInicio} a {agenda.fechaFin}</span>
+                                                </div>
+                                                <div>
+                                                    <small className="d-block citas-op-muted">Duración</small>
+                                                    <span style={{ color: 'var(--operator-text)' }}>{agenda.duracionMin} min</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            className="btn btn-primary w-100"
+                                            style={{ fontSize: '0.9rem', padding: '0.6rem' }}
+                                            onClick={() => {
+                                                setAgendaActiva(agenda);
+                                                setDiasValidos(calcularDiasDisponibles(agenda));
+                                                setVista("agendar");
+                                            }}
+                                        >
+                                            <FiCalendar className="me-2" /> Agendar
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
@@ -370,9 +380,10 @@ export default function OperadorCitasMedicas() {
 
             {vista === "agendar" && (
                 <div className="card border-0 citas-op-card" style={{ borderRadius: '16px', maxWidth: '600px' }}>
-                    <div className="card-body p-4">
+                    <div className="card-body p-3">
                         <button
-                            className="btn btn-link citas-op-muted p-0 mb-4 d-flex align-items-center gap-2 text-decoration-none"
+                            className="btn btn-link citas-op-muted p-0 mb-2 d-flex align-items-center gap-2 text-decoration-none"
+                            style={{ fontSize: '0.9rem' }}
                             onClick={() => {
                                 setVista("mis-citas");
                                 setFechaElegida("");
@@ -380,30 +391,32 @@ export default function OperadorCitasMedicas() {
                                 cargarMisCitas();
                             }}
                         >
-                            <FiArrowLeft /> Cancelar
+                            <FiArrowLeft /> Atrás
                         </button>
 
-                        <h4 className="fw-bold mb-4">
-                            Selecciona tu horario <br />
-                            <small className="text-primary fs-6">{agendaActiva.nombre}</small>
-                        </h4>
+                        <h5 className="fw-bold mb-2" style={{ fontSize: '1.1rem' }}>
+                            Selecciona tu horario
+                            <br />
+                            <small className="text-primary" style={{ fontSize: '0.85rem' }}>{agendaActiva.nombre}</small>
+                        </h5>
 
                         <form onSubmit={handleAgendar}>
-                            <div className="mb-4">
-                                <label className="form-label fw-medium">1. Elige un día disponible</label>
+                            <div className="mb-3">
+                                <label className="form-label fw-medium" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>1. Día disponible</label>
 
                                 {diasValidos.length === 0 ? (
-                                    <div className="alert alert-warning text-dark mt-2">
-                                        No hay días disponibles configurados para esta campaña.
+                                    <div className="alert alert-warning text-dark mt-2" style={{ fontSize: '0.85rem', padding: '0.5rem' }}>
+                                        No hay días disponibles.
                                     </div>
                                 ) : (
                                     <select
-                                        className="form-select form-select-lg citas-op-input"
+                                        className="form-select citas-op-input"
+                                        style={{ fontSize: '0.9rem' }}
                                         value={fechaElegida}
                                         onChange={handleFechaChange}
                                         required
                                     >
-                                        <option value="">-- Selecciona una fecha --</option>
+                                        <option value="">-- Selecciona fecha --</option>
                                         {diasValidos.map((dia) => (
                                             <option key={dia} value={dia}>
                                                 {formatearFecha(dia)}
@@ -414,9 +427,9 @@ export default function OperadorCitasMedicas() {
                             </div>
 
                             {fechaElegida && horariosDisponibles.length > 0 && (
-                                <div className="mb-4 fade-in">
-                                    <label className="form-label fw-medium">2. Horarios disponibles</label>
-                                    <div className="d-flex flex-wrap gap-2">
+                                <div className="mb-3 fade-in">
+                                    <label className="form-label fw-medium" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>2. Horarios</label>
+                                    <div className="d-flex flex-wrap gap-1">
                                         {horariosDisponibles.map((hora) => {
                                             const ocupada = citasOcupadas.includes(hora);
                                             return (
@@ -424,13 +437,13 @@ export default function OperadorCitasMedicas() {
                                                     key={hora}
                                                     type="button"
                                                     disabled={ocupada}
-                                                    className={`btn ${
+                                                    className={`btn btn-sm ${
                                                         horaElegida === hora ? 'btn-success' : ocupada ? 'btn-outline-danger opacity-50' : 'citas-op-slot-btn'
                                                     }`}
-                                                    style={{ borderRadius: '8px', minWidth: '80px' }}
+                                                    style={{ borderRadius: '6px', fontSize: '0.8rem', padding: '0.35rem 0.6rem' }}
                                                     onClick={() => setHoraElegida(hora)}
                                                 >
-                                                    {hora} {ocupada && " (Ocupado)"}
+                                                    {hora}
                                                 </button>
                                             );
                                         })}
@@ -440,11 +453,11 @@ export default function OperadorCitasMedicas() {
 
                             <button
                                 type="submit"
-                                className="btn btn-success w-100 btn-lg fw-bold mt-3"
-                                style={{ borderRadius: '10px' }}
+                                className="btn btn-success w-100 fw-bold mt-2"
+                                style={{ borderRadius: '8px', fontSize: '0.9rem', padding: '0.5rem' }}
                                 disabled={!fechaElegida || !horaElegida || procesando}
                             >
-                                {procesando ? "Procesando..." : "Confirmar Cita"}
+                                {procesando ? "Procesando..." : "Confirmar"}
                             </button>
                         </form>
                     </div>
@@ -454,9 +467,10 @@ export default function OperadorCitasMedicas() {
             {vista === "mis-citas" && (
                 <div className="card border-0 shadow-sm citas-op-card" style={{ borderRadius: '12px' }}>
 
-                    <div className="card-body p-4">
+                    <div className="card-body p-3">
                         <button
-                            className="btn btn-link citas-op-muted p-0 mb-4 d-flex align-items-center gap-2 text-decoration-none"
+                            className="btn btn-link citas-op-muted p-0 mb-3 d-flex align-items-center gap-2 text-decoration-none"
+                            style={{ fontSize: '0.9rem' }}
                             onClick={() => {
                                 setVista("lista");
                                 setFechaElegida("");
@@ -469,41 +483,58 @@ export default function OperadorCitasMedicas() {
                         {loadingMisCitas ? (
                             <Loader text="Cargando tus citas..." />
                         ) : misCitas.length === 0 ? (
-                            <div className="p-4 text-center citas-op-muted">No tienes citas activas.</div>
+                            <div className="p-3 text-center citas-op-muted" style={{ fontSize: '0.9rem' }}>No tienes citas activas.</div>
                         ) : (
-                            <div className="table-responsive">
-                                <table className="table table-borderless table-hover mb-0 citas-op-table">
-                                    <thead>
-                                        <tr>
-                                            <th className="px-3 py-3 citas-op-muted">Fecha</th>
-                                            <th className="px-3 py-3 citas-op-muted">Hora</th>
-                                            <th className="px-3 py-3 citas-op-muted">Agenda</th>
-                                            <th className="px-3 py-3 citas-op-muted">Estado</th>
-                                            <th className="px-3 py-3 citas-op-muted"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {misCitas.map((cita) => (
-                                            <tr key={cita.id}>
-                                                <td className="px-3 py-3 align-middle">{formatearFecha(cita.fecha)}</td>
-                                                <td className="px-3 py-3 align-middle">{cita.horaInicio || cita.hora || "-"}</td>
-                                                <td className="px-3 py-3 align-middle">{cita.agendaNombre || '-'}</td>
-
-                                                <td className="px-3 py-3 align-middle">
-                                                    <span className="badge bg-success">Activa</span>
-                                                </td>
-                                                <td className="px-3 py-3 align-middle">
-                                                    <button
-                                                        className="btn btn-sm btn-danger d-flex align-items-center gap-1"
-                                                        onClick={() => setCitaACancelar(cita)}
-                                                    >
-                                                        <FiX /> Cancelar
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
+                                {misCitas.map((cita) => (
+                                    <div
+                                        key={cita.id}
+                                        style={{
+                                            background: 'var(--operator-background)',
+                                            border: '1px solid var(--operator-border)',
+                                            borderRadius: '8px',
+                                            padding: '1rem',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '1rem'
+                                        }}
+                                    >
+                                        <div>
+                                            <div>
+                                                <small className="d-block citas-op-muted mb-1">Agenda</small>
+                                                <span style={{ color: 'var(--operator-text)', fontWeight: '500' }}>
+                                                    {cita.agendaNombre || '-'}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+                                                <div>
+                                                    <small className="d-block citas-op-muted mb-1">Fecha</small>
+                                                    <span style={{ color: 'var(--operator-text)', fontWeight: '500' }}>
+                                                        {formatearFecha(cita.fecha)}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <small className="d-block citas-op-muted mb-1">Hora</small>
+                                                    <span style={{ color: 'var(--operator-text)', fontWeight: '500' }}>
+                                                        {cita.horaInicio || cita.hora || "-"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                                            <span className="badge bg-success align-self-center" style={{ fontSize: '0.9rem', padding: '0.4rem 0.8rem' }}>
+                                                ✓ Activa
+                                            </span>
+                                            <button
+                                                className="btn btn-danger"
+                                                style={{ fontSize: '0.9rem', padding: '0.4rem 1rem', flex: 1, maxWidth: '150px' }}
+                                                onClick={() => setCitaACancelar(cita)}
+                                            >
+                                                <FiX className="me-1" /> Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
