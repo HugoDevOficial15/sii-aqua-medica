@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import DOMPurify from "dompurify";
 import { collection, getDocs } from "firebase/firestore";
 import { FaFilePdf } from "react-icons/fa";
 import { db } from "../../../config/firebase";
@@ -40,6 +41,15 @@ const formatearNombre = (usuario) => {
     .join(" ");
 
   return nombre || usuario?.nomina || "Operador";
+};
+
+const sanitizarTexto = (valor) => {
+  if (valor === null || valor === undefined) return "";
+
+  return DOMPurify.sanitize(String(valor), {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+  });
 };
 
 export default function ReporteModal({ isOpen, usuario, operadores = [], onClose }) {
@@ -90,35 +100,36 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
 
       try {
         const anioActual = String(new Date().getFullYear());
-        const resultadosRef = collection(
-          db,
-          "users",
-          userId,
-          anioActual,
-          "informacion",
-          "resultados",
-        );
+        const rutaEvaluaciones =
+          tipoReporte === "puntual"
+            ? collection(db, "users", userId, anioActual, "informacion", "CompConductual")
+            : collection(db, "users", userId, anioActual, "informacion", "resultados");
 
-        const snapshot = await getDocs(resultadosRef);
+        const snapshot = await getDocs(rutaEvaluaciones);
         const registros = snapshot.docs
           .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-          .filter((registro) => registro?.tipo === "CompConductual");
+          .filter((registro) => 
+            tipoReporte === "puntual" ? true : registro?.tipo === "CompConductual",
+          );
 
-        const registrosFiltrados = registros.filter((registro) => {
-          const fechaValor = registro?.fechaElaboracion || registro?.fecha || registro?.createdAt;
-          if (!fechaValor) return true;
+        const registrosFiltrados =
+          tipoReporte === "puntual"
+            ? registros
+            : registros.filter((registro) => {
+                const fechaValor = registro?.fechaElaboracion || registro?.fecha || registro?.createdAt;
+                if (!fechaValor) return true;
 
-          const fechaRegistro =
-            typeof fechaValor?.toDate === "function"
-              ? fechaValor.toDate()
-              : new Date(fechaValor);
+                const fechaRegistro =
+                  typeof fechaValor?.toDate === "function"
+                    ? fechaValor.toDate()
+                    : new Date(fechaValor);
 
-          if (Number.isNaN(fechaRegistro.getTime())) return true;
+                if (Number.isNaN(fechaRegistro.getTime())) return true;
 
-          if (fechaInicio && fechaRegistro < new Date(`${fechaInicio}T00:00:00`)) return false;
-          if (fechaFin && fechaRegistro > new Date(`${fechaFin}T23:59:59`)) return false;
-          return true;
-        });
+                if (fechaInicio && fechaRegistro < new Date(`${fechaInicio}T00:00:00`)) return false;
+                if (fechaFin && fechaRegistro > new Date(`${fechaFin}T23:59:59`)) return false;
+                return true;
+              });
 
         setEvaluacionesDisponibles(registrosFiltrados);
         setEvaluacionSeleccionadaId(registrosFiltrados[0]?.id || "");
@@ -130,10 +141,10 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
     };
 
     cargarEvaluaciones();
-  }, [isOpen, seleccionado, fechaInicio, fechaFin]);
+  }, [isOpen, seleccionado, fechaInicio, fechaFin, tipoReporte]);
 
   useEffect(() => {
-    const termino = busqueda.trim().toLowerCase();
+    const termino = sanitizarTexto(busqueda).trim().toLowerCase();
 
     if (!termino) {
       setSugerencias([]);
@@ -141,17 +152,28 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
     }
 
     const coincidencias = operadores.filter((operador) => {
-      const nomina = String(operador?.nomina ?? "").toLowerCase();
-      const nombre = formatearNombre(operador).toLowerCase();
+      const nomina = sanitizarTexto(operador?.nomina ?? "").toLowerCase();
+      const nombre = sanitizarTexto(formatearNombre(operador)).toLowerCase();
       return nomina.includes(termino) || nombre.includes(termino);
     });
 
-    setSugerencias(coincidencias.slice(0, 4));
+    const sugerenciasActuales = coincidencias.slice(0, 4);
+    setSugerencias(sugerenciasActuales);
+
+    if (sugerenciasActuales.length === 1) {
+      const operador = sugerenciasActuales[0];
+      const nombre = formatearNombre(operador).trim().toLowerCase();
+      const nomina = String(operador?.nomina ?? "").trim().toLowerCase();
+
+      if (nombre === termino || nomina === termino) {
+        handleSeleccionSugerencia(operador);
+      }
+    }
   }, [busqueda, operadores]);
 
   const nombreUsuario = useMemo(() => {
     if (!seleccionado) return "Operador";
-    return formatearNombre(seleccionado);
+    return sanitizarTexto(formatearNombre(seleccionado));
   }, [seleccionado]);
 
   const handleFechaInicioChange = (value) => {
@@ -189,24 +211,26 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
       return;
     }
 
-    if (!fechaInicio || !fechaFin) {
-      setError("Selecciona ambas fechas para generar el reporte.");
-      return;
-    }
+    if (tipoReporte === "general") {
+      if (!fechaInicio || !fechaFin) {
+        setError("Selecciona ambas fechas para generar el reporte.");
+        return;
+      }
 
-    if (new Date(fechaInicio) > new Date(fechaFin)) {
-      setError("La fecha de inicio no puede ser mayor a la fecha final.");
-      return;
-    }
+      if (new Date(fechaInicio) > new Date(fechaFin)) {
+        setError("La fecha de inicio no puede ser mayor a la fecha final.");
+        return;
+      }
 
-    if (new Date(fechaFin) < new Date(fechaInicio)) {
-      setError("La fecha final no puede ser menor a la fecha de inicio.");
-      return;
+      if (new Date(fechaFin) < new Date(fechaInicio)) {
+        setError("La fecha final no puede ser menor a la fecha de inicio.");
+        return;
+      }
     }
 
     if (tipoReporte === "puntual") {
       if (!evaluacionSeleccionadaId) {
-        setError("No hay evaluaciones disponibles para este operador en el rango seleccionado.");
+        setError("No hay evaluaciones disponibles para este operador.");
         return;
       }
 
@@ -227,15 +251,28 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
         (registro) => registro.id === evaluacionSeleccionadaId,
       );
 
+      const registrosSanitizados = (tipoReporte === "general" ? evaluacionesDisponibles : [documentoSeleccionado])
+        .filter(Boolean)
+        .map((registro) => ({
+          ...registro,
+          periodoEvaluacion: sanitizarTexto(registro?.periodoEvaluacion ?? ""),
+          fechaElaboracion: sanitizarTexto(registro?.fechaElaboracion ?? ""),
+          nombre: sanitizarTexto(registro?.nombre ?? ""),
+        }));
+
       await generateCompConductualReportPDF({
-        operador: seleccionado,
-        nombreOperador: nombreUsuario,
-        fechaInicio,
-        fechaFin,
-        registros: tipoReporte === "general" ? evaluacionesDisponibles : [documentoSeleccionado],
+        operador: {
+          ...seleccionado,
+          nombre: sanitizarTexto(seleccionado?.nombre ?? ""),
+          nomina: sanitizarTexto(seleccionado?.nomina ?? ""),
+        },
+        nombreOperador: sanitizarTexto(nombreUsuario),
+        fechaInicio: sanitizarTexto(fechaInicio),
+        fechaFin: sanitizarTexto(fechaFin),
+        registros: registrosSanitizados,
         tipoReporte,
-        documentoId: evaluacionSeleccionadaId,
-        documentoSeleccionado,
+        documentoId: sanitizarTexto(evaluacionSeleccionadaId),
+        documentoSeleccionado: registrosSanitizados[0] || null,
       });
     } catch (err) {
       console.error("Error generando PDF conductual:", err);
@@ -246,7 +283,7 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
   if (!isOpen) return null;
 
   return (
-    <div className="reporte-modal-backdrop" onClick={onClose}>
+    <div className="reporte-modal-backdrop">
       <div
         className="reporte-modal-card"
         role="dialog"
@@ -268,7 +305,7 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
 
         <div className="reporte-modal-body">
           <div className="reporte-modal-search-wrap">
-            <label htmlFor="reporte-operador-busqueda">Operador</label>
+            <label htmlFor="reporte-operador-busqueda">Usuario</label>
             <input
               className="nombre-input"
               id="reporte-operador-busqueda"
@@ -296,7 +333,7 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
           </div>
 
           <div className="reporte-modal-user">
-            <span className="reporte-modal-label">Operador seleccionado</span>
+            <span className="reporte-modal-label">Usuario seleccionado</span>
             <strong>{nombreUsuario}</strong>
           </div>
 
@@ -309,7 +346,10 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
                   name="tipoReporteConductual"
                   value="general"
                   checked={tipoReporte === "general"}
-                  onChange={() => setTipoReporte("general")}
+                  onChange={() => {
+                    setTipoReporte("general");
+                    setError("");
+                  }}
                 />
                 <span>General</span>
               </label>
@@ -320,36 +360,43 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
                   name="tipoReporteConductual"
                   value="puntual"
                   checked={tipoReporte === "puntual"}
-                  onChange={() => setTipoReporte("puntual")}
+                  onChange={() => {
+                    setTipoReporte("puntual");
+                    setFechaInicio("");
+                    setFechaFin("");
+                    setError("");
+                  }}
                 />
                 <span>Puntual</span>
               </label>
             </div>
           </div>
 
-          <div className="reporte-modal-date-row">
-            <div className="reporte-modal-field">
-              <label htmlFor="fecha-inicio">Fecha de inicio</label>
-              <input
-                id="fecha-inicio"
-                type="date"
-                max={getToday()}
-                value={fechaInicio}
-                onChange={(event) => handleFechaInicioChange(event.target.value)}
-              />
-            </div>
+          {tipoReporte === "general" && (
+            <div className="reporte-modal-date-row">
+              <div className="reporte-modal-field">
+                <label htmlFor="fecha-inicio">Fecha de inicio</label>
+                <input
+                  id="fecha-inicio"
+                  type="date"
+                  max={getToday()}
+                  value={fechaInicio}
+                  onChange={(event) => handleFechaInicioChange(event.target.value)}
+                />
+              </div>
 
-            <div className="reporte-modal-field">
-              <label htmlFor="fecha-fin">Fecha de fin</label>
-              <input
-                id="fecha-fin"
-                type="date"
-                max={getToday()}
-                value={fechaFin}
-                onChange={(event) => handleFechaFinChange(event.target.value)}
-              />
+              <div className="reporte-modal-field">
+                <label htmlFor="fecha-fin">Fecha de fin</label>
+                <input
+                  id="fecha-fin"
+                  type="date"
+                  max={getToday()}
+                  value={fechaFin}
+                  onChange={(event) => handleFechaFinChange(event.target.value)}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {tipoReporte === "puntual" && (
             <div className="reporte-modal-field reporte-modal-select-wrap">

@@ -105,15 +105,6 @@ export default function EncuestaResultados({ survey, onBack }) {
           ...doc.data(),
         }));
 
-        if (import.meta.env.DEV) {
-          console.log("Respuestas actualizadas:", nextResponses.map(r => ({
-            id: r.id,
-            certificado: r.certificado,
-            nominaUsuario: r.nominaUsuario,
-            puntuacionObtenida: r.puntuacionObtenida,
-          })));
-        }
-
         setResponses(nextResponses);
         setLoading(false);
       },
@@ -637,7 +628,7 @@ export default function EncuestaResultados({ survey, onBack }) {
           </h6>
 
           <span className="badge-title">
-            {filteredRows.length} de {rows.length} respuestas
+            AQUA Médica
           </span>
         </div>
       </div>

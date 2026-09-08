@@ -335,7 +335,7 @@ export const generateCompConductualReportPDF = async ({
       fillColor: [245, 245, 245],
     },
     columnStyles: {
-      0: { cellWidth: 60, fontStyle: "bold" },
+      0: { cellWidth: 62, fontStyle: "bold" },
       1: { cellWidth: 120 },
     },
   });
@@ -347,7 +347,7 @@ export const generateCompConductualReportPDF = async ({
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text(`Calificación final: ${calificacionFinal}%`, 14, doc.lastAutoTable.finalY + 14);
+    doc.text(`Calificación final: ${calificacionFinal}`, 14, doc.lastAutoTable.finalY + 14);
 
     const filasDetalle = detalle.length
       ? detalle.map((item) => [
@@ -378,15 +378,15 @@ export const generateCompConductualReportPDF = async ({
         fillColor: [245, 245, 245],
       },
       columnStyles: {
-        0: { cellWidth: 100 },
+        0: { cellWidth: 110 },
         1: { cellWidth: 42 },
-        2: { cellWidth: 30 },
+        2: { cellWidth: 30, justify: "center" },
       },
     });
 
     const comentarios = [
       ["Comentario del evaluador", registro?.comentarioGeneral || "Sin comentario"],
-      ["Comentario adicional", registro?.comentarioAdicional || "Sin comentario"],
+      ["Comentario del evaluado", registro?.comentarioAdicional || "Sin comentario"],
     ];
 
     autoTable(doc, {
@@ -406,8 +406,8 @@ export const generateCompConductualReportPDF = async ({
         fontStyle: "bold",
       },
       columnStyles: {
-        0: { cellWidth: 46, fontStyle: "bold" },
-        1: { cellWidth: 118 },
+        0: { cellWidth: 60, fontStyle: "bold" },
+        1: { cellWidth: 122 },
       },
     });
   } else {

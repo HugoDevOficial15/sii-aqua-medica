@@ -462,16 +462,6 @@ export default function Personal() {
       })
       .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
 
-    if (import.meta.env.DEV && usuario.nombre === "HUGO ARMANDO RODRIGUEZ VILLALBA") {
-      console.log("DEBUG - getUserRecords para HUGO ARMANDO:", {
-        totalCapacitaciones: allRecords.capacitaciones?.length,
-        filtradas: capacitaciones.length,
-        usuarioNomina: usuario.nomina,
-        usuarioId: usuario.id,
-        capacitacionesRaw: allRecords.capacitaciones?.slice(0, 3),
-      });
-    }
-
     return { reconocimientos, incidencias, incapacidades, historialesMedicos, capacitaciones };
   };
 
