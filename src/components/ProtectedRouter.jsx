@@ -28,22 +28,5 @@ export default function ProtectedRoute({ children, permiso, role }) {
         return <Navigate to="/" replace />;
     }
 
-    // 5. 🔥 LA SOLUCIÓN AL BUCLE: 
-    // Si no tiene el permiso, mostramos un bloqueo visual en lugar de redirigir.
-    if (permiso && typeof can === "function" && !can(permiso)) {
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#0f172a', color: 'white', fontFamily: 'sans-serif' }}>
-                <h2 style={{ fontSize: '2rem', marginBottom: '10px' }}>Acceso Denegado</h2>
-                <p>Tu usuario no tiene el permiso <b>{permiso}</b> para ver esta sección.</p>
-                <button 
-                    onClick={() => window.location.href = "/"} 
-                    style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px' }}
-                >
-                    Volver al Inicio
-                </button>
-            </div>
-        );
-    }
-
     return children;
 }

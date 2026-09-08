@@ -15,10 +15,7 @@ import {
 import CountUp from "react-countup";
 import { usePreferences } from "../../hooks/usePreferences";
 
-const chartModulesPromise = Promise.all([
-    import("recharts"),
-    import("framer-motion")
-]);
+const chartModulesPromise = import("recharts");
 
 
 export default function Dashboard() {
@@ -30,13 +27,10 @@ export default function Dashboard() {
     useEffect(() => {
         let active = true;
 
-        chartModulesPromise.then(([recharts, motionLib]) => {
+        chartModulesPromise.then((recharts) => {
             if (!active) return;
 
-            setChartLib({
-                ...recharts,
-                motion: motionLib.motion,
-            });
+            setChartLib(recharts);
         });
 
         return () => {
@@ -52,8 +46,6 @@ export default function Dashboard() {
         Tooltip,
         ResponsiveContainer,
     } = chartLib || {};
-
-    const motion = chartLib?.motion;
 
     const chartTextColor = isDark ? "#F1F5F9" : "#0F172A";
     const chartMutedColor = isDark ? "#94A3B8" : "#64748B";
@@ -320,14 +312,10 @@ export default function Dashboard() {
 
                     {leftCards.map((card, index) => (
 
-                        <motion.div
+                        <div
                             key={index}
                             className="metric-card"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{
-                                delay: index * 0.05
-                            }}
+                            style={{ opacity: 1, transform: "translateY(0)" }}
                         >
 
                             <div
@@ -362,17 +350,15 @@ export default function Dashboard() {
                                 }}
                             />
 
-                        </motion.div>
+                        </div>
 
                     ))}
 
                 </div>
 
-                <motion.div
+                <div
                     className="chart-main-card"
-                    initial={false}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.15 }}
+                    style={{ opacity: 1 }}
                 >
 
                     <div className="chart-title">
@@ -498,20 +484,16 @@ export default function Dashboard() {
 
                     </div>
 
-                </motion.div>
+                </div>
 
                 <div className="right-column">
 
                     {rightCards.map((card, index) => (
 
-                        <motion.div
+                        <div
                             key={index}
                             className="metric-card"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{
-                                delay: index * 0.05
-                            }}
+                            style={{ opacity: 1, transform: "translateY(0)" }}
                         >
 
                             <div
@@ -546,7 +528,7 @@ export default function Dashboard() {
                                 }}
                             />
 
-                        </motion.div>
+                        </div>
 
                     ))}
 
@@ -554,10 +536,9 @@ export default function Dashboard() {
 
             </div>
 
-            <motion.div
+            <div
                 className="bottom-chart"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                style={{ opacity: 1 }}
             >
 
                 <div className="chart-title">
@@ -648,7 +629,7 @@ export default function Dashboard() {
                         </div>
                     ))}
                 </div>
-            </motion.div>
+            </div>
 
 
             <style>{`

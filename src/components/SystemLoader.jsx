@@ -5,7 +5,7 @@ export default function SystemLoader() {
     return (
 
         // Start Loader
-        <div className="system-loader" style={{ background: "red" }}>
+        <div className="system-loader">
 
             <div className="loader-box">
 
@@ -14,7 +14,7 @@ export default function SystemLoader() {
                 <div className="loader-spinner"></div>
 
                 <p className="loader-text">
-                    Cargando Información...
+                    Preparando la aplicación...
                 </p>
 
 

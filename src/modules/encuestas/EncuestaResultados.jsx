@@ -495,6 +495,19 @@ export default function EncuestaResultados({ survey, onBack }) {
   );
 
   const handleExportPdf = () => {
+    const busqueda = filters.busqueda.trim();
+    const coincidenciasBusqueda = busqueda
+      ? filteredRows.filter((row) => {
+          const texto = `${row.nomina ?? ""} ${row.nombre ?? ""}`.toLowerCase();
+          return texto.includes(busqueda.toLowerCase());
+        })
+      : [];
+
+    if (coincidenciasBusqueda.length === 1 && !coincidenciasBusqueda[0].expiroSinResponder) {
+      handleDownloadUserResponsePDF(coincidenciasBusqueda[0]);
+      return;
+    }
+
     const rowsByNomina = new Map(
       filteredRows.map((row) => [String(row.nomina ?? "").trim(), row]),
     );
@@ -538,6 +551,9 @@ export default function EncuestaResultados({ survey, onBack }) {
         survey,
         responses: userResponse.respuestas || {},
         userName: row.nombre,
+        nomina: row.nomina,
+        area: row.area,
+        puesto: row.puesto,
         calificacion: userResponse.puntuacionObtenida || userResponse.calificacion || 0,
       });
     } catch (error) {

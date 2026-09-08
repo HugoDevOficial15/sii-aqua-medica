@@ -201,6 +201,7 @@ export const deleteSurvey = async (id) => {
     const ref = doc(db, "encuestas", id);
 
     await deleteDoc(ref);
+    clearCachedData(CACHE_KEY);
     clearSurveyCaches();
 
 }

@@ -23,7 +23,7 @@ export default function RackGrid({
                 ))
             }
 
-            <style jsx>{`
+            <style >{`
 
                 .rack-grid {
 

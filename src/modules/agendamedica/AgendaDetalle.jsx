@@ -356,7 +356,7 @@ export default function AgendaDetalle({ agenda, onBack }) {
             )}
 
             {/*  ESTILOS PRO (Con la corrección de JSX) */}
-            <style jsx="true">{`
+            <style >{`
 
             .custom-users-header input {
                 border-radius: 10px;

@@ -426,7 +426,7 @@ export default function RackMovimientos({
                 )
             }
 
-            <style jsx>{`
+            <style>{`
 
 
 

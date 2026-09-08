@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import NewsCard from "./news/NewsCard";
 import { getCurrentUser } from "../../utils/session";
@@ -11,6 +11,8 @@ export default function OperatorNews({ onNavigate, onBack }) {
     const [searchTerm, setSearchTerm] = useState("");
 
     const loadNews = async () => {
+        setLoading(true);
+
         try {
             const q = query(
                 collection(db, "noticias"),
@@ -63,7 +65,73 @@ export default function OperatorNews({ onNavigate, onBack }) {
     };
 
     useEffect(() => {
-        loadNews();
+        let isMounted = true;
+
+        const refreshNews = async () => {
+            setLoading(true);
+
+            try {
+                const q = query(
+                    collection(db, "noticias"),
+                    orderBy("fechaCreacion", "desc"),
+                    limit(30)
+                );
+                const snapshot = await getDocs(q);
+
+                const getHoy = () => {
+                    const d = new Date();
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
+                const fechaHoy = getHoy();
+                const usuarioActual = getCurrentUser();
+
+                const fetchedNews = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        title: data.titulo || "Sin título",
+                        summary: data.contenido || "",
+                        date: data.fechaLimite ? `Vigente hasta: ${data.fechaLimite}` : "Reciente",
+                        image: data.imagen ? data.imagen : "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800",
+                        ...data
+                    };
+                });
+
+                let noticiasVigentes = fetchedNews.filter((noticia) => {
+                    if (!noticia.fechaLimite) return true;
+                    return noticia.fechaLimite >= fechaHoy;
+                });
+
+                if (usuarioActual?.area) {
+                    noticiasVigentes = noticiasVigentes.filter((noticia) => {
+                        return noticia.areaDestino === "Todas" || noticia.areaDestino === usuarioActual.area;
+                    });
+                }
+
+                if (isMounted) {
+                    setNews(noticiasVigentes);
+                }
+            } catch (error) {
+                console.error("Error al cargar noticias:", error);
+                if (isMounted) {
+                    setNews([]);
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        refreshNews();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     // Filtrar por buscador
@@ -118,7 +186,7 @@ export default function OperatorNews({ onNavigate, onBack }) {
                 </>
             ) : (
                 <div className="text-center p-4 text-muted bg-white rounded-4 shadow-sm my-4">
-                    No hay noticias publicadas en la base de datos.
+                    No hay noticias publicadas.
                 </div>
             )}
         </div>

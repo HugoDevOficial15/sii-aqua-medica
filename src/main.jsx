@@ -71,7 +71,7 @@ const preloadCriticalModules = async () => {
   }
 
   window.__siiAquaCriticalModulesLoaded = true;
-
+//PRECARGA DE MODULOS INDISPENSABLES
   const imports = [
     () => import('./pages/admin/Dashboard'),
     () => import('./pages/admin/Users'),
@@ -128,6 +128,7 @@ const registerServiceWorker = () => {
     return;
   }
 
+  //LINEA PARA FUNCTIONS, QUITAR AL FINAL
   const isViteDevServer = import.meta.env.DEV || window.location.port === '5173';
   const allowedHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
   const isAllowedHost = (allowedHosts.includes(window.location.hostname) && !isViteDevServer) || window.location.protocol === 'https:';

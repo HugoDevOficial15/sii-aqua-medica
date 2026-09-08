@@ -716,7 +716,7 @@ export default function ListaServiciosPage() {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         /* PAGINA */
 
         .card {

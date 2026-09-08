@@ -22,7 +22,7 @@ export default function AnniversaryList({ data }) {
 
             </div>
 
-            <style jsx>{`
+            <style>{`
 
                 .section-title{
                     display:flex;

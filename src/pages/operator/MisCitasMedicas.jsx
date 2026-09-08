@@ -242,7 +242,7 @@ export default function MisCitasMedicas() {
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
                 .custom-btn-glow {
                     border-radius: 10px;
                     font-weight: 600;

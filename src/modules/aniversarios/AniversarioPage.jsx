@@ -93,7 +93,7 @@ export default function AniversarioPage() {
 
             </div>
 
-            <style jsx>{`
+            <style>{`
 
                 .page{
                     min-height:100vh;

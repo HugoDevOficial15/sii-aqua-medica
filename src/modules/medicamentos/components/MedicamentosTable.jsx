@@ -124,7 +124,7 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
         </table>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .custom-users-header input,
         .custom-users-header select {
           border-radius: 10px;

@@ -36,7 +36,7 @@ export default function FiltersMateriales({ filters, setFilters }) {
         </select>
       </div>
 
-      <style jsx>{`
+      <style >{`
         .contenedor {
           display: flex;
           justify-content: flex-end;

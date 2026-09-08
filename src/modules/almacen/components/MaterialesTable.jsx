@@ -113,7 +113,7 @@ export default function MaterialesTable({ data, onEdit }) {
 
         </table>
 
-        <style jsx>{`
+        <style >{`
         
         /* PAGINA */
 

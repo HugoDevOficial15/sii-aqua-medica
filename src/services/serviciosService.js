@@ -9,9 +9,19 @@ import {
     updateDoc,
     deleteDoc
 } from "firebase/firestore";
-import { readSessionCache, writeSessionCache, clearCachedData } from "../utils/cacheStore";
+import {
+    readSessionCache,
+    writeSessionCache,
+    clearCachedData,
+    clearCachedByPrefix,
+} from "../utils/cacheStore";
 
 const SERVICIOS_CACHE_KEY = "sii-aqua-servicios-cache";
+
+const invalidateServiciosCaches = () => {
+    clearCachedByPrefix(`${SERVICIOS_CACHE_KEY}:`);
+    clearCachedByPrefix("sii-aqua-servicios-programados-cache:");
+};
 
 // 🔹 Obtener servicios por área + mes + año (NO TOCAR)
 export const getServicios = async (areaId, anio, mes) => {
@@ -80,7 +90,7 @@ export const crearServicio = async (data) => {
 export const actualizarServicio = async (id, data) => {
     const ref = doc(db, "servicios_programados", id);
     const result = await updateDoc(ref, data);
-    clearCachedData(SERVICIOS_CACHE_KEY);
+    invalidateServiciosCaches();
     return result;
 };
 

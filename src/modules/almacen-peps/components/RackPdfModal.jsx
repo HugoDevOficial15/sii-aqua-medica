@@ -376,7 +376,7 @@ export default function RackPdfModal({
 
             </div>
 
-            <style jsx>{`
+            <style >{`
 
             .pdf-backdrop {
 

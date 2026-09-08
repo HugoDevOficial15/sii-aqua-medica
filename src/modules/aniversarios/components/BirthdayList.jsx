@@ -21,7 +21,7 @@ export default function BirthdayList({ data }) {
 
             </div>
 
-            <style jsx>{`
+            <style>{`
 
                 .section-title{
                     display:flex;

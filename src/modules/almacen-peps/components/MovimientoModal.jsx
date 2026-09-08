@@ -672,7 +672,7 @@ export default function MovimientoModal({
 
             </div>
 
-            <style jsx>{`
+            <style>{`
 
                 .movement-backdrop {
 

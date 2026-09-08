@@ -121,7 +121,7 @@ export default function ExpedienteClinico({ onBack }) {
                 <MisCitasMedicas />
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .custom-back-btn {
                     background: var(--operator-card, #1e293b);
                     border: none;

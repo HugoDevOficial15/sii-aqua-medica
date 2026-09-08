@@ -104,7 +104,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
             </div>
 
             {/* 🎨 ESTILOS */}
-            <style jsx>{`
+            <style>{`
 
             .custom-modal-backdrop {
                 position: fixed;

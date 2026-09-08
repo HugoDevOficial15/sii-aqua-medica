@@ -5,9 +5,14 @@ import {
     where, deleteDoc, doc
 } from "firebase/firestore";
 import { db } from "../config/firebase";
-import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
+import { readCachedData, writeCachedData, clearCachedByPrefix } from "../utils/cacheStore";
 
 const CACHE_KEY = "sii-aqua-servicios-programados-cache";
+
+const invalidateProgramadosCache = () => {
+    clearCachedByPrefix(`${CACHE_KEY}:`);
+    clearCachedByPrefix("sii-aqua-servicios-cache:");
+};
 
 export const getServiciosProgramadosByMes = async (anio, mes) => {
     const cacheKey = `${CACHE_KEY}:${anio}:${mes}`;
@@ -44,6 +49,6 @@ export const eliminarServicio = async (id) => {
     await deleteDoc(
         doc(db, "servicios_programados", id)
     );
-    clearCachedData(CACHE_KEY);
+    invalidateProgramadosCache();
 
 };

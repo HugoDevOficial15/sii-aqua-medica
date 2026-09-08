@@ -111,7 +111,7 @@ export default function MedicamentosPage() {
             )}
 
 
-            <style jsx>{`
+            <style>{`
 
             /* CONTENEDOR HEADER */
             .contenedor-header {

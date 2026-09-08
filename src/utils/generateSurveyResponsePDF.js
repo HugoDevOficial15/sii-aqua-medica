@@ -26,6 +26,9 @@ export const generateSurveyResponsePDF = async ({
   responses = {},
   userName = "Usuario",
   calificacion = 0,
+  nomina = "",
+  area = "",
+  puesto = "",
 }) => {
   const { default: jsPDF } = await import("jspdf");
   const autoTableModule = await import("jspdf-autotable");
@@ -66,24 +69,23 @@ export const generateSurveyResponsePDF = async ({
   doc.setFontSize(11);
   doc.text(survey?.titulo || "Sin título", 105, 38, { align: "center" });
 
-  // Línea divisora
-  doc.setDrawColor(18, 109, 182);
-  doc.setLineWidth(0.5);
-  doc.line(14, 40, 196, 40);
-
   // Info del usuario
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(75, 85, 99);
+
   doc.text(`Usuario: ${userName}`, 14, 46);
+  doc.text(`Nómina: ${nomina || "Sin nómina"}`, 110, 46);
   doc.text(`Fecha: ${fechaFormateada}`, 14, 51);
-  doc.text(`Calificación: ${calificacion}/100`, 14, 56);
+  doc.text(`Área: ${area || "Sin área"}`, 110, 51);
+  doc.text(`Puesto: ${puesto || "Sin puesto"}`, 14, 56);
+  doc.text(`Calificación: ${calificacion}/100`, 110, 56);
 
   doc.setLineWidth(0.3);
-  doc.line(14, 58, 196, 58);
+  doc.line(14, 60, 196, 60);
 
   // Preguntas y respuestas
-  let yPosition = 63;
+  let yPosition = 66;
   const pageHeight = doc.internal.pageSize.getHeight();
   const maxY = pageHeight - 12;
 
@@ -134,13 +136,13 @@ export const generateSurveyResponsePDF = async ({
 
     const splitAnswer = doc.splitTextToSize(`Respuesta: ${answerText}`, 170);
     doc.text(splitAnswer, 14, yPosition);
-    yPosition += splitAnswer.length * 4 + 2;
+    yPosition += splitAnswer.length * 2 + 1;
 
     // Mostrar respuesta correcta SOLO si fue incorrecta
     if (!esCorrecta && pregunta.respuestaCorrecta !== null && pregunta.respuestaCorrecta !== undefined && pregunta.respuestaCorrecta !== "") {
       doc.setFont("helvetica", "italic");
       doc.setFontSize(8);
-      doc.setTextColor(34, 197, 94);
+      doc.setTextColor(0, 0, 0);
 
       let correctText = "Correcta: ";
 
@@ -157,13 +159,13 @@ export const generateSurveyResponsePDF = async ({
 
       const splitCorrect = doc.splitTextToSize(correctText, 170);
       doc.text(splitCorrect, 14, yPosition);
-      yPosition += splitCorrect.length * 4 + 4;
+      yPosition += splitCorrect.length * 2 + 4;
     }
 
     doc.setTextColor(220, 220, 220);
     doc.setLineWidth(0.2);
     doc.line(14, yPosition, 196, yPosition);
-    yPosition += 3;
+    yPosition += 7;
   });
 
   // Pie de página con números

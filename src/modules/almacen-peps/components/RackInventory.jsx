@@ -80,7 +80,7 @@ export default function RackInventory({ rack }) {
                     Sin material en rack
                 </div>
 
-                <style jsx>{`
+                <style>{`
                     .rack-section-title {
                         font-weight: 700;
                         margin-bottom: 15px;
@@ -262,7 +262,7 @@ export default function RackInventory({ rack }) {
                 
             </div>
 
-            <style jsx>{`
+            <style>{`
 
                 .rack-section-title {
                     font-weight: 700;

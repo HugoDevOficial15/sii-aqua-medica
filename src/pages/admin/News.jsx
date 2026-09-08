@@ -5,6 +5,7 @@ import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa";
 import { AREAS } from "../../catalogs/areas";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
 import { dismissNotification } from "../../utils/notificationPersistence";
+import { createNotification } from "../../utils/createNotification";
 import { uploadNewsFile, uploadNewsImage, deleteNewsFile } from "../../services/newsStorageService";
 
 // 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
@@ -223,8 +224,10 @@ export default function News() {
           estado: "Activa"
         });
 
-        // Obtener solo usuarios operadores y, si aplica, del área destino
-        const baseUsersQuery = areaDestino === "Todas"
+        // Obtener usuarios operadores del área destino o todos si la noticia es general
+        const isGeneralNews = areaDestino === "Todas";
+
+        const baseUsersQuery = isGeneralNews
           ? query(collection(db, "users"), where("rol", "==", "operador"))
           : query(
               collection(db, "users"),
@@ -235,7 +238,7 @@ export default function News() {
         let usersSnapshot = await getDocs(baseUsersQuery);
 
         if (usersSnapshot.docs.length === 0) {
-          const fallbackQuery = areaDestino === "Todas"
+          const fallbackQuery = isGeneralNews
             ? query(collection(db, "usuarios"), where("rol", "==", "operador"))
             : query(
                 collection(db, "usuarios"),
@@ -245,27 +248,33 @@ export default function News() {
           usersSnapshot = await getDocs(fallbackQuery);
         }
 
-        // Usar batch para crear todas las notificaciones de una vez
-        const batch = writeBatch(db);
-        const notifCollection = collection(db, "notificaciones");
-
-        usersSnapshot.docs.forEach(userDoc => {
-          const notifRef = doc(notifCollection);
-          batch.set(notifRef, {
-            IdUsuario: userDoc.id,
-            Titulo: "📰 Nueva noticia",
-            Mensaje: `Nueva noticia: "${titulo}"`,
-            fechaCreacion: serverTimestamp(),
-            Destino: "/news",
-            Accion: "nueva_noticia",
-            tipo: "news",
-            noticiaId: docRef.id,
-            enviado: false,
-            fechaEnviado: null
-          });
+        const usuariosDestino = usersSnapshot.docs.filter((userDoc) => {
+          const data = userDoc.data() || {};
+          return data.rol === "operador" || data.rol === "operator";
         });
 
-        await batch.commit();
+        const notifications = usuariosDestino.map((userDoc) => ({
+          IdUsuario: userDoc.id,
+          Titulo: "📰 Nueva noticia",
+          Mensaje: `Nueva noticia: "${titulo}"`,
+          Destino: "/news",
+          Accion: "nueva_noticia",
+          fechaCreacion: serverTimestamp(),
+          enviado: false,
+          fechaEnviado: null,
+          tipo: "news",
+          noticiaId: docRef.id,
+          extra: {
+            tipo: "news",
+            noticiaId: docRef.id,
+            areaDestino: areaDestino || "Todas",
+            titulo
+          }
+        }));
+
+        for (const notification of notifications) {
+          await createNotification(notification);
+        }
       }
 
       notifySuccess(

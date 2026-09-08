@@ -5,7 +5,7 @@ import { LOADER_CACHE_KEY, readMemoryCache, writeMemoryCache } from "../utils/ca
 let hasRenderedLoaderOnce = false;
 
 export default function Loader({ text }) {
-    const resolvedText = text || "Cargando información...";
+    const resolvedText = text || "Prepaando la aplicación...";
     const cachedLoader = readMemoryCache(LOADER_CACHE_KEY);
 
     const loaderNode = useMemo(

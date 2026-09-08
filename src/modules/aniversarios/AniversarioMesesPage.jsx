@@ -98,7 +98,7 @@ export default function AniversarioMesesPage() {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style >{`
                 /* Se eliminó la clase .agenda-page que forzaba el fondo blanco/gris */
 
                 .agenda-grid {

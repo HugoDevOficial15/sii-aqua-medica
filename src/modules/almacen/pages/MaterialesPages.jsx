@@ -88,7 +88,7 @@ export default function MaterialesPage() {
         />
       )}
 
-      <style jsx>{`
+      <style >{`
         .btn-primary {
           height: 50px;
           padding: 0 20px;

@@ -107,7 +107,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
 
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .custom-modal-backdrop {
                     position: fixed;
                     inset: 0;

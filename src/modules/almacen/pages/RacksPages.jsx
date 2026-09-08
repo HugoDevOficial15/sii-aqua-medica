@@ -350,7 +350,7 @@ export default function RacksPages() {
         />
       )}
 
-      <style jsx>{`
+      <style>{`
         /* PAGINA */
 
         .card {

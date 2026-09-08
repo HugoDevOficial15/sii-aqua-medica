@@ -652,7 +652,7 @@ export default function RackTransferModal({
 
             </div>
 
-            <style jsx>{`
+            <style>{`
 
                 .transfer-backdrop {
 

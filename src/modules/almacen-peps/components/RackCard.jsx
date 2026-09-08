@@ -301,7 +301,7 @@ export default function RackCard({
 
             </div>
 
-            <style jsx>{`
+            <style>{`
 
                 .rack-card {
 

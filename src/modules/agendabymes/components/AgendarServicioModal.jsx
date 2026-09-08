@@ -266,7 +266,7 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
             </div>
 
             {/* 🎨 ESTILOS */}
-            <style jsx>{`
+            <style>{`
 
             .custom-modal-backdrop {
                 position: fixed;

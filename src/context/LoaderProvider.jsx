@@ -14,7 +14,7 @@ export function LoaderProvider({ children }) {
         }
     };
 
-    const showLoader = useCallback((duration = 350) => {
+    const showLoader = useCallback((duration = 2000) => {
         clearLoaderTimeout();
         setLoading(true);
 

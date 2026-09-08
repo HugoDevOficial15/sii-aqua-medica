@@ -7,15 +7,33 @@ const SURVEYS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 export const clearSurveyCaches = () => {
     if (typeof window === "undefined") return;
 
-    const keysToRemove = [];
+    const keysToRemove = new Set();
+
     for (let i = 0; i < localStorage.length; i += 1) {
         const key = localStorage.key(i);
-        if (key?.startsWith("siiAquaEncuestas:")) {
-            keysToRemove.push(key);
+        if (!key) continue;
+
+        if (
+            key === "sii-aqua-surveys-cache" ||
+            key.startsWith("session-cache:sii-aqua-surveys-cache") ||
+            key.startsWith("siiAquaEncuestas:")
+        ) {
+            keysToRemove.add(key);
         }
     }
 
     keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+    try {
+        const memoryKeys = ["sii-aqua-surveys-cache", "session-cache:sii-aqua-surveys-cache"];
+        memoryKeys.forEach((key) => {
+            if (globalThis?.window && globalThis.window.__SURVEY_CACHE__ && globalThis.window.__SURVEY_CACHE__[key]) {
+                delete globalThis.window.__SURVEY_CACHE__[key];
+            }
+        });
+    } catch (error) {
+        console.warn("No se pudo limpiar memoria de caché de encuestas:", error);
+    }
 };
 
 const getSurveyCacheKey = (usuario) => {

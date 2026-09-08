@@ -152,7 +152,7 @@ export default function ResumenServiciosModal({
 
             </div>
 
-            <style jsx>{`
+            <style>{`
 
                 .custom-modal-backdrop {
                     position: fixed;

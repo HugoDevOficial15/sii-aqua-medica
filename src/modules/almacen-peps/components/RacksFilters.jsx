@@ -79,7 +79,7 @@ export default function RacksFilters({ filters, setFilters }) {
 
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .rack-filters-container {
                     display: flex;
                     align-items: flex-end;

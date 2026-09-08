@@ -65,7 +65,7 @@ export default function CelebrationCard({ user, type }) {
 
             </div>
 
-            <style jsx>{`
+            <style>{`
 
                 .celebration-card {
                     position: relative;

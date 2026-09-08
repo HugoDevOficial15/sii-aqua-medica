@@ -561,7 +561,7 @@ export default function RackSalidaModal({
 
             </div>
 
-            <style jsx>{`
+            <style>{`
 
             .salida-backdrop {
 

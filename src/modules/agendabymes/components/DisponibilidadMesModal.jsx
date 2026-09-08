@@ -184,7 +184,7 @@ export default function DisponibilidadMesModal({
 
 
 
-            <style jsx>{`
+            <style>{`
 
 .modal-backdrop {
     position: fixed;

@@ -148,7 +148,7 @@ export function AuthProvider({ children }) {
         clearSessionCaches();
         setUser(usuarioCompleto);
         setPermisos(permisosActuales);
-        writeSessionCache(USER_CACHE_KEY, usuarioCompleto);
+        writeSessionCache(USER_CACHE_KEY, usuarioCompleto); 
         writeSessionCache(PERMISOS_CACHE_KEY, permisosActuales);
         setLoading(false);
     }, []);

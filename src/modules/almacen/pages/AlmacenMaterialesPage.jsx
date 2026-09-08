@@ -477,7 +477,7 @@ export default function AlmacenMaterialesPage() {
           </table>
         </div>
       </div>
-      <style jsx>{`
+      <style >{`
 
 
 /* PAGINA */

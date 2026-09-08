@@ -147,7 +147,7 @@ export default function NotasPage() {
                 data={notaEditar}
             />
 
-            <style jsx>{`
+            <style>{`
 
                 .contenedor-header {
                     display: flex;

@@ -598,7 +598,7 @@ export default function SoporteAdmin() {
               </button>
             </div>
           </div>
-                  <style jsx>{`
+        <style>{`
           .contenedor-header {
             width: 100%;
             align-items: flex-end;
