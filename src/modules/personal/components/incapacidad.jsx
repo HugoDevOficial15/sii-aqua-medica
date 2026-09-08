@@ -6,6 +6,7 @@ import {
   getUsers,
   updateUser,
 } from "../../../services/usersService";
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { notifyError } from "../../../utils/notify";
 
 export const isWoman = (usuario) => {
@@ -374,18 +375,19 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
     setIsSubmitting(true);
 
     try {
-      const tipo = isWoman(usuario) ? form.tipo : "incapacidad";
+      const tipo = sanitizeTextTrim(isWoman(usuario) ? form.tipo : "incapacidad") || "incapacidad";
+      const nota = sanitizeText(form.nota);
 
       await createIncapacidad({
         userId: usuario.id,
-        nomina: usuario.nomina,
-        nombre: usuario.nombre,
-        genero: usuario.Genero || usuario.genero || "",
-        area: usuario.area || "",
+        nomina: sanitizeTextTrim(usuario.nomina),
+        nombre: sanitizeTextTrim(usuario.nombre),
+        genero: sanitizeTextTrim(usuario.Genero || usuario.genero || ""),
+        area: sanitizeTextTrim(usuario.area || ""),
         tipo,
         fechaInicio: form.fechaInicio,
         fechaFin: form.fechaFin,
-        nota: form.nota,
+        nota,
       });
 
       await refreshUsersWithIncapacidades(setUsuarios);
@@ -432,7 +434,7 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
               <label className="personal-field-label">Tipo</label>
               <select
                 value={form.tipo}
-                onChange={(event) => setForm((prev) => ({ ...prev, tipo: event.target.value }))}
+                onChange={(event) => setForm((prev) => ({ ...prev, tipo: sanitizeText(event.target.value) }))}
                 className="personal-input"
               >
                 <option value="Incapacidad">Incapacidad</option>
@@ -471,7 +473,7 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
             <textarea
               rows="4"
               value={form.nota}
-              onChange={(event) => setForm((prev) => ({ ...prev, nota: event.target.value }))}
+              onChange={(event) => setForm((prev) => ({ ...prev, nota: sanitizeText(event.target.value) }))}
               className="personal-input personal-textarea"
               placeholder="Comentarios o detalles adicionales..."
             />

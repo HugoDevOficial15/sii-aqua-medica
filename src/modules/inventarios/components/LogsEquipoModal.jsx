@@ -23,6 +23,7 @@ import {
     notifySuccess,
     notifyError
 } from "../../../utils/notify";
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 
 
 export default function LogsEquipoModal({
@@ -114,7 +115,9 @@ export default function LogsEquipoModal({
 
     const handleCreateLog = async () => {
 
-        if (!observacion.trim()) {
+        const observacionSanitizada = sanitizeText(observacion).trim();
+
+        if (!observacionSanitizada) {
             return notifyError(
                 "Escribe una observación",
                 "Campo requerido"
@@ -127,9 +130,9 @@ export default function LogsEquipoModal({
                 equipo.id,
                 {
                     tipo: "observacion",
-                    observacion,
-                    realizadoPor: user.nombre,
-                    equipoCodigo: equipo.codigo
+                    observacion: observacionSanitizada,
+                    realizadoPor: sanitizeText(user?.nombre || "Sistema"),
+                    equipoCodigo: sanitizeTextTrim(equipo.codigo)
                 }
             );
 
@@ -238,7 +241,7 @@ export default function LogsEquipoModal({
                     <textarea
                         value={observacion}
                         onChange={(e) =>
-                            setObservacion(e.target.value)
+                            setObservacion(sanitizeText(e.target.value))
                         }
                         placeholder="Agregar observación..."
                         style={{ ...styles.textarea, ...dynamicStyles.textarea }}
@@ -296,7 +299,7 @@ export default function LogsEquipoModal({
                                     </div>
 
                                     <div style={styles.observacion}>
-                                        {log.observacion}
+                                        {sanitizeText(log.observacion || "")}
                                     </div>
 
                                     <div style={{ ...styles.user, ...dynamicStyles.user }}>

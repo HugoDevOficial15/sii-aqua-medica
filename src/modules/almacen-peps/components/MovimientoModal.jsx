@@ -60,7 +60,8 @@ export default function MovimientoModal({
     const {
         register,
         handleSubmit,
-        watch
+        watch,
+        setValue
     } = useForm();
 
     const [loading, setLoading] =
@@ -170,6 +171,12 @@ export default function MovimientoModal({
     ) => {
 
         try {
+            const formSanitized = {
+                ...form,
+                lote: sanitizeTextTrim(form.lote || ""),
+                numeroAnalisis: sanitizeTextTrim(form.numeroAnalisis || "")
+            };
+
             const rackBloqueado =
                 rack?.estatus === "mantenimiento" ||
                 rack?.estatus === "baja" ||
@@ -184,13 +191,13 @@ export default function MovimientoModal({
             }
 
             if (
-                !form.tipo ||
-                !form.itemId ||
-                !form.fecha ||
-                !form.fechaCaducidad ||
-                !form.lote ||
-                !form.numeroAnalisis ||
-                !form.cantidad  
+                !formSanitized.tipo ||
+                !formSanitized.itemId ||
+                !formSanitized.fecha ||
+                !formSanitized.fechaCaducidad ||
+                !formSanitized.lote ||
+                !formSanitized.numeroAnalisis ||
+                !formSanitized.cantidad  
             ) {
                 notifyError(
                     "Error",
@@ -199,9 +206,9 @@ export default function MovimientoModal({
                 return;
             }
 
-            if (!form.cantidad ||
-                Number.isNaN(Number(form.cantidad)) ||
-                Number(form.cantidad) <= 0) {
+            if (!formSanitized.cantidad ||
+                Number.isNaN(Number(formSanitized.cantidad)) ||
+                Number(formSanitized.cantidad) <= 0) {
                 notifyError(
                     "Error",
                     "La cantidad debe ser un número mayor a 0"
@@ -209,10 +216,10 @@ export default function MovimientoModal({
                 return;
             }
 
-            const fechaEntrada = new Date(form.fecha);
-            const fechaCaducidad = new Date(form.fechaCaducidad);
+            const fechaEntrada = new Date(formSanitized.fecha);
+            const fechaCaducidad = new Date(formSanitized.fechaCaducidad);
 
-            if (form.fecha < fechaActual) {
+            if (formSanitized.fecha < fechaActual) {
                 notifyError(
                     "Error",
                     "La fecha de entrada no puede ser anterior al día de hoy"
@@ -245,7 +252,7 @@ export default function MovimientoModal({
                 items.find(
                     i =>
                         i.id ===
-                        form.itemId
+                        formSanitized.itemId
                 );
 
             /*
@@ -278,7 +285,7 @@ export default function MovimientoModal({
                 return;
             }
 
-            const porcentajeMovimiento = calcularPorcentajeTipo(form.tipo, form.cantidad);
+            const porcentajeMovimiento = calcularPorcentajeTipo(formSanitized.tipo, formSanitized.cantidad);
             const porcentajeEspacio = Math.min(
                 100,
                 Number(rack?.espacioOcupado || 0) + porcentajeMovimiento
@@ -292,40 +299,40 @@ export default function MovimientoModal({
                     rack.numeroRack,
 
                 itemId:
-                    form.itemId,
+                    formSanitized.itemId,
 
                 nombreItem:
                     item?.nombre,
 
                 tipoItem:
-                    form.tipo,
+                    formSanitized.tipo,
 
                 color:
                     item?.color || item?.color2 || null,
 
                 lote:
-                    form.lote,
+                    formSanitized.lote,
 
                 cantidadActual:
                     Number(
-                        form.cantidad
+                        formSanitized.cantidad
                     ),
 
                 unidad:
                     item?.tipoUnidad || "",
 
                 fechaEntrada:
-                    form.fecha,
+                    formSanitized.fecha,
 
                 fechaCaducidad:
-                    form.fechaCaducidad
+                    formSanitized.fechaCaducidad
                     || null,
 
                 numeroAnalisis:
-                    form.numeroAnalisis || "",
+                    formSanitized.numeroAnalisis || "",
 
                 espacio: porcentajeEspacio,
-                capacidadMaxima: obtenerCapacidadMaxima(form.tipo),
+                capacidadMaxima: obtenerCapacidadMaxima(formSanitized.tipo),
 
                 createdBy: {
 
@@ -371,34 +378,34 @@ export default function MovimientoModal({
                     "entrada",
 
                 itemId:
-                    form.itemId,
+                    formSanitized.itemId,
 
                 nombreItem:
                     item?.nombre,
 
                 tipoItem:
-                    form.tipo,
+                    formSanitized.tipo,
 
                 lote:
-                    form.lote,
+                    formSanitized.lote,
 
                 cantidad:
                     Number(
-                        form.cantidad
+                        formSanitized.cantidad
                     ),
 
                 unidad:
                     item?.tipoUnidad || "",
 
                 fecha:
-                    form.fecha,
+                    formSanitized.fecha,
 
                 fechaCaducidad:
-                    form.fechaCaducidad
+                    formSanitized.fechaCaducidad
                     || null,
 
                 numeroAnalisis:
-                    form.numeroAnalisis || "",
+                    formSanitized.numeroAnalisis || "",
 
                 usuario: {
 
@@ -609,10 +616,8 @@ export default function MovimientoModal({
 
                             <input
                                 placeholder="Lote"
-
-                                {...register(
-                                    "lote"
-                                )}
+                                {...register("lote")}
+                                onChange={(e) => setValue("lote", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                             />
 
                         </div>
@@ -625,10 +630,8 @@ export default function MovimientoModal({
 
                             <input
                                 placeholder="Número análisis"
-
-                                {...register(
-                                    "numeroAnalisis"
-                                )}
+                                {...register("numeroAnalisis")}
+                                onChange={(e) => setValue("numeroAnalisis", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                             />
 
                         </div>

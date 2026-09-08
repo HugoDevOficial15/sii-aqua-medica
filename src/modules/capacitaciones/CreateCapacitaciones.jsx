@@ -14,6 +14,7 @@ import { db, storage } from "../../config/firebase";
 import { dismissNotification } from "../../utils/notificationPersistence";
 import { ref, deleteObject } from "firebase/storage";
 import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar,FaWindowClose,FaEllipsisV,FaGlobe,FaWarehouse,FaFlask,FaUtensils,FaUserTie,FaCalculator,FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaShieldAlt,FaHeartbeat,FaHandsHelping,FaStethoscope,FaLaptopCode,FaClipboardCheck,FaEye,FaShoppingCart,FaFileUpload } from "react-icons/fa";
+import { sanitizeText, sanitizeTextTrim } from "../../utils/sanitize";
 import '../../styles/index.css';
 
 export default function CreateCapacitaciones() {
@@ -184,6 +185,76 @@ export default function CreateCapacitaciones() {
         return <Icon className="area-card-icon" />;
     };
 
+    const sanitizeTrainingData = (data = {}) => {
+        const sanitizeValue = (value) => {
+            if (typeof value === "string") {
+                return sanitizeTextTrim(value);
+            }
+
+            if (Array.isArray(value)) {
+                return value.map((item) => sanitizeValue(item));
+            }
+
+            if (value && typeof value === "object") {
+                return Object.fromEntries(
+                    Object.entries(value).map(([key, nestedValue]) => [key, sanitizeValue(nestedValue)])
+                );
+            }
+
+            return value;
+        };
+
+        const sanitizedData = sanitizeValue(data);
+
+        if (sanitizedData?.temario && Array.isArray(sanitizedData.temario)) {
+            sanitizedData.temario = sanitizedData.temario.map((tema) => sanitizeTextTrim(tema ?? ""));
+        }
+
+        if (sanitizedData?.preguntas && Array.isArray(sanitizedData.preguntas)) {
+            sanitizedData.preguntas = sanitizedData.preguntas.map((pregunta) => ({
+                ...pregunta,
+                pregunta: sanitizeTextTrim(pregunta?.pregunta ?? ""),
+                tipo: sanitizeTextTrim(pregunta?.tipo ?? "multiple"),
+                respuestaCorrecta:
+                    typeof pregunta?.respuestaCorrecta === "string"
+                        ? sanitizeTextTrim(pregunta.respuestaCorrecta)
+                        : pregunta?.respuestaCorrecta ?? null,
+                opciones: Array.isArray(pregunta?.opciones)
+                    ? pregunta.opciones.map((opcion) => ({
+                        ...opcion,
+                        texto: sanitizeTextTrim(opcion?.texto ?? ""),
+                    }))
+                    : [],
+                pares: Array.isArray(pregunta?.pares)
+                    ? pregunta.pares.map((par) => ({
+                        ...par,
+                        izquierda: sanitizeTextTrim(par?.izquierda ?? ""),
+                        derecha: sanitizeTextTrim(par?.derecha ?? ""),
+                    }))
+                    : [],
+            }));
+        }
+
+        if (sanitizedData?.areas && Array.isArray(sanitizedData.areas)) {
+            sanitizedData.areas = sanitizedData.areas.map((area) => sanitizeTextTrim(area ?? ""));
+        }
+
+        if (sanitizedData?.asignacion && typeof sanitizedData.asignacion === "object") {
+            sanitizedData.asignacion = {
+                ...sanitizedData.asignacion,
+                tipo: sanitizeTextTrim(sanitizedData.asignacion.tipo ?? "area"),
+                valores: Array.isArray(sanitizedData.asignacion.valores)
+                    ? sanitizedData.asignacion.valores.map((valor) => sanitizeTextTrim(valor ?? ""))
+                    : [],
+                archivos: Array.isArray(sanitizedData.asignacion.archivos)
+                    ? sanitizedData.asignacion.archivos.map((archivo) => sanitizeTextTrim(archivo ?? ""))
+                    : [],
+            };
+        }
+
+        return sanitizedData;
+    };
+
     const {
         register,
         handleSubmit,
@@ -312,6 +383,8 @@ export default function CreateCapacitaciones() {
 
     const handleSaveTraining = async (data) => {
         try {
+            const sanitizedData = sanitizeTrainingData(data);
+
             setSaving(true);
             const auth = getAuth();
 
@@ -320,44 +393,98 @@ export default function CreateCapacitaciones() {
                 return;
             }
 
-             const { sessionMinutos, totalMinutos } = calcularDuracionEncuesta(
-                data.fechaInicio,
-                data.fechaFin,
-                data.horaInicio,
-                data.horaFin,
+            const { sessionMinutos, totalMinutos } = calcularDuracionEncuesta(
+                sanitizedData.fechaInicio,
+                sanitizedData.fechaFin,
+                sanitizedData.horaInicio,
+                sanitizedData.horaFin,
             );
 
             const totalHoras = Math.floor(totalMinutos / 60);
             const totalMinutosRestantes = totalMinutos % 60;
 
             const cleanData = {
-                ...data,
-                preguntas: data.preguntas.map(p => {
+                ...sanitizedData,
+                titulo: sanitizeTextTrim(sanitizedData.titulo || ""),
+                descripcion: sanitizeTextTrim(sanitizedData.descripcion || ""),
+                objetivo: sanitizeTextTrim(sanitizedData.objetivo || ""),
+                instructor: sanitizeTextTrim(sanitizedData.instructor || ""),
+                modalidadd: sanitizeTextTrim(sanitizedData.modalidad || "digital"),
+                formaEvaluacion: sanitizeTextTrim(sanitizedData.formaEvaluacion || "digital"),
+                preguntas: sanitizedData.preguntas.map((p) => {
+                    const baseQuestion = {
+                        ...p,
+                        tipo: sanitizeTextTrim(p.tipo || "multiple"),
+                        pregunta: sanitizeTextTrim(p.pregunta || ""),
+                        obligatoria: Boolean(p.obligatoria),
+                    };
+
+                    if (p.tipo === "abierta") {
+                        return {
+                            ...baseQuestion,
+                            opciones: [],
+                            pares: [],
+                            respuestaCorrecta: null,
+                        };
+                    }
+
+                    if (p.tipo === "relacionar") {
+                        return {
+                            ...baseQuestion,
+                            pares: Array.isArray(p.pares)
+                                ? p.pares
+                                      .filter((par) => String(par?.izquierda ?? "").trim() || String(par?.derecha ?? "").trim())
+                                      .map((par) => ({
+                                          izquierda: sanitizeTextTrim(par?.izquierda ?? ""),
+                                          derecha: sanitizeTextTrim(par?.derecha ?? ""),
+                                      }))
+                                : [],
+                            respuestaCorrecta: Array.isArray(p.respuestaCorrecta)
+                                ? p.respuestaCorrecta.map((valor) => sanitizeTextTrim(valor ?? ""))
+                                : [],
+                            opciones: Array.isArray(p.opciones)
+                                ? p.opciones
+                                      .filter((opcion) => String(opcion?.texto ?? "").trim())
+                                      .map((opcion) => ({ texto: sanitizeTextTrim(opcion.texto ?? "") }))
+                                : [],
+                        };
+                    }
+
                     let respuesta = p.respuestaCorrecta;
                     if (respuesta === undefined || p.tipo === "abierta") {
                         respuesta = null;
                     }
 
                     return {
-                        ...p,
-                        opciones: p.tipo === "abierta" ? [] : (p.opciones || []),
-                        pares: p.pares || [],
-                        respuestaCorrecta: respuesta
+                        ...baseQuestion,
+                        opciones: Array.isArray(p.opciones)
+                            ? p.opciones
+                                  .filter((opcion) => String(opcion?.texto ?? "").trim())
+                                  .map((opcion) => ({ texto: sanitizeTextTrim(opcion.texto ?? "") }))
+                            : [],
+                        pares: Array.isArray(p.pares)
+                            ? p.pares.map((par) => ({
+                                  izquierda: sanitizeTextTrim(par?.izquierda ?? ""),
+                                  derecha: sanitizeTextTrim(par?.derecha ?? ""),
+                              }))
+                            : [],
+                        respuestaCorrecta:
+                            typeof respuesta === "string" ? sanitizeTextTrim(respuesta) : respuesta ?? null,
                     };
-                })
+                }),
             };
 
             const trainingData = {
                 ...cleanData,
-                 horaInicio: formatToAmPm(data.horaInicio),
-                horaFin: formatToAmPm(data.horaFin),
-                modalidad: data.modalidad || "digital",
-                formaEvaluacion: data.formaEvaluacion || "digital",
+                horaInicio: formatToAmPm(sanitizedData.horaInicio),
+                horaFin: formatToAmPm(sanitizedData.horaFin),
+                modalidad: sanitizeTextTrim(sanitizedData.modalidad || "digital"),
+                formaEvaluacion: sanitizeTextTrim(sanitizedData.formaEvaluacion || "digital"),
                 duracionSesionMinutos: sessionMinutos,
                 duracionTotalMinutos: totalMinutos,
                 duracionHoras: String(totalHoras),
                 duracionMinutos: String(totalMinutosRestantes),
-                asignacion: construirAsignacion(data),
+                asignacion: construirAsignacion(sanitizedData),
                 activa: true,
                 createdAt: new Date(),
                 userId: auth.currentUser.uid,
@@ -802,7 +929,9 @@ export default function CreateCapacitaciones() {
                                                     <strong>Instructor</strong>
                                                 </label>
                                                 <input
-                                                    {...register("instructor")}
+                                                    {...register("instructor", {
+                                                        onChange: (event) => sanitizeField("instructor", event.target.value),
+                                                    })}
                                                     className={`form-control ${errors.instructor ? "is-invalid" : ""}`}
                                                 />
                                             </div>
@@ -935,7 +1064,9 @@ export default function CreateCapacitaciones() {
                                                     <strong>Objetivo</strong>
                                                 </label>
                                                 <textarea
-                                                    {...register("objetivo")}
+                                                    {...register("objetivo", {
+                                                        onChange: (event) => sanitizeField("objetivo", event.target.value),
+                                                    })}
                                                     className={`form-control ${errors.objetivo ? "is-invalid" : ""}`}
                                                 />
                                             </div>
@@ -959,7 +1090,9 @@ export default function CreateCapacitaciones() {
                                             {temarioFields.map((item, i) => (
                                                 <div key={item.id} className="d-flex mt-2">
                                                     <input
-                                                        {...register(`temario.${i}`)}
+                                                        {...register(`temario.${i}`, {
+                                                            onChange: (event) => sanitizeField(`temario.${i}`, event.target.value),
+                                                        })}
                                                         className="form-control me-2"
                                                         placeholder={`Tema ${i + 1}`}
                                                     />
@@ -1128,7 +1261,9 @@ export default function CreateCapacitaciones() {
                                                     </div>
 
                                                     <input
-                                                        {...register(`preguntas.${index}.pregunta`)}
+                                                        {...register(`preguntas.${index}.pregunta`, {
+                                                            onChange: (event) => sanitizeField(`preguntas.${index}.pregunta`, event.target.value),
+                                                        })}
                                                         className="form-control mt-3"
                                                         placeholder="Escribe la pregunta"
                                                     />
@@ -2085,7 +2220,9 @@ function OpcionesMultiple({ control, register, index, watch, setValue }) {
                     <input
                         className="form-control me-2"
                         placeholder={`Opción ${i + 1}`}
-                        {...register(`preguntas.${index}.opciones.${i}.texto`)}
+                        {...register(`preguntas.${index}.opciones.${i}.texto`, {
+                            onChange: (event) => sanitizeField(`preguntas.${index}.opciones.${i}.texto`, event.target.value),
+                        })}
                     />
                     <button
                         type="button"

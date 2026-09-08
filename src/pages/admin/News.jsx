@@ -7,6 +7,7 @@ import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../
 import { dismissNotification } from "../../utils/notificationPersistence";
 import { createNotification } from "../../utils/createNotification";
 import { uploadNewsFile, uploadNewsImage, deleteNewsFile } from "../../services/newsStorageService";
+import { sanitizeText, sanitizeTextTrim } from "../../utils/sanitize";
 
 // 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
@@ -172,7 +173,12 @@ export default function News() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!titulo || !contenido || !fechaLimite) {
+
+    const tituloSanitizado = sanitizeTextTrim(titulo);
+    const contenidoSanitizado = sanitizeText(contenido);
+    const areaDestinoSanitizada = sanitizeTextTrim(areaDestino || "Todas");
+
+    if (!tituloSanitizado || !contenidoSanitizado || !fechaLimite) {
       notifyWarning("Campos requeridos", "El título, el contenido y la fecha límite son obligatorios");
       return;
     }
@@ -200,10 +206,10 @@ export default function News() {
       if (noticiaEditando) {
         const idNoticia = noticiaEditando.id;
         await updateDoc(doc(db, "noticias", idNoticia), {
-          titulo,
-          contenido,
+          titulo: tituloSanitizado,
+          contenido: contenidoSanitizado,
           fechaLimite,
-          areaDestino: areaDestino || "Todas",
+          areaDestino: areaDestinoSanitizada || "Todas",
           imagen: imagenUrl,
           archivo: archivoUrl,
           archivoNombre: archivoNombre,
@@ -212,10 +218,10 @@ export default function News() {
         });
       } else {
         const docRef = await addDoc(collection(db, "noticias"), {
-          titulo,
-          contenido,
+          titulo: tituloSanitizado,
+          contenido: contenidoSanitizado,
           fechaLimite,
-          areaDestino: areaDestino || "Todas",
+          areaDestino: areaDestinoSanitizada || "Todas",
           imagen: imagenUrl,
           archivo: archivoUrl,
           archivoNombre: archivoNombre,
@@ -225,14 +231,14 @@ export default function News() {
         });
 
         // Obtener usuarios operadores del área destino o todos si la noticia es general
-        const isGeneralNews = areaDestino === "Todas";
+        const isGeneralNews = areaDestinoSanitizada === "Todas";
 
         const baseUsersQuery = isGeneralNews
           ? query(collection(db, "users"), where("rol", "==", "operador"))
           : query(
               collection(db, "users"),
               where("rol", "==", "operador"),
-              where("area", "==", areaDestino)
+              where("area", "==", areaDestinoSanitizada)
             );
 
         let usersSnapshot = await getDocs(baseUsersQuery);
@@ -243,7 +249,7 @@ export default function News() {
             : query(
                 collection(db, "usuarios"),
                 where("rol", "==", "operador"),
-                where("area", "==", areaDestino)
+                where("area", "==", areaDestinoSanitizada)
               );
           usersSnapshot = await getDocs(fallbackQuery);
         }
@@ -256,7 +262,7 @@ export default function News() {
         const notifications = usuariosDestino.map((userDoc) => ({
           IdUsuario: userDoc.id,
           Titulo: "📰 Nueva noticia",
-          Mensaje: `Nueva noticia: "${titulo}"`,
+          Mensaje: `Nueva noticia: "${tituloSanitizado}"`,
           Destino: "/news",
           Accion: "nueva_noticia",
           fechaCreacion: serverTimestamp(),
@@ -267,8 +273,8 @@ export default function News() {
           extra: {
             tipo: "news",
             noticiaId: docRef.id,
-            areaDestino: areaDestino || "Todas",
-            titulo
+            areaDestino: areaDestinoSanitizada || "Todas",
+            titulo: tituloSanitizado
           }
         }));
 
@@ -420,12 +426,12 @@ export default function News() {
                 <div className="col-md-8 mb-3">
                   <label className="form-label fw-medium">Título de la Noticia</label>
                   {/* Agregada la clase adaptive-input */}
-                  <input type="text" className="form-control adaptive-input" placeholder="Ej. Nueva capacitación obligatoria" value={titulo} onChange={(e) => setTitulo(e.target.value)} required />
+                  <input type="text" className="form-control adaptive-input" placeholder="Ej. Nueva capacitación obligatoria" value={titulo} onChange={(e) => setTitulo(sanitizeText(e.target.value))} required />
                 </div>
                 <div className="col-md-4 mb-3">
                   <label className="form-label fw-medium">Público Dirigido (Área)</label>
                   {/* Agregada la clase adaptive-input */}
-                  <select className="form-select adaptive-input" value={areaDestino} onChange={(e) => setAreaDestino(e.target.value)}>
+                  <select className="form-select adaptive-input" value={areaDestino} onChange={(e) => setAreaDestino(sanitizeTextTrim(e.target.value) || "Todas")}>
                     {listaAreas.map((area) => <option key={area} value={area}>{area === "Todas" ? "Todas las áreas (General)" : area}</option>)}
                   </select>
                 </div>
@@ -433,7 +439,7 @@ export default function News() {
               <div className="mb-3">
                 <label className="form-label fw-medium">Contenido / Descripción</label>
                 {/* Agregada la clase adaptive-input */}
-                <textarea className="form-control adaptive-input" rows="4" placeholder="Escribe el cuerpo de la noticia aquí..." value={contenido} onChange={(e) => setContenido(e.target.value)} required></textarea>
+                <textarea className="form-control adaptive-input" rows="4" placeholder="Escribe el cuerpo de la noticia aquí..." value={contenido} onChange={(e) => setContenido(sanitizeText(e.target.value))} required></textarea>
               </div>
               <div className="row">
                 <div className="col-md-6 mb-3">

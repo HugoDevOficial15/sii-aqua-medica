@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { crearRack, actualizarRack } from "../../../services/rackService";
 import { notifySuccess, notifyError } from "../../../utils/notify";
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import Loader from "../../../components/Loader";
 import { useState, useEffect } from "react";
 import { FaPlus } from "react-icons/fa";
@@ -183,36 +184,44 @@ export default function RackModal({ onClose, onSuccess, data }) {
     };
 
     const onSubmit = async (form) => {
+        const sanitizedForm = {
+            ...form,
+            numeroRack: sanitizeTextTrim(form.numeroRack || ""),
+            planta: sanitizeTextTrim(form.planta || ""),
+            ubicacionTipo: sanitizeTextTrim(form.ubicacionTipo || "rack"),
+            tipoAlmacenamiento: sanitizeTextTrim(form.tipoAlmacenamiento || ""),
+            tipoAsignacion: sanitizeTextTrim(tipoAsignacion || "")
+        };
 
-        if (!form.numeroRack) {
-            if (form.ubicacionTipo === "rack") {
+        if (!sanitizedForm.numeroRack) {
+            if (sanitizedForm.ubicacionTipo === "rack") {
                 return notifyError(
                     "Error",
                     "Número de rack requerido"
                 );
             }
 
-            if (form.ubicacionTipo === "mezzanine") {
+            if (sanitizedForm.ubicacionTipo === "mezzanine") {
                 return notifyError(
                     "Error",
                     "Número de mezzanine requerido"
                 );
             }
 
-            if (form.ubicacionTipo === "zona") {
+            if (sanitizedForm.ubicacionTipo === "zona") {
                 return notifyError(
                     "Error",
                     "Letra de la zona requerida"
                 );
             }
 
-            if (form.ubicacionTipo === "rackselectivo") {
+            if (sanitizedForm.ubicacionTipo === "rackselectivo") {
                 return notifyError(
                     "Error",
                     "Número de rack selectivo requerido"
                 );
             }
-            if (form.ubicacionTipo === "tanqueacido") {
+            if (sanitizedForm.ubicacionTipo === "tanqueacido") {
                 return notifyError(
                     "Error",
                     "Número de tanque de ácido requerido"
@@ -221,7 +230,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
             
         }
 
-        const result = validateRack(form);
+        const result = validateRack(sanitizedForm);
 
         if (!result.isValid) {
 
@@ -231,7 +240,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
             );
         }
 
-        if (form.ubicacionTipo === "zona" && !/^[A-Z]$/.test(form.numeroRack)) {
+        if (sanitizedForm.ubicacionTipo === "zona" && !/^[A-Z]$/.test(sanitizedForm.numeroRack)) {
             return notifyError(
                 "Error",
                 "El campo Zona debe ser una letra mayúscula entre A y Z"
@@ -239,8 +248,8 @@ export default function RackModal({ onClose, onSuccess, data }) {
         }
 
         if (
-            (form.ubicacionTipo === "rack" || form.ubicacionTipo === "mezzanine") &&
-            !/^\d+$/.test(form.numeroRack)
+            (sanitizedForm.ubicacionTipo === "rack" || sanitizedForm.ubicacionTipo === "mezzanine") &&
+            !/^\d+$/.test(sanitizedForm.numeroRack)
         ) {
             return notifyError(
                 "Error",
@@ -248,7 +257,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
             );
         }
 
-        if (!form.planta) {
+        if (!sanitizedForm.planta) {
             return notifyError("Error", "Planta requerida");
         }
 
@@ -273,8 +282,8 @@ export default function RackModal({ onClose, onSuccess, data }) {
         try {
             const existingRacks = await obtenerRacks();
 
-            const planta = form.planta || "";
-            const valorNormalizado = String(form.numeroRack).toUpperCase();
+            const planta = sanitizedForm.planta || "";
+            const valorNormalizado = String(sanitizedForm.numeroRack).toUpperCase();
 
             const duplicate = existingRacks.find(r => {
                 const mismoValor = String(r.numeroRack || "").toUpperCase() === valorNormalizado;
@@ -299,10 +308,10 @@ export default function RackModal({ onClose, onSuccess, data }) {
             setLoading(true);
 
             const itemSeleccionado = items.find(
-                i => i.id === form.itemAsignadoId
+                i => i.id === sanitizedForm.itemAsignadoId
             );
 
-            let asignacionFinal = tipoAsignacion || "";
+            let asignacionFinal = sanitizedForm.tipoAsignacion || "";
             let itemAsignadoFinal = "";
 
             const stockRack = data
@@ -311,20 +320,20 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
             asignacionFinal = resolverAsignacion({
                 tipoAsignacionSeleccionada: asignacionFinal,
-                tipoAlmacenamientoSeleccionado: form.tipoAlmacenamiento,
+                tipoAlmacenamientoSeleccionado: sanitizedForm.tipoAlmacenamiento,
                 stockRack
             });
 
             if (asignacionFinal) {
-                itemAsignadoFinal = itemSeleccionado?.nombre || form.itemAsignado || "";
+                itemAsignadoFinal = itemSeleccionado?.nombre || sanitizedForm.itemAsignado || "";
             }
 
             const payloadRack = normalizarPayloadRack({
-                ...form,
+                ...sanitizedForm,
                 tipoAsignacion: asignacionFinal,
                 itemAsignado: itemAsignadoFinal,
                 colorTipoAlmacenamiento:
-                    form.tipoAlmacenamiento === "producto_terminado"
+                    sanitizedForm.tipoAlmacenamiento === "producto_terminado"
                         ? "#2563eb"
                         : ""
             });
@@ -459,7 +468,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                             value={numeroRackValue}
                             {...register("numeroRack", {
                                 onChange: (e) => {
-                                    let value = e.target.value.toUpperCase();
+                                    let value = sanitizeText(e.target.value).toUpperCase();
 
                                     if (ubicacionTipo === "zona") {
                                         value = value.replace(/[^A-Z]/g, "").slice(0, 1);
@@ -488,6 +497,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                             <select
                                 className="select"
                                 {...register("planta")}
+                                onChange={(e) => setValue("planta", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                                 style={{
                                     ...styles.input,
                                     flex: 1
@@ -513,6 +523,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                         <select
                             className="select"
                             {...register("tipoAlmacenamiento")}
+                            onChange={(e) => setValue("tipoAlmacenamiento", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                             style={styles.input}
                         >
                             <option value="">

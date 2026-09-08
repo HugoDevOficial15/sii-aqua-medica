@@ -3,11 +3,15 @@ import {
     updateNota,
     deleteNota
 } from "../../../services/notasService";
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 
 // CREAR
 export const crearNota = async ({ usuario, data }) => {
+    const tituloSanitizado = sanitizeTextTrim(data.titulo || "");
+    const contenidoSanitizado = sanitizeText(data.contenido || "").trim();
+    const prioridadSanitizada = sanitizeTextTrim(data.prioridad || "media");
 
-    if (!data.titulo?.trim()) {
+    if (!tituloSanitizado) {
         throw new Error("El título es obligatorio");
     }
 
@@ -15,12 +19,12 @@ export const crearNota = async ({ usuario, data }) => {
 
     const nuevaNota = {
         id: usuario.id, // 🔥 TU SISTEMA
-        titulo: data.titulo,
-        contenido: data.contenido || "",
-        prioridad: data.prioridad || "media",
+        titulo: tituloSanitizado,
+        contenido: contenidoSanitizado,
+        prioridad: prioridadSanitizada || "media",
         estado: "activa",
         checklist: data.checklist || [],
-        fechaLimite: data.fechaLimite || null,
+        fechaLimite: sanitizeTextTrim(data.fechaLimite || "") || null,
         anio: now.getFullYear(),
         mes: now.getMonth() + 1,
         createdAt: now,
@@ -41,16 +45,19 @@ export const completarNota = async (nota) => {
     });
 };
 export const editarNota = async ({ nota, data }) => {
+    const tituloSanitizado = sanitizeTextTrim(data.titulo || "");
+    const contenidoSanitizado = sanitizeText(data.contenido || "").trim();
+    const prioridadSanitizada = sanitizeTextTrim(data.prioridad || nota.prioridad || "media");
 
-    if (!data.titulo?.trim()) {
+    if (!tituloSanitizado) {
         throw new Error("El título es obligatorio");
     }
 
     return await updateNota(nota.docId, {
-        titulo: data.titulo ?? nota.titulo,
-        contenido: data.contenido ?? nota.contenido,
-        prioridad: data.prioridad ?? nota.prioridad,
-        fechaLimite: data.fechaLimite ?? nota.fechaLimite,
+        titulo: tituloSanitizado,
+        contenido: contenidoSanitizado,
+        prioridad: prioridadSanitizada || "media",
+        fechaLimite: sanitizeTextTrim(data.fechaLimite || nota.fechaLimite || "") || null,
         checklist: nota.checklist ?? [],
         estado: nota.estado ?? "activa",
         anio: nota.anio,

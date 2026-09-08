@@ -5,6 +5,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { createNotification } from "../../../utils/createNotification";
 import { invalidateCacheGroup } from "../../../utils/cacheStore";
 import { notifyError } from "../../../utils/notify";
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 
 export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -67,14 +68,15 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
   };
 
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const nextValue = typeof value === "string" ? sanitizeText(value) : value;
+    setForm((prev) => ({ ...prev, [field]: nextValue }));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const titulo = form.titulo.trim();
-    const descripcion = form.descripcion.trim();
+    const titulo = sanitizeTextTrim(form.titulo);
+    const descripcion = sanitizeTextTrim(form.descripcion);
 
     if (!titulo || !descripcion) {
       notifyError("Completa el título y la descripción del reconocimiento.");
@@ -85,7 +87,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
     setError("");
 
     try {
-      const tipoReconocimiento = isPrimeraVez ? "primer_logro" : form.tipo;
+      const tipoReconocimiento = isPrimeraVez ? "primer_logro" : sanitizeTextTrim(form.tipo);
 
       const userDocId = resolveUserFirestoreDocId(empleado);
       const userFirebaseUid = resolveUserFirebaseUid(empleado);
@@ -113,12 +115,12 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
         usuarioDocId: userDocId,
         usuarioUid: userFirebaseUid,
         empleadoId: empleado.id || empleado.uid || null,
-        empleadoNombre: empleado.nombre || "Trabajador",
-        empleadoNomina: empleado.nomina || "",
-        empleadoArea: empleado.area || "",
-        emitidoPor: user?.nombre || "Sistema",
+        empleadoNombre: sanitizeTextTrim(empleado.nombre || "Trabajador") || "Trabajador",
+        empleadoNomina: sanitizeTextTrim(empleado.nomina || ""),
+        empleadoArea: sanitizeTextTrim(empleado.area || ""),
+        emitidoPor: sanitizeTextTrim(user?.nombre || "Sistema") || "Sistema",
         emitidoPorUid: user?.uid || null,
-        emitidoPorNomina: user?.nomina || "",
+        emitidoPorNomina: sanitizeTextTrim(user?.nomina || ""),
         titulo,
         descripcion,
         tipo: tipoReconocimiento,

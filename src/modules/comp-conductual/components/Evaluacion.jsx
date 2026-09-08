@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import DOMPurify from "dompurify";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
 import { useLoader } from "../../../hooks/useLoader";
+import { sanitizeText } from "../../../utils/sanitize";
 import "./Evaluacion.css";
 
 const getToday = () => new Date().toISOString().split("T")[0];
@@ -143,14 +143,7 @@ const obtenerValorUsuario = (usuario, claves = []) => {
   return valorExtra ? String(valorExtra).trim() : "";
 };
 
-const sanitizarTexto = (valor) => {
-  if (valor === null || valor === undefined) return "";
 
-  return String(valor)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-};
 
 
 
@@ -515,9 +508,9 @@ export default function EvaluacionModal({
       );
       const resultadoRef = doc(resultadosCollectionRef);
 
-      const comentarioGeneral = sanitizarTexto(formData.comentarioGeneral);
-      const comentarioAdicional = sanitizarTexto(formData.comentarioAdicional);
-      const periodoEvaluacion = sanitizarTexto(formData.periodo);
+      const comentarioGeneral = sanitizeText(formData.comentarioGeneral);
+      const comentarioAdicional = sanitizeText(formData.comentarioAdicional);
+      const periodoEvaluacion = sanitizeText(formData.periodo);
 
       const respuestasDetalle = preguntas.map((pregunta) => {
         const valor = Number(respuestas[pregunta.id] ?? 0);
@@ -535,13 +528,13 @@ export default function EvaluacionModal({
       const documento = {
         id: resultadoRef.id,
         usuarioId: userId,
-        nombre: sanitizarTexto(formatearNombre(usuario)),
-        nomina: sanitizarTexto(usuario?.nomina || "Sin nómina"),
-        area: sanitizarTexto(formData.area || "Sin área"),
-        puesto: sanitizarTexto(formData.puesto || "Sin puesto"),
-        evaluadorNombre: sanitizarTexto(formData.evaluador || formatearNombre(usuarioActivo)),
-        evaluadorArea: sanitizarTexto(formData.evaluadorArea || "Sin área"),
-        evaluadorPuesto: sanitizarTexto(formData.evaluadorPuesto || "Sin puesto"),
+        nombre: sanitizeText(formatearNombre(usuario)),
+        nomina: sanitizeText(usuario?.nomina || "Sin nómina"),
+        area: sanitizeText(formData.area || "Sin área"),
+        puesto: sanitizeText(formData.puesto || "Sin puesto"),
+        evaluadorNombre: sanitizeText(formData.evaluador || formatearNombre(usuarioActivo)),
+        evaluadorArea: sanitizeText(formData.evaluadorArea || "Sin área"),
+        evaluadorPuesto: sanitizeText(formData.evaluadorPuesto || "Sin puesto"),
         comentarioGeneral,
         comentarioAdicional,
         periodoEvaluacion,

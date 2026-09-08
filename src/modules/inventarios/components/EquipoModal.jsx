@@ -5,6 +5,7 @@ import { FaPlus } from "react-icons/fa";
 
 import { equipoSchema } from "../../../schemas/equipoSchema";
 import { notifySuccess, notifyError } from "../../../utils/notify";
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import Loader from "../../../components/Loader";
 import { getUsers } from "../../../services/usersService";
 import { AREAS } from "../../../catalogs/areas";
@@ -62,11 +63,11 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
     if (data) {
       reset({
         ...defaultValues,
-        codigo: data.codigo || "",
+        codigo: sanitizeTextTrim(data.codigo || ""),
         tipo: data.tipo || "",
         usuarioId: data.usuarioId || "",
         areaId: data.areaId || "",
-        observaciones: data.observaciones || "",
+        observaciones: sanitizeText(data.observaciones || ""),
         servicioExterno: Boolean(data.servicioExterno),
         garantia: Boolean(data.garantia),
       });
@@ -80,9 +81,16 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
     try {
       setLoading(true);
 
+      const codigoSanitizado = sanitizeTextTrim(form.codigo || "");
+      const observacionesSanitizadas = sanitizeText(form.observaciones || "");
+
       const payload = {
         ...form,
-        usuarioNombre: users.find((u) => u.id === form.usuarioId)?.nombre,
+        codigo: codigoSanitizado,
+        observaciones: observacionesSanitizadas,
+        usuarioNombre: sanitizeText(
+          users.find((u) => u.id === form.usuarioId)?.nombre || "",
+        ),
       };
 
       if (data) {
@@ -91,9 +99,9 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
         if (form.servicioExterno) {
           await createLogEquipo(data.id, {
             tipo: "servicio_externo",
-            observacion: "Equipo enviado a servicio externo",
-            realizadoPor: user?.nombre || "Sistema",
-            equipoCodigo: form.codigo,
+            observacion: sanitizeText("Equipo enviado a servicio externo"),
+            realizadoPor: sanitizeText(user?.nombre || "Sistema"),
+            equipoCodigo: codigoSanitizado,
           });
         }
 
@@ -104,9 +112,9 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
         if (form.servicioExterno) {
           await createLogEquipo(nuevoEquipo.id, {
             tipo: "servicio_externo",
-            observacion: "Equipo enviado a servicio externo",
-            realizadoPor: user?.nombre || "Sistema",
-            equipoCodigo: form.codigo,
+            observacion: sanitizeText("Equipo enviado a servicio externo"),
+            realizadoPor: sanitizeText(user?.nombre || "Sistema"),
+            equipoCodigo: codigoSanitizado,
           });
         }
 

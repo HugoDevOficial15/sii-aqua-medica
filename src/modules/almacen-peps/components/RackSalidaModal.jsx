@@ -7,6 +7,11 @@ import {
     useForm
 } from "react-hook-form";
 
+import {
+    sanitizeText,
+    sanitizeTextTrim
+} from "../../../utils/sanitize";
+
 // import {
 //     obtenerStockPorRack,
 //     descontarStockPEPS
@@ -49,7 +54,8 @@ export default function RackSalidaModal({
     const {
         register,
         handleSubmit,
-        watch
+        watch,
+        setValue
     } = useForm();
 
     const [stock, setStock] =
@@ -195,8 +201,12 @@ export default function RackSalidaModal({
     ) => {
 
         try {
+            const formSanitized = {
+                ...form,
+                observaciones: sanitizeText(form.observaciones || "").trim()
+            };
 
-            if (!form.itemId) {
+            if (!formSanitized.itemId) {
                 notifyError(
                     "Error",
                     "Selecciona un producto"
@@ -204,9 +214,9 @@ export default function RackSalidaModal({
                 return;
             }
 
-            const cantidad = Number(form.cantidad);
+            const cantidad = Number(formSanitized.cantidad);
 
-            if (!form.cantidad ||
+            if (!formSanitized.cantidad ||
                 Number.isNaN(cantidad) ||
                 cantidad <= 0
             ) {
@@ -225,7 +235,7 @@ export default function RackSalidaModal({
                 return;
             }
 
-            const observacionTexto = (form.observaciones || "").trim();
+            const observacionTexto = sanitizeTextTrim(formSanitized.observaciones || "");
 
             if (observacionTexto.length > 35) {
                 notifyError(
@@ -257,7 +267,7 @@ export default function RackSalidaModal({
                     rackId: rack.id,
 
                     itemId:
-                        form.itemId,
+                        formSanitized.itemId,
 
                     cantidadSalida:
                         cantidad
@@ -297,7 +307,7 @@ export default function RackSalidaModal({
                         "salida",
 
                     itemId:
-                        form.itemId,
+                        formSanitized.itemId,
 
                     nombreItem:
                         mov.nombreItem,
@@ -502,17 +512,13 @@ export default function RackSalidaModal({
 
                         <input
                             type="text"
-
                             maxLength={30}
-
                             step="0.01"
-
                             placeholder="Observaciones"
-                            {...register(
-                                "observaciones"
-                            )}
+                            {...register("observaciones")}
                             onChange={(e) => {
-                                const value = e.target.value;
+                                const value = sanitizeText(e.target.value);
+                                setValue("observaciones", value, { shouldValidate: true });
                                 if (value.length > 35) {
                                     notifyError(
                                         "Error",

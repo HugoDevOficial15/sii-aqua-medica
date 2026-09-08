@@ -18,6 +18,7 @@ import { getAuth } from "firebase/auth";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { surveySchema } from "../../schemas/surveySchema";
+import { sanitizeText, sanitizeTextTrim } from "../../utils/sanitize";
 
 export default function CreateSurvey() {
 
@@ -207,6 +208,73 @@ export default function CreateSurvey() {
         horaFin: survey.horaFin ? timeInputValue(survey.horaFin) : "",
     });
 
+    const sanitizeSurveyData = (data = {}) => {
+        const sanitizeValue = (value) => {
+            if (typeof value === "string") {
+                return sanitizeTextTrim(value);
+            }
+
+            if (Array.isArray(value)) {
+                return value.map((item) => sanitizeValue(item));
+            }
+
+            if (value && typeof value === "object") {
+                return Object.fromEntries(
+                    Object.entries(value).map(([key, nestedValue]) => [key, sanitizeValue(nestedValue)])
+                );
+            }
+
+            return value;
+        };
+
+        const sanitizedData = sanitizeValue(data);
+
+        if (sanitizedData?.temario && Array.isArray(sanitizedData.temario)) {
+            sanitizedData.temario = sanitizedData.temario.map((tema) => sanitizeTextTrim(tema ?? ""));
+        }
+
+        if (sanitizedData?.preguntas && Array.isArray(sanitizedData.preguntas)) {
+            sanitizedData.preguntas = sanitizedData.preguntas.map((pregunta) => ({
+                ...pregunta,
+                pregunta: sanitizeTextTrim(pregunta?.pregunta ?? ""),
+                tipo: sanitizeTextTrim(pregunta?.tipo ?? "multiple"),
+                respuestaCorrecta:
+                    typeof pregunta?.respuestaCorrecta === "string"
+                        ? sanitizeTextTrim(pregunta.respuestaCorrecta)
+                        : pregunta?.respuestaCorrecta ?? null,
+                opciones: Array.isArray(pregunta?.opciones)
+                    ? pregunta.opciones.map((opcion) => ({
+                        ...opcion,
+                        texto: sanitizeTextTrim(opcion?.texto ?? ""),
+                    }))
+                    : [],
+                pares: Array.isArray(pregunta?.pares)
+                    ? pregunta.pares.map((par) => ({
+                        ...par,
+                        izquierda: sanitizeTextTrim(par?.izquierda ?? ""),
+                        derecha: sanitizeTextTrim(par?.derecha ?? ""),
+                    }))
+                    : [],
+            }));
+        }
+
+        if (sanitizedData?.areas && Array.isArray(sanitizedData.areas)) {
+            sanitizedData.areas = sanitizedData.areas.map((area) => sanitizeTextTrim(area ?? ""));
+        }
+
+        if (sanitizedData?.asignacion && typeof sanitizedData.asignacion === "object") {
+            sanitizedData.asignacion = {
+                ...sanitizedData.asignacion,
+                tipo: sanitizeTextTrim(sanitizedData.asignacion.tipo ?? "area"),
+                valores: Array.isArray(sanitizedData.asignacion.valores)
+                    ? sanitizedData.asignacion.valores.map((valor) => sanitizeTextTrim(valor ?? ""))
+                    : [],
+            };
+        }
+
+        return sanitizedData;
+    };
+
     const resetSurveyForm = () => {
         reset(getEmptySurveyValues());
         setCurrentId(null);
@@ -335,6 +403,8 @@ export default function CreateSurvey() {
 
         try {
 
+            const sanitizedData = sanitizeSurveyData(data);
+
             setSaving(true);
 
             const auth = getAuth();
@@ -345,10 +415,10 @@ export default function CreateSurvey() {
             }
 
             const { sessionMinutos, totalMinutos } = calcularDuracionEncuesta(
-                data.fechaInicio,
-                data.fechaFin,
-                data.horaInicio,
-                data.horaFin,
+                sanitizedData.fechaInicio,
+                sanitizedData.fechaFin,
+                sanitizedData.horaInicio,
+                sanitizedData.horaFin,
             );
 
             const totalHoras = Math.floor(totalMinutos / 60);
@@ -356,12 +426,12 @@ export default function CreateSurvey() {
 
 //  LIMPIAR undefined y propiedades no usadas (CLAVE)
             const cleanData = {
-                ...data,
-                preguntas: data.preguntas.map((p) => {
+                ...sanitizedData,
+                preguntas: sanitizedData.preguntas.map((p) => {
                     const baseQuestion = {
                         id: p.id,
-                        tipo: p.tipo,
-                        pregunta: p.pregunta,
+                        tipo: sanitizeTextTrim(p.tipo || "multiple"),
+                        pregunta: sanitizeTextTrim(p.pregunta || ""),
                         obligatoria: Boolean(p.obligatoria),
                     };
 
@@ -372,8 +442,17 @@ export default function CreateSurvey() {
                     if (p.tipo === "relacionar") {
                         return {
                             ...baseQuestion,
-                            pares: Array.isArray(p.pares) ? p.pares.filter((par) => par?.izquierda || par?.derecha) : [],
-                            respuestaCorrecta: Array.isArray(p.respuestaCorrecta) ? p.respuestaCorrecta : [],
+                            pares: Array.isArray(p.pares)
+                                ? p.pares
+                                    .filter((par) => String(par?.izquierda ?? "").trim() || String(par?.derecha ?? "").trim())
+                                    .map((par) => ({
+                                        izquierda: sanitizeTextTrim(par?.izquierda ?? ""),
+                                        derecha: sanitizeTextTrim(par?.derecha ?? ""),
+                                    }))
+                                : [],
+                            respuestaCorrecta: Array.isArray(p.respuestaCorrecta)
+                                ? p.respuestaCorrecta.map((valor) => sanitizeTextTrim(valor ?? ""))
+                                : [],
                         };
                     }
 
@@ -381,25 +460,28 @@ export default function CreateSurvey() {
                         ...baseQuestion,
                         opciones: Array.isArray(p.opciones)
                             ? p.opciones
-                                .filter((opcion) => opcion && opcion.texto && String(opcion.texto).trim())
-                                .map((opcion) => ({ texto: String(opcion.texto).trim() }))
+                                .filter((opcion) => opcion && String(opcion.texto ?? "").trim())
+                                .map((opcion) => ({ texto: sanitizeTextTrim(opcion.texto ?? "") }))
                             : [],
-                        respuestaCorrecta: p.respuestaCorrecta ?? null,
+                        respuestaCorrecta:
+                            typeof p.respuestaCorrecta === "string"
+                                ? sanitizeTextTrim(p.respuestaCorrecta)
+                                : p.respuestaCorrecta ?? null,
                     };
                 }),
             };
 
             const surveyData = {
                 ...cleanData,
-                horaInicio: formatToAmPm(data.horaInicio),
-                horaFin: formatToAmPm(data.horaFin),
+                horaInicio: formatToAmPm(sanitizedData.horaInicio),
+                horaFin: formatToAmPm(sanitizedData.horaFin),
                 modalidad: "digital",
                 formaEvaluacion: "digital",
                 duracionSesionMinutos: sessionMinutos,
                 duracionTotalMinutos: totalMinutos,
                 duracionHoras: String(totalHoras),
                 duracionMinutos: String(totalMinutosRestantes),
-                asignacion: construirAsignacion(data),
+                asignacion: construirAsignacion(sanitizedData),
                 activa: true,
                 createdAt: new Date(),
                 userId: auth.currentUser.uid,

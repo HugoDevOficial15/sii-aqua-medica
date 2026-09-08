@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { puestoSchema } from "../../schemas/puesto-schema";
 import { createPuesto, updatePuesto } from "../../services/puestos-service";
 import { notifySuccess, notifyError } from "../../utils/notify";
+import { sanitizeTextTrim } from "../../utils/sanitize";
 
 export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
     const [isCloseHovered, setIsCloseHovered] = useState(false);
@@ -19,11 +20,16 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
 
     const onSubmit = async (data) => {
         try {
+            const payload = {
+                ...data,
+                nombre: sanitizeTextTrim(data.nombre || ""),
+            };
+
             if (puestoEdit) {
-                await updatePuesto(puestoEdit.id, data);
+                await updatePuesto(puestoEdit.id, payload);
                 notifySuccess("Puesto actualizado", "El puesto se editó correctamente");
             } else {
-                await createPuesto(data);
+                await createPuesto(payload);
                 notifySuccess("Puesto Creado", "El Puesto fue registrado correctamente");
             }
 

@@ -7,6 +7,10 @@ import {
     useForm
 } from "react-hook-form";
 
+import {
+    sanitizeTextTrim
+} from "../../../utils/sanitize";
+
 // import {
 //     obtenerStockPorRack,
 //     trasladarStockPEPS
@@ -54,7 +58,8 @@ export default function RackTransferModal({
     const {
         register,
         handleSubmit,
-        watch
+        watch,
+        setValue
     } = useForm();
 
     const [stock, setStock] =
@@ -234,8 +239,12 @@ export default function RackTransferModal({
     ) => {
 
         try {
+            const formSanitized = {
+                ...form,
+                rackDestino: sanitizeTextTrim(form.rackDestino || "")
+            };
 
-            if (!form.itemId) {
+            if (!formSanitized.itemId) {
 
                 notifyError(
                     "Error",
@@ -244,9 +253,9 @@ export default function RackTransferModal({
                 return; 
             }
 
-            if (!form.cantidad || 
-                Number.isNaN(Number(form.cantidad)) ||
-                Number(form.cantidad) <= 0) {
+            if (!formSanitized.cantidad || 
+                Number.isNaN(Number(formSanitized.cantidad)) ||
+                Number(formSanitized.cantidad) <= 0) {
                 notifyError(
                     "Error",
                     "La cantidad debe ser un número mayor a 0"
@@ -261,7 +270,7 @@ export default function RackTransferModal({
                 racks.find(
                     r =>
                         r.id ===
-                        form.rackDestino
+                        formSanitized.rackDestino
                 );
 
                 if (!rackDestino) {
@@ -278,7 +287,7 @@ export default function RackTransferModal({
             const validacionDestino = validarCapacidadRack({
                 rack: rackDestino,
                 tipoItem: tipoItemDestino,
-                cantidad: Number(form.cantidad),
+                cantidad: Number(formSanitized.cantidad),
                 stockItems: stockDestino
             });
 
@@ -304,11 +313,11 @@ export default function RackTransferModal({
                     rackDestino,
 
                     itemId:
-                        form.itemId,
+                        formSanitized.itemId,
 
                     cantidad:
                         Number(
-                            form.cantidad
+                            formSanitized.cantidad
                         ),
 
                     usuario: user
@@ -563,10 +572,8 @@ export default function RackTransferModal({
                         </label>
 
                         <select
-                            {...register(
-                                "rackDestino"
-                            )}
-
+                            {...register("rackDestino")}
+                            onChange={(e) => setValue("rackDestino", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                         >
 
                             <option value="">

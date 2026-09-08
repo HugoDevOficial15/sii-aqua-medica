@@ -4,6 +4,7 @@ import { FaPlus } from "react-icons/fa";
 
 import Loader from "../../../components/Loader";
 import { notifySuccess, notifyError } from "../../../utils/notify";
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { validateMaterial } from "../../../schemas/meterialSchema";
 
 import {
@@ -101,8 +102,15 @@ export default function ItemModal({ data, onClose, onSuccess }) {
     };
 
     const buildPayload = (form) => {
-        const tipo = form.tipo || selectedType || data?.tipo;
-        const payload = { ...form };
+        const tipo = sanitizeTextTrim(form.tipo || selectedType || data?.tipo || "");
+        const payload = {
+            ...form,
+            tipo,
+            nombre: sanitizeTextTrim(form.nombre || ""),
+            descripcion: sanitizeText(form.descripcion || "").trim(),
+            tipoUnidad: sanitizeTextTrim(form.tipoUnidad || ""),
+            estatus: sanitizeTextTrim(form.estatus || "activo")
+        };
 
         if (tipo === "materia_prima") {
             payload.color = form.color ?? "#2563eb";
@@ -119,8 +127,8 @@ export default function ItemModal({ data, onClose, onSuccess }) {
     };
 
     const onSubmit = async (form) => {
-
-        const result = validateMaterial(form);
+        const cleanedForm = buildPayload(form);
+        const result = validateMaterial(cleanedForm);
 
         if (!result.isValid) {
 
@@ -144,7 +152,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                 );
             }
 
-            const payload = buildPayload(form);
+            const payload = buildPayload(cleanedForm);
 
             if (data) {
 
@@ -220,6 +228,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                         <select
                             {...register("tipo")}
+                            onChange={(e) => setValue("tipo", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                             style={styles.input}
                         >
                             <option value="">Tipo</option>
@@ -241,12 +250,14 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                         <input
                             placeholder="Nombre"
                             {...register("nombre")}
+                            onChange={(e) => setValue("nombre", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                             style={styles.input}
                         />
 
                         <input
                             placeholder="Descripción"
                             {...register("descripcion")}
+                            onChange={(e) => setValue("descripcion", sanitizeText(e.target.value), { shouldValidate: true })}
                             style={styles.input}
                         />
 
@@ -259,6 +270,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                             <select
                                 {...register("tipoUnidad")}
+                                onChange={(e) => setValue("tipoUnidad", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                                 style={{
                                     ...styles.input,
                                     flex: 1
@@ -271,6 +283,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                             <select
                                 {...register("estatus")}
+                                onChange={(e) => setValue("estatus", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                                 style={{
                                     ...styles.input,
                                     flex: 1

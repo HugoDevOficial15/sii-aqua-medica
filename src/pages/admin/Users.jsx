@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import { useLocation } from "react-router-dom";
 
+import { sanitizeText } from "../../utils/sanitize";
 import { exportInformacionUserPDF } from "../../utils/exportInformacionUser";
 
 // Loader
@@ -263,11 +264,13 @@ export default function Users({ onClose }) {
   });
 
   // Filtro de busqueda
-  const filteredUsers = users.filter(
-    (user) =>
-      user.nomina.toString().toLowerCase().includes(search.toLowerCase()) ||
-      user.nombre.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredUsers = users.filter((user) => {
+    const termino = sanitizeText(search).trim().toLowerCase();
+    const nomina = sanitizeText(user?.nomina ?? "").toLowerCase();
+    const nombre = sanitizeText(user?.nombre ?? "").toLowerCase();
+
+    return nomina.includes(termino) || nombre.includes(termino);
+  });
 
   // Ordenar Usuarios
   const sortedUsers = [...filteredUsers].sort((a, b) => {
@@ -334,19 +337,25 @@ export default function Users({ onClose }) {
 
       const userData = {
         ...data,
+        nombre: sanitizeText(data.nombre || "").trim(),
+        area: sanitizeText(data.area || "").trim(),
+        puesto: sanitizeText(data.puesto || "").trim(),
+        rol: sanitizeText(data.rol || "").trim(),
         nomina: Number(data.nomina),
-        email: data.nomina + "@aquamedica.com",
+        email: `${sanitizeText(data.nomina ?? "").trim()}@aquamedica.com`,
         activo: true,
         estado: "activo",
-        curp: (data.curp || "")
+        curp: sanitizeText(data.curp || "")
           .trim()
           .replace(/[\s\-_/\\]+/g, "")
           .toUpperCase(),
-        rfc: (data.rfc || "")
+        rfc: sanitizeText(data.rfc || "")
           .trim()
           .replace(/[\s\-_/\\]+/g, "")
           .toUpperCase(),
-        nss: (data.nss || "").trim().replace(/[^\d]/g, ""),
+        nss: sanitizeText(data.nss || "")
+          .trim()
+          .replace(/[^\d]/g, ""),
       };
 
       if (editing) {
@@ -738,32 +747,38 @@ export default function Users({ onClose }) {
 
     try {
       const tipo = isWoman(selectedIncapacidadUser)
-        ? incapacidadForm.tipo
+        ? sanitizeText(incapacidadForm.tipo || "incapacidad").trim()
         : "incapacidad";
+
+      const nombreSanitizado = sanitizeText(selectedIncapacidadUser.nombre || "").trim();
+      const notaSanitizada = sanitizeText(incapacidadForm.nota || "").trim();
+      const nominaSanitizada = sanitizeText(selectedIncapacidadUser.nomina ?? "").trim();
+      const generoSanitizado = sanitizeText(
+        selectedIncapacidadUser.Genero || selectedIncapacidadUser.genero || "",
+      )
+        .trim()
+        .toUpperCase();
 
       const createdIncapacidad = await createIncapacidad({
         userId: selectedIncapacidadUser.id,
-        nomina: selectedIncapacidadUser.nomina,
-        nombre: selectedIncapacidadUser.nombre,
-        genero:
-          selectedIncapacidadUser.Genero ||
-          selectedIncapacidadUser.genero ||
-          "",
+        nomina: nominaSanitizada,
+        nombre: nombreSanitizado,
+        genero: generoSanitizado,
         tipo,
         fechaInicio: incapacidadForm.fechaInicio,
         fechaFin: incapacidadForm.fechaFin,
-        nota: incapacidadForm.nota,
+        nota: notaSanitizada,
       });
 
       const nextIncapacidad = {
         id: createdIncapacidad?.id || `temp-incapacidad-${Date.now()}`,
         userId: selectedIncapacidadUser.id,
-        nomina: selectedIncapacidadUser.nomina,
-        nombre: selectedIncapacidadUser.nombre,
+        nomina: nominaSanitizada,
+        nombre: nombreSanitizado,
         tipo,
         fechaInicio: incapacidadForm.fechaInicio,
         fechaFin: incapacidadForm.fechaFin,
-        nota: incapacidadForm.nota,
+        nota: notaSanitizada,
       };
 
       setUsers((prev) =>
@@ -776,7 +791,7 @@ export default function Users({ onClose }) {
                 tipoIncapacidad: tipo,
                 fechaInicioIncapacidad: incapacidadForm.fechaInicio,
                 fechaFinIncapacidad: incapacidadForm.fechaFin,
-                notaIncapacidad: incapacidadForm.nota,
+                notaIncapacidad: notaSanitizada,
               }
             : item,
         ),
@@ -1467,25 +1482,25 @@ export default function Users({ onClose }) {
             </div>
             <div className="modal-body-info">
               <p>
-                <strong>Nombre:</strong> {selectedUser.nombre}
+                <strong>Nombre:</strong> {sanitizeText(selectedUser.nombre || "")}
               </p>
               <p>
-                <strong>Nómina:</strong> {selectedUser.nomina}
+                <strong>Nómina:</strong> {sanitizeText(selectedUser.nomina ?? "")}
               </p>
               <p>
-                <strong>Área:</strong> {selectedUser.area}
+                <strong>Área:</strong> {sanitizeText(selectedUser.area || "")}
               </p>
               <p>
-                <strong>Puesto:</strong> {selectedUser.puesto}
+                <strong>Puesto:</strong> {sanitizeText(selectedUser.puesto || "")}
               </p>
               <p>
-                <strong>CURP:</strong> {selectedUser.curp || "-"}
+                <strong>CURP:</strong> {sanitizeText(selectedUser.curp || "") || "-"}
               </p>
               <p>
-                <strong>RFC:</strong> {selectedUser.rfc || "-"}
+                <strong>RFC:</strong> {sanitizeText(selectedUser.rfc || "") || "-"}
               </p>
               <p>
-                <strong>NSS:</strong> {selectedUser.nss || "-"}
+                <strong>NSS:</strong> {sanitizeText(selectedUser.nss || "") || "-"}
               </p>
             </div>
             <div className="modal-footer">

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { actualizarServicio, crearLogEquipo } from "../../../services/serviciosService";
 import { notifySuccess, notifyError } from "../../../utils/notify";
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { useAuth } from "../../../hooks/useAuth";
 import Loader from "../../../components/Loader";
 import { FaCheck, FaTimes } from "react-icons/fa";
@@ -14,7 +15,9 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
 
     const handleSave = async () => {
 
-        if (!observacion.trim()) {
+        const observacionSanitizada = sanitizeText(observacion).trim();
+
+        if (!observacionSanitizada) {
             notifyError("La observación es obligatoria");
             return;
         }
@@ -27,12 +30,12 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
             });
 
             await crearLogEquipo(servicio.equipoId, {
-                equipoCodigo: servicio.equipoCodigo,
-                observacion,
+                equipoCodigo: sanitizeTextTrim(servicio.equipoCodigo),
+                observacion: observacionSanitizada,
                 fechaServicio: servicio.fecha,
                 mes: servicio.mes,
                 anio: servicio.anio,
-                realizadoPor: user.nombre,
+                realizadoPor: sanitizeText(user?.nombre || "Sistema"),
                 createdAt: new Date()
             });
 
@@ -75,7 +78,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                         className="form-control custom-textarea"
                         placeholder="Escribe la observación del servicio..."
                         value={observacion}
-                        onChange={(e) => setObservacion(e.target.value)}
+                        onChange={(e) => setObservacion(sanitizeText(e.target.value))}
                     />
 
                 </div>

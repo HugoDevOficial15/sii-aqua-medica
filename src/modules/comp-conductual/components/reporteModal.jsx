@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import DOMPurify from "dompurify";
 import { collection, getDocs } from "firebase/firestore";
 import { FaFilePdf } from "react-icons/fa";
 import { db } from "../../../config/firebase";
+import { sanitizeText } from "../../../utils/sanitize";
 import { generateCompConductualReportPDF } from "./pdfGenerator";
 import "./reporteModal.css";
 
@@ -41,15 +41,6 @@ const formatearNombre = (usuario) => {
     .join(" ");
 
   return nombre || usuario?.nomina || "Operador";
-};
-
-const sanitizarTexto = (valor) => {
-  if (valor === null || valor === undefined) return "";
-
-  return DOMPurify.sanitize(String(valor), {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [],
-  });
 };
 
 export default function ReporteModal({ isOpen, usuario, operadores = [], onClose }) {
@@ -144,7 +135,7 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
   }, [isOpen, seleccionado, fechaInicio, fechaFin, tipoReporte]);
 
   useEffect(() => {
-    const termino = sanitizarTexto(busqueda).trim().toLowerCase();
+const termino = sanitizeText(busqueda).trim().toLowerCase();
 
     if (!termino) {
       setSugerencias([]);
@@ -152,8 +143,8 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
     }
 
     const coincidencias = operadores.filter((operador) => {
-      const nomina = sanitizarTexto(operador?.nomina ?? "").toLowerCase();
-      const nombre = sanitizarTexto(formatearNombre(operador)).toLowerCase();
+      const nomina = sanitizeText(operador?.nomina ?? "").toLowerCase();
+      const nombre = sanitizeText(formatearNombre(operador)).toLowerCase();
       return nomina.includes(termino) || nombre.includes(termino);
     });
 
@@ -173,7 +164,7 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
 
   const nombreUsuario = useMemo(() => {
     if (!seleccionado) return "Operador";
-    return sanitizarTexto(formatearNombre(seleccionado));
+    return sanitizeText(formatearNombre(seleccionado));
   }, [seleccionado]);
 
   const handleFechaInicioChange = (value) => {
@@ -255,23 +246,23 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
         .filter(Boolean)
         .map((registro) => ({
           ...registro,
-          periodoEvaluacion: sanitizarTexto(registro?.periodoEvaluacion ?? ""),
-          fechaElaboracion: sanitizarTexto(registro?.fechaElaboracion ?? ""),
-          nombre: sanitizarTexto(registro?.nombre ?? ""),
+          periodoEvaluacion: sanitizeText(registro?.periodoEvaluacion ?? ""),
+          fechaElaboracion: sanitizeText(registro?.fechaElaboracion ?? ""),
+          nombre: sanitizeText(registro?.nombre ?? ""),
         }));
 
       await generateCompConductualReportPDF({
         operador: {
           ...seleccionado,
-          nombre: sanitizarTexto(seleccionado?.nombre ?? ""),
-          nomina: sanitizarTexto(seleccionado?.nomina ?? ""),
+          nombre: sanitizeText(seleccionado?.nombre ?? ""),
+          nomina: sanitizeText(seleccionado?.nomina ?? ""),
         },
-        nombreOperador: sanitizarTexto(nombreUsuario),
-        fechaInicio: sanitizarTexto(fechaInicio),
-        fechaFin: sanitizarTexto(fechaFin),
+        nombreOperador: sanitizeText(nombreUsuario),
+        fechaInicio: sanitizeText(fechaInicio),
+        fechaFin: sanitizeText(fechaFin),
         registros: registrosSanitizados,
         tipoReporte,
-        documentoId: sanitizarTexto(evaluacionSeleccionadaId),
+        documentoId: sanitizeText(evaluacionSeleccionadaId),
         documentoSeleccionado: registrosSanitizados[0] || null,
       });
     } catch (err) {

@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { createMedicamento, updateMedicamento } from "../../../services/medicamentosService"
 import { notifySuccess, notifyError } from "../../../utils/notify"
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize"
 import Loader from "../../../components/Loader"
 import { FaPlus } from "react-icons/fa"
 import { useEffect, useState } from "react"
@@ -121,9 +122,19 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
             setLoading(true)
 
+            const sanitizedForm = {
+                ...form,
+                nombreMedicamento: sanitizeTextTrim(form.nombreMedicamento || ""),
+                presentacion: sanitizeTextTrim(form.presentacion || ""),
+                unidadCantidad: sanitizeTextTrim(form.unidadCantidad || ""),
+                lote: sanitizeTextTrim(form.lote || ""),
+                ubicacion: sanitizeTextTrim(form.ubicacion || ""),
+                observaciones: sanitizeText(form.observaciones || "").trim()
+            }
+
             if (data) {
 
-                await updateMedicamento(data.id, form)
+                await updateMedicamento(data.id, sanitizedForm)
 
                 notifySuccess(
                     "Medicamento actualizado",
@@ -132,7 +143,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
             } else {
 
-                await createMedicamento(form)
+                await createMedicamento(sanitizedForm)
 
                 notifySuccess(
                     "Medicamento creado",
@@ -219,6 +230,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                             className="custom-field"
                             placeholder="Medicamento"
                             {...register("nombreMedicamento")}
+                            onChange={(e) => setValue("nombreMedicamento", sanitizeText(e.target.value), { shouldValidate: true })}
                             onMouseEnter={() => handleFieldEnter("nombreMedicamento")}
                             onMouseLeave={handleFieldLeave}
                             onFocus={() => handleFieldFocus("nombreMedicamento")}
@@ -229,6 +241,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                         <select
                             className="custom-field"
                             {...register("presentacion")}
+                            onChange={(e) => setValue("presentacion", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                             onMouseEnter={() => handleFieldEnter("presentacion")}
                             onMouseLeave={handleFieldLeave}
                             onFocus={() => handleFieldFocus("presentacion")}
@@ -273,6 +286,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                             <select
                                 className="custom-field"
                                 {...register("unidadCantidad")}
+                                onChange={(e) => setValue("unidadCantidad", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                                 onMouseEnter={() => handleFieldEnter("unidadCantidad")}
                                 onMouseLeave={handleFieldLeave}
                                 onFocus={() => handleFieldFocus("unidadCantidad")}
@@ -292,6 +306,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                                 className="custom-field"
                                 placeholder="Lote"
                                 {...register("lote")}
+                                onChange={(e) => setValue("lote", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                                 onMouseEnter={() => handleFieldEnter("lote")}
                                 onMouseLeave={handleFieldLeave}
                                 onFocus={() => handleFieldFocus("lote")}
@@ -348,6 +363,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                             className="custom-field"
                             placeholder="Ubicación"
                             {...register("ubicacion")}
+                            onChange={(e) => setValue("ubicacion", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
                             onMouseEnter={() => handleFieldEnter("ubicacion")}
                             onMouseLeave={handleFieldLeave}
                             onFocus={() => handleFieldFocus("ubicacion")}
@@ -359,6 +375,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                             className="custom-field"
                             placeholder="Observaciones"
                             {...register("observaciones")}
+                            onChange={(e) => setValue("observaciones", sanitizeText(e.target.value), { shouldValidate: true })}
                             onMouseEnter={() => handleFieldEnter("observaciones")}
                             onMouseLeave={handleFieldLeave}
                             onFocus={() => handleFieldFocus("observaciones")}

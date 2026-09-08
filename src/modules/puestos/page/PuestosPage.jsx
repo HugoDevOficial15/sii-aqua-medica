@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { usePuestos } from "../../../hooks/usePuesto";
+import { sanitizeText } from "../../../utils/sanitize";
 
 import PuestoTable from "../../../components/ui/PuestoTable";
 import PuestoModal from "../../../components/ui/PuestoModal";
@@ -17,9 +18,11 @@ export default function PuestosPage() {
   const [search, setSaerch] = useState("");
 
   // Filtro
-  const filteredPuestos = puestos.filter((p) =>
-    (p.nombre || p.no || "").toLowerCase().includes(search.toLocaleLowerCase()),
-  );
+  const filteredPuestos = puestos.filter((p) => {
+    const termino = sanitizeText(search).trim().toLowerCase();
+    const valor = sanitizeText(p.nombre || p.no || "").toLowerCase();
+    return valor.includes(termino);
+  });
 
   const handleNew = () => {
     setPuestoEdit(null);

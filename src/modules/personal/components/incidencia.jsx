@@ -5,6 +5,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { createNotification } from "../../../utils/createNotification";
 import { invalidateCacheGroup } from "../../../utils/cacheStore";
 import { notifyError } from "../../../utils/notify";
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 
 export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -34,14 +35,17 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
   };
 
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const nextValue = typeof value === "string" ? sanitizeText(value) : value;
+    setForm((prev) => ({ ...prev, [field]: nextValue }));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const titulo = form.titulo.trim();
-    const descripcion = form.descripcion.trim();
+    const titulo = sanitizeTextTrim(form.titulo);
+    const descripcion = sanitizeTextTrim(form.descripcion);
+    const tipo = sanitizeTextTrim(form.tipo);
+    const prioridad = sanitizeTextTrim(form.prioridad);
 
     if (!titulo || !descripcion) {
       notifyError("Completa el título y la descripción de la incidencia.");
@@ -60,16 +64,16 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
       const payload = {
         usuarioDocId: userDocId,
         empleadoId: empleado.id || empleado.uid || null,
-        empleadoNombre: empleado.nombre || "Trabajador",
-        empleadoNomina: empleado.nomina || "",
-        empleadoArea: empleado.area || "",
-        reportadoPor: user?.nombre || "Sistema",
+        empleadoNombre: sanitizeTextTrim(empleado.nombre || "Trabajador") || "Trabajador",
+        empleadoNomina: sanitizeTextTrim(empleado.nomina || ""),
+        empleadoArea: sanitizeTextTrim(empleado.area || ""),
+        reportadoPor: sanitizeTextTrim(user?.nombre || "Sistema") || "Sistema",
         reportadoPorUid: user?.uid || null,
-        reportadoPorNomina: user?.nomina || "",
+        reportadoPorNomina: sanitizeTextTrim(user?.nomina || ""),
         titulo,
         descripcion,
-        tipo: form.tipo,
-        prioridad: form.prioridad,
+        tipo,
+        prioridad,
         estado: "pendiente",
         fecha: new Date().toISOString(),
         createdAt: serverTimestamp(),
@@ -112,7 +116,7 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
         extra: {
           incidenciaId: globalRef.id,
           empleadoId: payload.empleadoId,
-          prioridad: form.prioridad,
+          prioridad,
         },
       });
 

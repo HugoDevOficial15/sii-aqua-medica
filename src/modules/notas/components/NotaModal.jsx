@@ -3,6 +3,7 @@
 // ===============================
 
 import { useEffect, useState } from "react";
+import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 
 export default function NotaModal({ show, onClose, onSave, data }) {
 
@@ -58,7 +59,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                         placeholder="Título"
                         value={form.titulo}
                         onChange={(e) =>
-                            setForm({ ...form, titulo: e.target.value })
+                            setForm({ ...form, titulo: sanitizeTextTrim(e.target.value) })
                         }
                     />
 
@@ -68,7 +69,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                         placeholder="Contenido"
                         value={form.contenido}
                         onChange={(e) =>
-                            setForm({ ...form, contenido: e.target.value })
+                            setForm({ ...form, contenido: sanitizeText(e.target.value) })
                         }
                     />
 
