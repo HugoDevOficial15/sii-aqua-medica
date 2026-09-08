@@ -8,7 +8,9 @@ import {
     FiHelpCircle,
     FiChevronRight,
     FiTrendingUp,
-    FiAlertCircle
+    FiAlertCircle,
+    FiActivity,
+    FiHeart
 } from "react-icons/fi";
 
 export default function OperatorMore({
@@ -43,6 +45,20 @@ export default function OperatorMore({
             icon: <FiBookOpen />,
             title: "Capacitaciones",
             subtitle: "Cursos asignados"
+        },
+
+        {
+            id: "citas-medicas", 
+            icon: <FiActivity />,
+            title: "Citas Médicas",
+            subtitle: "Agendar y consultar"
+        },
+        
+        {
+            id: "expediente-clinico",
+            icon: <FiHeart />,
+            title: "Mi expediente Médico",
+            subtitle: "Información clínica"
         },
 
         {

@@ -1617,11 +1617,13 @@ POINTS
     font-weight: 800;
 
     margin: 0;
+
+    color: var(--operator-text);
 }
 
 .points-stat-card span {
 
-    color: #64748B;
+    color: var(--operator-text-soft);
 }
 
 .points-progress-card {
@@ -1645,6 +1647,17 @@ POINTS
     justify-content: space-between;
 
     margin-bottom: 14px;
+}
+
+.progress-header h4 {
+
+    color: var(--operator-text);
+    margin: 0;
+}
+
+.progress-header span {
+
+    color: var(--operator-text-soft);
 }
 
 .premium-progress {
@@ -1686,6 +1699,8 @@ POINTS
     font-weight: 700;
 
     margin-bottom: 18px;
+
+    color: var(--operator-text);
 }
 
 .goal-item,
@@ -1708,16 +1723,22 @@ POINTS
     min-width: 0;
 
     word-break: break-word;
+
+    color: var(--operator-text);
 }
 
 .goal-item svg {
 
     color: #0A4D9D;
+
+    flex-shrink: 0;
 }
 
 .achievement-item svg {
 
     color: #f59e0b;
+
+    flex-shrink: 0;
 }
 
 /* =====================================
@@ -2972,4 +2993,156 @@ CERTIFICATES
     font-weight: 700;
 
     cursor: pointer;
+}
+
+/* =====================================
+RANKING - ÁREA + GLOBAL
+===================================== */
+
+.ranking-area-card {
+    background: linear-gradient(135deg, rgba(10, 77, 157, 0.08), rgba(30, 109, 216, 0.08));
+    border: 1px solid var(--operator-border);
+}
+
+.ranking-header {
+    margin-bottom: 16px;
+}
+
+.ranking-header h4 {
+    margin: 0;
+    color: var(--operator-text);
+    font-weight: 700;
+}
+
+.ranking-header small {
+    color: var(--operator-text-soft);
+    font-size: 12px;
+    display: block;
+    margin-top: 4px;
+}
+
+.ranking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--operator-border);
+}
+
+.ranking-item:last-child {
+    border-bottom: none;
+}
+
+.ranking-badge {
+    font-size: 24px;
+    min-width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.ranking-info {
+    flex: 1;
+}
+
+.ranking-info strong {
+    display: block;
+    color: var(--operator-text);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.ranking-info small {
+    color: var(--operator-text-soft);
+    font-size: 12px;
+}
+
+.ranking-you {
+    background: var(--operator-primary);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+/* Top Global - Compacto */
+.ranking-global-card.compact {
+    margin-bottom: 18px;
+}
+
+.ranking-global-card.compact h4 {
+    margin-bottom: 12px;
+    color: var(--operator-text);
+}
+
+.ranking-compact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ranking-compact-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 8px 0;
+    color: var(--operator-text-soft);
+}
+
+.ranking-compact-item span:nth-child(1) {
+    font-weight: 600;
+    color: var(--operator-primary);
+    min-width: 30px;
+}
+
+.ranking-compact-item span:nth-child(2) {
+    flex: 1;
+    color: var(--operator-text);
+}
+
+.points-badge {
+    background: var(--operator-background);
+    color: var(--operator-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+/* Objetivos con estado */
+.goal-item.completed {
+    opacity: 0.7;
+}
+
+.goal-item.completed span:last-of-type {
+    display: inline-block;
+}
+
+.badge-check {
+    color: #22c55e !important;
+    font-weight: 700;
+    font-size: 14px;
+    margin-left: auto;
+}
+
+/* Últimos logros mejorado */
+.achievement-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.achievement-points {
+    font-size: 11px !important;
+    color: var(--operator-primary) !important;
+    font-weight: 600;
+    margin-top: 2px;
 }
