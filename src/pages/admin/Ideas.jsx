@@ -340,6 +340,7 @@ export default function IdeasAdmin() {
                 </div>
             </div>
 
+      <center>
       <div className="row g-3 mb-4">
         <div className="col-6 col-md-3">
           <div className="card border-0 shadow-sm p-3" style={{ borderRadius: "16px", backgroundColor: "var(--operator-card)" }}>
@@ -366,6 +367,7 @@ export default function IdeasAdmin() {
           </div>
         </div>
       </div>
+      </center> 
 
       <div className="card border-0 mb-4" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px" }}>
         <div className="card-body p-3">

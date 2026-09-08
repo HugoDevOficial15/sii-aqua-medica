@@ -3,6 +3,7 @@ import {
     collection,
     addDoc,
     getDocs,
+    getDoc,
     query,
     where,
     orderBy,
@@ -12,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { sendAdminNotification } from '../utils/sendAdminNotification';
 import { readCachedData, writeCachedData, clearCachedData } from '../utils/cacheStore';
+import { registrarPuntos } from './puntosService';
 
 const ideasCollection = collection(db, 'Ideas');
 const CACHE_KEY = 'sii-aqua-ideas-cache';
@@ -41,6 +43,11 @@ export const createIdea = async ({ user, titulo, categoria, descripcion, imagenB
     };
 
     const docRef = await addDoc(ideasCollection, ideaDoc);
+
+    // Registrar puntos por enviar sugerencia
+    if (user?.uid) {
+        await registrarPuntos(user.uid, "sugerencia_enviada", docRef.id);
+    }
 
     await sendAdminNotification({
         Titulo: "Nueva Idea Recibida",
@@ -80,6 +87,15 @@ export const getIdeasByUser = async (nomina) => {
 
 export const updateIdeaStatus = async (ideaId, estado, comentarioAdmin, administradorRevision) => {
     const ideaRef = doc(db, 'Ideas', ideaId);
+
+    // Si se aprueba la sugerencia, registrar puntos adicionales
+    if (estado === "Aprobada") {
+        const ideaSnapshot = await getIdea(ideaId);
+        if (ideaSnapshot?.uid) {
+            await registrarPuntos(ideaSnapshot.uid, "sugerencia_aprobada", ideaId);
+        }
+    }
+
     await updateDoc(ideaRef, {
         estado,
         comentarioAdmin,
@@ -88,4 +104,14 @@ export const updateIdeaStatus = async (ideaId, estado, comentarioAdmin, administ
     });
     clearCachedData(CACHE_KEY);
     return { success: true };
+};
+
+export const getIdea = async (ideaId) => {
+    try {
+        const ideaRef = doc(db, 'Ideas', ideaId);
+        const snapshot = await getDoc(ideaRef);
+        return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+    } catch (error) {
+        return null;
+    }
 };

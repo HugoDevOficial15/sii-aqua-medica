@@ -16,7 +16,7 @@ export default function OperatorAbout({ onBack }) {
     const [appInfo, setAppInfo] = useState({
         name: capacitorConfig.appName,
         id: capacitorConfig.appId,
-        version: packageJson.version,
+        version: "4.0.1",
         build: "-"
     });
 
@@ -51,7 +51,7 @@ export default function OperatorAbout({ onBack }) {
                 </div>
                 <div className="about-row">
                     <span>Versión</span>
-                    <span>{appInfo.version}</span>
+                    <span>4.0.1</span>
                 </div>
                 <div className="about-row">
                     <span>Build</span>
@@ -100,6 +100,10 @@ export default function OperatorAbout({ onBack }) {
                 <div className="about-row">
                     <span>Licencias</span>
                     <span>React, React Router, Capacitor</span>
+                </div>
+                <div className="about-row">
+                    <span>Permisos en uso</span>
+                    <span>Notificaciones, Uso de Internet</span>
                 </div>
             </div>
 

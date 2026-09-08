@@ -413,7 +413,7 @@ export default function OperatorSuggestionCreate({ onBack }) {
     //  RENDER 3: VISTA DE LISTA (IMG 1 y 3)
     // ==========================================
     return (
-        <div className="suggestion-list-screen" style={{ padding: '0 20px', paddingBottom: '80px' }}>
+        <div className="suggestion-list-screen" style={{ paddingTop: '0', paddingRight: '20px', paddingLeft: '20px', paddingBottom: '80px' }}>
             <div style={{ paddingTop: '20px' }}></div>
 
             {/* BANNER MORADO */}

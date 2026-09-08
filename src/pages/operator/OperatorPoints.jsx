@@ -8,7 +8,7 @@ import {
 import MobileBackButton from "./components/MobileBackButton";
 import { useAuth } from "../../hooks/useAuth";
 import Loader from "../../components/Loader";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import {
     obtenerPuntosUsuario,
@@ -64,45 +64,86 @@ export default function OperatorPoints({ onBack }) {
         if (!user?.uid) return;
 
         setLoading(true);
+        let unsubscribePuntos;
+        let unsubscribeHistorial;
 
-        // Listener en tiempo real para puntos
-        const puntosRef = doc(db, "users", user.uid, "puntos_general", "general");
-        const unsubscribe = onSnapshot(puntosRef, async (docSnap) => {
-            if (docSnap.exists()) {
-                setPuntos(docSnap.data());
-            }
-
-            // Recargar otros datos cuando cambian los puntos
+        const inicializarDatos = async () => {
             try {
-                // Cargar posición en área
+                // 1. Cargar puntos iniciales (crea documento si no existe)
+                const puntosData = await obtenerPuntosUsuario(user.uid);
+                setPuntos(puntosData || { total: 0, nivel: "Bronce", proximoNivel: 500 });
+
+                // 2. Cargar otros datos iniciales
                 const posicion = await obtenerMiPosicionArea(user.uid);
                 setRanking(posicion);
 
-                // Cargar top de mi área
                 if (posicion?.nombreArea) {
                     const top = await obtenerTopArea(posicion.nombreArea, 3);
                     setTopArea(top);
                 }
 
-                // Cargar top global
                 const topGlob = await obtenerTopGlobal(3);
                 setTopGlobal(topGlob);
 
-                // Cargar últimos logros
                 const logros = await obtenerUltimosLogros(user.uid, 4);
                 setUltimosLogros(logros);
 
-                // Cargar objetivos completados este mes
                 const objetivosCompletados = await obtenerObjetivosCompletados(user.uid);
                 setObjetivos(objetivosCompletados);
-            } catch (error) {
-                console.error("Error al actualizar datos:", error);
-            } finally {
-                setLoading(false);
-            }
-        });
 
-        return () => unsubscribe();
+                // 3. Suscribirse al listener en tiempo real para puntos
+                const puntosRef = doc(db, "users", user.uid, "puntos_general", "general");
+                unsubscribePuntos = onSnapshot(puntosRef, async (docSnap) => {
+                    if (docSnap.exists()) {
+                        const nuevosPuntos = docSnap.data();
+                        setPuntos(nuevosPuntos);
+
+                        // Actualizar ranking cuando cambian los puntos
+                        try {
+                            const posicionActualizada = await obtenerMiPosicionArea(user.uid);
+                            setRanking(posicionActualizada);
+
+                            if (posicionActualizada?.nombreArea) {
+                                const topActualizado = await obtenerTopArea(posicionActualizada.nombreArea, 3);
+                                setTopArea(topActualizado);
+                            }
+
+                            const topGlobalActualizado = await obtenerTopGlobal(3);
+                            setTopGlobal(topGlobalActualizado);
+                        } catch (err) {
+                            // Error al actualizar ranking, pero mantener UI activa
+                        }
+                    }
+                }, (error) => {
+                    // Error en listener
+                });
+
+                // 4. Listener para historialPuntos para actualizaciones en tiempo real de logros
+                const historialRef = collection(db, "users", user.uid, "historialPuntos");
+                const q = query(historialRef, orderBy("fechaCreacion", "desc"), limit(4));
+                unsubscribeHistorial = onSnapshot(q, (snapshot) => {
+                    const logros = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    setUltimosLogros(logros);
+                }, (error) => {
+                    // Error en listener de historial
+                });
+
+                setLoading(false);
+            } catch (error) {
+                setLoading(false);
+                setPuntos({ total: 0, nivel: "Bronce", proximoNivel: 500 });
+            }
+        };
+
+        inicializarDatos();
+
+        return () => {
+            if (unsubscribePuntos) unsubscribePuntos();
+            if (unsubscribeHistorial) unsubscribeHistorial();
+        };
     }, [user?.uid]);
 
     if (loading) return <Loader text="Cargando tu información de puntos..." />;

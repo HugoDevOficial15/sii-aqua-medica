@@ -16,7 +16,8 @@
       "Bash(xargs -I{} sh -c 'echo ==={}===; cat \"{}\" 2>/dev/null')",
       "Bash(npm install *)",
       "Bash(xxd)",
-      "Bash(rm -f capacitor.config.json.save)"
+      "Bash(rm -f capacitor.config.json.save)",
+      "Bash(git add *)"
     ]
   }
 }
