@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import "./components/personal.css";
 import {
   FaEllipsisV,
   FaMedal,
@@ -103,27 +104,6 @@ const mapMedicalHistoryRecords = (docs = []) =>
       type: "historialMedico",
       fecha: doc.data().fechaCierre || doc.data().fechaApertura,
     }));
-
-const buildAllRecordsFromSnapshots = ({
-  reconocimientosSnapshot,
-  incidenciasSnapshot,
-  incapacidadesSnapshot,
-  ordenesSnapshot,
-}) => ({
-  reconocimientos: reconocimientosSnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })),
-  incidencias: incidenciasSnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })),
-  incapacidades: incapacidadesSnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })),
-  historialesMedicos: mapMedicalHistoryRecords(ordenesSnapshot.docs),
-});
 
 const BATCH_IN_QUERY_LIMIT = 10;
 
@@ -382,21 +362,39 @@ export default function Personal() {
     const empleadoIds = [usuario?.uid, usuario?.id, usuario?.uidFirebase]
       .filter(Boolean)
       .map((value) => String(value).trim().toLowerCase());
-    const empleadoNomina = String(usuario?.nomina || "").trim();
-    const recordEmpleadoIds = [record?.empleadoId, record?.userId, record?.usuarioId, record?.uid]
+    const empleadoNomina = String(usuario?.nomina || "").trim().toLowerCase();
+    const empleadoNombre = String(usuario?.nombre || "").trim().toLowerCase();
+    const recordEmpleadoIds = [
+      record?.empleadoId,
+      record?.userId,
+      record?.usuarioId,
+      record?.uid,
+      record?.idPaciente,
+      record?.pacienteId,
+    ]
       .filter(Boolean)
       .map((value) => String(value).trim().toLowerCase());
     const recordNomina = String(
-      record?.empleadoNomina || record?.nomina || record?.nominaUsuario || record?.nominaPaciente || record?.nominaEmpleado || "",
-    ).trim();
+      record?.empleadoNomina ||
+        record?.nomina ||
+        record?.nominaUsuario ||
+        record?.nominaPaciente ||
+        record?.nominaEmpleado ||
+        "",
+    )
+      .trim()
+      .toLowerCase();
+    const recordNombre = String(
+      record?.nombrePaciente || record?.nombreEmpleado || record?.nombre || "",
+    )
+      .trim()
+      .toLowerCase();
 
     const sameId = empleadoIds.length > 0 && recordEmpleadoIds.some((id) => empleadoIds.includes(id));
-    const sameNomina =
-      empleadoNomina &&
-      recordNomina &&
-      String(recordNomina).toLowerCase() === String(empleadoNomina).toLowerCase();
+    const sameNomina = empleadoNomina && recordNomina && empleadoNomina === recordNomina;
+    const sameName = empleadoNombre && recordNombre && empleadoNombre === recordNombre;
 
-    return sameId || sameNomina;
+    return sameId || sameNomina || sameName;
   };
 
   const getUserRecords = (usuario) => {
@@ -426,25 +424,7 @@ export default function Personal() {
       .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
 
     const historialesMedicos = allRecords.historialesMedicos
-      .filter((record) => {
-        const recordEmpleadoId = String(record?.idPaciente || "").trim();
-        const recordNomina = String(record?.nominaPaciente || "").trim();
-        const userNomina = String(usuario?.nomina || "").trim();
-        const recordNombre = String(record?.nombrePaciente || "").toLowerCase().trim();
-        const userName = String(usuario?.nombre || "").toLowerCase().trim();
-
-        const empleadoIds = [usuario?.uid, usuario?.id, usuario?.uidFirebase]
-          .filter(Boolean)
-          .map((value) => String(value).trim().toLowerCase());
-
-        return (
-          (empleadoIds.length > 0 &&
-            recordEmpleadoId &&
-            empleadoIds.includes(String(recordEmpleadoId).trim().toLowerCase())) ||
-          (userNomina && recordNomina && recordNomina === userNomina) ||
-          (userName && recordNombre && recordNombre === userName)
-        );
-      })
+      .filter((record) => matchesEmpleado(usuario, record))
       .sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
 
     const capacitaciones = (allRecords.capacitaciones || [])
@@ -472,10 +452,6 @@ export default function Personal() {
     } catch (error) {
       console.error("Error recargando registros del personal:", error);
     }
-  };
-
-  const toggleUserRecords = (usuario) => {
-    setExpandedUserId((current) => (current === usuario.id ? null : usuario.id));
   };
 
   if (loading) return <Loader text="Cargando personal..." />;
@@ -556,11 +532,11 @@ export default function Personal() {
                 );
 
                 return (
-                  <>
+                  <Fragment key={usuario.id}>
                     <tr
                       className={openActionsId === usuario.id || expandedUserId === usuario.id ? "personal-row-open" : ""}
                       style={{ borderBottom: "1px solid #e5e7eb" }}
-                      onClick={() => toggleUserRecords(usuario)}
+                      onClick={() => setExpandedUserId((current) => (current === usuario.id ? null : usuario.id))}
                     >
                       <td>{usuario.nombre || "—"}</td>
                       <td>{usuario.nomina || "—"}</td>
@@ -734,7 +710,7 @@ export default function Personal() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })
             )}
@@ -795,383 +771,6 @@ export default function Personal() {
           }}
         />
       )}
-
-      <style>{`
-        .header-pagina {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          padding-bottom: 15px;
-        }
-
-        .filter-container {
-          width: 100%;
-          align-items: flex-end;
-          border-radius: 30px;
-          border: 1px solid var(--operator-border);
-          display: flex;
-          background: var(--operator-card);
-          margin-bottom: 20px;
-          padding: 30px;
-          box-shadow: 0 8px 25px var(--operator-shadow);
-          gap: 20px;
-          justify-content: end;
-        }
-
-        .personal-filter-input {
-          width: min(100%, 320px);
-          border: 1px solid var(--operator-border, #dfe7f1);
-          border-radius: 12px;
-          padding: 10px 12px;
-          font-size: 14px;
-          background: var(--operator-card, #ffffff);
-          color: var(--operator-text, #1f2937);
-          outline: none;
-        }
-
-        .personal-filter-input:focus {
-          border-color: var(--operator-primary, #3b82f6);
-          box-shadow: 0 0 0 3px rgba(118, 147, 243, 0.15);
-        }
-
-        .personal-pdf-button {
-          height: 50px;
-          padding: 0 20px;
-          border-radius: 10px;
-          border: none;
-          background: var(--operator-danger);
-          color: #fff;
-          font-weight: 700;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          box-shadow: 0 0 10px var(--operator-danger);
-        }
-
-        .card {
-          position: relative;
-          overflow-x: auto;
-          border-radius: 30px;
-          padding: 38px;
-          z-index: 0;
-        }
-
-        .tabla-personal {
-          table-layout: fixed;
-          width: 100%;
-          border-collapse: separate;
-          border-spacing: 0 10px;
-        }
-
-        .tabla-personal thead th,
-        .tabla-personal tbody td {
-          border-bottom: 3px solid var(--operator-border);
-          font-size: 14px;
-          padding: 8px 10px;
-          vertical-align: middle;
-          word-break: break-word;
-          overflow-wrap: anywhere;
-          max-width: 230px;
-          min-width: 100px;
-        }
-
-        .tabla-personal thead th {
-          border-bottom: 3px solid var(--operator-text);
-          font-size: 20px;
-          font-weight: 900;
-        }
-
-        .tabla-personal tbody tr {
-          position: relative;
-          z-index: 1;
-          overflow: visible;
-          transition: transform 180ms ease, box-shadow 180ms ease;
-        }
-
-        .tabla-personal tbody tr.personal-row-open {
-          z-index: 5;
-        }
-
-        .tabla-personal tbody tr:hover {
-          transform: scale(1.02);
-          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
-        }
-
-        .tabla-personal tbody tr.personal-row-open:hover {
-          transform: none;
-          box-shadow: none;
-        }
-
-        .tabla-personal thead th:nth-child(2),
-        .tabla-personal tbody td:nth-child(2),
-        .tabla-personal thead th:nth-child(4),
-        .tabla-personal tbody td:nth-child(4),
-        .tabla-personal thead th:nth-child(5),
-        .tabla-personal tbody td:nth-child(5) {
-          text-align: center;
-        }
-
-        .personal-actions-cell {
-          position: relative;
-          overflow: visible;
-          z-index: 10;
-          text-align: center;
-        }
-
-        .personal-actions-wrapper {
-          position: relative;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 36px;
-          z-index: 100;
-        }
-
-        .personal-action-menu-button {
-          width: 36px;
-          height: 36px;
-          border: 1px solid var(--operator-border);
-          border-radius: 999px;
-          background: var(--operator-card);
-          color: var(--operator-text);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-        }
-
-        .personal-action-menu-button:hover {
-          background: var(--operator-border);
-          color: var(--operator-primary);
-        }
-
-        .personal-actions-menu {
-          position: absolute;
-          width: max-content;
-          min-width: 170px;
-          background: var(--operator-background);
-          border-radius: 12px;
-          box-shadow: 0 10px 24px var(--operator-shadow);
-          padding: 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          z-index: 1000;
-        }
-
-        .personal-action-menu-item {
-          border: none;
-          background: var(--operator-card);
-          padding: 8px 10px;
-          display: flex;
-          align-items: center;
-          justify-content: flex-start;
-          gap: 10px;
-          font-size: 14px;
-          font-weight: 700;
-          border-radius: 8px;
-          color: var(--operator-text);
-          cursor: pointer;
-        }
-
-        .personal-action-menu-item:hover {
-          background: var(--operator-border);
-          color: rgba(177, 151, 2, 0.87);
-        }
-
-        .personal-action-menu-item.danger:hover {
-          color: var(--operator-danger);
-        }
-
-        .personal-action-menu-item.incapacidad:hover {
-          color: rgba(143, 83, 253, 0.8);
-        }
-
-        .personal-action-menu-item.incapacidad:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .personal-details-row td {
-          background: rgba(255, 255, 255, 0.02);
-          padding: 0;
-          border: none;
-        }
-
-        .personal-details-cell {
-          padding: 0 !important;
-        }
-
-        .personal-details-box {
-          background: var(--operator-card, #ffffff);
-          border: 1px solid var(--operator-border, #dfe7f1);
-          border-radius: 14px;
-          padding: 16px;
-          margin: 0 0 12px;
-          z-index: 10;
-        }
-
-        .personal-record-filter {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-bottom: 12px;
-        }
-
-        .personal-record-filter-btn {
-          min-height: 36px;
-          border: 1px solid var(--operator-border, #dfe7f1);
-          background: transparent;
-          color: var(--operator-text, #1f2937);
-          border-radius: 12px;
-          padding: 7px 12px;
-          font-size: 14px;
-          font-weight: 700;
-          cursor: pointer;
-        }
-
-        .personal-record-filter-btn.active.todos {
-          border-color: rgba(118, 147, 243, 0.8);
-          color: var(--operator-primary, #2563eb);
-        }
-
-        .personal-record-filter-btn.active.reconocimiento {
-          border: 3px solid rgba(155, 138, 43, 0.25);
-          color: rgba(155, 133, 10, 0.87);
-        }
-
-        .personal-record-filter-btn.active.incidencia {
-          border: 3px solid rgba(239, 68, 68, 0.34);
-          color: #f33030;
-        }
-
-        .personal-record-filter-btn.active.incapacidad {
-          border: 3px solid #ca56ff48;
-          color: #c12fee;
-        }
-
-        .personal-record-filter-btn.active.historialMedico {
-          border: 3px solid rgba(34, 159, 197, 0.31);
-          color: #24c2c2;
-        }
-
-        .personal-record-filter-btn.active.capacitacion {
-          border: 3px solid rgba(20, 184, 166, 0.5);
-          color: #0d9488;
-        }
-
-        .personal-record-table {
-          width: 100%;
-          border-collapse: collapse;
-          table-layout: fixed;
-        }
-
-        .personal-record-table thead th,
-        .personal-record-table tbody td {
-          padding: 10px 12px;
-          text-align: left;
-          border-bottom: 1px solid var(--operator-border, #dfe7f1);
-          color: var(--operator-text, #1f2937);
-          font-size: 12px;
-          vertical-align: top;
-          word-break: break-word;
-          overflow-wrap: anywhere;
-        }
-
-        .personal-record-table thead th {
-          font-weight: 800;
-          background: rgba(148, 163, 184, 0.06);
-        }
-
-        .personal-record-action-cell {
-          width: 90px;
-          text-align: center !important;
-        }
-
-        .personal-record-view-btn {
-          border: none;
-          background: var(--operator-form);
-          color: var(--operator-text, #1f2937);
-          border-radius: 10px;
-          padding: 7px 12px;
-          font-size: 12px;
-          font-weight: 700;
-          cursor: pointer;
-        }
-
-        .personal-status-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 5px 10px;
-          border-radius: 999px;
-          font-size: 11px;
-          font-weight: 500;
-          min-width: 92px;
-          border: 1px solid transparent;
-        }
-
-        .personal-status-badge.success {
-          background: rgba(34, 197, 94, 0.12);
-          color: var(--operator-success);
-
-        }
-
-        .personal-status-badge.warning {
-          background: rgba(146, 37, 235, 0.27) !important;
-          color: var(--operator-incapacidad);
-        }
-
-        .personal-status-badge.danger {
-          background: rgba(239, 68, 68, 0.1);
-          color: var(--operator-danger);
-        }
-
-        .personal-record-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 5px 10px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .personal-record-badge.reconocimiento {
-          background: rgba(250, 223, 70, 0.25);
-          color: var(--operator-raconocimiento);
-        }
-
-        .personal-record-badge.incidencia {
-          background: rgba(239, 68, 68, 0.34);
-          color: var(--operator-incidencia);
-        }
-
-        .personal-record-badge.incapacidad {
-          background: #ca56ff48;
-          color: var(--operator-incapacidad);
-        }
-
-        .personal-record-badge.historialMedico {
-          background: rgba(34, 159, 197, 0.31);
-          color: var(--operator-historialMedico);
-        }
-
-        .personal-record-badge.capacitacion {
-          background: rgba(20, 184, 166, 0.25);
-          color: #0d9488;
-        }
-
-        .personal-record-empty {
-          padding: 14px 8px 2px;
-          color: var(--operator-text, #1f2937);
-          font-size: 13px;
-          opacity: 0.8;
-        }
-      `}</style>
     </div>
   );
 }
