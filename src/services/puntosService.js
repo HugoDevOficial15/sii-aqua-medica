@@ -5,9 +5,7 @@ import {
   getDocs,
   setDoc,
   addDoc,
-  serverTimestamp,
-  query,
-  where
+  serverTimestamp
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { actualizarRankingConArea } from "./rankingService";
@@ -34,12 +32,11 @@ export const registrarPuntos = async (userId, tipo, referencia) => {
     const puntos = PUNTO_RULES[tipo]?.puntos || 0;
 
     if (puntos === 0) {
-      console.warn(`Tipo de punto no configurado: ${tipo}`);
       return false;
     }
 
     // 1. Agregar a historial de puntos
-    await addDoc(collection(db, `usuarios/${userId}/historialPuntos`), {
+    await addDoc(collection(db, "users", userId, "historialPuntos"), {
       tipo,
       puntos,
       referencia,
@@ -52,10 +49,8 @@ export const registrarPuntos = async (userId, tipo, referencia) => {
     // 3. Actualizar ranking
     await actualizarRankingConArea(userId);
 
-    console.log(`✅ Puntos registrados: ${puntos} por ${tipo}`);
     return true;
   } catch (error) {
-    console.error("Error al registrar puntos:", error);
     return false;
   }
 };
@@ -64,7 +59,7 @@ export const registrarPuntos = async (userId, tipo, referencia) => {
 export const recalcularPuntos = async (userId) => {
   try {
     const snapshot = await getDocs(
-      collection(db, `usuarios/${userId}/historialPuntos`)
+      collection(db, "users", userId, "historialPuntos")
     );
 
     const total = snapshot.docs.reduce((sum, doc) => sum + doc.data().puntos, 0);
@@ -72,7 +67,7 @@ export const recalcularPuntos = async (userId) => {
     const proximoNivel = calcularProximoNivel(total);
 
     await setDoc(
-      doc(db, `usuarios/${userId}/puntos_general`),
+      doc(db, "users", userId, "puntos_general", "general"),
       {
         total,
         nivel,
@@ -127,7 +122,7 @@ export const calcularProximoNivel = (puntos) => {
 export const obtenerHistorialPuntos = async (userId, limitNum = 10) => {
   try {
     const q = query(
-      collection(db, `usuarios/${userId}/historialPuntos`),
+      collection(db, "users", userId, "historialPuntos"),
       orderBy("fechaCreacion", "desc"),
       limit(limitNum)
     );
@@ -147,7 +142,7 @@ export const obtenerHistorialPuntos = async (userId, limitNum = 10) => {
 export const obtenerPuntosUsuario = async (userId) => {
   try {
     const docSnap = await getDoc(
-      doc(db, `usuarios/${userId}/puntos_general`)
+      doc(db, "users", userId, "puntos_general", "general")
     );
 
     if (docSnap.exists()) {
@@ -156,7 +151,7 @@ export const obtenerPuntosUsuario = async (userId) => {
 
     // Si no existe, crear documento vacío
     await setDoc(
-      doc(db, `usuarios/${userId}/puntos_general`),
+      doc(db, "users", userId, "puntos_general", "general"),
       {
         total: 0,
         nivel: "Bronce",
@@ -171,7 +166,7 @@ export const obtenerPuntosUsuario = async (userId) => {
       proximoNivel: 500
     };
   } catch (error) {
-    console.error("Error al obtener puntos:", error);
+    console.error("Error al obtener información de puntos");
     return null;
   }
 };
@@ -180,7 +175,7 @@ export const obtenerPuntosUsuario = async (userId) => {
 export const obtenerUltimosLogros = async (userId, limitNum = 4) => {
   try {
     const snapshot = await getDocs(
-      collection(db, `usuarios/${userId}/historialPuntos`)
+      collection(db, "users", userId, "historialPuntos")
     );
 
     const logros = snapshot.docs
@@ -205,7 +200,7 @@ export const obtenerObjetivosCompletados = async (userId) => {
     const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
 
     const snapshot = await getDocs(
-      collection(db, `usuarios/${userId}/historialPuntos`)
+      collection(db, "users", userId, "historialPuntos")
     );
 
     const objetivos = {};

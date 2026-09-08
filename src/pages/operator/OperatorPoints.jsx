@@ -8,6 +8,8 @@ import {
 import MobileBackButton from "./components/MobileBackButton";
 import { useAuth } from "../../hooks/useAuth";
 import Loader from "../../components/Loader";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../../config/firebase";
 import {
     obtenerPuntosUsuario,
     obtenerUltimosLogros,
@@ -60,44 +62,48 @@ export default function OperatorPoints({ onBack }) {
 
     useEffect(() => {
         if (!user?.uid) return;
-        cargarDatos();
-    }, [user?.uid]);
 
-    const cargarDatos = async () => {
-        try {
-            setLoading(true);
+        setLoading(true);
 
-            // 1. Cargar puntos
-            const puntosData = await obtenerPuntosUsuario(user.uid);
-            setPuntos(puntosData);
-
-            // 2. Cargar posición en área
-            const posicion = await obtenerMiPosicionArea(user.uid);
-            setRanking(posicion);
-
-            // 3. Cargar top de mi área
-            if (posicion?.nombreArea) {
-                const top = await obtenerTopArea(posicion.nombreArea, 3);
-                setTopArea(top);
+        // Listener en tiempo real para puntos
+        const puntosRef = doc(db, "users", user.uid, "puntos_general", "general");
+        const unsubscribe = onSnapshot(puntosRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                setPuntos(docSnap.data());
             }
 
-            // 4. Cargar top global
-            const topGlob = await obtenerTopGlobal(3);
-            setTopGlobal(topGlob);
+            // Recargar otros datos cuando cambian los puntos
+            try {
+                // Cargar posición en área
+                const posicion = await obtenerMiPosicionArea(user.uid);
+                setRanking(posicion);
 
-            // 5. Cargar últimos logros
-            const logros = await obtenerUltimosLogros(user.uid, 4);
-            setUltimosLogros(logros);
+                // Cargar top de mi área
+                if (posicion?.nombreArea) {
+                    const top = await obtenerTopArea(posicion.nombreArea, 3);
+                    setTopArea(top);
+                }
 
-            // 6. Cargar objetivos completados este mes
-            const objetivosCompletados = await obtenerObjetivosCompletados(user.uid);
-            setObjetivos(objetivosCompletados);
-        } catch (error) {
-            console.error("Error al cargar datos de puntos:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+                // Cargar top global
+                const topGlob = await obtenerTopGlobal(3);
+                setTopGlobal(topGlob);
+
+                // Cargar últimos logros
+                const logros = await obtenerUltimosLogros(user.uid, 4);
+                setUltimosLogros(logros);
+
+                // Cargar objetivos completados este mes
+                const objetivosCompletados = await obtenerObjetivosCompletados(user.uid);
+                setObjetivos(objetivosCompletados);
+            } catch (error) {
+                console.error("Error al actualizar datos:", error);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [user?.uid]);
 
     if (loading) return <Loader text="Cargando tu información de puntos..." />;
 
@@ -110,7 +116,7 @@ export default function OperatorPoints({ onBack }) {
 
             {/* HERO SECTION */}
             <div className="points-hero">
-                <div className="points-badge">🏆</div>
+                <div style={{ fontSize: "64px", marginBottom: "16px" }}>🏆</div>
                 <h1>
                     Nivel {puntos?.nivel || "Bronce"}
                     {ranking?.nombreArea && ` • ${ranking.nombreArea}`}
@@ -147,7 +153,7 @@ export default function OperatorPoints({ onBack }) {
             <div className="points-progress-card">
                 <div className="progress-header">
                     <h4>Próximo nivel</h4>
-                    <span>{puntos?.proximoNivel || 0} / 1000</span>
+                    <span>{puntos?.total || 0} / 1000</span>
                 </div>
                 <div className="premium-progress">
                     <div

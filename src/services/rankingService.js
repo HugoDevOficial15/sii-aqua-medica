@@ -15,11 +15,10 @@ import { db } from "../config/firebase";
 export const actualizarRankingConArea = async (userId) => {
   try {
     // 1. Obtener datos del usuario
-    const userRef = doc(db, `usuarios/${userId}`);
+    const userRef = doc(db, "users", userId);
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-      console.error("Usuario no encontrado");
       return null;
     }
 
@@ -27,43 +26,42 @@ export const actualizarRankingConArea = async (userId) => {
     const { nombreArea, area, equipo, nombre } = userData;
 
     // 2. Obtener puntos del usuario
-    const puntosRef = doc(db, `usuarios/${userId}/puntos_general`);
+    const puntosRef = doc(db, "users", userId, "puntos_general", "general");
     const puntosSnap = await getDoc(puntosRef);
 
     if (!puntosSnap.exists()) {
-      console.error("Puntos del usuario no encontrados");
       return null;
     }
 
     const { total: puntos, nivel } = puntosSnap.data();
 
     // 3. Calcular RANKING GLOBAL
-    const allUsersSnap = await getDocs(collection(db, "rankings_usuarios"));
+    const allUsersSnap = await getDocs(collection(db, "rankings_users"));
     const todosUsuarios = allUsersSnap.docs.map(doc => ({
       uid: doc.id,
       puntos: doc.data().puntos || 0,
       nombreArea: doc.data().nombreArea
     }));
 
-    const usuariosOrdenadosGlobal = todosUsuarios
+    const usersOrdenadosGlobal = todosUsuarios
       .sort((a, b) => b.puntos - a.puntos);
 
-    const posicionGlobal = usuariosOrdenadosGlobal
+    const posicionGlobal = usersOrdenadosGlobal
       .findIndex(u => u.uid === userId) + 1;
 
     // 4. Calcular RANKING DE ÁREA (COMPAÑEROS)
-    const usuariosArea = todosUsuarios.filter(u => u.nombreArea === nombreArea);
-    const usuariosAreaOrdenados = usuariosArea
+    const usersArea = todosUsuarios.filter(u => u.nombreArea === nombreArea);
+    const usersAreaOrdenados = usersArea
       .sort((a, b) => b.puntos - a.puntos);
 
-    const posicionArea = usuariosAreaOrdenados
+    const posicionArea = usersAreaOrdenados
       .findIndex(u => u.uid === userId) + 1;
 
-    const totalEnArea = usuariosArea.length;
+    const totalEnArea = usersArea.length;
 
     // 5. Actualizar documento de ranking
     await setDoc(
-      doc(db, `rankings_usuarios/${userId}`),
+      doc(db, "rankings_users", userId),
       {
         uid: userId,
         nombre,
@@ -82,7 +80,6 @@ export const actualizarRankingConArea = async (userId) => {
 
     return { posicionGlobal, posicionArea, totalEnArea, nombreArea };
   } catch (error) {
-    console.error("Error al actualizar ranking:", error);
     return null;
   }
 };
@@ -91,7 +88,7 @@ export const actualizarRankingConArea = async (userId) => {
 export const obtenerTopArea = async (nombreArea, limitNum = 3) => {
   try {
     const q = query(
-      collection(db, "rankings_usuarios"),
+      collection(db, "rankings_users"),
       where("nombreArea", "==", nombreArea),
       orderBy("puntos", "desc"),
       limit(limitNum)
@@ -112,7 +109,7 @@ export const obtenerTopArea = async (nombreArea, limitNum = 3) => {
 export const obtenerTopGlobal = async (limitNum = 3) => {
   try {
     const q = query(
-      collection(db, "rankings_usuarios"),
+      collection(db, "rankings_users"),
       orderBy("puntos", "desc"),
       limit(limitNum)
     );
@@ -131,7 +128,7 @@ export const obtenerTopGlobal = async (limitNum = 3) => {
 // Mi posición en el área
 export const obtenerMiPosicionArea = async (userId) => {
   try {
-    const userSnap = await getDoc(doc(db, `rankings_usuarios/${userId}`));
+    const userSnap = await getDoc(doc(db, "rankings_users", userId));
 
     if (!userSnap.exists()) {
       return null;
@@ -152,11 +149,11 @@ export const obtenerMiPosicionArea = async (userId) => {
   }
 };
 
-// Obtener todos los usuarios del área para comparativa
+// Obtener todos los users del área para comparativa
 export const obtenerUsuariosArea = async (nombreArea) => {
   try {
     const q = query(
-      collection(db, "rankings_usuarios"),
+      collection(db, "rankings_users"),
       where("nombreArea", "==", nombreArea),
       orderBy("puntos", "desc")
     );
@@ -167,7 +164,7 @@ export const obtenerUsuariosArea = async (nombreArea) => {
       posicion: index + 1
     }));
   } catch (error) {
-    console.error("Error al obtener usuarios del área:", error);
+    console.error("Error al obtener users del área:", error);
     return [];
   }
 };
