@@ -966,6 +966,12 @@ export default function PdfGeneralModal({
           background: var(--operator-form);
           color: var(--operator-text);
           border: 1px solid var(--operator-border);
+          outline: none;
+        }
+
+        .personal-pdf-date-field input:focus {
+          border-color: var(--operator-primary);
+          background: var(--operator-card);
         }
 
         .personal-record-filter {
@@ -1011,14 +1017,14 @@ export default function PdfGeneralModal({
 
         .personal-record-filter-btn.active.historialMedico {
           background: none;
-          border: 3px solid #24c2c2;
-          color: rgba(20, 184, 166, 0.2);
+          border: 3px solid rgba(20, 184, 166, 0.2) ;
+          color: #24c2c2;
         }
 
         .personal-record-filter-btn.active.capacitacion {
           background: none;
-          border: 3px solid #rgba(20, 184, 166, 0.2);
-          color: #059669
+          border: 3px solid rgba(20, 184, 166, 0.2);
+          color: #059669; 
         }
 
         .personal-record-filter-btn.active.general:hover {

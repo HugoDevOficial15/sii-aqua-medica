@@ -5,6 +5,7 @@ import { verificarYCrearFelicitaciones } from "../utils/felicitaciones";
 
 import MainLayout from "../layouts/MainLayout";
 import ProtectedRoute from "../components/ProtectedRouter";
+import Loader from "../components/Loader";
 import { useAuth } from "../hooks/useAuth";
 
 const Login = lazy(() => import("../modules/auth/Login"));
@@ -43,33 +44,26 @@ const CompConductual = lazy(() => import("../modules/comp-conductual/CompConduct
 const MisCitasMedicas = lazy(() => import("../pages/operator/MisCitasMedicas"));
 const ExpedienteClinico = lazy(() => import("../pages/operator/ExpedienteClinico"));
 
-const RouteFallback = () => (
-    <div style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#0f172a",
-        color: "#e2e8f0",
-        fontFamily: "sans-serif"
-    }}>
-        Cargando...
-    </div>
-);
+const RouteFallback = () => <Loader text="Preparando la página..." />;
 
 export default function AppRouter() {
     
     const { user } = useAuth();
     const felicitacionesCheckedRef = useRef(false);
+    const authReadyUidRef = useRef(null);
 
     useEffect(() => {
-        if (!user?.uid) return;
+        if (!user?.uid) {
+            authReadyUidRef.current = null;
+            return;
+        }
 
-        const triggerPreload = () => {
-            window.dispatchEvent(new CustomEvent('sii-aqua-auth-ready'));
-        };
+        if (authReadyUidRef.current === user.uid) {
+            return;
+        }
 
-        triggerPreload();
+        authReadyUidRef.current = user.uid;
+        window.dispatchEvent(new CustomEvent('sii-aqua-auth-ready'));
     }, [user?.uid]);
 
     useEffect(() => {

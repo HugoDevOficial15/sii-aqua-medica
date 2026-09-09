@@ -636,21 +636,21 @@ export default function AlmacenMaterialesPage() {
                 border-radius: 12px;
                 border: 1px solid var(--operator-border);
                 padding: 0 14px;
-                background: var(--operator-form);
+                background: var(--operator-card);
                 color: var(--operator-text);
                 font-size: 14px;
                 outline: none;
             }
 
             .form-control:focus {
-                background-color: var(--operator-form);
+                background-color: var(--operator-card);
                 border-color: var(--operator-primary);
                 color: var(--operator-text);
                 box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
             }
 
             .form-control::placeholder {
-                color: var(--operator-text);
+                color: var(--operator-text-soft);
                 opacity: 0.6;
             }
 
@@ -659,7 +659,7 @@ export default function AlmacenMaterialesPage() {
                 border-radius: 12px;
                 border: 1px solid var(--operator-border);
                 padding: 0 14px;
-                background: var(--operator-form);
+                background: var(--operator-card);
                 color: var(--operator-text);
                 font-size: 14px;
                 outline: none;
@@ -668,7 +668,7 @@ export default function AlmacenMaterialesPage() {
             }
 
             .form-select:focus {
-                background-color: var(--operator-form);
+                background-color: var(--operator-card);
                 border-color: var(--operator-primary);
                 box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
             }

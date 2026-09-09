@@ -532,7 +532,7 @@ export default function Solicitudes() {
                                                 <div className="solicitudes-actions-menu">
                                                     <button
                                                         type="button"
-                                                        className="solicitudes-action-item"
+                                                        className="solicitudes-action-item-ver"
                                                         onClick={() => {
                                                             handleVer(s);
                                                             setOpenActionsId(null);
@@ -546,7 +546,7 @@ export default function Solicitudes() {
                                                         <>
                                                             <button
                                                                 type="button"
-                                                                className="solicitudes-action-item text-success"
+                                                                className="solicitudes-action-item-aceptar"
                                                                 disabled={procesando}
                                                                 onClick={() => {
                                                                     handleAprobar(s);
@@ -559,7 +559,7 @@ export default function Solicitudes() {
 
                                                             <button
                                                                 type="button"
-                                                                className="solicitudes-action-item text-danger"
+                                                                className="solicitudes-action-item-rechazar"
                                                                 disabled={procesando}
                                                                 onClick={() => {
                                                                     handleRechazar(s);
@@ -575,7 +575,7 @@ export default function Solicitudes() {
                                                     {s.estado !== "Pendiente" && (
                                                         <button
                                                             type="button"
-                                                            className="solicitudes-action-item text-danger"
+                                                            className="solicitudes-action-item-eliminar"
                                                             disabled={procesando}
                                                             onClick={() => {
                                                                 handleEliminar(s);
@@ -674,7 +674,10 @@ export default function Solicitudes() {
     transition: none !important;
 }
 
-.solicitudes-action-item {
+.solicitudes-action-item-ver,
+.solicitudes-action-item-rechazar,
+.solicitudes-action-item-eliminar,
+.solicitudes-action-item-aceptar {
     width: 100%;
     display: flex;
     align-items: center;
@@ -689,8 +692,24 @@ export default function Solicitudes() {
     text-align: center;
 }
 
-.solicitudes-action-item:hover {
-    background: var(--operator-background);
+.solicitudes-action-item-ver:hover {
+    background: var(--operator-border);
+    color: var(--operator-primary);
+}
+
+.solicitudes-action-item-aceptar:hover {
+    background: var(--operator-border);
+    color: var(--operator-success);
+}
+
+.solicitudes-action-item-rechazar:hover {
+    background: var(--operator-border);
+    color: var(--operator-danger);
+}
+
+.solicitudes-action-item-eliminar:hover {
+    background: var(--operator-border);
+    color: var(--operator-danger);
 }
 
 .solicitudes-filter-grid {
@@ -731,7 +750,7 @@ export default function Solicitudes() {
 }
 
 .form-select {
-    background: var(--operator-form);
+    background: var(--operator-card);
     color: var(--operator-text) !important;
     border-color:var(--operator-border);
     border-radius: 10px;
@@ -740,12 +759,12 @@ export default function Solicitudes() {
 .form-select:focus {
     box-shadow: 0 0 0 0.25rem var(--operator-focus);
     border-color: var(--operator-primary);
-    background: var(--operator-border);
+    background: var(--operator-card);
 }
 
 .form-control {
     height: 50px;
-    background: var(--operator-form) !important;
+    background: var(--operator-card) !important;
     color: var(--operator-text) !important;
     border: 1px solid var(--operator-border);
     border-radius: 12px;
@@ -759,17 +778,18 @@ export default function Solicitudes() {
 }
 
 .form-control::placeholder {
-    color: var(--operator-text);
+    color: var(--operator-text-soft);
     background: transparent;
     
 }
 
 .form-control-date {
-    background: var(--operator-form) !important;
+    background: var(--operator-card) !important;
     color: var(--operator-text) !important;
     border: 1px solid var(--operator-border);
     border-radius: 10px;
     padding: 0 10px;
+    outline: none;
 }
 
 .form-control-date:focus {

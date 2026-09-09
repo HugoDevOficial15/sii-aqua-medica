@@ -235,7 +235,61 @@ export default function SoporteAdmin() {
   };
 
   return (
-    <div className="page-transition">
+    <>
+
+    {/* FILTRO */}
+
+      <style>{`
+        .soporte-placeholder::placeholder {
+          color: var(--operator-text-soft) !important;
+          opacity: 1;
+        }
+
+        .soporte-filters {
+          display: flex;
+          align-items: stretch;
+          gap: 12px;
+          flex-wrap: nowrap;
+        }
+
+        .soporte-filter-item {
+          flex: 1 1 0;
+          min-width: 0;
+          display: flex;
+        }
+
+        .soporte-filter-item > .form-control,
+        .soporte-filter-item > .form-select {
+          width: 100%;
+          min-height: 46px;
+          height: 46px;
+          display: flex;
+          align-items: center;
+          justify-content: end;
+        }
+
+        @media (max-width: 991.98px) {
+          .soporte-filters {
+            flex-wrap: wrap;
+          }
+
+          .soporte-filter-item {
+            flex: 1 1 calc(50% - 6px);
+          }
+        }
+
+        @media (max-width: 575.98px) {
+          .soporte-filters {
+            flex-wrap: wrap;
+          }
+
+          .soporte-filter-item {
+            flex: 1 1 100%;
+          }
+        }
+      `}</style>
+
+      <div className="page-transition">
 
             <div className="d-flex justify-content-between mb-4">
                 <div className="page mb-3">
@@ -247,18 +301,18 @@ export default function SoporteAdmin() {
       {/* BARRA DE FILTROS (Estilo Img 2) */}
       <div className="card border-0 mb-4" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px" }}>
         <div className="contenedor-header">
-          <div className="row g-3 justify-content-end">
-            <div className="col-12 col-md-4">
+          <div className="soporte-filters">
+            <div className="soporte-filter-item" style={{ flex: "1.4 1 0" }}>
               <input
                 type="text"
-                className="form-control"
+                className="form-control soporte-placeholder"
                 placeholder="Buscar por nombre, nómina o asunto..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                style= {styles.input}
+                style={styles.input}
               />
             </div>
-            <div className="col-6 col-md-3">
+            <div className="soporte-filter-item">
               <select
                 className="form-select"
                 value={estadoFilter}
@@ -271,7 +325,7 @@ export default function SoporteAdmin() {
                 <option value="Resuelto">Resuelto</option>
               </select>
             </div>
-            <div className="col-6 col-md-3">
+            <div className="soporte-filter-item">
               <select
                 className="form-select"
                 value={pantallaFilter}
@@ -284,7 +338,7 @@ export default function SoporteAdmin() {
                 ))}
               </select>
             </div>
-            <div className="col-6 col-md-3">
+            <div className="soporte-filter-item">
               <select
                 className="form-select"
                 value={origenFilter}
@@ -296,7 +350,7 @@ export default function SoporteAdmin() {
                 <option value="administrador">Administradores</option>
               </select>
             </div>
-            <div className="col-12 col-md-2">
+            <div className="soporte-filter-item" style={{ flex: "0.7 1 0" }}>
               <input
                 type="date"
                 className="form-control"
@@ -552,7 +606,7 @@ export default function SoporteAdmin() {
                   COMENTARIO PARA EL OPERADOR
                 </label>
                 <textarea
-                  className="form-control mb-3"
+                  className="form-control soporte-placeholder mb-3"
                   style={{ ...styles.input, minHeight: "80px" }}
                   placeholder="Explica el diagnóstico o la solución aplicada..."
                   value={comentario}
@@ -598,25 +652,10 @@ export default function SoporteAdmin() {
               </button>
             </div>
           </div>
-        <style>{`
-          .contenedor-header {
-            width: 100%;
-            align-items: flex-end;
-            border-radius: 30px;
-            border: 1px solid var(--operator-border);
-            display: flex;
-            background: var(--operator-card);
-            margin-bottom: 20px;
-            padding: 30px;
-            box-shadow: 0 8px 25px var(--operator-shadow);
-            gap: 20px;
-            justify-content: end;
-          }
-
-        `}</style>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -624,11 +663,10 @@ export default function SoporteAdmin() {
 // definidas en operator-theme.css (light/dark), en vez de hex fijos.
 const styles = {
   input: {
-    backgroundColor: "var(--operator-form)",
+    backgroundColor: "var(--operator-card)",
     color: "var(--operator-text)",
     border: "1px solid var(--operator-border)",
     borderRadius: "10px",
-    placeholderColor: "var(--operator-text-soft)",
   },
 
   backdrop: {

@@ -233,7 +233,7 @@ export default function AgendaForm({ onSaved }) {
     };
 
     return (
-        <div className="card p-3 agenda-form-card">
+        <div className="card p-3 agenda-form">
             <h5>Crear Agenda Médica</h5>
 
             <div className="mb-3">
@@ -321,7 +321,7 @@ export default function AgendaForm({ onSaved }) {
                     ))}
 
                     <button
-                        className="btn btn-sm btn-outline-primary"
+                        className="btn-agregar"
                         onClick={() => addRango(d.id)}
                     >
                         + Agregar horario
@@ -329,15 +329,19 @@ export default function AgendaForm({ onSaved }) {
                 </div>
             ))}
 
-            <button className="btn btn-success mt-3" onClick={handleSubmit} disabled={guardando}>
+            <button className="btn-guardar" onClick={handleSubmit} disabled={guardando}>
                 {guardando ? "Guardando..." : "Guardar Agenda"}
             </button>
             <style>{`
-                .agenda-form-card { background: var(--operator-card); color: var(--operator-text); border-color: var(--operator-border); }
-                .agenda-form-card .form-control { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
-                .agenda-form-card .form-control:focus { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
-                .agenda-form-card, .form-control::placeholder { color: var(--operator-text); background: transparent; }
+                .agenda-form { background: var(--operator-card); color: var(--operator-text); border-color: var(--operator-border); padding: 30px !important; border-radius: 30px; !important }
+                .form-control { background: var(--operator-form); color: var(--operator-text); border-color: var(--operator-border); border-radius: 10px; }
+                .form-control:focus { background: var(--operator-card); color: var(--operator-text); border-color: var(--operator-primary); }
+                .form-control::placeholder { color: var(--operator-text); background: transparent; }
                 .agenda-form-divider { border-color: var(--operator-border); opacity: 1; }
+                .btn-guardar { background: var(--operator-success); color: #fff; border: none; border-radius: 14px; padding: 10px 20px; font-weight: 700; cursor: pointer; }
+                .btn-guardar:hover { transition: transform 0.3s ease; transform: scale(1.02); box-shadow: 0 0px 10px 3px rgba(44, 223, 53, 0.2); }
+                .btn-agregar { background: var(--operator-primary); align-items: center; color: #fff; border: none; border-radius: 10px; padding: 5px 5px; font-size: 12px; font-weight: 700; cursor: pointer; }
+                .btn-agregar:hover { transition: transform 0.3s ease; transform: scale(1.02); box-shadow: 0 0px 10px 3px rgba(44, 123, 223, 0.2); }
             `}</style>
         </div>
     );

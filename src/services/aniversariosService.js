@@ -4,6 +4,7 @@ import { clearCachedData, clearCachedByPrefix, invalidateCacheGroup, readCachedD
 
 const ANIVERSARIOS_CACHE_KEY = "sii-aqua-aniversarios-summary";
 const ANIVERSARIOS_BY_MONTH_CACHE_KEY = "sii-aqua-aniversarios-by-month";
+const ANIVERSARIOS_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const getAniversariosCacheKey = () => {
     if (typeof window === "undefined") return ANIVERSARIOS_CACHE_KEY;
@@ -30,19 +31,19 @@ const getAniversariosByMesCacheKey = (mes) => {
 };
 
 const saveAniversariosCache = (data) => {
-    writeCachedData(getAniversariosCacheKey(), data);
+    writeCachedData(getAniversariosCacheKey(), data, ANIVERSARIOS_CACHE_TTL_MS);
 };
 
 const readAniversariosCache = () => {
-    return readCachedData(getAniversariosCacheKey(), 20 * 60 * 1000);
+    return readCachedData(getAniversariosCacheKey(), ANIVERSARIOS_CACHE_TTL_MS);
 };
 
 const saveAniversariosByMesCache = (mes, data) => {
-    writeCachedData(getAniversariosByMesCacheKey(mes), data);
+    writeCachedData(getAniversariosByMesCacheKey(mes), data, ANIVERSARIOS_CACHE_TTL_MS);
 };
 
 const readAniversariosByMesCache = (mes) => {
-    return readCachedData(getAniversariosByMesCacheKey(mes), 20 * 60 * 1000);
+    return readCachedData(getAniversariosByMesCacheKey(mes), ANIVERSARIOS_CACHE_TTL_MS);
 };
 
 const parseFecha = (fechaValue) => {

@@ -170,7 +170,7 @@ export default function PuestosPage() {
 
             .form-control::placeholder {
     
-                color: var(--operator-text);
+                color: var(--operator-text-soft);
                 
             }
                 /* CONTENEDOR DE LA TABLA */

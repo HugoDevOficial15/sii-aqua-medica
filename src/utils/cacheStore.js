@@ -2,14 +2,45 @@ const DEFAULT_TTL_MS = 20 * 60 * 1000;
 const SESSION_CACHE_PREFIX = "session-cache:";
 const MEMORY_CACHE = new Map();
 
-export const readMemoryCache = (key) => {
-  if (!key) return null;
-  return MEMORY_CACHE.get(key) ?? null;
+const getMemoryEntry = (value) => {
+  if (value && typeof value === "object" && "data" in value) {
+    return value;
+  }
+
+  return null;
 };
 
-export const writeMemoryCache = (key, data) => {
+export const readMemoryCache = (key, ttlMs = null) => {
+  if (!key) return null;
+
+  const entry = MEMORY_CACHE.get(key);
+  if (entry === undefined || entry === null) {
+    return null;
+  }
+
+  const memoryEntry = getMemoryEntry(entry);
+  if (memoryEntry) {
+    const age = Date.now() - Number(memoryEntry.cachedAt || 0);
+    const effectiveTtl = ttlMs ?? memoryEntry.ttlMs ?? null;
+
+    if (effectiveTtl !== null && age > effectiveTtl) {
+      MEMORY_CACHE.delete(key);
+      return null;
+    }
+
+    return memoryEntry.data ?? null;
+  }
+
+  return entry;
+};
+
+export const writeMemoryCache = (key, data, ttlMs = null) => {
   if (!key) return;
-  MEMORY_CACHE.set(key, data);
+  MEMORY_CACHE.set(key, {
+    data,
+    cachedAt: Date.now(),
+    ttlMs,
+  });
 };
 
 export const clearMemoryCache = (key) => {
@@ -24,7 +55,7 @@ export const clearMemoryCaches = () => {
 export const readCachedData = (key, ttlMs = DEFAULT_TTL_MS) => {
   if (typeof window === "undefined") return null;
 
-  const memoryData = readMemoryCache(key);
+  const memoryData = readMemoryCache(key, ttlMs);
   if (memoryData !== undefined && memoryData !== null) {
     return memoryData;
   }
@@ -37,14 +68,15 @@ export const readCachedData = (key, ttlMs = DEFAULT_TTL_MS) => {
     if (!parsed || typeof parsed !== "object") return null;
 
     const age = Date.now() - Number(parsed.cachedAt || 0);
-    if (age > ttlMs) {
+    const effectiveTtl = Number(parsed.ttlMs || ttlMs || DEFAULT_TTL_MS);
+    if (age > effectiveTtl) {
       localStorage.removeItem(key);
       return null;
     }
 
     const data = parsed.data ?? null;
     if (data !== null) {
-      writeMemoryCache(key, data);
+      writeMemoryCache(key, data, effectiveTtl);
     }
     return data;
   } catch (error) {
@@ -52,16 +84,17 @@ export const readCachedData = (key, ttlMs = DEFAULT_TTL_MS) => {
   }
 };
 
-export const writeCachedData = (key, data) => {
+export const writeCachedData = (key, data, ttlMs = DEFAULT_TTL_MS) => {
   if (typeof window === "undefined") return;
 
-  writeMemoryCache(key, data);
+  writeMemoryCache(key, data, ttlMs);
 
   try {
     localStorage.setItem(
       key,
       JSON.stringify({
         cachedAt: Date.now(),
+        ttlMs,
         data,
       })
     );
@@ -70,10 +103,10 @@ export const writeCachedData = (key, data) => {
   }
 };
 
-export const writeSessionCache = (key, data) => {
+export const writeSessionCache = (key, data, ttlMs = DEFAULT_TTL_MS) => {
   if (typeof window === "undefined") return;
 
-  writeMemoryCache(key, data);
+  writeMemoryCache(key, data, ttlMs);
 
   try {
     const sessionKey = `${SESSION_CACHE_PREFIX}${key}`;
@@ -81,6 +114,7 @@ export const writeSessionCache = (key, data) => {
       sessionKey,
       JSON.stringify({
         cachedAt: Date.now(),
+        ttlMs,
         data,
       })
     );
@@ -89,10 +123,10 @@ export const writeSessionCache = (key, data) => {
   }
 };
 
-export const readSessionCache = (key) => {
+export const readSessionCache = (key, ttlMs = DEFAULT_TTL_MS) => {
   if (typeof window === "undefined") return null;
 
-  const memoryData = readMemoryCache(key);
+  const memoryData = readMemoryCache(key, ttlMs);
   if (memoryData !== undefined && memoryData !== null) {
     return memoryData;
   }
@@ -105,9 +139,16 @@ export const readSessionCache = (key) => {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
 
+    const age = Date.now() - Number(parsed.cachedAt || 0);
+    const effectiveTtl = Number(parsed.ttlMs || ttlMs || DEFAULT_TTL_MS);
+    if (age > effectiveTtl) {
+      localStorage.removeItem(sessionKey);
+      return null;
+    }
+
     const data = parsed.data ?? null;
     if (data !== null) {
-      writeMemoryCache(key, data);
+      writeMemoryCache(key, data, effectiveTtl);
     }
     return data;
   } catch (error) {

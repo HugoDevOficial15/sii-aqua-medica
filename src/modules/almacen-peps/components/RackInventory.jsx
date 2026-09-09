@@ -90,10 +90,10 @@ export default function RackInventory({ rack }) {
                     .rack-empty-box {
                         padding: 20px;
                         border-radius: 14px;
-                        background: #f9fafb;
-                        border: 1px dashed #d1d5db;
+                        background: var(--operator-card);
+                        border: 1px dashed var(--operator-text-soft);
                         text-align: center;
-                        color: #6b7280;
+                        color: var(--operator-text-soft);
                     }
                 `}</style>
 

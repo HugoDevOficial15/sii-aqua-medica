@@ -25,7 +25,7 @@ export default function MaterialesTable({ data, onEdit }) {
 
     return (
         <div className="table-responsive-container">
-            <table className="table table-hover align-middle">
+            <table className="table align-middle">
 
             <thead>
                 <tr>
@@ -120,6 +120,7 @@ export default function MaterialesTable({ data, onEdit }) {
         .card {
             border-radius: 30px;
             box-shadow: 0px 8px 25px var(--operator-shadow);
+            padding: 40px;
         }
 
         .row {
@@ -166,6 +167,11 @@ export default function MaterialesTable({ data, onEdit }) {
             overflow-wrap: anywhere;
             max-width: 230px;
             min-width: 100px;
+        }
+
+        .table tbody tr.materiales-row-active {
+          transform: none !important;
+          box-shadow: none !important;
         }
 
 

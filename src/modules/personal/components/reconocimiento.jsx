@@ -3,9 +3,9 @@ import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch } f
 import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
 import { createNotification } from "../../../utils/createNotification";
-import { invalidateCacheGroup } from "../../../utils/cacheStore";
 import { notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
+import { invalidateUserAndPersonalCaches } from "../../../services/usersService";
 
 export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -142,7 +142,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
       }
 
       await batch.commit();
-      invalidateCacheGroup("sii-aqua-personal-records:");
+      invalidateUserAndPersonalCaches();
 
       if (!userFirebaseUid) {
         console.warn("No se pudo identificar al destinatario del reconocimiento; no se envió la notificación.");

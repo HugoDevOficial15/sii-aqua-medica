@@ -118,8 +118,9 @@ export default function MedicamentosPage() {
                 display: flex;
                 justify-content: end;
                 align-items: center;
-                padding: 20px;
-                border-radius: 14px;
+                padding: 30px;
+                border: 1px solid var(--operator-border);
+                border-radius: 30px;
                 background: var(--operator-card);
                 box-shadow: 0 0px 10px var(--operator-shadow);
                 margin-bottom: 20px;

@@ -34,6 +34,7 @@ const DASHBOARD_CACHE_KEY = "sii-aqua-dashboard-stats";
 const USERS_CACHE_KEY = "sii-aqua-users-cache";
 const PUESTOS_CACHE_KEY = "sii-aqua-puestos-cache";
 const INCAPACIDADES_CACHE_KEY = "sii-aqua-incapacidades-cache";
+const DASHBOARD_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const CACHE_TTL_MS = 20 * 60 * 1000;
 
 const readCacheItem = (key) => {
@@ -43,6 +44,19 @@ const readCacheItem = (key) => {
 const writeCacheItem = (key, data) => {
   writeMemoryCache(key, data);
   writeSessionCache(key, data);
+};
+
+export const invalidateUserAndPersonalCaches = () => {
+  invalidateCacheGroup(
+    "sii-aqua-users-cache",
+    "sii-aqua-incapacidades-cache",
+    "sii-aqua-users-page-data",
+    "sii-aqua-personal-records:",
+    "sii-aqua-personal-users:",
+    "sii-aqua-dashboard-stats",
+    "sii-aqua-aniversarios-summary",
+    "sii-aqua-aniversarios-by-month",
+  );
 };
 
 const getDashboardCacheKey = () => {
@@ -58,11 +72,11 @@ const getDashboardCacheKey = () => {
 };
 
 const saveDashboardCache = (stats) => {
-  writeSessionCache(getDashboardCacheKey(), stats);
+  writeCachedData(getDashboardCacheKey(), stats, DASHBOARD_CACHE_TTL_MS);
 };
 
 const readDashboardCache = () => {
-  return readSessionCache(getDashboardCacheKey());
+  return readCachedData(getDashboardCacheKey(), DASHBOARD_CACHE_TTL_MS);
 };
 
 const refreshUsersCacheSnapshot = async (userIds = []) => {
@@ -284,15 +298,7 @@ export const createUser = async (userData) => {
       mustChangePassword: false,
     });
 
-    invalidateCacheGroup(
-      "sii-aqua-users-cache",
-      "sii-aqua-incapacidades-cache",
-      "sii-aqua-users-page-data",
-      "sii-aqua-personal-records:",
-      "sii-aqua-dashboard-stats",
-      "sii-aqua-aniversarios-summary",
-      "sii-aqua-aniversarios-by-month",
-    );
+    invalidateUserAndPersonalCaches();
     await refreshUsersCacheSnapshot();
   } catch (error) {
     console.log("Error creando usuario: ", error);
@@ -305,15 +311,7 @@ export const updateUser = async (id, data) => {
   const ref = doc(db, "users", id);
 
   await updateDoc(ref, data);
-  invalidateCacheGroup(
-    "sii-aqua-users-cache",
-    "sii-aqua-incapacidades-cache",
-    "sii-aqua-users-page-data",
-    "sii-aqua-personal-records:",
-    "sii-aqua-dashboard-stats",
-    "sii-aqua-aniversarios-summary",
-    "sii-aqua-aniversarios-by-month",
-  );
+  invalidateUserAndPersonalCaches();
   await refreshUsersCacheSnapshot([id]);
 };
 
@@ -400,13 +398,7 @@ export const createIncapacidad = async ({
     await batch.commit();
   }
 
-  invalidateCacheGroup(
-    "sii-aqua-users-cache",
-    "sii-aqua-incapacidades-cache",
-    "sii-aqua-users-page-data",
-    "sii-aqua-personal-records:",
-    "sii-aqua-dashboard-stats",
-  );
+  invalidateUserAndPersonalCaches();
   await refreshUsersCacheSnapshot(userId ? [userId] : []);
 
   return { id: docRef.id, ...payload };
@@ -483,17 +475,25 @@ export const getIncapacidadesByUsers = async (userIds = [], usersData = []) => {
   });
 
   const nominaIds = [...new Set([...usersByNomina.keys()])];
-  const queryGroups = chunkArray(ids, BATCH_IN_QUERY_LIMIT).map((batch) =>
-    query(incapacidadesCollection, where("userId", "in", batch))
-  );
-  const nominaGroups = chunkArray(nominaIds, BATCH_IN_QUERY_LIMIT).map((batch) =>
-    query(incapacidadesCollection, where("nomina", "in", batch.map((value) => Number(value))))
-  );
+  const uniqueQueryKeys = new Set();
+  const queryGroups = [];
 
-  const snapshots = await Promise.all([
-    ...queryGroups.map((q) => getDocs(q)),
-    ...nominaGroups.map((q) => getDocs(q)),
-  ]);
+  chunkArray(ids, BATCH_IN_QUERY_LIMIT).forEach((batch) => {
+    const key = `userId:${batch.slice().sort().join("|")}`;
+    if (uniqueQueryKeys.has(key)) return;
+    uniqueQueryKeys.add(key);
+    queryGroups.push(query(incapacidadesCollection, where("userId", "in", batch)));
+  });
+
+  chunkArray(nominaIds, BATCH_IN_QUERY_LIMIT).forEach((batch) => {
+    const numericBatch = batch.map((value) => Number(value));
+    const key = `nomina:${numericBatch.slice().sort((a, b) => a - b).join("|")}`;
+    if (uniqueQueryKeys.has(key)) return;
+    uniqueQueryKeys.add(key);
+    queryGroups.push(query(incapacidadesCollection, where("nomina", "in", numericBatch)));
+  });
+
+  const snapshots = await Promise.all(queryGroups.map((q) => getDocs(q)));
 
   const results = {};
 
@@ -561,15 +561,7 @@ export const updateUserFields = async (nomina, updates) => {
   const existingData = userDoc.data();
 
   await updateDoc(doc(db, "users", userDoc.id), updates);
-  invalidateCacheGroup(
-    "sii-aqua-users-cache",
-    "sii-aqua-incapacidades-cache",
-    "sii-aqua-users-page-data",
-    "sii-aqua-personal-records:",
-    "sii-aqua-dashboard-stats",
-    "sii-aqua-aniversarios-summary",
-    "sii-aqua-aniversarios-by-month",
-  );
+  invalidateUserAndPersonalCaches();
   await refreshUsersCacheSnapshot([userDoc.id]);
 
   return {

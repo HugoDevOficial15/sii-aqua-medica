@@ -6,7 +6,7 @@ import { updateUser } from "../../services/usersService";
 import { changeFirebasePassword } from "../../services/authPasswordService";
 
 export default function ChangePassword() {
-    const { user, login } = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
 
     const [newPassword, setNewPassword] = useState("");
@@ -42,14 +42,8 @@ export default function ChangePassword() {
                 mustChangePassword: false,
             });
 
-            const updatedUser = {
-                ...user,
-                mustChangePassword: false,
-            };
-
-            login(updatedUser);
-
-            navigate(user.rol === "admin" ? "/dashboard" : "/app");
+            await logout();
+            navigate("/", { replace: true });
         } catch (err) {
             console.log(err);
             setError(

@@ -53,14 +53,24 @@ export const saveSurveyResponse =
         });
 
         if (userDocId) {
-            const userYearResultsRef = doc(
-                collection(db, "users", userDocId, String(anioActual), "informacion", "Resultados")
+            const userYearSurveyResultsCollection = collection(
+                db,
+                "users",
+                userDocId,
+                String(anioActual),
+                "informacion",
+                "Resultados",
+                "Encuestas",
+                "items"
             );
 
-            batch.set(userYearResultsRef, {
+            const userYearSurveyResultsRef = doc(userYearSurveyResultsCollection);
+
+            batch.set(userYearSurveyResultsRef, {
                 ...data,
-                id: userYearResultsRef.id,
+                id: userYearSurveyResultsRef.id,
                 usuarioDocId: userDocId,
+                tipo: "encuesta",
                 createdAt: new Date().toISOString(),
             });
         }

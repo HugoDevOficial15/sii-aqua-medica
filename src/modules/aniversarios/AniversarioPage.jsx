@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { getAniversariosByMes, refreshAniversariosByMes } from "../../services/aniversariosService";
 
@@ -9,6 +9,8 @@ import AnniversaryList from "./components/AnniversaryList";
 export default function AniversarioPage() {
 
     const { mes } = useParams();
+    const navigate = useNavigate();
+    const monthCacheRef = useRef(new Map());
     const [data, setData] = useState({
         cumpleanios: [],
         aniversarios: []
@@ -19,24 +21,65 @@ export default function AniversarioPage() {
         loadData();
     }, [mes]);
 
+    const readMonthCache = (monthKey) => {
+        if (typeof window === "undefined") return null;
+
+        const key = `aniversarios-month-${monthKey}`;
+        const memoryCached = monthCacheRef.current.get(key);
+        if (memoryCached) {
+            return memoryCached;
+        }
+
+        try {
+            const stored = JSON.parse(window.sessionStorage.getItem(key) || "null");
+            if (stored && typeof stored === "object") {
+                monthCacheRef.current.set(key, stored);
+                return stored;
+            }
+        } catch (error) {
+            // no-op
+        }
+
+        return null;
+    };
+
+    const saveMonthCache = (monthKey, payload) => {
+        const key = `aniversarios-month-${monthKey}`;
+        if (!payload) return;
+
+        monthCacheRef.current.set(key, payload);
+
+        if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(key, JSON.stringify(payload));
+        }
+    };
+
     const loadData = async ({ forceRefresh = false } = {}) => {
         try {
             setLoading(true);
 
-            if (forceRefresh) {
-                const res = await refreshAniversariosByMes(Number(mes));
-                setData(res || { cumpleanios: [], aniversarios: [] });
-                return;
-            }
+            const monthKey = Number(mes);
+            const cacheKey = `aniversarios-${monthKey}`;
 
-            const cached = await getAniversariosByMes(Number(mes), { source: "cache" });
-            if (cached) {
-                setData(cached);
-                return;
+            if (!forceRefresh) {
+                const memoryCached = readMonthCache(monthKey);
+                if (memoryCached) {
+                    setData(memoryCached);
+                    return;
+                }
+
+                const cached = await getAniversariosByMes(monthKey, { source: "cache" });
+                if (cached) {
+                    saveMonthCache(monthKey, cached);
+                    setData(cached);
+                    return;
+                }
             }
 
             const res = await refreshAniversariosByMes(Number(mes));
-            setData(res || { cumpleanios: [], aniversarios: [] });
+            const nextData = res || { cumpleanios: [], aniversarios: [] };
+            saveMonthCache(monthKey, nextData);
+            setData(nextData);
         } catch (error) {
             console.error("Error cargando celebraciones:", error);
             setData({ cumpleanios: [], aniversarios: [] });
@@ -57,7 +100,7 @@ export default function AniversarioPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <div>
                         <h6>
-                            <strong>Celebraciones del Mes</strong>
+                            <strong className="titulo">Celebraciones del Mes</strong>
                         </h6>
 
                         <span className="badge-title">
@@ -65,20 +108,25 @@ export default function AniversarioPage() {
                         </span>
                     </div>
 
-                    <button
-                        type="button"
-                        className="dashboard-refresh-button"
-                        onClick={handleRefresh}
-                        disabled={loading}
-                    >
-                        {loading ? "Actualizando..." : "Actualizar"}
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        <button
+                            type="button"
+                            className="back-button"
+                            onClick={() => navigate("/aniversarios")}
+                        >
+                            ← Regresar
+                        </button>
+
+                        <button
+                            type="button"
+                            className="dashboard-refresh-button"
+                            onClick={handleRefresh}
+                            disabled={loading}
+                        >
+                            {loading ? "Actualizando..." : "Actualizar"}
+                        </button>
+                    </div>
                 </div>
-
-                <span className="badge-title">
-                    AQUA Médica
-                </span>
-
                 <div className="content-grid mt-4">
 
                     <div className="panel">
@@ -157,6 +205,36 @@ export default function AniversarioPage() {
                         grid-template-columns:1fr;
                     }
 
+                }
+
+                .titulo {
+                    color: var(--operator-text);
+                }
+
+                .back-button,
+                .dashboard-refresh-button {
+                    border:none;
+                    border-radius: 12px;
+                    padding:12px 18px;
+                    color:#fff;
+                    font-weight:700;
+                    cursor:pointer;
+                    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+                    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+                }
+
+                .back-button {
+                    background: linear-gradient(135deg, #475569, #334155);
+                }
+
+                .dashboard-refresh-button {
+                    background:linear-gradient(135deg, #6366f1, #8b5cf6);
+                }
+
+                .back-button:hover,
+                .dashboard-refresh-button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 0 10px 4px rgba(37, 99, 235, 0.3);
                 }
 
             `}</style>

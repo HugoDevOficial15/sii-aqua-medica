@@ -2,18 +2,66 @@ import { db } from "../../config/firebase";
 import {
     collection,
     addDoc,
+    doc,
     getDocs,
     query,
-    where
+    where,
+    writeBatch
 } from "firebase/firestore";
 
 const responseCollection = collection(db, "respuestasCapacitaciones");
+
+const resolveUserDocIdByFirebaseUid = async (userId) => {
+    if (!userId) return null;
+
+    try {
+        const q = query(collection(db, "users"), where("uid", "==", userId));
+        const snapshot = await getDocs(q);
+        return snapshot.empty ? null : snapshot.docs[0].id;
+    } catch (error) {
+        console.error("Error resolviendo el docId del usuario para capacitaciones:", error);
+        return null;
+    }
+};
 
 // ======================
 // GUARDAR RESPUESTA
 // ======================
 export const saveTrainingResponse = async (data) => {
-    await addDoc(responseCollection, data);
+    const responseRef = doc(responseCollection);
+    const userDocId = await resolveUserDocIdByFirebaseUid(data?.userId);
+    const anioActual = new Date().getFullYear();
+
+    const batch = writeBatch(db);
+    batch.set(responseRef, {
+        ...data,
+        id: responseRef.id,
+    });
+
+    if (userDocId) {
+        const userYearTrainingResultsCollection = collection(
+            db,
+            "users",
+            userDocId,
+            String(anioActual),
+            "informacion",
+            "Resultados",
+            "Capacitaciones",
+            "items"
+        );
+
+        const userYearTrainingResultsRef = doc(userYearTrainingResultsCollection);
+
+        batch.set(userYearTrainingResultsRef, {
+            ...data,
+            id: userYearTrainingResultsRef.id,
+            usuarioDocId: userDocId,
+            tipo: "capacitacion",
+            createdAt: new Date().toISOString(),
+        });
+    }
+
+    await batch.commit();
 };
 
 // ======================

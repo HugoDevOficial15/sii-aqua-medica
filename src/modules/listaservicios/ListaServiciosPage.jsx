@@ -17,19 +17,12 @@ import Loader from "../../components/Loader";
 
 import {
   FaCheck,
-  FaCalendarAlt,
   FaClosedCaptioning,
-  FaCalendarMinus,
-  FaCalendarDay,
-  FaBuilding,
   FaSearch,
   FaFilePdf,
-  FaFileExport,
   FaEyeSlash,
   FaLock,
-  FaChartPie,
   FaChartBar,
-  FaCalendarPlus,
   FaTrashAlt,
   FaEllipsisV,
 } from "react-icons/fa";
@@ -735,7 +728,7 @@ export default function ListaServiciosPage() {
           padding: 30px;
           box-shadow: 0 8px 25px var(--operator-shadow);
           gap: 20px;
-          justify-content: flex-start;
+          justify-content: flex-end;
           flex-wrap: wrap;
         }
 
@@ -846,7 +839,7 @@ export default function ListaServiciosPage() {
           border-radius: 12px;
           background-color: var(--operator-card);
           border: 1px solid var(--operator-border);
-          padding: 0 14px;
+          padding: 10px 14px;
           color: var(--operator-text);
           font-size: 14px;
           outline: none;

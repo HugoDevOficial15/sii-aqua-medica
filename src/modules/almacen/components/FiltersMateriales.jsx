@@ -48,7 +48,7 @@ export default function FiltersMateriales({ filters, setFilters }) {
         .form-control {
           height: 50px;
           border-radius: 12px;
-          background: var(--operator-form);
+          background: var(--operator-card);
           border: 1px solid var(--operator-border);
           padding: 0 14px;
           color: var(--operator-text);
@@ -57,12 +57,12 @@ export default function FiltersMateriales({ filters, setFilters }) {
         }
 
         .form-control:focus {
-          background: var(--operator-form);
+          background: var(--operator-card);
           color: var(--operator-text);
         }
 
         .form-control::placeholder {
-          color: var(--operator-text);
+          color: var(--operator-text-soft);
           background: transparent;
         }
       `}</style>

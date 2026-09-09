@@ -244,14 +244,9 @@ export default function AgendaMesPage() {
         }
     }
 
-
-
     useEffect(() => {
 
-
-
         fetchData();
-
 
         if (equipos.length > 0 && !selectedEquipo) {
             setSelectedEquipo(equipos[0]);
@@ -259,9 +254,8 @@ export default function AgendaMesPage() {
 
     }, [mes])
 
-
-
     const [showDisponibilidad, setShowDisponibilidad] = useState(false);
+
     return (
         <div className="container-fluid page-transition">
 
@@ -276,7 +270,7 @@ export default function AgendaMesPage() {
                     className="btn btm-sm btn-primary"
                     onClick={async () => {
                         setSelectedEquipo();
-
+                        
                         const global = await getServiciosGlobal(anio, Number(mes));
                         setServicios(global);
 

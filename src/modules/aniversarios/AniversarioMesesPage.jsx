@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaGift } from "react-icons/fa";
 
@@ -6,6 +6,7 @@ import { getCumpleaniosPorMes, refreshCumpleaniosPorMes } from "../../services/a
 
 export default function AniversarioMesesPage() {
     const navigate = useNavigate();
+    const monthsCacheRef = useRef(new Map());
 
     const meses = [
         "Enero", "Febrero", "Marzo", "Abril",
@@ -16,21 +17,63 @@ export default function AniversarioMesesPage() {
     const [conteoPorMes, setConteoPorMes] = useState(Array(12).fill(0));
     const [loading, setLoading] = useState(true);
 
+    const readSummaryCache = () => {
+        const key = "aniversarios-summary";
+        const memoryCached = monthsCacheRef.current.get(key);
+        if (memoryCached) {
+            return memoryCached;
+        }
+
+        if (typeof window === "undefined") {
+            return null;
+        }
+
+        try {
+            const stored = JSON.parse(window.sessionStorage.getItem(key) || "null");
+            if (Array.isArray(stored)) {
+                monthsCacheRef.current.set(key, stored);
+                return stored;
+            }
+        } catch (error) {
+            // no-op
+        }
+
+        return null;
+    };
+
+    const saveSummaryCache = (data) => {
+        const safeData = Array.isArray(data) ? data : Array(12).fill(0);
+        const key = "aniversarios-summary";
+        monthsCacheRef.current.set(key, safeData);
+
+        if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(key, JSON.stringify(safeData));
+        }
+    };
+
     const cargarConteos = async ({ forceRefresh = false } = {}) => {
         try {
             setLoading(true);
 
-            let conteos = null;
-
             if (!forceRefresh) {
-                conteos = await getCumpleaniosPorMes({ source: "cache" });
+                const memoryCached = readSummaryCache();
+                if (memoryCached) {
+                    setConteoPorMes(memoryCached);
+                    return;
+                }
+
+                const conteos = await getCumpleaniosPorMes({ source: "cache" });
+                if (conteos) {
+                    saveSummaryCache(conteos);
+                    setConteoPorMes(conteos);
+                    return;
+                }
             }
 
-            if (!conteos || forceRefresh) {
-                conteos = await refreshCumpleaniosPorMes();
-            }
-
-            setConteoPorMes(conteos || Array(12).fill(0));
+            const data = await refreshCumpleaniosPorMes();
+            const nextValue = data || Array(12).fill(0);
+            saveSummaryCache(nextValue);
+            setConteoPorMes(nextValue);
         } catch (error) {
             console.error("Error cargando aniversarios:", error);
             setConteoPorMes(Array(12).fill(0));
@@ -166,6 +209,14 @@ export default function AniversarioMesesPage() {
                 cursor:pointer;
                 box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
                 trsition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+
+                }
+
+                .dashboard-refresh-button:hover {
+                    transform: translateY(-2px);
+                    brightness(1.1);
+                    box-shadow: 0 0 10px 4px rgba(37, 99, 235, 0.3);     
+                }
 
                 .dashboard-refresh-button:hover:not(:disabled){
                     transform:translateY(-1px);

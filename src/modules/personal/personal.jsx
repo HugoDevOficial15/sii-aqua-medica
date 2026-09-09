@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import "./components/personal.css";
 import {
@@ -14,21 +14,13 @@ import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import Loader from "../../components/Loader";
 import { readSessionCache, writeSessionCache, readMemoryCache, writeMemoryCache } from "../../utils/cacheStore";
-import {
-  getAllowedUsersForPersonal,
-  canAccessPersonalSection,
-} from "../../services/personalConfig";
+import { getAllowedUsersForPersonal, canAccessPersonalSection, } from "../../services/personalConfig";
 import { getUsersPageData } from "../../services/usersService";
 import ReconocimientoModal from "./components/reconocimiento";
 import IncidenciaModal from "./components/incidencia";
-import RecordDetailModal from "./components/RecordDetailModal";
+import RecordDetailModal from "./components/RecordDetailModal"; 
 import PdfGeneralModal from "./components/pdfGeneralModal";
-import IncapacidadModal, {
-  getUserStatusBadge,
-  hasActiveIncapacidad,
-  syncUsersWithIncapacidades,
-  useUserIncapacidades,
-} from "./components/incapacidad";
+import IncapacidadModal, { getUserStatusBadge, hasActiveIncapacidad, } from "./components/incapacidad";
 
 const getRecordTimestamp = (item) => {
   if (!item) return 0;
@@ -125,12 +117,27 @@ const dedupeRecords = (records = []) => {
   });
 };
 
+const getPersonalUsersCacheKey = (usuarioActual) => {
+  if (!usuarioActual) return "sii-aqua-personal-users:anon";
+
+  const uid = usuarioActual?.uid || usuarioActual?.id || usuarioActual?.nomina || "anon";
+  return `sii-aqua-personal-users:${String(uid)}`;
+};
+
 const getPersonalRecordsCacheKey = (usuarioActual) => {
   if (!usuarioActual) return "sii-aqua-personal-records:anon";
 
   const uid = usuarioActual?.uid || usuarioActual?.id || usuarioActual?.nomina || "anon";
   return `sii-aqua-personal-records:${String(uid)}`;
 };
+
+const buildEmptyRecordsState = () => ({
+  reconocimientos: [],
+  incidencias: [],
+  incapacidades: [],
+  historialesMedicos: [],
+  capacitaciones: [],
+});
 
 const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null, options = {}) => {
   const { forceRefresh = false } = options;
@@ -169,6 +176,19 @@ const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null, optio
     ),
   ].filter(Boolean);
   const nominas = [...new Set(validUsers.map((user) => String(user.nomina || "").trim()).filter((value) => value && /^\d+$/.test(value)))];
+  const queryMode = userIds.length > 0 ? "userIds" : "nominas";
+
+  const addUniqueQuery = (queryList, collectionName, field, values) => {
+    if (!Array.isArray(values) || values.length === 0) return;
+
+    const key = `${collectionName}:${field}:${values.slice().sort().join("|")}`;
+    if (queryList.some((item) => item.key === key)) return;
+
+    queryList.push({
+      key,
+      queryRef: query(collection(db, collectionName), where(field, "in", values)),
+    });
+  };
 
   const recognitionQueries = [];
   const incidenceQueries = [];
@@ -176,38 +196,36 @@ const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null, optio
   const medicalQueries = [];
   const capacitacionQueries = [];
 
-  if (userIds.length) {
+  if (queryMode === "userIds") {
     chunkArray(userIds, BATCH_IN_QUERY_LIMIT).forEach((chunk) => {
-      recognitionQueries.push(query(collection(db, "reconocimientos"), where("empleadoId", "in", chunk)));
-      incidenceQueries.push(query(collection(db, "incidencias_personal"), where("empleadoId", "in", chunk)));
-      incapacidadQueries.push(query(collection(db, "incapacidades"), where("userId", "in", chunk)));
-      medicalQueries.push(query(collection(db, "ordenes_medicas"), where("idPaciente", "in", chunk)));
-      capacitacionQueries.push(query(collection(db, "respuestasCapacitaciones"), where("userId", "in", chunk)));
+      addUniqueQuery(recognitionQueries, "reconocimientos", "empleadoId", chunk);
+      addUniqueQuery(incidenceQueries, "incidencias_personal", "empleadoId", chunk);
+      addUniqueQuery(incapacidadQueries, "incapacidades", "userId", chunk);
+      addUniqueQuery(medicalQueries, "ordenes_medicas", "idPaciente", chunk);
+      addUniqueQuery(capacitacionQueries, "respuestasCapacitaciones", "userId", chunk);
     });
-  }
-
-  if (nominas.length) {
+  } else {
     chunkArray(nominas, BATCH_IN_QUERY_LIMIT).forEach((chunk) => {
       const numericChunk = chunk.map(Number).filter((value) => Number.isFinite(value));
-      recognitionQueries.push(query(collection(db, "reconocimientos"), where("empleadoNomina", "in", chunk)));
-      incidenceQueries.push(query(collection(db, "incidencias_personal"), where("empleadoNomina", "in", chunk)));
+      addUniqueQuery(recognitionQueries, "reconocimientos", "empleadoNomina", chunk);
+      addUniqueQuery(incidenceQueries, "incidencias_personal", "empleadoNomina", chunk);
       if (numericChunk.length) {
-        incapacidadQueries.push(query(collection(db, "incapacidades"), where("nomina", "in", numericChunk)));
+        addUniqueQuery(incapacidadQueries, "incapacidades", "nomina", numericChunk);
       }
-      medicalQueries.push(query(collection(db, "ordenes_medicas"), where("nominaPaciente", "in", chunk)));
+      addUniqueQuery(medicalQueries, "ordenes_medicas", "nominaPaciente", chunk);
       if (numericChunk.length) {
-        medicalQueries.push(query(collection(db, "ordenes_medicas"), where("nominaPacienteNum", "in", numericChunk)));
+        addUniqueQuery(medicalQueries, "ordenes_medicas", "nominaPacienteNum", numericChunk);
       }
-      capacitacionQueries.push(query(collection(db, "respuestasCapacitaciones"), where("nominaUsuario", "in", chunk)));
+      addUniqueQuery(capacitacionQueries, "respuestasCapacitaciones", "nominaUsuario", chunk);
     });
   }
 
   const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap, ordenesSnap, capacitacionesSnap, capacitacionesMetaSnap] = await Promise.all([
-    Promise.all(recognitionQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
-    Promise.all(incidenceQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
-    Promise.all(incapacidadQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
-    Promise.all(medicalQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
-    Promise.all(capacitacionQueries.map((q) => getDocs(q))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+    Promise.all(recognitionQueries.map(({ queryRef }) => getDocs(queryRef))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+    Promise.all(incidenceQueries.map(({ queryRef }) => getDocs(queryRef))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+    Promise.all(incapacidadQueries.map(({ queryRef }) => getDocs(queryRef))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+    Promise.all(medicalQueries.map(({ queryRef }) => getDocs(queryRef))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
+    Promise.all(capacitacionQueries.map(({ queryRef }) => getDocs(queryRef))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
     getDocs(collection(db, "capacitaciones")).then((snapshot) => snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))),
   ]);
 
@@ -248,17 +266,13 @@ const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null, optio
 
 export default function Personal() {
   const { user } = useAuth();
+  const userKey = user?.uid || user?.id || user?.nomina || null;
+  const loadGuardRef = useRef(null);
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openActionsId, setOpenActionsId] = useState(null);
   const [expandedUserId, setExpandedUserId] = useState(null);
-  const [allRecords, setAllRecords] = useState({
-    reconocimientos: [],
-    incidencias: [],
-    incapacidades: [],
-    historialesMedicos: [],
-    capacitaciones: [],
-  });
+  const [allRecords, setAllRecords] = useState(buildEmptyRecordsState());
   const [recordFilters, setRecordFilters] = useState({});
   const [actionModal, setActionModal] = useState({ type: null, usuario: null });
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -267,7 +281,31 @@ export default function Personal() {
   const [pdfTargetUser, setPdfTargetUser] = useState(null);
   const [incapacidadModal, setIncapacidadModal] = useState(false);
   const [selectedIncapacidadUser, setSelectedIncapacidadUser] = useState(null);
-  const { userIncapacidades } = useUserIncapacidades(usuarios);
+  const userIncapacidades = useMemo(() => {
+    const map = {};
+
+    usuarios.forEach((usuario) => {
+      const id = usuario?.id || usuario?.uid || usuario?.uidFirebase;
+      if (!id) {
+        return;
+      }
+
+      const isIncapacidad = String(usuario?.estado || "").trim().toLowerCase() === "incapacidad";
+      map[id] = isIncapacidad
+        ? [{
+            id: `${id}-incapacidad`,
+            userId: usuario.id || usuario.uid || id,
+            nomina: usuario.nomina,
+            tipo: usuario.tipoIncapacidad || "incapacidad",
+            fechaInicio: usuario.fechaInicioIncapacidad || null,
+            fechaFin: usuario.fechaFinIncapacidad || null,
+            nota: usuario.notaIncapacidad || "",
+          }]
+        : [];
+    });
+
+    return map;
+  }, [usuarios]);
 
   const openPdfModal = (usuario = null) => {
     setPdfTargetUser(usuario);
@@ -285,36 +323,85 @@ export default function Personal() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const refreshVisibleUsers = async ({ forceRefresh = false } = {}) => {
+    if (!user) return [];
+
+    if (!forceRefresh && usuarios.length) {
+      return usuarios;
+    }
+
+    const cacheKey = getPersonalUsersCacheKey(user);
+    const cachedUsers = forceRefresh ? null : (readMemoryCache(cacheKey) ?? readSessionCache(cacheKey));
+
+    if (Array.isArray(cachedUsers) && cachedUsers.length > 0) {
+      setUsuarios(cachedUsers);
+      return cachedUsers;
+    }
+
+    const { users: syncedUsers } = await getUsersPageData({ forceRefresh });
+    const allowedUsers = getAllowedUsersForPersonal(syncedUsers, user);
+    const visibleUsers = allowedUsers.length ? allowedUsers : [];
+
+    writeMemoryCache(cacheKey, visibleUsers);
+    writeSessionCache(cacheKey, visibleUsers);
+    setUsuarios(visibleUsers);
+    return visibleUsers;
+  };
+
   useEffect(() => {
+    if (!userKey) {
+      loadGuardRef.current = null;
+      setUsuarios([]);
+      setAllRecords(buildEmptyRecordsState());
+      setLoading(false);
+      return;
+    }
+
+    if (loadGuardRef.current === userKey) {
+      return;
+    }
+
+    loadGuardRef.current = userKey;
+
+    let cancelled = false;
+
     const fetchUsersAndRecords = async () => {
       try {
-        const { users: syncedUsers } = await getUsersPageData({ forceRefresh: true });
-        setUsuarios(syncedUsers);
+        setLoading(true);
+        const visibleUsers = await refreshVisibleUsers({ forceRefresh: false });
+        if (cancelled) return;
 
-        const allowedUsers = getAllowedUsersForPersonal(syncedUsers, user);
-        const scopedRecords = await fetchUserScopedRecords(
-          allowedUsers.length ? allowedUsers : syncedUsers,
-          user,
-          { forceRefresh: true },
-        );
-        setAllRecords(scopedRecords);
+        const recordsCacheKey = getPersonalRecordsCacheKey(user);
+        const cachedRecords = readMemoryCache(recordsCacheKey) ?? readSessionCache(recordsCacheKey);
+
+        if (cachedRecords && Object.values(cachedRecords).some((records) => Array.isArray(records) && records.length > 0)) {
+          setAllRecords(cachedRecords);
+          return;
+        }
+
+        const records = await fetchUserScopedRecords(visibleUsers, user, { forceRefresh: false });
+        if (!cancelled) {
+          setAllRecords(records);
+        }
       } catch (error) {
-        console.error("Error cargando personal y registros:", error);
-        setUsuarios([]);
-        setAllRecords({
-          reconocimientos: [],
-          incidencias: [],
-          incapacidades: [],
-          historialesMedicos: [],
-          capacitaciones: [],
-        });
+        console.error("Error cargando personal:", error);
+        if (!cancelled) {
+          setUsuarios([]);
+          setAllRecords(buildEmptyRecordsState());
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchUsersAndRecords();
-  }, [user]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userKey]);
 
   const accesoPermitido = canAccessPersonalSection(user);
   const allowedUsers = useMemo(() => {
@@ -397,6 +484,14 @@ export default function Personal() {
     return sameId || sameNomina || sameName;
   };
 
+  const mergeRecordsState = (currentRecords, nextRecords = {}) => ({
+    reconocimientos: dedupeRecords([...(currentRecords?.reconocimientos || []), ...(nextRecords?.reconocimientos || [])]),
+    incidencias: dedupeRecords([...(currentRecords?.incidencias || []), ...(nextRecords?.incidencias || [])]),
+    incapacidades: dedupeRecords([...(currentRecords?.incapacidades || []), ...(nextRecords?.incapacidades || [])]),
+    historialesMedicos: dedupeRecords([...(currentRecords?.historialesMedicos || []), ...(nextRecords?.historialesMedicos || [])]),
+    capacitaciones: dedupeRecords([...(currentRecords?.capacitaciones || []), ...(nextRecords?.capacitaciones || [])]),
+  });
+
   const getUserRecords = (usuario) => {
     const empleadoIds = [usuario?.uid, usuario?.id, usuario?.uidFirebase].filter(Boolean).map((value) => String(value).trim());
     const empleadoNomina = String(usuario?.nomina || "").trim();
@@ -445,12 +540,46 @@ export default function Personal() {
     return { reconocimientos, incidencias, incapacidades, historialesMedicos, capacitaciones };
   };
 
-  const refreshAllRecords = async () => {
+  const refreshUserRecords = async (usuario) => {
+    if (!usuario) return;
+
+    const userCacheKey = getPersonalRecordsCacheKey(usuario);
+    const cachedRecords = readMemoryCache(userCacheKey) ?? readSessionCache(userCacheKey);
+
     try {
-      const scopedRecords = await fetchUserScopedRecords(usuarios);
-      setAllRecords(scopedRecords);
+      const scopedRecords = cachedRecords
+        ? cachedRecords
+        : await fetchUserScopedRecords([usuario], usuario, { forceRefresh: true });
+
+      writeMemoryCache(userCacheKey, scopedRecords);
+      writeSessionCache(userCacheKey, scopedRecords);
+      setAllRecords((current) => mergeRecordsState(current, scopedRecords));
     } catch (error) {
-      console.error("Error recargando registros del personal:", error);
+      console.error("Error recargando registros del usuario:", error);
+    }
+  };
+
+  const refreshAllRecords = async ({ forceRefresh = true } = {}) => {
+    try {
+      const visibleUsers = await refreshVisibleUsers({ forceRefresh });
+      if (!user) {
+        setAllRecords(buildEmptyRecordsState());
+        return buildEmptyRecordsState();
+      }
+
+      const recordsCacheKey = getPersonalRecordsCacheKey(user);
+      const cachedRecords = forceRefresh ? null : (readMemoryCache(recordsCacheKey) ?? readSessionCache(recordsCacheKey));
+      const nextRecords = cachedRecords && Object.values(cachedRecords).some((records) => Array.isArray(records) && records.length > 0)
+        ? cachedRecords
+        : await fetchUserScopedRecords(visibleUsers, user, { forceRefresh });
+
+      writeMemoryCache(recordsCacheKey, nextRecords);
+      writeSessionCache(recordsCacheKey, nextRecords);
+      setAllRecords(nextRecords);
+      return nextRecords;
+    } catch (error) {
+      console.error("Error recargando la tabla del personal:", error);
+      return buildEmptyRecordsState();
     }
   };
 
@@ -728,6 +857,9 @@ export default function Personal() {
           onClose={closeActionModal}
           onSuccess={async () => {
             await refreshAllRecords();
+            if (actionModal.usuario) {
+              await refreshUserRecords(actionModal.usuario);
+            }
             closeActionModal();
           }}
         />
@@ -739,6 +871,9 @@ export default function Personal() {
           onClose={closeActionModal}
           onSuccess={async () => {
             await refreshAllRecords();
+            if (actionModal.usuario) {
+              await refreshUserRecords(actionModal.usuario);
+            }
             closeActionModal();
           }}
         />
@@ -755,6 +890,9 @@ export default function Personal() {
           setUsuarios={setUsuarios}
           onSaved={async () => {
             await refreshAllRecords();
+            if (selectedIncapacidadUser) {
+              await refreshUserRecords(selectedIncapacidadUser);
+            }
             setIncapacidadModal(false);
             setSelectedIncapacidadUser(null);
           }}

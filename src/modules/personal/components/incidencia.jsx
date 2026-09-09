@@ -3,9 +3,9 @@ import { addDoc, collection, doc, getDocs, serverTimestamp, writeBatch } from "f
 import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
 import { createNotification } from "../../../utils/createNotification";
-import { invalidateCacheGroup } from "../../../utils/cacheStore";
 import { notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
+import { invalidateUserAndPersonalCaches } from "../../../services/usersService";
 
 export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -96,7 +96,7 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
       batch.set(userYearIncidenciaRef, { ...payload, id: userYearIncidenciaRef.id, createdAt: serverTimestamp() });
       await batch.commit();
 
-      invalidateCacheGroup("sii-aqua-personal-records:");
+      invalidateUserAndPersonalCaches();
 
       const uidDestino = empleado?.uid || empleado?.uidFirebase || empleado?.firebaseUid || null;
 

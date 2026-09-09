@@ -437,7 +437,7 @@ export default function InventarioPage() {
                 }
 
                 .form-control::placeholder {
-                    color: var(--operator-text);
+                    color: var(--operator-text-soft);
                 }
 
                 .form-select:focus {

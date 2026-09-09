@@ -449,7 +449,6 @@ export default function DetalleOrdenMedica() {
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               required
-              style={{ width: "18rem" }}
             />
             <button
               type="submit"
@@ -908,7 +907,7 @@ export default function DetalleOrdenMedica() {
             border-radius: 12px;
             border: 1px solid var(--operator-border);
             padding: 10px 14px;
-            background: var(--operator-border) !important;
+            background: var(--operator-card) !important;
             color: var(--operator-text) !important;
             font-size: 14px;
             outline: none;
@@ -919,6 +918,10 @@ export default function DetalleOrdenMedica() {
             border-color: var(--operator-primary);
             background: var(--operator-card) !important;
             color: var(--operator-text);
+        }
+
+        .form-control::placeholder {
+            color: var(--operator-text-soft);
         }
 
         .custom-btn {

@@ -653,7 +653,7 @@ export default function News() {
         }
 
         .form-control::placeholder, .form-select::placeholder {
-          color: var(--operator-text);
+          color: var(--operator-text-soft);
           background: transparent;
         }
 

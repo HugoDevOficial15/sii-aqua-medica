@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import {
   createIncapacidad,
-  getIncapacidadesByUser,
   getIncapacidadesByUsers,
   getUsers,
+  invalidateUserAndPersonalCaches,
   updateUser,
 } from "../../../services/usersService";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
@@ -219,7 +219,8 @@ export const syncUsersWithIncapacidades = async (usersData = []) => {
 };
 
 export const refreshUsersWithIncapacidades = async (setUsuarios) => {
-  const usersData = await getUsers();
+  invalidateUserAndPersonalCaches();
+  const usersData = await getUsers({ source: "server", forceRefresh: true });
   const syncedUsers = await syncUsersWithIncapacidades(usersData);
   setUsuarios(syncedUsers);
   return syncedUsers;

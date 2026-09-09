@@ -1005,6 +1005,7 @@ export default function EncuestaResultados({ survey, onBack }) {
     justify-content: center;
     padding: 6px 12px;
     font-weight: 700;
+    margin-bottom: 20px;
 }
     
 .btn-atras:hover {

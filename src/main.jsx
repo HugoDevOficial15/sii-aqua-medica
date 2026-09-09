@@ -77,7 +77,6 @@ const preloadCriticalModules = async () => {
     () => import('./pages/admin/Users'),
     () => import('./modules/puestos/page/PuestosPage'),
     () => import('./modules/inventarios/InventarioPage'),
-    () => import('./modules/personal/personal'),
     () => import('./modules/agenda/AgendaPage'),
     () => import('./pages/admin/Capacitaciones'),
     () => import('./pages/admin/News'),

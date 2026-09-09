@@ -356,7 +356,7 @@ export default function RacksPages() {
         .card {
           border-radius: 30px;
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
-          padding: 20px;
+          padding: 40px;
         }
 
         .contenedor-header {
@@ -647,14 +647,14 @@ export default function RacksPages() {
           max-width: 15%;
           height: 50px;
           border-radius: 10px;
-          background-color: var(--operator-form);
+          background-color: var(--operator-card);
           border-color: var(--operator-border);
           color: var(--operator-text) !important;
         }
 
         .form-control:focus,
         .form-select:focus {
-          background-color: var(--operator-form);
+          background-color: var(--operator-card);
           box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
           border-color: var(--operator-primary);
         }

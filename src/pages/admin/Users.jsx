@@ -1716,7 +1716,7 @@ export default function Users({ onClose }) {
           padding: 30px;
           box-shadow: 0 8px 25px var(--operator-shadow);
           gap: 20px;
-          justify-content: end;
+          justify-content: flex-end;
         }
 
 /* TABLA */
@@ -1966,7 +1966,9 @@ export default function Users({ onClose }) {
         }
 
         .form-control:focus {
-          background: var(--operator-border);
+          border-color: var(--operator-primary);
+          box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+          background: var(--operator-card);
           color: var(--operator-text);
         }
 
@@ -1988,6 +1990,7 @@ export default function Users({ onClose }) {
           color: var(--operator-text);
           font-size: 14px;
           outline: none;
+          min-width: 100px;
         }
 
         .form-control-page:focus {
@@ -1996,7 +1999,7 @@ export default function Users({ onClose }) {
         }
 
         .form-control-page::placeholder {
-          color: var(--operator-text);
+          color: var(--operator-text-soft);
         }
 
         .modal-footer {

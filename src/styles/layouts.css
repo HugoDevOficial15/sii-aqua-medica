@@ -229,6 +229,7 @@
 .table-responsive-container table {
     width: max-content;
     min-width: 100%;
+    padding: 30px;
 }
 
 .table-responsive-container th,

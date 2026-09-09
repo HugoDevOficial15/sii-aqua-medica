@@ -79,8 +79,6 @@ export function AuthProvider({ children }) {
                     setPermisos(cachedSessionData.permisos);
                 }
 
-                window.dispatchEvent(new CustomEvent("sii-aqua-auth-ready"));
-
                 const username = firebaseUser.email.split("@")[0];
                 const userData = await getUserData(username);
 

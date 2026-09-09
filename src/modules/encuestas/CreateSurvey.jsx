@@ -709,7 +709,7 @@ export default function CreateSurvey() {
                                                 )}
                                             </td>
 
-                                            <td>
+                                            <td className="survey-actions-td">
                                                 <div className="survey-actions-cell">
                                                     <button
                                                         type="button"
@@ -1603,9 +1603,21 @@ export default function CreateSurvey() {
         box-shadow: none !important;
 }
 
+.table tbody tr {
+        position: relative;
+        z-index: 1;
+}
+
 .table tbody tr.survey-row-menu-open {
+        position: relative;
+        z-index: 30;
         transform: none !important;
         transition: none !important;
+}
+
+.table tbody tr:not(.survey-row-menu-open) td {
+        position: relative;
+        z-index: 1;
 }
 
 .table td {
@@ -1632,13 +1644,20 @@ export default function CreateSurvey() {
    ACTIONS MENU
 ================================================== */
 
+.survey-actions-td {
+    position: relative;
+    overflow: visible !important;
+    z-index: 4;
+}
+
 .survey-actions-cell {
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: visible;
-    isolation: auto;
+    isolation: isolate;
+    z-index: 20;
 }
 
 .survey-actions-toggle {
@@ -1661,19 +1680,18 @@ export default function CreateSurvey() {
 
 .survey-actions-menu {
     position: absolute;
-    right: 0;
-    top: 100%;
     min-width: 180px;
     padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    z-index: 9999;
+    z-index: 40;
     border: 1px solid var(--operator-background);
     border-radius: 10px;
     background: var(--operator-background);
     box-shadow: 0 12px 24px rgba(2, 6, 23, 0.14);
-    margin-top: 5px;
+    margin-top: 0;
+    overflow: visible;
 }
 
 .survey-action-item {
@@ -2132,8 +2150,13 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
     }
 }
 
-.table-responsive-container {
+.card.shadow-sm,
+.card.shadow-sm > .card-body,
+.table-responsive-container,
+.table-responsive {
     overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
 }
 
 .card-body {

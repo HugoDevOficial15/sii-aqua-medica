@@ -11,12 +11,12 @@ import {
 } from "firebase/firestore";
 import {
     readSessionCache,
-    writeSessionCache,
-    clearCachedData,
+    writeCachedData,
     clearCachedByPrefix,
 } from "../utils/cacheStore";
 
 const SERVICIOS_CACHE_KEY = "sii-aqua-servicios-cache";
+const SERVICIOS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const invalidateServiciosCaches = () => {
     clearCachedByPrefix(`${SERVICIOS_CACHE_KEY}:`);
@@ -26,7 +26,7 @@ const invalidateServiciosCaches = () => {
 // 🔹 Obtener servicios por área + mes + año (NO TOCAR)
 export const getServicios = async (areaId, anio, mes) => {
     const cacheKey = `${SERVICIOS_CACHE_KEY}:${String(areaId || "global")}:${anio}:${mes}`;
-    const cached = readSessionCache(cacheKey);
+    const cached = readSessionCache(cacheKey, SERVICIOS_CACHE_TTL_MS);
     if (cached) {
         return cached;
     }
@@ -53,7 +53,7 @@ export const getServicios = async (areaId, anio, mes) => {
 // 🔥 GLOBAL (NO TOCAR)
 export const getServiciosGlobal = async (anio, mes) => {
     const cacheKey = `${SERVICIOS_CACHE_KEY}:global:${anio}:${mes}`;
-    const cached = readSessionCache(cacheKey);
+    const cached = readSessionCache(cacheKey, SERVICIOS_CACHE_TTL_MS);
     if (cached) {
         return cached;
     }

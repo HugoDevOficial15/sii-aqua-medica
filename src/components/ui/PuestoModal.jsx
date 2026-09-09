@@ -138,6 +138,14 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                 padding: 12px 16px;
                 font-size: 0.95rem;
                 width: 100%;
+                outline: none;
+            }
+
+            .form-nombre:focus {
+                border-color: var(--operator-primary);
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+                background: var(--operator-card);
+                color: var(--operator-text);
             }
 
             .form-nombre:hover-visible {

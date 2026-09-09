@@ -2444,6 +2444,19 @@ REPORTAR PROBLEMA
     outline: none;
 }
 
+.report-field input:focus,
+.report-field select:focus,
+.report-field textarea:focus {
+    border: 1px solid var(--operator-primary);
+    box-shadow: 0 0 5px var(--operator-primary-light);
+}
+
+.report-field input::placeholder,
+.report-field select::placeholder,
+.report-field textarea::placeholder {
+    color: var(--operator-text-soft);
+}
+
 .report-field input[type="file"] {
     padding: 10px 14px;
     background: var(--operator-background);

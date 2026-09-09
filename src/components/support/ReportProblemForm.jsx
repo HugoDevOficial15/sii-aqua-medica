@@ -257,6 +257,13 @@ export default function ReportProblemForm({
 
             </form>
 
+            <style>{`
+                .report-field:focus {
+                    border: 1px solid var(--operator-primary);
+                    box-shadow: 0 0 5px var(--operator-primary-light);
+                }
+            `}</style>
+
         </div>
     );
 }

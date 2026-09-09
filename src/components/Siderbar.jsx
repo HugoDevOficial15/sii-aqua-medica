@@ -428,13 +428,12 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
 
     position: absolute;
 
-    top: 10px;
     left: 0;
 
-    width: 4px;
-    height: 60%;
+    width: 10px;
+    height: 90%;
 
-    border-radius: 999px;
+    border-radius: 5px;
 
     background: white;
 }

@@ -742,7 +742,7 @@ export default function CreateCapacitaciones() {
                                             </td>
 
                                             {/* COLUMNA ACCIONES */}
-                                            <td>
+                                            <td className="training-actions-td">
                                                 <div className="training-actions-cell">
                                                     <button
                                                         type="button"
@@ -767,7 +767,7 @@ export default function CreateCapacitaciones() {
 
                                                             <button
                                                                 type="button"
-                                                                className="training-action-item"
+                                                                className="training-action-item respuestas"
                                                                 onClick={() => {
                                                                     setViewingResults(training);
                                                                     setOpenActionsId(null);
@@ -778,7 +778,7 @@ export default function CreateCapacitaciones() {
 
                                                             <button
                                                                 type="button"
-                                                                className={`training-action-item ${training.activa !== false ? "text-danger" : "text-success"}`}
+                                                                className={`training-action-item ${training.activa !== false ? "desactivar" : "activar"}`}
                                                                 onClick={() => {
                                                                     toggleTraining(training);
                                                                     setOpenActionsId(null);
@@ -791,7 +791,7 @@ export default function CreateCapacitaciones() {
 
                                                             <button
                                                                 type="button"
-                                                                className="training-action-item text-danger"
+                                                                className="training-action-item borrar"
                                                                 onClick={() => {
                                                                     handleDeleteTraining(training);
                                                                     setOpenActionsId(null);
@@ -1538,9 +1538,21 @@ export default function CreateCapacitaciones() {
     box-shadow: none !important;
 }
 
+.table tbody tr {
+    position: relative;
+    z-index: 1;
+}
+
 .table tbody tr.training-row-menu-open {
+    position: relative;
+    z-index: 30;
     transform: none !important;
     transition: none !important;
+}
+
+.table tbody tr:not(.training-row-menu-open) td {
+    position: relative;
+    z-index: 1;
 }
 
 .table td {
@@ -1565,13 +1577,20 @@ export default function CreateCapacitaciones() {
    ACTIONS MENU
 ================================================== */
 
+.training-actions-td {
+    position: relative;
+    overflow: visible !important;
+    z-index: 4;
+}
+
 .training-actions-cell {
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: visible;
-    isolation: auto;
+    isolation: isolate;
+    z-index: 20;
 }
 
 .training-actions-toggle {
@@ -1594,22 +1613,23 @@ export default function CreateCapacitaciones() {
 
 .training-actions-menu {
     position: absolute;
-    right: 0;
-    top: 100%;
     min-width: 180px;
     padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    z-index: 9999;
+    z-index: 40;
     border: 1px solid var(--operator-background);
     border-radius: 10px;
     background: var(--operator-background);
     box-shadow: 0 12px 24px rgba(2, 6, 23, 0.14);
-    margin-top: 5px;
+    margin-top: 0;
+    overflow: visible;
 }
 
-.training-action-item {
+.training-action-item,
+.training-action-item.activar,
+.training-action-item.desactivar {
     width: 100%;
     display: flex;
     align-items: center;
@@ -1617,7 +1637,7 @@ export default function CreateCapacitaciones() {
     padding: 8px 10px;
     border: none;
     border-radius: 10px;
-    background: var(--operator-card);
+    background: var(--operator-card) !important;
     color: var(--operator-text);
     font-size: 13px;
     font-weight: 800;
@@ -1635,10 +1655,18 @@ export default function CreateCapacitaciones() {
 }
 
 .training-action-item.respuestas:hover {
-    color: var(--operator-warning);
+    color: var(--operator-warning) !important;
 }
 
 .training-action-item.borrar:hover {
+    color: var(--operator-danger);
+}
+
+.training-action-item.activar:hover {
+    color: var(--operator-success);
+}
+
+.training-action-item.desactivar:hover {
     color: var(--operator-danger);
 }
 
@@ -2136,14 +2164,18 @@ export default function CreateCapacitaciones() {
     }
 }
 
-.table-responsive-container {
+.card.shadow-sm,
+.card.shadow-sm > .card-body,
+.table-responsive-container,
+.table-responsive {
     overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
 }
 
 .card-body {
     overflow: visible !important;
 }
-
 
 
 .agregar-temario {
