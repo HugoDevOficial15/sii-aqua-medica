@@ -45,7 +45,7 @@ export const createIdea = async ({ user, titulo, categoria, descripcion, imagenB
     const docRef = await addDoc(ideasCollection, ideaDoc);
 
     // Registrar puntos por enviar sugerencia
-    if (user?.uid) {
+    if (user?.uid && typeof user.uid === 'string' && user.uid.trim()) {
         await registrarPuntos(user.uid, "sugerencia_enviada", docRef.id);
     }
 
@@ -91,7 +91,7 @@ export const updateIdeaStatus = async (ideaId, estado, comentarioAdmin, administ
     // Si se aprueba la sugerencia, registrar puntos adicionales
     if (estado === "Aprobada") {
         const ideaSnapshot = await getIdea(ideaId);
-        if (ideaSnapshot?.uid) {
+        if (ideaSnapshot?.uid && typeof ideaSnapshot.uid === 'string' && ideaSnapshot.uid.trim()) {
             await registrarPuntos(ideaSnapshot.uid, "sugerencia_aprobada", ideaId);
         }
     }

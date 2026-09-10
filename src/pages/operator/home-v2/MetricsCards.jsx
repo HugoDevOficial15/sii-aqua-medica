@@ -7,6 +7,8 @@ import {
 } from "react-icons/fi";
 
 import { useAuth } from "../../../hooks/useAuth";
+import { doc, collection, onSnapshot, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../../config/firebase";
 
 const readCachedSurveyCount = (user) => {
     if (!user?.uid && !user?.nomina) return 0;
@@ -38,12 +40,91 @@ export default function MetricsCards({ onNavigate }) {
     const { user } = useAuth();
 
     const [pendientes, setPendientes] = useState(() => readCachedSurveyCount(user));
+    const [puntos, setPuntos] = useState(0);
 
-    // Evitamos consultar Firestore en la pantalla principal. El conteo real se
-    // obtiene al entrar a la vista de encuestas, donde sí tiene sentido cargarlo.
+    // Listener en tiempo real para encuestas pendientes
     useEffect(() => {
-        setPendientes(readCachedSurveyCount(user));
-    }, [user?.uid, user?.nomina]);
+        if (!user?.uid || !user?.nomina) {
+            setPendientes(0);
+            return;
+        }
+
+        let unsubscribeEncuestas;
+        let unsubscribeRespuestas;
+
+        const setupListeners = async () => {
+            try {
+                // Listener para respuestas del usuario
+                const qRespuestas = query(
+                    collection(db, "respuestasEncuestas"),
+                    where("userId", "==", user.uid)
+                );
+
+                unsubscribeRespuestas = onSnapshot(qRespuestas, (snapshot) => {
+                    const respondidas = new Set(
+                        snapshot.docs.map(doc => doc.data().encuestaId)
+                    );
+
+                    // Listener para encuestas disponibles
+                    const qEncuestas = query(
+                        collection(db, "encuestas"),
+                        where("activa", "==", true)
+                    );
+
+                    unsubscribeEncuestas = onSnapshot(qEncuestas, (snapshotEncuestas) => {
+                        const pendientes = snapshotEncuestas.docs.filter(doc => {
+                            const data = doc.data();
+                            const encuestaId = doc.id;
+
+                            // Verificar si ya respondió
+                            if (respondidas.has(encuestaId)) return false;
+
+                            // Verificar si es accesible para el usuario
+                            const asignacion = data.asignacion || {};
+                            if (asignacion.tipo === "global") return true;
+                            if (asignacion.tipo === "area" && asignacion.valores?.includes(user.area)) return true;
+                            if (asignacion.tipo === "usuarios" && asignacion.valores?.includes(String(user.nomina))) return true;
+
+                            return false;
+                        }).length;
+
+                        setPendientes(pendientes);
+                    });
+                });
+            } catch (error) {
+                console.error("Error en listener de encuestas:", error);
+                setPendientes(0);
+            }
+        };
+
+        setupListeners();
+
+        return () => {
+            if (unsubscribeEncuestas) unsubscribeEncuestas();
+            if (unsubscribeRespuestas) unsubscribeRespuestas();
+        };
+    }, [user?.uid, user?.nomina, user?.area]);
+
+    // Listener de puntos en tiempo real
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        const año = new Date().getFullYear().toString();
+        const puntosRef = doc(collection(db, "users", user.uid, año, "informacion", "puntos_general"), "general");
+
+        const unsubscribe = onSnapshot(puntosRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setPuntos(docSnap.data().total || 0);
+            } else {
+                setPuntos(0);
+            }
+        }, () => {
+            // Error en listener, usar valor por defecto
+            setPuntos(0);
+        });
+
+        return () => unsubscribe();
+    }, [user?.uid]);
 
     return (
 
@@ -61,7 +142,7 @@ export default function MetricsCards({ onNavigate }) {
                 </div>
 
                 <h2>
-                    0
+                    {puntos}
                 </h2>
 
                 <span>

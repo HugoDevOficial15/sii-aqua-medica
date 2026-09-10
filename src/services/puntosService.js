@@ -5,10 +5,35 @@ import {
   getDocs,
   setDoc,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  where,
+  orderBy,
+  limit
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { actualizarRankingConArea } from "./rankingService";
+
+// Helper para obtener el año actual
+const obtenerAñoActual = () => new Date().getFullYear().toString();
+
+const obtenerHistorialRef = (userId, año) =>
+  collection(db, "users", userId, año, "informacion", "historialPuntos");
+
+const obtenerPuntosRef = (userId, año) =>
+  doc(collection(db, "users", userId, año, "informacion", "puntos_general"), "general");
+
+// Resolver el documentId del usuario a partir del firebaseUid
+const resolveUserDocIdByFirebaseUid = async (firebaseUid) => {
+  if (!firebaseUid) return null;
+  try {
+    const q = query(collection(db, "users"), where("uid", "==", firebaseUid));
+    const snapshot = await getDocs(q);
+    return snapshot.empty ? null : snapshot.docs[0].id;
+  } catch (error) {
+    return null;
+  }
+};
 
 // Reglas de puntos por acción
 export const PUNTO_RULES = {
@@ -29,14 +54,22 @@ export const NIVELES = {
 // Registrar puntos por una acción
 export const registrarPuntos = async (userId, tipo, referencia) => {
   try {
+    // Validación: userId no debe estar vacío
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      console.error("registrarPuntos: userId inválido", userId);
+      return false;
+    }
+
     const puntos = PUNTO_RULES[tipo]?.puntos || 0;
 
     if (puntos === 0) {
       return false;
     }
 
+    const año = obtenerAñoActual();
+
     // 1. Agregar a historial de puntos
-    await addDoc(collection(db, "users", userId, "historialPuntos"), {
+    await addDoc(obtenerHistorialRef(userId, año), {
       tipo,
       puntos,
       referencia,
@@ -44,22 +77,23 @@ export const registrarPuntos = async (userId, tipo, referencia) => {
     });
 
     // 2. Recalcular total de puntos
-    await recalcularPuntos(userId);
+    await recalcularPuntos(userId, año);
 
     // 3. Actualizar ranking
-    await actualizarRankingConArea(userId);
+    await actualizarRankingConArea(userId, año);
 
     return true;
   } catch (error) {
+    console.error("Error al registrar puntos para userId:", userId, "error:", error);
     return false;
   }
 };
 
 // Recalcular puntos totales del usuario
-export const recalcularPuntos = async (userId) => {
+export const recalcularPuntos = async (userId, año = obtenerAñoActual()) => {
   try {
     const snapshot = await getDocs(
-      collection(db, "users", userId, "historialPuntos")
+      obtenerHistorialRef(userId, año)
     );
 
     const total = snapshot.docs.reduce((sum, doc) => sum + doc.data().puntos, 0);
@@ -67,7 +101,7 @@ export const recalcularPuntos = async (userId) => {
     const proximoNivel = calcularProximoNivel(total);
 
     await setDoc(
-      doc(db, "users", userId, "puntos_general", "general"),
+      obtenerPuntosRef(userId, año),
       {
         total,
         nivel,
@@ -119,10 +153,10 @@ export const calcularProximoNivel = (puntos) => {
 };
 
 // Obtener historial de puntos del usuario
-export const obtenerHistorialPuntos = async (userId, limitNum = 10) => {
+export const obtenerHistorialPuntos = async (userId, limitNum = 10, año = obtenerAñoActual()) => {
   try {
     const q = query(
-      collection(db, "users", userId, "historialPuntos"),
+      obtenerHistorialRef(userId, año),
       orderBy("fechaCreacion", "desc"),
       limit(limitNum)
     );
@@ -139,10 +173,10 @@ export const obtenerHistorialPuntos = async (userId, limitNum = 10) => {
 };
 
 // Obtener puntos del usuario
-export const obtenerPuntosUsuario = async (userId) => {
+export const obtenerPuntosUsuario = async (userId, año = obtenerAñoActual()) => {
   try {
     const docSnap = await getDoc(
-      doc(db, "users", userId, "puntos_general", "general")
+      obtenerPuntosRef(userId, año)
     );
 
     if (docSnap.exists()) {
@@ -151,7 +185,7 @@ export const obtenerPuntosUsuario = async (userId) => {
 
     // Si no existe, crear documento vacío
     await setDoc(
-      doc(db, "users", userId, "puntos_general", "general"),
+      obtenerPuntosRef(userId, año),
       {
         total: 0,
         nivel: "Bronce",
@@ -172,10 +206,10 @@ export const obtenerPuntosUsuario = async (userId) => {
 };
 
 // Obtener últimos logros (últimas acciones)
-export const obtenerUltimosLogros = async (userId, limitNum = 4) => {
+export const obtenerUltimosLogros = async (userId, limitNum = 4, año = obtenerAñoActual()) => {
   try {
     const snapshot = await getDocs(
-      collection(db, "users", userId, "historialPuntos")
+      obtenerHistorialRef(userId, año)
     );
 
     const logros = snapshot.docs
@@ -194,13 +228,13 @@ export const obtenerUltimosLogros = async (userId, limitNum = 4) => {
 };
 
 // Obtener objetivos completados del mes
-export const obtenerObjetivosCompletados = async (userId) => {
+export const obtenerObjetivosCompletados = async (userId, año = obtenerAñoActual()) => {
   try {
     const ahora = new Date();
     const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
 
     const snapshot = await getDocs(
-      collection(db, "users", userId, "historialPuntos")
+      obtenerHistorialRef(userId, año)
     );
 
     const objetivos = {};

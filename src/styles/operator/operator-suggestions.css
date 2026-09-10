@@ -10,6 +10,15 @@ SUGERENCIAS / IDEAS — COMPONENTE OPERADOR
     color: var(--operator-text);
 }
 
+/* La lista se integra con el fondo del contenedor en tema claro. */
+.suggestion-list-screen {
+    background: transparent;
+}
+
+html[data-theme="dark"] .suggestion-list-screen {
+    background: var(--operator-background);
+}
+
 /* =======================================
 BANNER MORADO (Hero)
 ======================================= */
@@ -69,17 +78,17 @@ TABS / CONTADORES
     text-align: center;
     cursor: pointer;
     border: 2px solid transparent;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
     transition: all 0.2s ease;
+    opacity: 0.5;
 }
 
 .suggestion-tab:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
 .suggestion-tab.active {
     border-color: #f59e0b;
+    opacity: 1;
 }
 
 .suggestion-tab .tab-icon {

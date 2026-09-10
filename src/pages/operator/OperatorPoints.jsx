@@ -92,7 +92,8 @@ export default function OperatorPoints({ onBack }) {
                 setObjetivos(objetivosCompletados);
 
                 // 3. Suscribirse al listener en tiempo real para puntos
-                const puntosRef = doc(db, "users", user.uid, "puntos_general", "general");
+                const año = new Date().getFullYear().toString();
+                const puntosRef = doc(collection(db, "users", user.uid, año, "informacion", "puntos_general"), "general");
                 unsubscribePuntos = onSnapshot(puntosRef, async (docSnap) => {
                     if (docSnap.exists()) {
                         const nuevosPuntos = docSnap.data();
@@ -119,7 +120,7 @@ export default function OperatorPoints({ onBack }) {
                 });
 
                 // 4. Listener para historialPuntos para actualizaciones en tiempo real de logros
-                const historialRef = collection(db, "users", user.uid, "historialPuntos");
+                const historialRef = collection(db, "users", user.uid, año, "informacion", "historialPuntos");
                 const q = query(historialRef, orderBy("fechaCreacion", "desc"), limit(4));
                 unsubscribeHistorial = onSnapshot(q, (snapshot) => {
                     const logros = snapshot.docs.map(doc => ({

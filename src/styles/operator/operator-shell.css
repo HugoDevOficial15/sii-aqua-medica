@@ -1737,6 +1737,8 @@ POINTS
 
     box-shadow:
         0 10px 30px rgba(0, 0, 0, .05);
+
+    padding-bottom: 32px;
 }
 
 .points-card h4 {
@@ -1755,11 +1757,13 @@ POINTS
 
     align-items: center;
 
+    justify-content: space-between;
+
     gap: 12px;
 
-    padding: 12px 0;
+    padding: 16px 0;
 
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .goal-item span,
@@ -3174,8 +3178,14 @@ RANKING - ÁREA + GLOBAL
 .badge-check {
     color: #22c55e !important;
     font-weight: 700;
-    font-size: 14px;
-    margin-left: auto;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
 }
 
 /* Últimos logros mejorado */

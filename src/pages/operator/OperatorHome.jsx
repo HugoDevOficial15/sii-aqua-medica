@@ -15,7 +15,7 @@ export default function OperatorHome({ onNavigate }) {
 
             <MetricsCards onNavigate={onNavigate} />
 
-            <ProgressBanner />
+            <ProgressBanner onNavigate={onNavigate} />
 
             {/* <TodayTasks /> */}
 

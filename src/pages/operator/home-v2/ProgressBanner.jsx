@@ -1,10 +1,17 @@
 import { FiChevronRight } from "react-icons/fi";
 
-export default function ProgressBanner() {
+export default function ProgressBanner({ onNavigate }) {
 
     return (
 
-        <div className="progress-banner">
+        <div
+            className="progress-banner"
+            onClick={() => onNavigate?.("points")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && onNavigate?.("points")}
+            style={{ cursor: 'pointer' }}
+        >
 
             <div className="progress-icon">
 
@@ -24,7 +31,6 @@ export default function ProgressBanner() {
                 </h4>
 
             </div>
-
             <FiChevronRight />
 
         </div>

@@ -12,7 +12,21 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 
-export const actualizarRankingConArea = async (userId) => {
+// Resolver el documentId del usuario a partir del firebaseUid
+const resolveUserDocIdByFirebaseUid = async (firebaseUid) => {
+  if (!firebaseUid) return null;
+  try {
+    const q = query(collection(db, "users"), where("uid", "==", firebaseUid));
+    const snapshot = await getDocs(q);
+    return snapshot.empty ? null : snapshot.docs[0].id;
+  } catch (error) {
+    return null;
+  }
+};
+
+const obtenerAñoActual = () => new Date().getFullYear().toString();
+
+export const actualizarRankingConArea = async (userId, año = obtenerAñoActual()) => {
   try {
     // 1. Obtener datos del usuario
     const userRef = doc(db, "users", userId);
@@ -26,7 +40,7 @@ export const actualizarRankingConArea = async (userId) => {
     const { nombreArea, area, equipo, nombre } = userData;
 
     // 2. Obtener puntos del usuario
-    const puntosRef = doc(db, "users", userId, "puntos_general", "general");
+    const puntosRef = doc(collection(db, "users", userId, año, "informacion", "puntos_general"), "general");
     const puntosSnap = await getDoc(puntosRef);
 
     if (!puntosSnap.exists()) {

@@ -80,6 +80,34 @@ export default function IdeasAdmin() {
     setModalOpen(true);
   };
 
+  const handleOpenActions = (ideaId, event) => {
+    const newOpenId = openActionsId === ideaId ? null : ideaId;
+    setOpenActionsId(newOpenId);
+
+    if (newOpenId === ideaId) {
+      setTimeout(() => {
+        const cell = event.currentTarget.closest('.solicitudes-actions-cell');
+        const menu = cell?.querySelector('.solicitudes-actions-menu');
+        if (menu) {
+          const rect = menu.getBoundingClientRect();
+          const spaceBelow = window.innerHeight - rect.top;
+
+          if (spaceBelow < 150) {
+            // Mostrar hacia arriba
+            menu.style.top = 'auto';
+            menu.style.bottom = '100%';
+            menu.style.marginBottom = '8px';
+          } else {
+            // Mostrar hacia abajo
+            menu.style.top = '100%';
+            menu.style.bottom = 'auto';
+            menu.style.marginTop = '8px';
+          }
+        }
+      }, 50);
+    }
+  };
+
   const handleEliminarIdea = async (idea) => {
     const result = await confirmDelete("¿Eliminar idea?", `La idea "${idea.titulo}" se eliminará permanentemente.`);
     if (!result.isConfirmed) return;
@@ -222,10 +250,11 @@ export default function IdeasAdmin() {
 
         .solicitudes-actions-cell {
             position: relative;
-            text-align: center;
-            width: 100px;
-            min-width: 100px;
-            max-width: 100px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .solicitudes-actions-toggle {
@@ -253,8 +282,8 @@ export default function IdeasAdmin() {
 
         .solicitudes-actions-menu {
             position: absolute;
-            right: -50px;
-            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
             min-width: 180px;
             padding: 10px;
             display: flex;
@@ -265,8 +294,8 @@ export default function IdeasAdmin() {
             border-radius: 10px;
             background: var(--operator-background);
             box-shadow: 0 10px 24px var(--operator-shadow);
-            margin-top: 5px;
             overflow: visible;
+            white-space: nowrap;
         }
 
         .table-sol tbody tr {
@@ -483,7 +512,7 @@ export default function IdeasAdmin() {
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-secondary solicitudes-actions-toggle"
-                            onClick={() => setOpenActionsId(openActionsId === item.id ? null : item.id)}
+                            onClick={(e) => handleOpenActions(item.id, e)}
                           >
                             <FaEllipsisV />
                           </button>

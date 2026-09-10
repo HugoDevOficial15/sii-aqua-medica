@@ -182,7 +182,7 @@ export default function OperatorShell({
                     pointerEvents: keyboardOpen ? 'none' : 'auto'
                 }}>
                     <OperatorBottomNav
-                        active={activeTab}
+                        activeTab={activeTab}
                         onChange={onTabChange}
                     />
                 </div>
