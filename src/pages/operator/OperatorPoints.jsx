@@ -66,6 +66,7 @@ export default function OperatorPoints({ onBack }) {
         setLoading(true);
         let unsubscribePuntos;
         let unsubscribeHistorial;
+        let updateRankingTimeout;
 
         const inicializarDatos = async () => {
             try {
@@ -99,21 +100,27 @@ export default function OperatorPoints({ onBack }) {
                         const nuevosPuntos = docSnap.data();
                         setPuntos(nuevosPuntos);
 
-                        // Actualizar ranking cuando cambian los puntos
-                        try {
-                            const posicionActualizada = await obtenerMiPosicionArea(user.uid);
-                            setRanking(posicionActualizada);
-
-                            if (posicionActualizada?.nombreArea) {
-                                const topActualizado = await obtenerTopArea(posicionActualizada.nombreArea, 3);
-                                setTopArea(topActualizado);
-                            }
-
-                            const topGlobalActualizado = await obtenerTopGlobal(3);
-                            setTopGlobal(topGlobalActualizado);
-                        } catch (err) {
-                            // Error al actualizar ranking, pero mantener UI activa
+                        // Debounce: actualizar ranking solo después de 500ms sin cambios
+                        if (updateRankingTimeout) {
+                            clearTimeout(updateRankingTimeout);
                         }
+
+                        updateRankingTimeout = setTimeout(async () => {
+                            try {
+                                const posicionActualizada = await obtenerMiPosicionArea(user.uid);
+                                setRanking(posicionActualizada);
+
+                                if (posicionActualizada?.nombreArea) {
+                                    const topActualizado = await obtenerTopArea(posicionActualizada.nombreArea, 3);
+                                    setTopArea(topActualizado);
+                                }
+
+                                const topGlobalActualizado = await obtenerTopGlobal(3);
+                                setTopGlobal(topGlobalActualizado);
+                            } catch (err) {
+                                // Error al actualizar ranking, pero mantener UI activa
+                            }
+                        }, 500);
                     }
                 }, (error) => {
                     // Error en listener
@@ -144,12 +151,14 @@ export default function OperatorPoints({ onBack }) {
         return () => {
             if (unsubscribePuntos) unsubscribePuntos();
             if (unsubscribeHistorial) unsubscribeHistorial();
+            if (updateRankingTimeout) clearTimeout(updateRankingTimeout);
         };
     }, [user?.uid]);
 
     if (loading) return <Loader text="Cargando tu información de puntos..." />;
 
     const porcentajeProgreso = puntos ? (puntos.total / 1000) * 100 : 0;
+    const nombreAreaVisible = ranking?.nombreArea === "Área0" ? "Área" : ranking?.nombreArea;
 
     return (
         <div className="points-screen">
@@ -161,7 +170,7 @@ export default function OperatorPoints({ onBack }) {
                 <div style={{ fontSize: "64px", marginBottom: "16px" }}>🏆</div>
                 <h1>
                     Nivel {puntos?.nivel || "Bronce"}
-                    {ranking?.nombreArea && ` • ${ranking.nombreArea}`}
+                    {nombreAreaVisible && nombreAreaVisible !== "Sin Área" && ` • ${nombreAreaVisible}`}
                 </h1>
                 <p>Qué gusto tenerte de vuelta.</p>
             </div>
@@ -175,20 +184,21 @@ export default function OperatorPoints({ onBack }) {
                 </div>
 
                 <div className="points-stat-card">
-                    <FiTrendingUp />
-                    <h3>
-                        #{ranking?.posicionArea || 0}
-                        <small style={{ fontSize: "0.6em", opacity: 0.8 }}>
-                            /{ranking?.totalEnArea || 0}
-                        </small>
-                    </h3>
-                    <span>En mi Área</span>
-                    {ranking?.posicionGlobal && (
-                        <small style={{ fontSize: "0.75rem", opacity: 0.7 }}>
-                            Global: #{ranking.posicionGlobal}
-                        </small>
-                    )}
-                </div>
+    <FiTrendingUp />
+    <h3>
+        {ranking?.totalEnArea > 0
+            ? `#${ranking.posicionArea}/${ranking.totalEnArea}`
+            : "-"
+        }
+    </h3>
+    <span>En mi Área</span>
+    {/* 🔥 SOLUCIÓN: Condición estricta > 0 para evitar que React imprima el "0" */}
+    {ranking?.posicionGlobal > 0 && (
+        <small style={{ fontSize: "0.75rem", opacity: 0.7, display: 'block', marginTop: '4px' }}>
+            Global: #{ranking.posicionGlobal}
+        </small>
+    )}
+</div>
             </div>
 
             {/* PROGRESS CARD */}
@@ -209,7 +219,7 @@ export default function OperatorPoints({ onBack }) {
             {topArea.length > 0 && (
                 <div className="points-card ranking-area-card">
                     <div className="ranking-header">
-                        <h4>🏅 Top en {ranking?.nombreArea || "tu Área"}</h4>
+                        <h4>🏅 Top en {nombreAreaVisible || "tu Área"}</h4>
                         <small>Compañeros de trabajo</small>
                     </div>
 

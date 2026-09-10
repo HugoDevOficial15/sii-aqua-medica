@@ -92,7 +92,7 @@
 
     display: block;
 
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 
     font-weight: 600;
 }
@@ -124,6 +124,18 @@
         0 0 0 4px rgba(10, 77, 157, .10);
 }
 
+.input-group-premium input::placeholder {
+
+    color: #94A3B8;
+
+    transition: opacity 0.3s ease;
+}
+
+.input-group-premium input:focus::placeholder {
+
+    opacity: 0;
+}
+
 .login-btn-premium {
 
     width: 100%;
@@ -145,6 +157,43 @@
     font-weight: 700;
 
     margin-top: 10px;
+
+    transition: all 0.3s ease;
+
+    cursor: pointer;
+}
+
+.login-btn-premium:hover:not(:disabled) {
+
+    background: rgb(250, 250, 250);
+
+    color: #0A4D9D !important;
+
+    box-shadow: 0 8px 20px rgba(10, 77, 157, 0.2);
+}
+
+.login-btn-premium:hover:not(:disabled) {
+    -webkit-text-fill-color: #0A4D9D;
+}
+
+.login-btn-premium:active:not(:disabled) {
+
+    background: linear-gradient(135deg, #073d7a, #164ba8);
+
+    color: white;
+
+    transform: scale(0.98);
+
+    box-shadow: 0 4px 12px rgba(10, 77, 157, 0.25);
+}
+
+.login-btn-premium:disabled {
+
+    opacity: 0.7;
+
+    cursor: not-allowed;
+
+    color: white;
 }
 
 .login-error {
@@ -291,9 +340,258 @@
 }
 
 
+/* --- ANIMACIÓN DEL INPUT DE CONTRASEÑA --- */
 .password-wrapper {
+    /* Paleta de colores ajustada al video */
+    --bg-color: #ffffff;      /* Color de fondo */
+    --text-color: #1a16fa;    /* Color del candado y texto oculto */
+    --reveal-bg: #d9e8f8;     /* Color de la ola expansiva y botón */
+    --revealed-text: #000000; /* Color morado del texto/icono revelado */
 
     position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 58px;
+    background-color: var(--bg-color);
+    border: 1px solid #E2E8F0;
+    transition: all 0.25s ease;
+    border-radius: 18px;
+    overflow: hidden;
+    padding: 0 18px;
+}
+
+/* El círculo expansivo que genera la ola (crece detrás de los elementos) */
+.password-wrapper::before {
+    content: '';
+    position: absolute;
+    right: 16px; 
+    top: 50%;
+    width: 32px;
+    height: 32px;
+    background-color: var(--reveal-bg);
+    border-radius: 50%;
+    transform: translateY(-50%) scale(0);
+    transform-origin: center;
+    transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 1;
+}
+
+/* Cuando el estado es true, escalamos la ola gigante */
+.password-wrapper.revealed::before {
+    transform: translateY(-50%) scale(30); 
+}
+
+/* 
+  Los elementos internos siempre van arriba de la ola expansiva
+*/
+.icon-lock,
+.password-input,
+.password-toggle-btn {
+    position: relative;
+    z-index: 2; 
+    color: var(--text-color);
+    transition: color 0.4s ease-in-out;
+}
+
+.icon-lock {
+    width: 22px;
+    height: 22px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+/* Cambiamos el color de los elementos a morado cuando el fondo se hace blanco */
+.password-wrapper.revealed .icon-lock,
+.password-wrapper.revealed .password-input {
+    color: var(--revealed-text);
+}
+
+/* Estilos del campo de texto */
+.password-input {
+    flex-grow: 1;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    padding: 0 12px 0 0 !important;
+    font-size: 1rem;
+    height: 100%;
+    box-shadow: none !important;
+    color: inherit;
+}
+
+.password-input::placeholder {
+    color: inherit;
+    opacity: 0.6;
+}
+
+/* El navegador puede agregar su propio ojo al input type=password.
+   La vista ya tiene un botón personalizado, así que se oculta el nativo. */
+.password-input::-ms-reveal,
+.password-input::-ms-clear {
+    display: none;
+}
+
+/* Estilos del botón visualizador */
+.password-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    
+    /* Inicialmente es un círculo blanco con el ojo morado */
+    background-color: var(--reveal-bg); 
+    color: var(--revealed-text); 
+    transition: background-color 0.4s  ease-in-out;
+}
+
+/* Al revelarse, el fondo del botón se hace transparente para fundirse con la ola blanca */
+.password-wrapper.revealed .password-toggle-btn {
+    background-color: transparent;
+}
+
+/* --- ESTILOS DEL INPUT DE USUARIO --- */
+.username-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 58px;
+    background-color: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 18px;
+    padding: 0 18px;
+    margin-bottom: 22px;
+    overflow: hidden;
+    transition: all 0.25s ease-in-out;
+}
+
+.username-wrapper:focus-within, 
+.password-wrapper:focus-within {
+    outline: none;
+    border-color: #0A4D9D;
+    box-shadow: 0 0 0 4px rgba(10, 77, 157, .10);
+}
+
+.password-wrapper::after{
+    content: '';
+    position: absolute;
+    left: 18px; 
+    top: 50%;
+    width: 32px;
+    height: 32px;
+    background-color: rgba(10, 77, 157, 0.08);
+    border-radius: 50%;
+    transform: translateY(-50%) scale(0);
+    transform-origin: center;
+    transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 1;
+    pointer-events: none; /* Evita que interfiera con los clics */
+}
+
+.password-wrapper:focus-within::after {
+    transform: translateY(-50%) scale(30);
+}
+
+/* Círculo expansivo para el usuario (similar a la contraseña) */
+.username-wrapper::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    width: 32px;
+    height: 32px;
+    background-color: rgba(10, 77, 157, 0.08);
+    border-radius: 50%;
+    transform: translateY(-50%) scale(0);
+    transform-origin: center;
+    transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 1;
+}
+
+.username-wrapper:focus-within::before {
+    transform: translateY(-50%) scale(30);
+}
+
+.username-wrapper .icon-user {
+    position: relative;
+    z-index: 2;
+    width: 22px;
+    height: 22px;
+    margin-right: 12px;
+    color: #1a16fa;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: color 0.4s ease-in-out;
+}
+
+.username-wrapper input {
+    position: relative;
+    z-index: 2;
+    flex-grow: 1;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    padding: 0 !important;
+    font-size: 16px;
+    height: 100%;
+    box-shadow: none !important;
+    color: inherit;
+}
+
+.username-wrapper input::placeholder {
+    color: #94A3B8;
+    opacity: 1;
+    transition: opacity 0.4s ease-in-out;
+}
+
+.username-wrapper input:focus::placeholder {
+    opacity: 0;
+}
+
+/* SVG del ojo */
+.eye-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.eye-open {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.eye-closed {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.password-wrapper.revealed .eye-open {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.password-wrapper.revealed .eye-closed {
+    opacity: 1;
+    visibility: visible;
 }
 
 .password-wrapper input {
@@ -319,4 +617,24 @@
     font-weight: 600;
 
     cursor: pointer;
+}
+
+/* --- CORRECCIÓN PARA EL AUTOCOMPLETADO DEL NAVEGADOR --- */
+.username-wrapper input:-webkit-autofill,
+.username-wrapper input:-webkit-autofill:hover, 
+.username-wrapper input:-webkit-autofill:focus, 
+.username-wrapper input:-webkit-autofill:active,
+.password-wrapper input:-webkit-autofill,
+.password-wrapper input:-webkit-autofill:hover, 
+.password-wrapper input:-webkit-autofill:focus, 
+.password-wrapper input:-webkit-autofill:active {
+    /* Engaña al navegador retrasando el cambio de fondo 5000 segundos */
+    transition: background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s;
+    
+    /* Fuerza al texto a usar el color que le asignaste en tu CSS (azul o negro) */
+    -webkit-text-fill-color: currentColor !important;
+    
+    /* Mantiene la fuente correcta */
+    font-family: inherit !important;
+    font-size: 16px !important;
 }

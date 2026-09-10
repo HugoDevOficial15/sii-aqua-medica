@@ -17,11 +17,57 @@ import { registrarPuntos } from './puntosService';
 
 const ideasCollection = collection(db, 'Ideas');
 const CACHE_KEY = 'sii-aqua-ideas-cache';
+const CACHE_USER_PREFIX = 'sii-aqua-ideas-user-';
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutos
+
+const getCacheWithTTL = (key) => {
+    try {
+        const cached = localStorage.getItem(key);
+        if (!cached) return null;
+
+        const { data, timestamp } = JSON.parse(cached);
+        const now = Date.now();
+
+        // Si el cache expiró, eliminarlo
+        if (now - timestamp > CACHE_TTL) {
+            localStorage.removeItem(key);
+            return null;
+        }
+
+        return data;
+    } catch (error) {
+        return null;
+    }
+};
+
+const setCacheWithTTL = (key, data) => {
+    try {
+        localStorage.setItem(key, JSON.stringify({
+            data,
+            timestamp: Date.now()
+        }));
+    } catch (error) {
+        console.warn("No se pudo guardar en cache:", error);
+    }
+};
+
+const clearCacheWithPrefix = (prefix) => {
+    try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key?.startsWith(prefix)) {
+                localStorage.removeItem(key);
+            }
+        }
+    } catch (error) {
+        console.warn("Error al limpiar cache:", error);
+    }
+};
 
 export const createIdea = async ({ user, titulo, categoria, descripcion, imagenBase64, pdfBase64, pantalla }) => {
     const ideaDoc = {
         idUsuario: user?.id || null,
-        uid: user?.uid || null,
+        uid: user?.id || null,
         solicitante: user?.nombre || 'ANÓNIMO',
         nomina: user?.nomina || 'N/A',
         rol: user?.rol || '',
@@ -44,9 +90,13 @@ export const createIdea = async ({ user, titulo, categoria, descripcion, imagenB
 
     const docRef = await addDoc(ideasCollection, ideaDoc);
 
-    // Registrar puntos por enviar sugerencia
-    if (user?.uid && typeof user.uid === 'string' && user.uid.trim()) {
-        await registrarPuntos(user.uid, "sugerencia_enviada", docRef.id);
+    // Limpiar cache de todas las ideas y del usuario
+    localStorage.removeItem(CACHE_KEY);
+    clearCacheWithPrefix(CACHE_USER_PREFIX);
+
+    // Registrar puntos por enviar sugerencia (usar user.id que es el documentId)
+    if (user?.id && typeof user.id === 'string' && user.id.trim()) {
+        await registrarPuntos(user.id, "sugerencia_enviada", docRef.id);
     }
 
     await sendAdminNotification({
@@ -66,7 +116,8 @@ export const createIdea = async ({ user, titulo, categoria, descripcion, imagenB
 };
 
 export const getAllIdeas = async () => {
-    const cached = readCachedData(CACHE_KEY);
+    // Intentar obtener del cache con TTL
+    const cached = getCacheWithTTL(CACHE_KEY);
     if (cached) {
         return cached;
     }
@@ -75,14 +126,27 @@ export const getAllIdeas = async () => {
     const snapshot = await getDocs(q);
     const ideas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    writeCachedData(CACHE_KEY, ideas);
+    // Guardar en cache con timestamp
+    setCacheWithTTL(CACHE_KEY, ideas);
     return ideas;
 };
 
 export const getIdeasByUser = async (nomina) => {
+    const cacheKey = `${CACHE_USER_PREFIX}${nomina}`;
+
+    // Intentar obtener del cache con TTL
+    const cached = getCacheWithTTL(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
     const q = query(ideasCollection, where('nomina', '==', nomina));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const ideas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Guardar en cache con timestamp
+    setCacheWithTTL(cacheKey, ideas);
+    return ideas;
 };
 
 export const updateIdeaStatus = async (ideaId, estado, comentarioAdmin, administradorRevision) => {
@@ -102,7 +166,11 @@ export const updateIdeaStatus = async (ideaId, estado, comentarioAdmin, administ
         fechaRevision: serverTimestamp(),
         administradorRevision
     });
-    clearCachedData(CACHE_KEY);
+
+    // Limpiar cache de todas las ideas y de todos los usuarios
+    localStorage.removeItem(CACHE_KEY);
+    clearCacheWithPrefix(CACHE_USER_PREFIX);
+
     return { success: true };
 };
 

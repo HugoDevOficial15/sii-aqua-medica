@@ -73,16 +73,21 @@ export function AuthProvider({ children }) {
             }
 
             try {
+                // Carga optimista desde caché (del archivo 1)
                 const cachedSessionData = readCachedSession();
                 if (cachedSessionData.user) {
                     setUser(cachedSessionData.user);
                     setPermisos(cachedSessionData.permisos);
                 }
 
+                // Disparo de evento (del archivo 2)
+                window.dispatchEvent(new CustomEvent("sii-aqua-auth-ready"));
+
                 const username = firebaseUser.email.split("@")[0];
                 const userData = await getUserData(username);
 
-                if (!userData || !userData.activo) {
+                // Validación estricta incluyendo el ID (del archivo 2)
+                if (!userData || !userData.activo || !userData.id) {
                     await signOut(auth);
                     setUser(null);
                     setPermisos([]);
@@ -95,7 +100,7 @@ export function AuthProvider({ children }) {
                 const usuarioCompleto = {
                     ...userData,
                     username,
-                    uid: firebaseUser.uid,
+                    uid: userData.id, // Usa el ID de la base de datos (del archivo 2)
                     mustChangePassword: userData.mustChangePassword || false
                 };
 

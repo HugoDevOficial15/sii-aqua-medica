@@ -27,9 +27,9 @@ export default function HomeHero() {
     const hour = new Date().getHours();
 
     const greeting =
-        hour < 12
+        hour >= 5 && hour < 12
             ? "Buenos días"
-            : hour < 19
+            : hour >= 12 && hour < 18
                 ? "Buenas tardes"
                 : "Buenas noches";
 
@@ -39,7 +39,7 @@ export default function HomeHero() {
             <div className="heroContent">
 
                 <span className="heroGreeting">
-                    👋 Buenos días
+                    <span className="waving-emoji">👋</span> {greeting}
                 </span>
 
                 <h1>{firstName}</h1>

@@ -17,16 +17,21 @@ import { actualizarRankingConArea } from "./rankingService";
 // Helper para obtener el año actual
 const obtenerAñoActual = () => new Date().getFullYear().toString();
 
-const obtenerHistorialRef = (userId, año) =>
-  collection(db, "users", userId, año, "informacion", "historialPuntos");
+const obtenerHistorialRef = (userDocId, año) =>
+  collection(db, "users", userDocId, año, "informacion", "historialPuntos");
 
-const obtenerPuntosRef = (userId, año) =>
-  doc(collection(db, "users", userId, año, "informacion", "puntos_general"), "general");
+const obtenerPuntosRef = (userDocId, año) =>
+  doc(collection(db, "users", userDocId, año, "informacion", "puntos_general"), "general");
 
 // Resolver el documentId del usuario a partir del firebaseUid
 const resolveUserDocIdByFirebaseUid = async (firebaseUid) => {
   if (!firebaseUid) return null;
   try {
+    const directUserSnapshot = await getDoc(doc(db, "users", firebaseUid));
+    if (directUserSnapshot.exists()) {
+      return firebaseUid;
+    }
+
     const q = query(collection(db, "users"), where("uid", "==", firebaseUid));
     const snapshot = await getDocs(q);
     return snapshot.empty ? null : snapshot.docs[0].id;
@@ -67,9 +72,11 @@ export const registrarPuntos = async (userId, tipo, referencia) => {
     }
 
     const año = obtenerAñoActual();
+    // userId ya es el documentId de Firestore (viene de user.id en AuthProvider)
+    const userDocId = userId;
 
     // 1. Agregar a historial de puntos
-    await addDoc(obtenerHistorialRef(userId, año), {
+    await addDoc(obtenerHistorialRef(userDocId, año), {
       tipo,
       puntos,
       referencia,
@@ -77,10 +84,17 @@ export const registrarPuntos = async (userId, tipo, referencia) => {
     });
 
     // 2. Recalcular total de puntos
-    await recalcularPuntos(userId, año);
+    await recalcularPuntos(userDocId, año);
 
     // 3. Actualizar ranking
-    await actualizarRankingConArea(userId, año);
+    await actualizarRankingConArea(userDocId, año);
+
+    // 4. Limpiar cache para forzar refetch inmediato
+    try {
+      localStorage.removeItem(`posicion-${userDocId}`);
+    } catch (e) {
+      // Error al limpiar cache, pero continuar
+    }
 
     return true;
   } catch (error) {

@@ -26,6 +26,34 @@ const resolveUserDocIdByFirebaseUid = async (firebaseUid) => {
 
 const obtenerAñoActual = () => new Date().getFullYear().toString();
 
+// Cache con TTL para ranking
+const RANKING_CACHE_TTL = 60 * 1000; // 1 minuto
+const rankingCache = new Map();
+
+const getCacheRanking = (key) => {
+  const cached = rankingCache.get(key);
+  if (!cached) return null;
+
+  const ahora = Date.now();
+  if (ahora - cached.timestamp > RANKING_CACHE_TTL) {
+    rankingCache.delete(key);
+    return null;
+  }
+
+  return cached.data;
+};
+
+const setCacheRanking = (key, data) => {
+  rankingCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+};
+
+export const limpiarCacheRanking = () => {
+  rankingCache.clear();
+};
+
 export const actualizarRankingConArea = async (userId, año = obtenerAñoActual()) => {
   try {
     // 1. Obtener datos del usuario
@@ -38,6 +66,14 @@ export const actualizarRankingConArea = async (userId, año = obtenerAñoActual(
 
     const userData = userSnap.data();
     const { nombreArea, area, equipo, nombre } = userData;
+
+    // Usar nombreArea si existe, si no usar area como fallback
+    const areaFinal = nombreArea || area;
+
+    // Si no hay área, no se puede calcular ranking
+    if (!areaFinal) {
+      return null;
+    }
 
     // 2. Obtener puntos del usuario
     const puntosRef = doc(collection(db, "users", userId, año, "informacion", "puntos_general"), "general");
@@ -54,17 +90,22 @@ export const actualizarRankingConArea = async (userId, año = obtenerAñoActual(
     const todosUsuarios = allUsersSnap.docs.map(doc => ({
       uid: doc.id,
       puntos: doc.data().puntos || 0,
-      nombreArea: doc.data().nombreArea
+      area: doc.data().area || doc.data().nombreArea
     }));
 
-    const usersOrdenadosGlobal = todosUsuarios
+    const usuariosParaRanking = [
+      ...todosUsuarios.filter(usuario => usuario.uid !== userId),
+      { uid: userId, puntos: puntos || 0, area: areaFinal }
+    ];
+
+    const usersOrdenadosGlobal = usuariosParaRanking
       .sort((a, b) => b.puntos - a.puntos);
 
     const posicionGlobal = usersOrdenadosGlobal
       .findIndex(u => u.uid === userId) + 1;
 
     // 4. Calcular RANKING DE ÁREA (COMPAÑEROS)
-    const usersArea = todosUsuarios.filter(u => u.nombreArea === nombreArea);
+    const usersArea = usuariosParaRanking.filter(u => u.area === areaFinal);
     const usersAreaOrdenados = usersArea
       .sort((a, b) => b.puntos - a.puntos);
 
@@ -81,8 +122,8 @@ export const actualizarRankingConArea = async (userId, año = obtenerAñoActual(
         nombre,
         puntos,
         nivel,
-        nombreArea,
-        area,
+        area: areaFinal,
+        nombreArea: areaFinal,
         equipo,
         posicionGlobal,
         posicionArea,
@@ -91,6 +132,9 @@ export const actualizarRankingConArea = async (userId, año = obtenerAñoActual(
       },
       { merge: true }
     );
+
+    // Limpiar cache de ranking cuando se actualiza
+    limpiarCacheRanking();
 
     return { posicionGlobal, posicionArea, totalEnArea, nombreArea };
   } catch (error) {
@@ -101,18 +145,29 @@ export const actualizarRankingConArea = async (userId, año = obtenerAñoActual(
 // TOP 3 DE MI ÁREA (compañeros de trabajo)
 export const obtenerTopArea = async (nombreArea, limitNum = 3) => {
   try {
+    const cacheKey = `top-area-${nombreArea}-${limitNum}`;
+    const cached = getCacheRanking(cacheKey);
+    if (cached) return cached;
+
     const q = query(
       collection(db, "rankings_users"),
-      where("nombreArea", "==", nombreArea),
-      orderBy("puntos", "desc"),
-      limit(limitNum)
+      where("area", "==", nombreArea)
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc, index) => ({
+    const result = snapshot.docs
+      .map(doc => ({
       ...doc.data(),
-      posicion: index + 1
-    }));
+      }))
+      .sort((a, b) => (b.puntos || 0) - (a.puntos || 0))
+      .slice(0, limitNum)
+      .map((usuario, index) => ({
+        ...usuario,
+        posicion: index + 1
+      }));
+
+    setCacheRanking(cacheKey, result);
+    return result;
   } catch (error) {
     console.error("Error al obtener top área:", error);
     return [];
@@ -122,6 +177,10 @@ export const obtenerTopArea = async (nombreArea, limitNum = 3) => {
 // TOP 3 GLOBAL
 export const obtenerTopGlobal = async (limitNum = 3) => {
   try {
+    const cacheKey = `top-global-${limitNum}`;
+    const cached = getCacheRanking(cacheKey);
+    if (cached) return cached;
+
     const q = query(
       collection(db, "rankings_users"),
       orderBy("puntos", "desc"),
@@ -129,10 +188,13 @@ export const obtenerTopGlobal = async (limitNum = 3) => {
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc, index) => ({
+    const result = snapshot.docs.map((doc, index) => ({
       ...doc.data(),
       posicion: index + 1
     }));
+
+    setCacheRanking(cacheKey, result);
+    return result;
   } catch (error) {
     console.error("Error al obtener top global:", error);
     return [];
@@ -142,24 +204,46 @@ export const obtenerTopGlobal = async (limitNum = 3) => {
 // Mi posición en el área
 export const obtenerMiPosicionArea = async (userId) => {
   try {
+    await actualizarRankingConArea(userId);
+
+    const cacheKey = `posicion-${userId}`;
+    const cached = getCacheRanking(cacheKey);
+    if (cached) return cached;
+
     const userSnap = await getDoc(doc(db, "rankings_users", userId));
 
     if (!userSnap.exists()) {
-      return null;
+      return {
+        posicionArea: 0,
+        posicionGlobal: 0,
+        totalEnArea: 0,
+        nombreArea: "Sin Área",
+        puntos: 0,
+        nivel: "Bronce"
+      };
     }
 
     const data = userSnap.data();
-    return {
-      posicionArea: data.posicionArea,
-      posicionGlobal: data.posicionGlobal,
-      totalEnArea: data.totalEnArea,
-      nombreArea: data.nombreArea,
-      puntos: data.puntos,
-      nivel: data.nivel
+    const result = {
+      posicionArea: data.posicionArea || 0,
+      posicionGlobal: data.posicionGlobal || 0,
+      totalEnArea: data.totalEnArea || 0,
+      nombreArea: data.area || data.nombreArea || "Sin Área",
+      puntos: data.puntos || 0,
+      nivel: data.nivel || "Bronce"
     };
+
+    setCacheRanking(cacheKey, result);
+    return result;
   } catch (error) {
-    console.error("Error al obtener posición:", error);
-    return null;
+    return {
+      posicionArea: 0,
+      posicionGlobal: 0,
+      totalEnArea: 0,
+      nombreArea: "Sin Área",
+      puntos: 0,
+      nivel: "Bronce"
+    };
   }
 };
 
@@ -168,15 +252,17 @@ export const obtenerUsuariosArea = async (nombreArea) => {
   try {
     const q = query(
       collection(db, "rankings_users"),
-      where("nombreArea", "==", nombreArea),
-      orderBy("puntos", "desc")
+      where("area", "==", nombreArea)
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc, index) => ({
-      ...doc.data(),
-      posicion: index + 1
-    }));
+    return snapshot.docs
+      .map(doc => ({ ...doc.data() }))
+      .sort((a, b) => (b.puntos || 0) - (a.puntos || 0))
+      .map((usuario, index) => ({
+        ...usuario,
+        posicion: index + 1
+      }));
   } catch (error) {
     console.error("Error al obtener users del área:", error);
     return [];

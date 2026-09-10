@@ -1,3 +1,26 @@
+@keyframes wave {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(-15deg);
+    }
+    75% {
+        transform: rotate(15deg);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .homeHero {
 
     background: #0A4D9D;
@@ -25,6 +48,16 @@
     font-weight: 600;
 
     font-size: .85rem;
+
+}
+
+.waving-emoji {
+
+    display: inline-block;
+
+    animation: wave 0.8s ease-in-out 13 forwards;
+
+    transform-origin: 70% 70%;
 
 }
 

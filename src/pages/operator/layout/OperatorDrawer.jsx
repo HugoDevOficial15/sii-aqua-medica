@@ -14,6 +14,9 @@ import {
     FiX,
     FiHeart
 } from "react-icons/fi";
+import { useState, useEffect } from "react";
+import { doc, collection, onSnapshot } from "firebase/firestore";
+import { db } from "../../../config/firebase";
 
 import { useAuth } from "../../../hooks/useAuth";
 import { useLogout } from "../../../hooks/useLogout";
@@ -33,6 +36,25 @@ export default function OperatorDrawer({
     const { user } = useAuth();
     const handleLogout = useLogout();
     const datosUsuario = usuarioActual || user;
+    const [puntos, setPuntos] = useState(null);
+    const [nivel, setNivel] = useState("Pendiente");
+
+    useEffect(() => {
+        if (!datosUsuario?.uid) return;
+
+        const año = new Date().getFullYear().toString();
+        const puntosRef = doc(collection(db, "users", datosUsuario.uid, año, "informacion", "puntos_general"), "general");
+
+        const unsubscribe = onSnapshot(puntosRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setPuntos(data.total || 0);
+                setNivel(data.nivel || "Pendiente");
+            }
+        });
+
+        return () => unsubscribe();
+    }, [datosUsuario?.uid]);
 
     const items = [
 
@@ -174,7 +196,7 @@ export default function OperatorDrawer({
                         </span>
 
                         <strong>
-                            Pendiente
+                            {nivel}
                         </strong>
 
                     </div>
@@ -186,7 +208,7 @@ export default function OperatorDrawer({
                         </span>
 
                         <strong>
-                            0
+                            {puntos !== null ? puntos : 0}
                         </strong>
 
                     </div>

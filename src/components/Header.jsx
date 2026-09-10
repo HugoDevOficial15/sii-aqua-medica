@@ -34,8 +34,17 @@ export default function Header({ toggleSidebar }) {
 
     const [notifications, setNotifications] = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [isRinging, setIsRinging] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const dropdownRef = useRef(null);
     const notificationLoadRef = useRef(false);
+
+    const triggerLogoutAnimation =() => {
+        setIsLoggingOut(true);
+        setTimeout(() => {
+            handleLogout();
+        }, 600);
+    };
 
     const loadNotifications = async () => {
         const currentUserId = user?.uid || user?.id;
@@ -227,8 +236,10 @@ export default function Header({ toggleSidebar }) {
                         <div className="notification-wrapper">
 
                             <button
-                                className="notification-btn"
+                                className={`notification-btn ${isRinging ? 'ringing' : ''}`}
                                 onClick={() => {
+                                    setIsRinging(true);
+                                    setTimeout(() => setIsRinging(false), 600);
                                     setShowDropdown(prev => {
                                         const next = !prev;
                                         if (next) {
@@ -326,10 +337,11 @@ export default function Header({ toggleSidebar }) {
 
                         {/* LOGOUT */}
                         <button
-                            className="logout-pro-btn"
-                            onClick={handleLogout}
+                            className={'logout-pro-btn ' + (isLoggingOut ? 'logging-out' : '')}
+                            onClick={triggerLogoutAnimation}
+                            disabled={isLoggingOut}
                         >
-                            <FaSignOutAlt />
+                            <FaSignOutAlt className="logout-icon"/>
                             <span>Salir</span>
                         </button>
 
@@ -537,6 +549,20 @@ export default function Header({ toggleSidebar }) {
 
     box-shadow:
         0 12px 24px rgba(37,99,235,0.2);
+}
+
+.notification-btn.ringing {
+    animation: bellRing 0.6s ease-in-out;
+}
+
+@keyframes bellRing {
+    0% { transform: rotate(0deg); }
+    15% { transform: rotate(-15deg); }
+    30% { transform: rotate(15deg); }
+    45% { transform: rotate(-15deg); }
+    60% { transform: rotate(15deg); }
+    75% { transform: rotate(-8deg); }
+    100% { transform: rotate(0deg); }
 }
 
 .notification-wrapper {
@@ -817,13 +843,32 @@ export default function Header({ toggleSidebar }) {
     transition: all 0.25s ease;
 }
 
-.logout-pro-btn:hover {
+.logout-pro-btn:hover:not(.logging-out) {
 
     transform:
         translateY(-2px);
 
     box-shadow:
         0 12px 24px rgba(239,68,68,0.28);
+}
+
+.logout-pro-btn.logging-out {
+    animation: logoutPulse 0.6s ease-out forwards;
+}
+
+@keyframes logoutPulse {
+    0% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05) translateY(-4px);
+        box-shadow: 0 16px 32px rgba(239,68,68,0.4);
+    }
+    100% {
+        transform: scale(0.95) translateY(0);
+        opacity: 0.7;
+    }
 }
 
 /* =========================
