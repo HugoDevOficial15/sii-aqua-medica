@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { FaTimes } from "react-icons/fa";
+import { FaCalendarDay} from "react-icons/fa";
 
 // ✅ FIX FECHA (NO TOCAR MÁS)
 const parseFechaLocal = (fechaStr) => {
@@ -120,7 +120,9 @@ export default function DisponibilidadMesModal({
             <div className="modal-container">
 
                 <div className="modal-header">
-                    <h5 className="modal-header-title">Disponibilidad mes {mes}</h5>
+                    <h5 className="modal-header-title">
+                        <FaCalendarDay style={{ marginRight: "8px", marginBottom: "2px" }} />
+                        Disponibilidad mes {mes}</h5>
                     <button className="btn-close" onClick={onClose}> × </button>
                 </div>
 

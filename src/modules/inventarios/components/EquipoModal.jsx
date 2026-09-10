@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaEdit } from "react-icons/fa";
 
 import { equipoSchema } from "../../../schemas/equipoSchema";
 import { notifySuccess, notifyError } from "../../../utils/notify";
@@ -134,7 +134,7 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
     <div style={styles.backdrop}>
       <div style={styles.modalCard}>
         <div style={styles.header}>
-          <h5 style={styles.title}>{data ? "Editar Equipo" : "Nuevo Equipo"}</h5>
+          <h5 style={styles.title}>{data ? (<><FaEdit/> Editar Equipo</>) : (<><FaPlus/> Nuevo Equipo</>)}</h5>
           <button type="button" className="close-button" style={styles.closeButton} onClick={onClose}>
             ×
           </button>
@@ -198,7 +198,6 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
 
             <div style={styles.footer}>
               <button type="submit" style={styles.saveButton}>
-                <FaPlus />
                 {loading ? "Guardando..." : "Guardar"}
               </button>
             </div>

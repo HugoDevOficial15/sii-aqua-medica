@@ -635,7 +635,7 @@ export default function ListaServiciosPage() {
 
               <div className="modal-footer">
                 <button
-                  className="btn btn-secondary"
+                  className="btn-cancelar-pdf"
                   onClick={() => setShowPdfModal(false)}
                 >
                   Cancelar
@@ -836,6 +836,7 @@ export default function ListaServiciosPage() {
         .form-control,
         .form-select {
           height: 50px;
+          min-width: 100px;
           border-radius: 12px;
           background-color: var(--operator-card);
           border: 1px solid var(--operator-border);
@@ -923,6 +924,28 @@ export default function ListaServiciosPage() {
         .btn-danger:hover {
           background: var(--operator-danger);
           box-shadow: 0 0px 20px var(--operator-danger);
+        }
+
+        .btn-cancelar-pdf {
+          height: 50px;
+          padding: 0 20px;
+          border-radius: 10px;
+          border: none;
+          background: var(--operator-border);
+          color: var(--operator-text);
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0px 10px var(--operator-shadow);
+        }
+
+        .btn-cancelar-pdf:hover {
+          scale: 1.05;
+          transition: scale 0.2s ease-in-out;
+          color: var(--operator-danger);
+          box-shadow: 0 0px 20px var(--operator-shadow);
         }
 
         /*  MENU DE ACCIONES */

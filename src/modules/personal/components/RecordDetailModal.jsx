@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaTimes, FaFilePdf } from "react-icons/fa";
+import { FaTimes, FaFilePdf, FaNotesMedical, FaChalkboardTeacher, FaHouseUser, FaMedal, FaUserTimes } from "react-icons/fa";
 import { createPortal } from "react-dom";
 import { getUsers } from "../../../services/usersService";
 import { generatePersonalRecordPDF } from "./pdf-generator";
@@ -68,11 +68,11 @@ const getMedicalHistoryPrimaryComment = (record) => {
 };
 
 const getRecordTypeLabel = (record, isMedicalHistory) => {
-  if (record?.type === "reconocimiento") return "Reconocimiento";
-  if (record?.type === "incapacidad") return "Incapacidad";
-  if (record?.type === "capacitacion") return "Capacitación";
-  if (isMedicalHistory) return "Historial Médico";
-  return "Incidencia";
+  if (record?.type === "reconocimiento") return <><FaMedal style={{ marginRight: "8px", marginBottom: "2px" }} />Reconocimiento</>;
+  if (record?.type === "incapacidad") return <><FaHouseUser style={{ marginRight: "8px", marginBottom: "2px" }} />Incapacidad</>;
+  if (record?.type === "capacitacion") return <><FaChalkboardTeacher style={{ marginRight: "8px", marginBottom: "2px" }} />Capacitación</>;
+  if (isMedicalHistory) return <><FaNotesMedical style={{ marginRight: "8px", marginBottom: "2px" }} />Historial Médico</>;
+  return <><FaUserTimes style={{ marginRight: "8px", marginBottom: "2px" }} />Incidencia</>;
 };
 
 const getRecordTitle = (record, isMedicalHistory) => {
@@ -290,7 +290,7 @@ export default function RecordDetailModal({ record, onClose }) {
             className="personal-modal-pdf"
             onClick={() => generatePersonalRecordPDF(record)}
           >
-            <FaFilePdf /> PDF
+            Generar PDF
           </button>
         </div>
       </div>

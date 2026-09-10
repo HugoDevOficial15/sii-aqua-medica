@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaGift } from "react-icons/fa";
+import { FaGift, FaSyncAlt } from "react-icons/fa";
 
 import { getCumpleaniosPorMes, refreshCumpleaniosPorMes } from "../../services/aniversariosService";
 
@@ -109,6 +109,7 @@ export default function AniversarioMesesPage() {
                             disabled={loading}
                             style={{ marginTop: 0 }}
                         >
+                            <FaSyncAlt style={{ marginRight: "8px", marginBottom: "2px" }} />
                             {loading ? "Actualizando..." : "Actualizar"}
                         </button>
                     </div>

@@ -5,9 +5,7 @@ import {
     useState,
 } from "react";
 
-import {
-    FaPlus
-} from "react-icons/fa";
+import { FaPlus, FaCarAlt } from "react-icons/fa";
 
 import Loader from "../../../components/Loader";
 
@@ -46,6 +44,10 @@ import {
 import {
     useAuth
 } from "../../../hooks/useAuth";
+
+import {
+    sanitizeTextTrim
+} from "../../../utils/sanitize";
 
 export default function MovimientoModal({
 
@@ -456,6 +458,7 @@ export default function MovimientoModal({
                     <div>
 
                         <div className="movement-title">
+                            <FaCarAlt className="me-2" />
                             Entrada de inventario
                         </div>
 

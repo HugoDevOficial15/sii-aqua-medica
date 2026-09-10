@@ -247,13 +247,25 @@
 }
 
 .reporte-modal-btn.primary {
-  background: var(--operator-danger);
+  background: var(--operator-primary);
   color: #ffffff;
   border-radius: 10px;
   padding: 10px 16px;
 }
 
 .reporte-modal-btn.primary:hover {
+  filter: brightness(0.97);
+  box-shadow: 0 0px 6px 1px var(--operator-primary-light);
+}
+
+.reporte-modal-btn {
+  background: var(--operator-danger);
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+.reporte-modal-btn:hover {
   filter: brightness(0.97);
   box-shadow: 0 0px 6px 1px var(--operator-danger);
 }

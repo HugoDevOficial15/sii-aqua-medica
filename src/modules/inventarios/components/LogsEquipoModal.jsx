@@ -190,6 +190,7 @@ export default function LogsEquipoModal({
                     <div>
 
                         <h4 style={{ margin: 0 }}>
+                            <FaClipboardList style={{ marginRight: "8px", marginBottom: "2px" }} />
                             Historial del Equipo
                         </h4>
 
@@ -252,7 +253,6 @@ export default function LogsEquipoModal({
                         onClick={handleCreateLog}
                         
                     >
-                        <FaPlus />
                         Agregar
                     </button>
 

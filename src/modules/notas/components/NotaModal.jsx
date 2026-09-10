@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
+import { FaPlus, FaEdit } from "react-icons/fa";
 
 export default function NotaModal({ show, onClose, onSave, data }) {
 
@@ -48,7 +49,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
             <div className="custom-modal">
 
                 <div className="custom-modal-header">
-                    <h5 className="custom-modal-title">{data ? "Editar Nota" : "Nueva Nota"}</h5>
+                    <h5 className="custom-modal-title">{data ? <><FaEdit className="me-2" />Editar Nota</> : <><FaPlus className="me-2" />Nueva Nota</>}</h5>
                     <button className="btn-close" onClick={onClose}> × </button>
                 </div>
 

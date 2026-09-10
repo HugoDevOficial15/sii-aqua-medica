@@ -6,6 +6,7 @@ import { createNotification } from "../../../utils/createNotification";
 import { notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { invalidateUserAndPersonalCaches } from "../../../services/usersService";
+import { FaMedal } from "react-icons/fa";
 
 export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -181,7 +182,9 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
       <div className="personal-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
           <div>
-            <h3>Nuevo reconocimiento</h3>
+            <h3>
+              <FaMedal style={{ marginRight: "8px", marginBottom: "2px" }} />
+              Nuevo reconocimiento</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
             ×

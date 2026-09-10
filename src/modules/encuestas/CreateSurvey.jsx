@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 // Iconos
-import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar,FaWindowClose,FaEllipsisV,FaGlobe,FaWarehouse,FaFlask,FaUtensils,FaUserTie,FaCalculator,FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaShieldAlt,FaHeartbeat,FaHandsHelping,FaStethoscope,FaLaptopCode,FaClipboardCheck,FaEye,FaShoppingCart } from "react-icons/fa";
+import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaSave, FaTrash, FaChartBar, FaEllipsisV,FaGlobe,FaWarehouse,FaFlask,FaUtensils,FaUserTie,FaCalculator,FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaShieldAlt,FaHeartbeat,FaHandsHelping,FaStethoscope,FaLaptopCode,FaClipboardCheck,FaEye,FaShoppingCart } from "react-icons/fa";
 // Service
 import { createSurvey, getSurveys, updateSurvey, deleteSurvey } from "../../services/surveyService";
 // Firebase
@@ -800,7 +800,7 @@ export default function CreateSurvey() {
 
                         <div className="modal-header custom-modal-header">
                             <h5>
-                                {editing ? "Editar Encuesta" : "Crear Encuesta"}
+                                {editing ? <><FaEdit className="me-2" />Editar Encuesta</> : <><FaPlus className="me-2" />Crear Encuesta</>}
                             </h5>
 
                             <button
@@ -1086,6 +1086,7 @@ export default function CreateSurvey() {
                                                     className="btn-agregar-temario"
                                                     onClick={() => addTema("")}
                                                 >
+                                                    <FaPlus className="me-2" />
                                                     Agregar tema
                                                 </button>
                                             </div>

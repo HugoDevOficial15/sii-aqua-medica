@@ -4,7 +4,7 @@ import { notifySuccess, notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { useAuth } from "../../../hooks/useAuth";
 import Loader from "../../../components/Loader";
-import { FaCheck, FaTimes } from "react-icons/fa";
+import { FaCheck, FaTimes, FaClosedCaptioning } from "react-icons/fa";
 
 export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
 
@@ -59,7 +59,9 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
 
                 {/* HEADER */}
                 <div className="custom-modal-header d-flex justify-content-between align-items-center">
-                    <h6 className="mb-0 fw-bold">FINALIZAR SERVICIO</h6>
+                    <h6 className="mb-0 fw-bold">
+                        <FaClosedCaptioning style={{ marginRight: "8px", marginBottom: "2px" }} />
+                        FINALIZAR SERVICIO</h6>
                     <button className="btn-close-custom" onClick={onClose}>
                         <FaTimes />
                     </button>
@@ -98,7 +100,6 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                         onClick={handleSave}
                         disabled={loading}
                     >
-                        <FaCheck size={12} />
                         {loading ? "Guardando..." : "Guardar"}
                     </button>
 

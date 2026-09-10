@@ -1,4 +1,5 @@
 import { FaCarAlt, FaCloudDownloadAlt, FaFilePdf } from "react-icons/fa";
+import { FaArrowRightArrowLeft } from "react-icons/fa6";
 import RackInventory from "./RackInventory";
 import RackMovimientos from "./RackMovimientos";
 import { useState } from "react";
@@ -11,15 +12,8 @@ import RackTransferModal from "./RackTransferModal";
 
 import RackPdfModal from "./RackPdfModal";
 
-import {
-    bloquearRack,
-    liberarRack
-} from "../../../services/rackService";
+import { bloquearRack, liberarRack } from "../../../services/rackService";
 
-
-import {
-    FaArrowRightArrowLeft
-} from "react-icons/fa6";
 import { getUbicacionLabel } from "../../../utils/rackLocation";
 
 //Salida.
@@ -194,7 +188,7 @@ export default function RackDetail({ rack, refresh }) {
 
                     }}
                 >
-                    <FaCloudDownloadAlt className="me-2" />
+                    <FaCloudDownloadAlt />
                     Salida
                 </button>
 
@@ -231,9 +225,7 @@ export default function RackDetail({ rack, refresh }) {
 
                     }}
                 >
-                    <FaArrowRightArrowLeft
-                        className="me-2"
-                    />
+                    <FaArrowRightArrowLeft/>
 
                     Traslado
                 </button>
@@ -253,7 +245,7 @@ export default function RackDetail({ rack, refresh }) {
 
                     onClick={abrirMovimiento}
                 >
-                    <FaCarAlt className="me-2" />
+                    <FaCarAlt />
                     Movimiento
                 </button>
 
@@ -264,7 +256,7 @@ export default function RackDetail({ rack, refresh }) {
                         setShowPdf(true)
                     }
                 >
-                    <FaFilePdf className="me-2" />
+                    <FaFilePdf/>
 
                     Historial
                 </button>

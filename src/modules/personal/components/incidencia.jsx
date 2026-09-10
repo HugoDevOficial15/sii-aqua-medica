@@ -6,6 +6,7 @@ import { createNotification } from "../../../utils/createNotification";
 import { notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { invalidateUserAndPersonalCaches } from "../../../services/usersService";
+import { FaUserTimes } from "react-icons/fa";
 
 export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -136,7 +137,9 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
       <div className="personal-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
           <div>
-            <h3>Nueva incidencia</h3>
+            <h3>
+              <FaUserTimes style={{ marginRight: "8px", marginBottom: "2px" }} />
+              Nueva incidencia</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
             ×

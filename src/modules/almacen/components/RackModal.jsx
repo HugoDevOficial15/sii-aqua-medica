@@ -4,7 +4,7 @@ import { notifySuccess, notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import Loader from "../../../components/Loader";
 import { useState, useEffect } from "react";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaEdit } from "react-icons/fa";
 import { validateRack } from "../../../schemas/rackSchema";
 
 const normalizarTipo = (valor = "") => String(valor || "").trim().toLowerCase();
@@ -392,8 +392,8 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
                     <h5 style={styles.title}>
                         {data
-                            ? "Editar"
-                            : "Nuevo"}
+                            ? <><FaEdit className="me-2" />Editar</>
+                            : <><FaPlus className="me-2" />Nuevo</>}
                     </h5>
 
                     <button
@@ -631,12 +631,6 @@ export default function RackModal({ onClose, onSuccess, data }) {
                                 type="submit"
                                 className="btn btn-primary"
                             >
-
-                                <FaPlus
-                                    style={{
-                                        marginRight: 6
-                                    }}
-                                />
 
                                 {loading
                                     ? "Guardando..."

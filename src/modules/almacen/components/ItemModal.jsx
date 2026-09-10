@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { useEffect, useRef, useState } from "react";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaEdit } from "react-icons/fa";
 
 import Loader from "../../../components/Loader";
 import { notifySuccess, notifyError } from "../../../utils/notify";
@@ -203,8 +203,8 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                     <h5 style={styles.title}>
                         {data
-                            ? "Editar Material"
-                            : "Nuevo Material"}
+                            ? <><FaEdit className="me-2" />Editar Material</>
+                            : <><FaPlus className="me-2" />Nuevo Material</>}
                     </h5>
 
                     <button
@@ -364,12 +364,6 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                                 type="submit"
                                 className="btn btn-primary"
                                 >
-
-                                <FaPlus
-                                    style={{
-                                        marginRight: 6
-                                    }}
-                                />
 
                                 Guardar
 

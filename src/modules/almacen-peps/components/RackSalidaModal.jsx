@@ -12,6 +12,7 @@ import {
     sanitizeTextTrim
 } from "../../../utils/sanitize";
 
+import {FaCloudDownloadAlt} from "react-icons/fa";
 // import {
 //     obtenerStockPorRack,
 //     descontarStockPEPS
@@ -374,6 +375,7 @@ export default function RackSalidaModal({
                     <div>
 
                         <div className="salida-title">
+                            <FaCloudDownloadAlt className="me-2" />
                             Salida PEPS
                         </div>
 

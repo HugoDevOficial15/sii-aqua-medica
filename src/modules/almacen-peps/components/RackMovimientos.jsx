@@ -10,6 +10,8 @@ import {
 import SnapshotManager
     from "../../../services/snapshots/snapshotManager";
 
+import { FaHistory } from "react-icons/fa";
+
 export default function RackMovimientos({
     rack
 }) {
@@ -260,6 +262,7 @@ export default function RackMovimientos({
                             setShowModal(true)
                         }
                     >
+                        <FaHistory className="me-2" />
                         Ver historial completo
                     </button>
                 )
@@ -275,6 +278,7 @@ export default function RackMovimientos({
                             <div className="rack-modal-header">
 
                                 <h5>
+                                    <FaHistory className="me-2" />
                                     Historial del Rack
                                 </h5>
 

@@ -9,7 +9,8 @@ import {
     FaFemale,
     FaMale,
     FaChartPie,
-    FaChartBar
+    FaChartBar,
+    FaSyncAlt,
 } from "react-icons/fa";
 
 import CountUp from "react-countup";
@@ -302,7 +303,10 @@ export default function Dashboard() {
                     onClick={handleRefresh}
                     disabled={loading}
                 >
-                    {loading ? "Actualizando..." : "Actualizar"}
+                <FaSyncAlt/>
+
+                {loading ? "Actualizando..." : "Actualizar"}
+                
                 </button>
             </div>
 

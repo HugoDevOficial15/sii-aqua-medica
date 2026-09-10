@@ -17,6 +17,8 @@ import {
     getUbicacionTipoLabel
 } from "../../../utils/rackLocation";
 
+import {FaFilePdf} from "react-icons/fa";
+
 export default function RackPdfModal({
     rack,
     onClose
@@ -247,6 +249,7 @@ export default function RackPdfModal({
                     <div>
 
                         <div className="pdf-title">
+                            <FaFilePdf className="me-2" />
                             Exportar Reporte
                         </div>
 

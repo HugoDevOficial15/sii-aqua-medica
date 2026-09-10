@@ -5,6 +5,7 @@ import { puestoSchema } from "../../schemas/puesto-schema";
 import { createPuesto, updatePuesto } from "../../services/puestos-service";
 import { notifySuccess, notifyError } from "../../utils/notify";
 import { sanitizeTextTrim } from "../../utils/sanitize";
+import { FaPlus, FaEdit } from "react-icons/fa";
 
 export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
     const [isCloseHovered, setIsCloseHovered] = useState(false);
@@ -50,7 +51,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                 <div style={styles.header}>
 
                     <h5 style={styles.title}>
-                        {puestoEdit ? "Editar Puesto" : "Crear Puesto"}
+                        {puestoEdit ? (<><FaEdit/> Editar Puesto</>) : (<><FaPlus/> Crear Puesto</>)}
                     </h5>
 
                     <button
@@ -234,7 +235,8 @@ const styles = {
         margin: 0,
         fontSize: "1.5rem",
         fontWeight: "800",
-        color: "var(--operator-text)"
+        color: "var(--operator-text)",
+        alignItems: "center"
     },
     closeButton: {
         width: "36px",

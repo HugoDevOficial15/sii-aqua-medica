@@ -3,6 +3,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import logo2Image from "../../../utils/img/logo2.jpg";
 import { notifyError } from "../../../utils/notify";
+import { FaGlobe, FaNotesMedical, FaChalkboardTeacher, FaHouseUser, FaMedal, FaUserTimes, FaFilePdf } from "react-icons/fa";
 
 const normalizeDate = (value) => {
   if (!value) return "Sin fecha";
@@ -664,7 +665,9 @@ export default function PdfGeneralModal({
       >
         <div className="personal-modal-header">
           <div>
-            <h3>Generar reporte PDF</h3>
+            <h3>
+              <FaFilePdf style={{ marginRight: "8px", marginBottom: "2px" }} />
+              Generar reporte PDF</h3>
           </div>
           <button
             type="button"
@@ -759,12 +762,12 @@ export default function PdfGeneralModal({
           <label className="personal-field-label">Tipo de reporte</label>
           <div className="personal-record-filter">
             {[
-              { key: "general", label: "General" },
-              { key: "incidencias", label: "Incidencias" },
-              { key: "reconocimientos", label: "Reconocimientos" },
-              { key: "incapacidades", label: "Incapacidades" },
-              { key: "historialMedico", label: "Historial Médico" },
-              { key: "capacitacion", label: "Capacitación"},
+              { key: "general", label: <><FaGlobe style={{ marginRight: "8px", marginBottom: "2px" }} />General</> },
+              { key: "incidencias", label: <><FaUserTimes style={{ marginRight: "8px", marginBottom: "2px" }} />Incidencias</> },
+              { key: "reconocimientos", label: <><FaMedal style={{ marginRight: "8px", marginBottom: "2px" }} />Reconocimientos</> },
+              { key: "incapacidades", label: <><FaHouseUser style={{ marginRight: "8px", marginBottom: "2px" }} />Incapacidades</> },
+              { key: "historialMedico", label: <><FaNotesMedical style={{ marginRight: "8px", marginBottom: "2px" }} />Historial Médico</> },
+              { key: "capacitacion", label: <><FaChalkboardTeacher style={{ marginRight: "8px", marginBottom: "2px" }} />Capacitación</>},
             ].map((option) => (
               <button
                 key={option.key}

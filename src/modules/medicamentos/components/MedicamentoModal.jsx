@@ -5,7 +5,7 @@ import { createMedicamento, updateMedicamento } from "../../../services/medicame
 import { notifySuccess, notifyError } from "../../../utils/notify"
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize"
 import Loader from "../../../components/Loader"
-import { FaPlus } from "react-icons/fa"
+import { FaPlus, FaEdit } from "react-icons/fa"
 import { useEffect, useState } from "react"
 
 const parseDateInput = (value) => {
@@ -198,7 +198,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                 <div style={styles.header}>
 
                     <h5 style={styles.title}>
-                        {data ? "Editar Medicamento" : "Nuevo Medicamento"}
+                        {data ? <><FaEdit className="me-2" />Editar Medicamento</> : <><FaPlus className="me-2" />Nuevo Medicamento</>}
                     </h5>
 
                     <button
@@ -390,8 +390,6 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                                 type="submit"
                                 style={styles.saveButton}
                             >
-
-                                <FaPlus style={{ marginRight: 6 }} />
 
                                 {loading
                                     ? "Guardando..."

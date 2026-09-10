@@ -10,7 +10,7 @@ import {
 import {
     sanitizeTextTrim
 } from "../../../utils/sanitize";
-
+import {FaArrowRightArrowLeft} from "react-icons/fa6";
 // import {
 //     obtenerStockPorRack,
 //     trasladarStockPEPS
@@ -462,6 +462,7 @@ export default function RackTransferModal({
                     <div>
 
                         <div className="transfer-title">
+                            <FaArrowRightArrowLeft className="me-2" />
                             Traslado entre racks
                         </div>
 

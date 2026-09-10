@@ -4,6 +4,7 @@ import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
 import { useLoader } from "../../../hooks/useLoader";
 import { sanitizeText } from "../../../utils/sanitize";
+import { FaClipboardList } from "react-icons/fa";
 import "./Evaluacion.css";
 
 const getToday = () => new Date().toISOString().split("T")[0];
@@ -577,7 +578,9 @@ export default function EvaluacionModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="reporte-modal-header">
-          <h3 id="modal-evaluacion-title">Evaluación conductual</h3>
+          <h3 id="modal-evaluacion-title">
+            <FaClipboardList style={{ marginRight: "8px", marginBottom: "2px" }} />
+            Evaluación conductual</h3>
           <button
             type="button"
             className="reporte-modal-close"

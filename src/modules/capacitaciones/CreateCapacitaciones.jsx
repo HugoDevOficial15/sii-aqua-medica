@@ -818,7 +818,7 @@ export default function CreateCapacitaciones() {
                     <div className="modal-full">
                         <div className="modal-header custom-modal-header">
                             <h5>
-                                {editing ? "Editar Capacitación" : "Crear Capacitación"}
+                                {editing ? <><FaEdit className="me-2" />Editar Capacitación</> : <><FaPlus className="me-2" />Crear Capacitación</>}
                             </h5>
                             <button
                                 type="button"
@@ -1078,13 +1078,6 @@ export default function CreateCapacitaciones() {
                                                 <label>
                                                     <strong>Temario</strong>
                                                 </label>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-sm btn-custom btn-primary"
-                                                    onClick={() => addTema("")}
-                                                >
-                                                    Agregar tema
-                                                </button>
                                             </div>
 
                                             {temarioFields.map((item, i) => (
@@ -1111,6 +1104,7 @@ export default function CreateCapacitaciones() {
                                                 className="btn-agregar-temario"
                                                 onClick={() => addTema("")}
                                             >
+                                                <FaPlus className="me-2" />
                                                 Agregar tema
                                             </button>
                                         </div>

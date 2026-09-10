@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
 import { FaFilePdf } from "react-icons/fa";
 import { db } from "../../../config/firebase";
 import { sanitizeText } from "../../../utils/sanitize";
@@ -283,7 +282,9 @@ const termino = sanitizeText(busqueda).trim().toLowerCase();
         onClick={(event) => event.stopPropagation()}
       >
         <div className="reporte-modal-header">
-          <h3 id="reporte-modal-title">Reporte conductual</h3>
+          <h3 id="reporte-modal-title">
+            <FaFilePdf style={{ marginRight: "8px", marginBottom: "2px" }} />
+            Reporte conductual</h3>
           <button
             type="button"
             className="reporte-modal-close"
@@ -417,8 +418,8 @@ const termino = sanitizeText(busqueda).trim().toLowerCase();
           <button type="button" className="reporte-modal-btn secondary" onClick={onClose}>
             Cancelar
           </button>
-          <button type="button" className="reporte-modal-btn primary" onClick={handleGenerarPdf}>
-            PDF
+          <button type="button" className="reporte-modal-btn" onClick={handleGenerarPdf}>
+            Generar PDF
           </button>
         </div>
       </div>

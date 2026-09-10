@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { getAniversariosByMes, refreshAniversariosByMes } from "../../services/aniversariosService";
+import { FaSyncAlt, FaArrowLeft } from "react-icons/fa";
 
 import BirthdayList from "./components/BirthdayList";
 import AnniversaryList from "./components/AnniversaryList";
@@ -114,7 +115,8 @@ export default function AniversarioPage() {
                             className="back-button"
                             onClick={() => navigate("/aniversarios")}
                         >
-                            ← Regresar
+                            <FaArrowLeft style={{ marginRight: "8px", marginBottom: "2px" }} />
+                            Regresar
                         </button>
 
                         <button
@@ -123,6 +125,7 @@ export default function AniversarioPage() {
                             onClick={handleRefresh}
                             disabled={loading}
                         >
+                            <FaSyncAlt style={{ marginRight: "8px", marginBottom: "2px" }} />
                             {loading ? "Actualizando..." : "Actualizar"}
                         </button>
                     </div>

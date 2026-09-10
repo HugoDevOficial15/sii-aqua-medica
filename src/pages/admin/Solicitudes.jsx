@@ -32,7 +32,7 @@ const CAMPOS_LABEL = {
 };
 
 const ESTADO_BADGE = {
-    Pendiente: "bg-warning text-dark",
+    Pendiente: "bg-warning",
     Aprobada: "bg-success",
     Rechazada: "bg-danger"
 };

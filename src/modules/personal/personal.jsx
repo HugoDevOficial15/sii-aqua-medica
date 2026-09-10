@@ -8,6 +8,9 @@ import {
   FaFilePdf,
   FaHouseUser,
   FaEye,
+  FaGlobe,
+  FaNotesMedical,
+  FaChalkboardTeacher
 } from "react-icons/fa";
 
 import { db } from "../../config/firebase";
@@ -189,7 +192,8 @@ const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null, optio
       queryRef: query(collection(db, collectionName), where(field, "in", values)),
     });
   };
-
+  
+/*  QUERYS */
   const recognitionQueries = [];
   const incidenceQueries = [];
   const incapacidadQueries = [];
@@ -739,12 +743,12 @@ export default function Personal() {
                           <div className="personal-details-box">
                             <div className="personal-record-filter">
                               {[
-                                { key: "todos", label: "Todos" },
-                                { key: "reconocimiento", label: "Reconocimientos" },
-                                { key: "incidencia", label: "Incidencias" },
-                                { key: "incapacidad", label: "Incapacidades" },
-                                { key: "historialMedico", label: "Historial Médico" },
-                                { key: "capacitacion", label: "Capacitaciones" },
+                                { key: "todos", label: <><FaGlobe style={{ marginRight: "8px", marginBottom: "2px" }} />Todos</> },
+                                { key: "reconocimiento", label: <><FaMedal style={{ marginRight: "8px", marginBottom: "2px" }} />Reconocimientos</> },
+                                { key: "incidencia", label: <><FaUserTimes style={{ marginRight: "8px", marginBottom: "2px" }} />Incidencias</> },
+                                { key: "incapacidad", label: <><FaHouseUser style={{ marginRight: "8px", marginBottom: "2px" }} />Incapacidades</> },
+                                { key: "historialMedico", label: <><FaNotesMedical style={{ marginRight: "8px", marginBottom: "2px" }} />Historial Médico</> },
+                                { key: "capacitacion", label: <><FaChalkboardTeacher style={{ marginRight: "8px", marginBottom: "2px" }} />Capacitaciones</> },
                               ].map((option) => (
                                 <button
                                   key={option.key}

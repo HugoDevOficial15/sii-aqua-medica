@@ -1,13 +1,14 @@
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import {
   filtrarOperadoresConductuales,
   getOperadoresConductuales,
 } from "../../services/compConductual";
 import { useLoader } from "../../hooks/useLoader";
+import { useAuth } from "../../hooks/useAuth";
 import ReporteModal from "./components/reporteModal";
 import EvaluacionModal from "./components/Evaluacion";
 import "./components/CompConductual.css";
-import { FaEllipsisV, FaFilePdf } from "react-icons/fa";
+import { FaEllipsisV, FaFilePdf, FaClipboardList } from "react-icons/fa";
 
 const formatearNombre = (usuario) => {
 
@@ -25,6 +26,7 @@ const formatearNombre = (usuario) => {
 };
 
 export default function CompConductual() {
+  const { user } = useAuth();
   const { showLoader, hideLoader } = useLoader();
   const [operadores, setOperadores] = useState([]);
   const [error, setError] = useState("");
@@ -62,38 +64,40 @@ export default function CompConductual() {
 
 
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const cargarOperadores = async () => {
+  const cargarOperadores = useCallback(
+    async ({ forceRefresh = false } = {}) => {
       try {
         showLoader(0);
         setError("");
 
-        const data = await getOperadoresConductuales();
+        const areaAdmin = user?.area || "";
+        const data = await getOperadoresConductuales(areaAdmin, { forceRefresh });
 
-        if (isMounted) {
-          setOperadores(data);
-        }
+        setOperadores(data);
       } catch (err) {
         console.error("Error cargando operadores de comportamiento conductual:", err);
-
-        if (isMounted) {
-          setError("No se pudieron cargar los operadores.");
-        }
+        setError("No se pudieron cargar los operadores.");
       } finally {
-        if (isMounted) {
-          hideLoader();
-        }
+        hideLoader();
       }
+    },
+    [hideLoader, showLoader, user?.area],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const cargarDatos = async () => {
+      if (!isMounted) return;
+      await cargarOperadores({ forceRefresh: false });
     };
 
-    cargarOperadores();
+    cargarDatos();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [cargarOperadores]);
 
   const operadoresFiltrados = useMemo(
     () => filtrarOperadoresConductuales(operadores, search),
@@ -183,6 +187,7 @@ export default function CompConductual() {
                                       className="ver"
                                       onClick={() => abrirEvaluacionModal(usuario)}
                                     >
+                                        <FaClipboardList style={{ marginRight: "8px", marginBottom: "2px" }} />
                                         Evaluación
                                     </button>
                                 </div>
@@ -217,6 +222,11 @@ export default function CompConductual() {
       <EvaluacionModal
         isOpen={showEvaluacionModal}
         usuario={selectedUsuario}
+        onSaved={async () => {
+          await cargarOperadores({ forceRefresh: true });
+          setShowEvaluacionModal(false);
+          setSelectedUsuario(null);
+        }}
         onClose={() => {
           setShowEvaluacionModal(false);
           setSelectedUsuario(null);

@@ -968,7 +968,6 @@ export default function Users({ onClose }) {
 
     XLSX.writeFile(workbook, "usuarios_aqua_medica.xlsx");
   };
-  // ... TODO tu código anterior sin cambios arriba
 
   return (
     <div className="container-fluid page-transition">
@@ -1344,7 +1343,9 @@ export default function Users({ onClose }) {
         <div className="modal-backdrop-custom custom-modal-backdrop">
           <div className="modal-card custom-modal incapacidad-modal-card">
             <div className="modal-header custom-modal-header">
-              <h5>Registrar incapacidad</h5>
+              <h5 className="modal-title">
+                <FaHouseUser/>
+                Registrar incapacidad</h5>
               <button
                 type="button"
                 className="custom-close-btn"
@@ -1467,7 +1468,9 @@ export default function Users({ onClose }) {
         <div className="modal-backdrop-custom custom-modal-backdrop">
           <div className="modal-card-info custom-modal">
             <div className="modal-header custom-modal-header">
-              <h5>Información del Usuario</h5>
+              <h5 className="modal-title">
+                <FaAddressCard/>
+                Información del Usuario</h5>
               <button
                 type="button"
                 className="custom-close-btn"
@@ -1534,7 +1537,8 @@ export default function Users({ onClose }) {
         <div className="modal-backdrop-custom custom-modal-backdrop">
           <div className="modal-card custom-modal">
             <div className="modal-header custom-modal-header">
-              <h5>{editing ? "Editar Usuario" : "Crear Usuario"}</h5>
+              <h5>
+                {editing ? (<><FaEdit/> Editar Usuario</>) : (<><FaUserPlus/> Crear Usuario</>)}</h5>
 
               <button
                 type="button"
@@ -2123,6 +2127,12 @@ export default function Users({ onClose }) {
           box-shadow: 0 24px 48px var(--operator-shadow);
           max-width: 25%;
           max-height: 60%;
+        }
+
+        .modal-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
         .modal-header-info {

@@ -1,4 +1,4 @@
-import { FaTimes } from "react-icons/fa";
+import { FaChartBar } from "react-icons/fa";
 import { MANTENIMIENTO_MES } from "../../../catalogs/mantenimientoConfig";
 
 export default function ResumenServiciosModal({
@@ -70,6 +70,7 @@ export default function ResumenServiciosModal({
                 {/* HEADER */}
                 <div className="custom-modal-header">
                     <h6 className="mb-0 fw-bold">
+                        <FaChartBar style={{ marginRight: "8px", marginBottom: "2px" }} />
                         Resumen mensual
                         <div className="sub">Mes {mes}</div>
                     </h6>
@@ -269,6 +270,7 @@ export default function ResumenServiciosModal({
                     justify-content: space-between;
                     padding: 8px 0;
                     border-bottom: 1px solid #eee;
+                    align-items: center;
                 }
 
                 .item small {
@@ -279,10 +281,12 @@ export default function ResumenServiciosModal({
 
                 .badge.pendiente {
                     background: #fee2e2;
+                    height: 30px;
                     color: #991b1b;
-                    padding: 4px 8px;
-                    border-radius: 6px;
+                    padding: 10px 10px;
+                    border-radius: 12px;
                     font-size: 12px;
+                    align-items: center;
                 }
 
                 .btn-close {

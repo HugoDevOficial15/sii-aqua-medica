@@ -8,6 +8,7 @@ import {
 } from "../../../services/usersService";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { notifyError } from "../../../utils/notify";
+import { FaHouseUser } from "react-icons/fa";
 
 export const isWoman = (usuario) => {
   const genero = String(usuario?.Genero || usuario?.genero || "").trim().toUpperCase();
@@ -407,7 +408,9 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
       <div className="personal-modal-card personal-incapacidad-modal-card" onClick={(event) => event.stopPropagation()}>
         <div className="personal-modal-header">
           <div>
-            <h3>Registrar incapacidad</h3>
+            <h3>
+              <FaHouseUser style={{ marginRight: "8px", marginBottom: "2px" }} />
+              Registrar incapacidad</h3>
           </div>
           <button
             type="button"
