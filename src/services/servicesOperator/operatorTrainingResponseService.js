@@ -24,6 +24,20 @@ const resolveUserDocIdByFirebaseUid = async (userId) => {
     }
 };
 
+const isResponseApproved = (data) => {
+    if (typeof data?.aprobada === "boolean") {
+        return data.aprobada;
+    }
+
+    const score = Number(data?.calificacion ?? data?.resultado ?? 0);
+    return Number.isFinite(score) && score >= 80;
+};
+
+const getTrainingBucketCollection = (trainingId, approved) => {
+    const bucket = approved ? "aprobados" : "reprobados";
+    return collection(db, "respuestasCapacitaciones", String(trainingId), bucket);
+};
+
 // ======================
 // GUARDAR RESPUESTA
 // ======================
@@ -31,12 +45,31 @@ export const saveTrainingResponse = async (data) => {
     const responseRef = doc(responseCollection);
     const userDocId = await resolveUserDocIdByFirebaseUid(data?.userId);
     const anioActual = new Date().getFullYear();
+    const trainingId = data?.capacitacionId ?? data?.idCapacitacion ?? data?.trainingId;
+    const approved = isResponseApproved(data);
+    const estado = approved ? "aprobado" : "reprobado";
 
     const batch = writeBatch(db);
-    batch.set(responseRef, {
+    const baseResponse = {
         ...data,
         id: responseRef.id,
-    });
+        estado,
+        aprobada: approved,
+    };
+
+    batch.set(responseRef, baseResponse);
+
+    if (trainingId) {
+        const trainingBucketRef = doc(getTrainingBucketCollection(trainingId, approved));
+        batch.set(trainingBucketRef, {
+            ...baseResponse,
+            id: trainingBucketRef.id,
+            capacitacionId: trainingId,
+            usuarioDocId: userDocId,
+            tipo: "capacitacion",
+            createdAt: new Date().toISOString(),
+        });
+    }
 
     if (userDocId) {
         const userYearTrainingResultsCollection = collection(
@@ -53,7 +86,7 @@ export const saveTrainingResponse = async (data) => {
         const userYearTrainingResultsRef = doc(userYearTrainingResultsCollection);
 
         batch.set(userYearTrainingResultsRef, {
-            ...data,
+            ...baseResponse,
             id: userYearTrainingResultsRef.id,
             usuarioDocId: userDocId,
             tipo: "capacitacion",

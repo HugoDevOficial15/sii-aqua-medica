@@ -34,6 +34,20 @@ const resolveUserDocIdByFirebaseUid = async (userId) => {
     }
 };
 
+const isResponseApproved = (data) => {
+    if (typeof data?.aprobada === "boolean") {
+        return data.aprobada;
+    }
+
+    const score = Number(data?.calificacion ?? data?.resultado ?? 0);
+    return Number.isFinite(score) && score >= 80;
+};
+
+const getSurveyBucketCollection = (surveyId, approved) => {
+    const bucket = approved ? "aprobados" : "reprobados";
+    return collection(db, "respuestasEncuestas", String(surveyId), bucket);
+};
+
 // ======================
 // GUARDAR RESPUESTA
 // ======================
@@ -45,12 +59,31 @@ export const saveSurveyResponse =
         const responseRef = doc(responseCollection);
         const userDocId = await resolveUserDocIdByFirebaseUid(data?.userId);
         const anioActual = new Date().getFullYear();
+        const surveyId = data?.encuestaId ?? data?.idEncuesta ?? data?.surveyId;
+        const approved = isResponseApproved(data);
+        const estado = approved ? "aprobado" : "reprobado";
 
         const batch = writeBatch(db);
-        batch.set(responseRef, {
+        const baseResponse = {
             ...data,
             id: responseRef.id,
-        });
+            estado,
+            aprobada: approved,
+        };
+
+        batch.set(responseRef, baseResponse);
+
+        if (surveyId) {
+            const surveyBucketRef = doc(getSurveyBucketCollection(surveyId, approved));
+            batch.set(surveyBucketRef, {
+                ...baseResponse,
+                id: surveyBucketRef.id,
+                encuestaId: surveyId,
+                usuarioDocId: userDocId,
+                tipo: "encuesta",
+                createdAt: new Date().toISOString(),
+            });
+        }
 
         if (userDocId) {
             const userYearSurveyResultsCollection = collection(
@@ -67,7 +100,7 @@ export const saveSurveyResponse =
             const userYearSurveyResultsRef = doc(userYearSurveyResultsCollection);
 
             batch.set(userYearSurveyResultsRef, {
-                ...data,
+                ...baseResponse,
                 id: userYearSurveyResultsRef.id,
                 usuarioDocId: userDocId,
                 tipo: "encuesta",

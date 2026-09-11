@@ -34,6 +34,32 @@ export default function CreateCapacitaciones() {
     // Fecha actual para validación (min={today})
     const today = new Date().toISOString().split("T")[0];
 
+    const getEmptyTrainingValues = () => ({
+        titulo: "",
+        descripcion: "",
+        fechaCurso: "",
+        objetivo: "",
+        temario: [""],
+        instructor: "",
+        modalidad: "online",
+        tipoCurso: "programado",
+        formaEvaluacion: "",
+        areas: [],
+        duracionHoras: "0",
+        duracionMinutos: "0",
+        horaInicio: "",
+        horaFin: "",
+        fechaInicio: "",
+        fechaFin: "",
+        asignacion: {
+            tipo: "area",
+            valores: [],
+            archivos: []
+        },
+        preguntas: [],
+        estado: "pendiente"
+    });
+
     const formatToAmPm = (timeValue) => {
         if (!timeValue) return "";
 
@@ -265,31 +291,7 @@ export default function CreateCapacitaciones() {
         control,
     } = useForm({
         resolver: zodResolver(trainingSchema),
-        defaultValues: {
-            titulo: "",
-            descripcion: "",
-            fechaCurso: "",
-            objetivo: "",
-            temario: [""],
-            instructor: "",
-            modalidad: "online",
-            tipoCurso: "programado",
-            formaEvaluacion: "",
-            areas: [],
-            duracionHoras: "0",
-            duracionMinutos: "0",
-            horaInicio: "",
-            horaFin: "",
-            fechaInicio: "",
-            fechaFin: "",
-            asignacion: {
-                tipo: "area",
-                valores: [],
-                archivos: []
-            },
-            preguntas: [],
-            estado: "pendiente"
-        }
+        defaultValues: getEmptyTrainingValues()
     });
 
     const { fields, append, remove, update } = useFieldArray({
@@ -503,7 +505,8 @@ export default function CreateCapacitaciones() {
             setTrainings(update);
             setShowModal(false);
             setEditing(false);
-            reset();
+            setCurrentId(null);
+            reset(getEmptyTrainingValues());
 
         } catch (error) {
             notifyError("Error", "No se pudo crear la capacitación");
@@ -684,11 +687,10 @@ export default function CreateCapacitaciones() {
                     <button className="btn btn-sm btn-primary btn-custom "
 
                         onClick={() => {
-                            reset();
+                            reset(getEmptyTrainingValues());
                             setEditing(false);
-
+                            setCurrentId(null);
                             setCurrentStep(1);
-
                             setShowModal(true);
                         }}
                     >

@@ -116,4 +116,5 @@ export const updateTraining = async (id, data) => {
 export const deleteTraining = async (id) => {
     const ref = doc(db, "capacitaciones", id);
     await deleteDoc(ref);
+    clearCachedData(CACHE_KEY);
 }
