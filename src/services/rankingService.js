@@ -56,76 +56,61 @@ export const limpiarCacheRanking = () => {
 
 export const actualizarRankingConArea = async (userId, año = obtenerAñoActual()) => {
   try {
-    // 1. Obtener datos del usuario
+    // 1. Obtener datos del usuario actual
     const userRef = doc(db, "users", userId);
     const userSnap = await getDoc(userRef);
 
-    if (!userSnap.exists()) {
-      return null;
-    }
+    if (!userSnap.exists()) return null;
 
     const userData = userSnap.data();
-    const { nombreArea, area, equipo, nombre } = userData;
+    const areaFinal = userData.nombreArea || userData.area;
+    const equipo = userData.equipo || "";
+    const nombre = userData.nombre || "Usuario";
 
-    // Usar nombreArea si existe, si no usar area como fallback
-    const areaFinal = nombreArea || area;
+    if (!areaFinal) return null;
 
-    // Si no hay área, no se puede calcular ranking
-    if (!areaFinal) {
-      return null;
+    // CAMBIO CLAVE: Traer a TODOS los usuarios de esta área desde la colección principal
+    // Esto asegura que nadie se quede fuera, aunque nunca hayan abierto su pantalla de puntos.
+    const qArea = query(collection(db, "users"), where("area", "==", areaFinal));
+    const usuariosAreaSnap = await getDocs(qArea);
+
+    let usuariosAreaConPuntos = [];
+
+    // Consultar los puntos reales de cada compañero en este preciso instante
+    for (const uDoc of usuariosAreaSnap.docs) {
+      const pRef = doc(db, "users", uDoc.id, año, "informacion", "puntos_general", "general");
+      const pSnap = await getDoc(pRef);
+      
+      // Si no tiene carpeta de puntos, asumimos 0, NO hacemos return null
+      usuariosAreaConPuntos.push({
+        uid: uDoc.id,
+        puntos: pSnap.exists() ? (pSnap.data().total || 0) : 0,
+        nivel: pSnap.exists() ? (pSnap.data().nivel || "Bronce") : "Bronce"
+      });
     }
 
-    // 2. Obtener puntos del usuario
-    const puntosRef = doc(collection(db, "users", userId, año, "informacion", "puntos_general"), "general");
-    const puntosSnap = await getDoc(puntosRef);
+    // Ordenar de mayor a menor y sacar la posición del área (RANKING PERFECTO)
+    usuariosAreaConPuntos.sort((a, b) => b.puntos - a.puntos);
+    
+    const posicionArea = usuariosAreaConPuntos.findIndex(u => u.uid === userId) + 1;
+    const totalEnArea = usuariosAreaConPuntos.length;
 
-    if (!puntosSnap.exists()) {
-      return null;
-    }
+    // Extraer los puntos y nivel de nuestro usuario actual
+    const misDatos = usuariosAreaConPuntos.find(u => u.uid === userId);
+    const misPuntos = misDatos ? misDatos.puntos : 0;
+    const miNivel = misDatos ? misDatos.nivel : "Bronce";
 
-    const { total: puntos, nivel } = puntosSnap.data();
-
-    // 3. Calcular RANKING GLOBAL
-    const allUsersSnap = await getDocs(collection(db, "rankings_users"));
-    const todosUsuarios = allUsersSnap.docs.map(doc => ({
-      uid: doc.id,
-      puntos: doc.data().puntos || 0,
-      area: doc.data().area || doc.data().nombreArea
-    }));
-
-    const usuariosParaRanking = [
-      ...todosUsuarios.filter(usuario => usuario.uid !== userId),
-      { uid: userId, puntos: puntos || 0, area: areaFinal }
-    ];
-
-    const usersOrdenadosGlobal = usuariosParaRanking
-      .sort((a, b) => b.puntos - a.puntos);
-
-    const posicionGlobal = usersOrdenadosGlobal
-      .findIndex(u => u.uid === userId) + 1;
-
-    // 4. Calcular RANKING DE ÁREA (COMPAÑEROS)
-    const usersArea = usuariosParaRanking.filter(u => u.area === areaFinal);
-    const usersAreaOrdenados = usersArea
-      .sort((a, b) => b.puntos - a.puntos);
-
-    const posicionArea = usersAreaOrdenados
-      .findIndex(u => u.uid === userId) + 1;
-
-    const totalEnArea = usersArea.length;
-
-    // 5. Actualizar documento de ranking
+    // 5. Actualizar el registro en rankings_users (para que el Top Global siga funcionando)
     await setDoc(
       doc(db, "rankings_users", userId),
       {
         uid: userId,
         nombre,
-        puntos,
-        nivel,
+        puntos: misPuntos,
+        nivel: miNivel,
         area: areaFinal,
         nombreArea: areaFinal,
         equipo,
-        posicionGlobal,
         posicionArea,
         totalEnArea,
         actualizadoEn: serverTimestamp()
@@ -133,11 +118,14 @@ export const actualizarRankingConArea = async (userId, año = obtenerAñoActual(
       { merge: true }
     );
 
-    // Limpiar cache de ranking cuando se actualiza
+    // Limpiar cache
     limpiarCacheRanking();
 
-    return { posicionGlobal, posicionArea, totalEnArea, nombreArea };
+    // Nota: El posicionGlobal se mantiene manejado por el Top Global independiente.
+    return { posicionGlobal: 0, posicionArea, totalEnArea, nombreArea: areaFinal };
+
   } catch (error) {
+    console.error("Error al actualizar ranking:", error);
     return null;
   }
 };

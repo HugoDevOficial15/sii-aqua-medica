@@ -192,7 +192,7 @@ export default function OperatorPoints({ onBack }) {
         }
     </h3>
     <span>En mi Área</span>
-    {/* 🔥 SOLUCIÓN: Condición estricta > 0 para evitar que React imprima el "0" */}
+    {/*  SOLUCIÓN: Condición estricta > 0 */}
     {ranking?.posicionGlobal > 0 && (
         <small style={{ fontSize: "0.75rem", opacity: 0.7, display: 'block', marginTop: '4px' }}>
             Global: #{ranking.posicionGlobal}
