@@ -158,21 +158,39 @@ export const getEncuestasDisponibles = async (usuario, options = {}) => {
         const idsEncuestas = encuestasAccesibles.map(e => e.id);
         let respuestasUsuario = [];
 
-        if (usuario.uid) {
-            const qRespuestas = query(
-                collection(db, "respuestasEncuestas"),
-                where("userId", "==", usuario.uid)
+        if (usuario.uid && idsEncuestas.length > 0) {
+            const bucketQueries = idsEncuestas.flatMap((encuestaId) => [
+                query(collection(db, "respuestasEncuestas", String(encuestaId), "pendientes"), where("userId", "==", usuario.uid)),
+                query(collection(db, "respuestasEncuestas", String(encuestaId), "aprobados"), where("userId", "==", usuario.uid)),
+                query(collection(db, "respuestasEncuestas", String(encuestaId), "reprobados"), where("userId", "==", usuario.uid))
+            ]);
+
+            const bucketSnapshots = await Promise.all(bucketQueries.map(q => getDocs(q)));
+            respuestasUsuario = bucketSnapshots.flatMap(snapshot =>
+                snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
             );
-            const snapshotRespuestas = await getDocs(qRespuestas);
-            respuestasUsuario = snapshotRespuestas.docs
-                .map(doc => doc.data())
-                .filter(respuesta => idsEncuestas.includes(respuesta.encuestaId));
         }
+
+        const getResponseTimestamp = (response) => {
+            const rawValue = response?.fechaRespuesta ?? response?.fechaEnviado ?? response?.createdAt ?? 0;
+
+            if (!rawValue) return 0;
+            if (typeof rawValue?.toDate === "function") return rawValue.toDate().getTime();
+            if (typeof rawValue?.seconds === "number") return rawValue.seconds * 1000;
+            if (rawValue instanceof Date) return rawValue.getTime();
+
+            const parsed = Date.parse(rawValue);
+            return Number.isFinite(parsed) ? parsed : 0;
+        };
 
         const hoy = new Date();
         const encuestasEnriquecidas = encuestasAccesibles.map(encuesta => {
             const respuestasDeEncuesta = respuestasUsuario.filter(r => r.encuestaId === encuesta.id);
-            const respondida = respuestasDeEncuesta.length > 0;
+            const tienePreguntasAbiertas = (encuesta.preguntas || []).some(p => p?.tipo === "abierta");
+            const respuestasFinales = respuestasDeEncuesta.filter(response =>
+                !(response?.estadoActual === "pendiente_validacion" || response?.tieneRespuestasAbiertas)
+            );
+            const respondida = respuestasFinales.length > 0 || respuestasDeEncuesta.length > 0;
 
             const fechaInicio = encuesta.fechaInicio?.toDate?.()
                 || new Date(encuesta.fechaInicio);
@@ -191,8 +209,8 @@ export const getEncuestasDisponibles = async (usuario, options = {}) => {
             const miRespuesta = respuestasDeEncuesta.reduce((latest, response) => {
                 if (!latest) return response;
 
-                const latestDate = new Date(latest.fechaRespuesta || latest.fechaEnviado || 0).getTime();
-                const responseDate = new Date(response.fechaRespuesta || response.fechaEnviado || 0).getTime();
+                const latestDate = getResponseTimestamp(latest);
+                const responseDate = getResponseTimestamp(response);
                 return responseDate >= latestDate ? response : latest;
             }, null);
             const miPuntaje = miRespuesta?.puntuacionObtenida ?? miRespuesta?.puntajeFinal ?? null;
@@ -201,6 +219,9 @@ export const getEncuestasDisponibles = async (usuario, options = {}) => {
             let estadoFinal = miEstado;
             if (miEstado === "completada" && Number(miPuntaje) < 80) {
                 estadoFinal = "reprobada";
+            }
+            if ((miEstado === "pendiente_validacion" || miRespuesta?.tieneRespuestasAbiertas) && tienePreguntasAbiertas) {
+                estadoFinal = "pendiente";
             }
             if (!estadoFinal) {
                 estadoFinal = vencida ? "vencida" : (respondida ? "completada" : "pendiente");

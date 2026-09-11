@@ -18,7 +18,7 @@ import Loader from "../../components/Loader";
 const chartModulesPromise = import("recharts");
 
 import { db } from "../../config/firebase";
-import { collection, doc, onSnapshot, query, where, writeBatch } from "firebase/firestore";
+import { collection, doc, getDocs, onSnapshot, query, where, writeBatch } from "firebase/firestore";
 import { getUsers } from "../../services/usersService";
 
 import { AREAS } from "../../catalogs/areas";
@@ -53,7 +53,7 @@ export default function EncuestaResultados({ survey, onBack }) {
   const TABLE_PAGE_SIZE = 10;
   const ASSIGNED_PAGE_SIZE = 10;
 
-  const loadResponses = async () => {
+  const loadUsersData = async () => {
     setError(null);
 
     try {
@@ -68,6 +68,53 @@ export default function EncuestaResultados({ survey, onBack }) {
         "No se pudieron cargar los usuarios. Intenta de nuevo más tarde.",
       );
     }
+  };
+
+  const loadBucketResponses = async () => {
+    if (!survey?.id) return;
+
+    try {
+      const esCapacitacion = survey.tipo === "capacitacion";
+      const rootCollection = esCapacitacion ? "respuestasCapacitaciones" : "respuestasEncuestas";
+
+      const pendingQuery = query(
+        collection(db, rootCollection, String(survey.id), "pendientes"),
+      );
+      const approvedQuery = query(
+        collection(db, rootCollection, String(survey.id), "aprobados"),
+      );
+      const rejectedQuery = query(
+        collection(db, rootCollection, String(survey.id), "reprobados"),
+      );
+
+      const [pendingSnap, approvedSnap, rejectedSnap] = await Promise.all([
+        getDocs(pendingQuery),
+        getDocs(approvedQuery),
+        getDocs(rejectedQuery),
+      ]);
+
+      const nextResponses = [...pendingSnap.docs, ...approvedSnap.docs, ...rejectedSnap.docs].map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+      }));
+
+      setResponses(nextResponses);
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error("Error cargando respuestas desde buckets:", err);
+      }
+
+      setError("No se pudieron cargar las respuestas de la encuesta.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadResponses = async () => {
+    await Promise.all([
+      loadUsersData(),
+      loadBucketResponses(),
+    ]);
   };
 
   useEffect(() => {
@@ -89,38 +136,9 @@ export default function EncuestaResultados({ survey, onBack }) {
     setLoading(true);
     loadResponses();
 
-    const esCapacitacion = survey.tipo === "capacitacion";
-    const responseCollection = collection(
-      db,
-      esCapacitacion ? "respuestasCapacitaciones" : "respuestasEncuestas",
-    );
-    const fieldName = esCapacitacion ? "capacitacionId" : "encuestaId";
-    const responsesQuery = query(responseCollection, where(fieldName, "==", survey.id));
+    loadBucketResponses();
 
-    const unsubscribe = onSnapshot(
-      responsesQuery,
-      (snapshot) => {
-        const nextResponses = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setResponses(nextResponses);
-        setLoading(false);
-      },
-      (err) => {
-        if (import.meta.env.DEV) {
-          console.error("Error escuchando respuestas en tiempo real:", err);
-        }
-
-        setError(
-          "No se pudieron cargar las respuestas en tiempo real. Intenta de nuevo más tarde.",
-        );
-        setLoading(false);
-      },
-    );
-
-    return () => unsubscribe();
+    return undefined;
   }, [survey?.id, survey?.tipo]);
 
   const usersByNomina = useMemo(() => {
@@ -145,16 +163,28 @@ export default function EncuestaResultados({ survey, onBack }) {
     ResponsiveContainer,
   } = chartLib || {};
 
+  const getResponseTimestamp = (response) => {
+    const rawValue = response?.fechaRespuesta ?? response?.fechaEnviado ?? response?.createdAt ?? 0;
+
+    if (!rawValue) return 0;
+    if (typeof rawValue?.toDate === "function") return rawValue.toDate().getTime();
+    if (typeof rawValue?.seconds === "number") return rawValue.seconds * 1000;
+    if (rawValue instanceof Date) return rawValue.getTime();
+
+    const parsed = Date.parse(rawValue);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
   const latestResponses = useMemo(() => {
     const map = new Map();
 
     responses.forEach((response) => {
       const key = String(response.userId ?? response.uid ?? response.nominaUsuario ?? response.nomina ?? "").trim();
-      if (!key) return; 
+      if (!key) return;
 
       const current = map.get(key);
-      const currentTime = current?.fechaRespuesta ? Date.parse(current.fechaRespuesta) : 0;
-      const responseTime = response?.fechaRespuesta ? Date.parse(response.fechaRespuesta) : 0;
+      const currentTime = getResponseTimestamp(current);
+      const responseTime = getResponseTimestamp(response);
 
       if (!current || responseTime >= currentTime) {
         map.set(key, response);
@@ -841,7 +871,7 @@ export default function EncuestaResultados({ survey, onBack }) {
         <CalificarEncuesta
           survey={survey}
           responses={responses}
-          onSaved={loadResponses}
+          onSaved={loadBucketResponses}
         />
       )}
 

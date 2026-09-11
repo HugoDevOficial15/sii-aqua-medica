@@ -67,6 +67,10 @@ export const createTraining = async (trainingData) => {
             }
         }
 
+        if (asignacion.tipo === "global") {
+            usersQuery = query(collection(db, "users"), where("rol", "==", "operador"));
+        }
+
         const usersSnapshot = await getDocs(usersQuery);
         const usersToNotify = usersSnapshot.docs
             .map(doc => ({

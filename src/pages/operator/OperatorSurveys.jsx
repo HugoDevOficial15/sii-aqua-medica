@@ -101,11 +101,20 @@ export default function OperatorSurveys({
             puntaje = userResp.calificacion ?? userResp.puntuacionObtenida;
             intentos = userResp.intentos || 0;
 
-            if (userResp.estadoActual === "pendiente_validacion" || userResp.tieneRespuestasAbiertas) {
-                estadoCorregido = "pendiente_validacion";
-            } else {
-                estadoCorregido = userResp.estadoActual === "bloqueada" ? "reprobada" : (userResp.estadoActual || "completada");
+            const enRevision = userResp.estadoActual === "pendiente_validacion" || userResp.tieneRespuestasAbiertas;
+
+            if (enRevision) {
+                estadoCorregido = "pendiente";
+                return {
+                    ...survey,
+                    estadoActual: "pendiente",
+                    miPuntaje: puntaje,
+                    intentos,
+                    enRevision: true,
+                };
             }
+
+            estadoCorregido = userResp.estadoActual === "bloqueada" ? "reprobada" : (userResp.estadoActual || "completada");
         } else if (expiroSinResponder && estadoCorregido === "pendiente") {
             estadoCorregido = "vencida";
         } else if (estadoCorregido === "pendiente" && puntaje !== undefined && puntaje !== null) {
@@ -121,7 +130,8 @@ export default function OperatorSurveys({
             ...survey,
             estadoActual: estadoCorregido,
             miPuntaje: puntaje,
-            intentos: intentos
+            intentos: intentos,
+            enRevision: Boolean(survey?.enRevision),
         };
     });
 
@@ -295,6 +305,7 @@ export default function OperatorSurveys({
                     const intentosUsados = Number(survey.intentos || 0);
                     const reintentosRestantes = Math.max(0, MAX_SURVEY_ATTEMPTS - intentosUsados);
                     const puedeReintentar = survey.estadoActual === "reprobada" && reintentosRestantes > 0;
+                    const estadoLabel = survey.enRevision ? "En revisión" : (ESTADO_LABEL[survey.estadoActual] || survey.estadoActual);
 
                     return (
                         // <div key={survey.id} className="survey-card-v2">
@@ -355,8 +366,8 @@ export default function OperatorSurveys({
 
                                 </div>
 
-                                <span className={ESTADO_BADGE_CLASS[survey.estadoActual]}>
-                                    {ESTADO_LABEL[survey.estadoActual]}
+                                <span className={survey.enRevision ? "badge pending" : (ESTADO_BADGE_CLASS[survey.estadoActual] || "badge default")}>
+                                    {estadoLabel}
                                 </span>
                                 
 
@@ -400,11 +411,11 @@ export default function OperatorSurveys({
 
                             )}
 
-                            {survey.estadoActual === "pendiente_validacion" && (
+                            {(survey.enRevision || survey.estadoActual === "pendiente_validacion") && (
 
                                 <div className="detail-card" style={{background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.2)"}}>
 
-                                    ⏳ Pendiente de revisión por el instructor
+                                    ⏳ En revisión. Esperando calificación del instructor.
 
                                 </div>
 
@@ -431,7 +442,7 @@ export default function OperatorSurveys({
 
                             <div className="survey-actions">
 
-                                {survey.estadoActual === "pendiente" && (
+                                {survey.estadoActual === "pendiente" && !survey.enRevision && (
 
                                     <button
                                         className="btn-primary"
@@ -440,6 +451,16 @@ export default function OperatorSurveys({
                                         Comenzar evaluación
                                     </button>
 
+                                )}
+
+                                {survey.enRevision && (
+                                    <button
+                                        disabled
+                                        className="btn-disabled"
+                                        style={{ cursor: "not-allowed", opacity: 0.7 }}
+                                    >
+                                        En revisión
+                                    </button>
                                 )}
 
                                 {puedeReintentar && (

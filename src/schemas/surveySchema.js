@@ -110,7 +110,7 @@ export const surveySchema = z.object({
     fechaFin: z.string(),
 
     asignacion: z.object({
-        tipo: z.enum(["area", "usuarios"]),
+        tipo: z.enum(["global", "area", "usuarios"]),
         valores: z.array(z.string()),
     }),
 

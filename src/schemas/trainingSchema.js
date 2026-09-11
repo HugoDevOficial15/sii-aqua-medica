@@ -59,7 +59,7 @@ export const trainingSchema = z.object({
     fechaInicio: z.string(),
     fechaFin: z.string(),
     asignacion: z.object({
-        tipo: z.enum(["area", "usuarios"]),
+        tipo: z.enum(["global", "area", "usuarios"]),
         valores: z.array(z.string()),
         archivos: z.array(z.any()).optional()
     }),

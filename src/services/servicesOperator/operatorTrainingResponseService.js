@@ -9,8 +9,6 @@ import {
     writeBatch
 } from "firebase/firestore";
 
-const responseCollection = collection(db, "respuestasCapacitaciones");
-
 const resolveUserDocIdByFirebaseUid = async (userId) => {
     if (!userId) return null;
 
@@ -25,6 +23,10 @@ const resolveUserDocIdByFirebaseUid = async (userId) => {
 };
 
 const isResponseApproved = (data) => {
+    if (data?.estadoActual === "pendiente_validacion" || data?.tieneRespuestasAbiertas) {
+        return false;
+    }
+
     if (typeof data?.aprobada === "boolean") {
         return data.aprobada;
     }
@@ -33,8 +35,8 @@ const isResponseApproved = (data) => {
     return Number.isFinite(score) && score >= 80;
 };
 
-const getTrainingBucketCollection = (trainingId, approved) => {
-    const bucket = approved ? "aprobados" : "reprobados";
+const getTrainingBucketCollection = (trainingId, bucketName) => {
+    const bucket = bucketName || "aprobados";
     return collection(db, "respuestasCapacitaciones", String(trainingId), bucket);
 };
 
@@ -42,25 +44,24 @@ const getTrainingBucketCollection = (trainingId, approved) => {
 // GUARDAR RESPUESTA
 // ======================
 export const saveTrainingResponse = async (data) => {
-    const responseRef = doc(responseCollection);
     const userDocId = await resolveUserDocIdByFirebaseUid(data?.userId);
     const anioActual = new Date().getFullYear();
     const trainingId = data?.capacitacionId ?? data?.idCapacitacion ?? data?.trainingId;
-    const approved = isResponseApproved(data);
-    const estado = approved ? "aprobado" : "reprobado";
+    const isPendingReview = Boolean(data?.estadoActual === "pendiente_validacion" || data?.tieneRespuestasAbiertas);
+    const approved = isPendingReview ? false : isResponseApproved(data);
+    const bucketName = isPendingReview ? "pendientes" : (approved ? "aprobados" : "reprobados");
+    const estado = isPendingReview ? "pendiente_validacion" : (approved ? "aprobado" : "reprobado");
 
     const batch = writeBatch(db);
     const baseResponse = {
         ...data,
-        id: responseRef.id,
+        id: `${trainingId ?? "training"}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         estado,
         aprobada: approved,
     };
 
-    batch.set(responseRef, baseResponse);
-
     if (trainingId) {
-        const trainingBucketRef = doc(getTrainingBucketCollection(trainingId, approved));
+        const trainingBucketRef = doc(getTrainingBucketCollection(trainingId, bucketName));
         batch.set(trainingBucketRef, {
             ...baseResponse,
             id: trainingBucketRef.id,
@@ -101,17 +102,17 @@ export const saveTrainingResponse = async (data) => {
 // RESPUESTAS DEL USUARIO (por nómina)
 // ======================
 export const getMyTrainingResponses = async (nominaUsuario) => {
-    const q = query(
-        responseCollection,
-        where("nominaUsuario", "==", nominaUsuario)
-    );
+    if (!nominaUsuario) return [];
 
-    const snapshot = await getDocs(q);
+    const rootSnapshot = await getDocs(query(collection(db, "respuestasCapacitaciones"), where("nominaUsuario", "==", nominaUsuario)));
+    if (!rootSnapshot.empty) {
+        return rootSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+    }
 
-    return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+    return [];
 };
 
 // ======================
@@ -119,14 +120,13 @@ export const getMyTrainingResponses = async (nominaUsuario) => {
 // ======================
 // Busca por capacitacionId (también verifica idCapacitacion para compatibilidad)
 export const getResponsesForTraining = async (idCapacitacion) => {
-    const q = query(
-        responseCollection,
-        where("capacitacionId", "==", idCapacitacion)
-    );
+    if (!idCapacitacion) return [];
 
-    const snapshot = await getDocs(q);
+    const pendingDocs = await getDocs(query(getTrainingBucketCollection(idCapacitacion, "pendientes")));
+    const approvedDocs = await getDocs(query(getTrainingBucketCollection(idCapacitacion, "aprobados")));
+    const rejectedDocs = await getDocs(query(getTrainingBucketCollection(idCapacitacion, "reprobados")));
 
-    return snapshot.docs.map(doc => ({
+    return [...pendingDocs.docs, ...approvedDocs.docs, ...rejectedDocs.docs].map(doc => ({
         id: doc.id,
         ...doc.data()
     }));
@@ -136,32 +136,37 @@ export const getResponsesForTraining = async (idCapacitacion) => {
 // YA RESPONDIÓ
 // ======================
 export const hasAnsweredTraining = async (trainingId, userId) => {
-    const q = query(
-        responseCollection,
-        where("capacitacionId", "==", trainingId),
-        where("userId", "==", userId)
-    );
+    if (!trainingId || !userId) return false;
 
-    const snapshot = await getDocs(q);
+    const buckets = ["pendientes", "aprobados", "reprobados"];
 
-    return !snapshot.empty;
+    for (const bucketName of buckets) {
+        const snapshot = await getDocs(query(
+            getTrainingBucketCollection(trainingId, bucketName),
+            where("userId", "==", userId)
+        ));
+
+        if (!snapshot.empty) return true;
+    }
+
+    return false;
 };
 
 // ======================
 // HISTORIAL
 // ======================
 export const getTrainingHistory = async (userId) => {
-    const q = query(
-        responseCollection,
-        where("userId", "==", userId)
-    );
+    if (!userId) return [];
 
-    const snapshot = await getDocs(q);
+    const rootSnapshot = await getDocs(query(collection(db, "respuestasCapacitaciones"), where("userId", "==", userId)));
+    if (!rootSnapshot.empty) {
+        return rootSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+    }
 
-    return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+    return [];
 };
 
 // ======================

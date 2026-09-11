@@ -202,7 +202,9 @@ export default function CreateSurvey() {
         ...survey,
         temario: Array.isArray(survey.temario) && survey.temario.length > 0 ? survey.temario : [""],
         preguntas: Array.isArray(survey.preguntas) ? survey.preguntas : [],
-        areas: Array.isArray(survey.areas) ? survey.areas : [],
+        areas: Array.isArray(survey.areas)
+            ? survey.areas
+            : (survey.asignacion?.tipo === "global" ? ["ALL"] : []),
         asignacion: survey.asignacion || { tipo: "area", valores: [] },
         horaInicio: survey.horaInicio ? timeInputValue(survey.horaInicio) : "",
         horaFin: survey.horaFin ? timeInputValue(survey.horaFin) : "",
@@ -376,8 +378,16 @@ export default function CreateSurvey() {
     // (input separado por comas); aquí se normalizan a un único objeto
     // antes de guardar, sin tocar el resto del formulario.
     const construirAsignacion = (data) => {
+        const tipoAsignacion = data.asignacion?.tipo;
+
+        // La lógica global solo aplica cuando el usuario eligió explícitamente
+        // "Todas las áreas". No se activa por defecto ni en otros modos.
+        if (tipoAsignacion === "global") {
+            return { tipo: "global", valores: [] };
+        }
+
         // 1. Prioridad absoluta: Si es por usuarios, procesamos e ignoramos las áreas
-        if (data.asignacion?.tipo === "usuarios") {
+        if (tipoAsignacion === "usuarios") {
             return {
                 tipo: "usuarios",
                 valores: (data.asignacion.valores || [])
@@ -386,9 +396,9 @@ export default function CreateSurvey() {
             };
         }
 
-        // 2. Si es global (Todas las áreas)
-        const areasSeleccionadas = data.areas || [];
-        if (areasSeleccionadas.includes("ALL")) {
+        // 2. Solo se considera global si en modo área se eligió explícitamente la opción ALL
+        const areasSeleccionadas = Array.isArray(data.areas) ? data.areas : [];
+        if (tipoAsignacion === "area" && areasSeleccionadas.includes("ALL")) {
             return { tipo: "global", valores: [] };
         }
 
@@ -1116,6 +1126,9 @@ export default function CreateSurvey() {
                                                     if (e.target.value === "usuarios") {
                                                         //  Inyectamos un área fantasma para que Zod apruebe el formulario sin bloquear
                                                         setValue("areas", [AREAS[0]?.nombre || "Sistemas"], { shouldValidate: true });
+                                                    } else if (e.target.value === "global") {
+                                                        setValue("areas", ["ALL"], { shouldValidate: true });
+                                                        setValue("asignacion.valores", [], { shouldValidate: true });
                                                     } else {
                                                         setValue("areas", [], { shouldValidate: true });
                                                     }
@@ -1123,36 +1136,12 @@ export default function CreateSurvey() {
                                             })}
                                         >
                                             <option value="area">Por área</option>
+                                            <option value="global">Todas las áreas</option>
                                             <option value="usuarios">Por usuarios</option>
                                         </select>
 
-                                        {/* TODAS LAS ÁREAS (Solo mostrar si la asignación es por área) */}
+                                        {/* ÁREAS (Ocultar si está en modo "Usuarios" o si la asignación es global) */}
                                         {watch("asignacion.tipo") === "area" && (
-                                            <label
-                                                className={`area-card mb-4 ${watch("areas")?.includes("ALL") ? "selected" : ""}`}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={watch("areas")?.includes("ALL")}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setValue("areas", ["ALL"], { shouldValidate: true });
-                                                            setValue("asignacion.tipo", "area");
-                                                            setValue("asignacion.valores", []);
-                                                        } else {
-                                                            setValue("areas", [], { shouldValidate: true });
-                                                        }
-                                                    }}
-                                                />
-                                                <span className="area-card-content">
-                                                    {getAreaIcon("Todas las áreas")}
-                                                    <span>Todas las áreas</span>
-                                                </span>
-                                            </label>
-                                        )}
-
-                                        {/* ÁREAS (Ocultar si seleccionó "Todas" o si está en modo "Usuarios") */}
-                                        {watch("asignacion.tipo") === "area" && !watch("areas")?.includes("ALL") && (
                                             <div className="areas-grid mt-4">
                                                 {AREAS.map(area => {
                                                     const selected = watch("areas") || [];

@@ -361,7 +361,17 @@ export default function CreateCapacitaciones() {
     }, []);
 
     const construirAsignacion = (data) => {
-        if (data.asignacion?.tipo === "usuarios") {
+        const tipoAsignacion = data.asignacion?.tipo;
+
+        if (tipoAsignacion === "global") {
+            return {
+                tipo: "global",
+                valores: [],
+                archivos: data.asignacion.archivos || []
+            };
+        }
+
+        if (tipoAsignacion === "usuarios") {
             return {
                 tipo: "usuarios",
                 valores: (data.asignacion.valores || [])
@@ -371,8 +381,8 @@ export default function CreateCapacitaciones() {
             };
         }
 
-        const areasSeleccionadas = data.areas || [];
-        if (areasSeleccionadas.includes("ALL")) {
+        const areasSeleccionadas = Array.isArray(data.areas) ? data.areas : [];
+        if (tipoAsignacion === "area" && areasSeleccionadas.includes("ALL")) {
             return { tipo: "global", valores: [], archivos: data.asignacion.archivos || [] };
         }
 
@@ -1128,6 +1138,9 @@ export default function CreateCapacitaciones() {
                                                 onChange: (e) => {
                                                     if (e.target.value === "usuarios") {
                                                         setValue("areas", [AREAS[0]?.nombre || "Sistemas"], { shouldValidate: true });
+                                                    } else if (e.target.value === "global") {
+                                                        setValue("areas", ["ALL"], { shouldValidate: true });
+                                                        setValue("asignacion.valores", [], { shouldValidate: true });
                                                     } else {
                                                         setValue("areas", [], { shouldValidate: true });
                                                     }
@@ -1135,33 +1148,11 @@ export default function CreateCapacitaciones() {
                                             })}
                                         >
                                             <option value="area">Por área</option>
+                                            <option value="global">Todas las áreas</option>
                                             <option value="usuarios">Por usuarios</option>
                                         </select>
 
                                         {watch("asignacion.tipo") === "area" && (
-                                            <label className={`area-card mb-4 ${watch("areas")?.includes("ALL") ? "selected" : ""}`}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={watch("areas")?.includes("ALL")}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setValue("areas", ["ALL"], { shouldValidate: true });
-                                                            setValue("asignacion.tipo", "area");
-                                                            setValue("asignacion.valores", []);
-                                                        } else {
-                                                            setValue("areas", [], { shouldValidate: true });
-                                                        }
-                                                    }}
-                                                />
-                                                <span className="area-card-content">
-                                                    {getAreaIcon("Todas las áreas")}                                                
-                                                <span>Todas las áreas</span>
-                                                </span>
-
-                                            </label>
-                                        )}
-
-                                        {watch("asignacion.tipo") === "area" && !watch("areas")?.includes("ALL") && (
                                             <div className="areas-grid mt-4">
                                                 {AREAS.map(area => {
                                                     const selected = watch("areas") || [];

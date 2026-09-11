@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import MobileBackButton from "./components/MobileBackButton";
 import AppLoader from "./components/AppLoader";
 import { saveTrainingResponse } from "../../services/servicesOperator/operatorTrainingResponseService";
@@ -6,6 +7,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { MAX_SURVEY_ATTEMPTS, MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { notifyInfo } from "../../utils/notify";
 import { isSurveyInTimeWindow } from "../../utils/surveyTiming";
+import { db } from "../../config/firebase";
 
 export default function OperatorTrainingDetail({
     training,
@@ -140,7 +142,7 @@ export default function OperatorTrainingDetail({
         let calificables = 0;
         let tieneRespuestasAbiertas = false;
 
-        training.preguntas?.forEach(pregunta => {
+        training.preguntas?.forEach((pregunta) => {
             const respuestaUsuario = answers[pregunta.id];
 
             if (pregunta.tipo === "abierta") {
@@ -155,8 +157,12 @@ export default function OperatorTrainingDetail({
             if (String(respuestaUsuario) === String(correcta)) correctas++;
         });
 
-        let calificacion = 100;
-        if (calificables > 0) calificacion = Math.round((correctas / calificables) * 100);
+        let calificacion = 0;
+        if (calificables > 0) {
+            calificacion = Math.round((correctas / calificables) * 100);
+        } else if (tieneRespuestasAbiertas) {
+            calificacion = 100;
+        }
 
         return { correctas, calificacion, tieneRespuestasAbiertas };
     };
@@ -171,6 +177,23 @@ export default function OperatorTrainingDetail({
 
     const isAnswered = question && answers[question.id] !== undefined && answers[question.id] !== "";
 
+    const getIntentosPrevios = async () => {
+        if (!training?.id || !user?.uid) return 0;
+
+        const buckets = ["pendientes", "aprobados", "reprobados"];
+        const snapshots = await Promise.all(
+            buckets.map(async (bucket) => {
+                const q = query(
+                    collection(db, "respuestasCapacitaciones", String(training.id), bucket),
+                    where("userId", "==", user.uid)
+                );
+                return getDocs(q);
+            })
+        );
+
+        return snapshots.reduce((total, snapshot) => total + snapshot.size, 0);
+    };
+
     const handleFinishTraining = async () => {
         if (isSubmitting) return;
         if (sessionExpired || !puedeResponder || timeRemaining === 0) {
@@ -182,9 +205,10 @@ export default function OperatorTrainingDetail({
             setSaving(true);
             setIsSubmitting(true);
             const result = calculateScore();
-
-            const intentosPrevios = training.intentos || 0;
-            const intentosActuales = intentosPrevios + 1;
+            const intentosPrevios = await getIntentosPrevios();
+            const intentosActuales = result.tieneRespuestasAbiertas
+                ? intentosPrevios
+                : intentosPrevios + 1;
 
             let nuevoEstado = "";
             if (result.tieneRespuestasAbiertas) nuevoEstado = "pendiente_validacion";

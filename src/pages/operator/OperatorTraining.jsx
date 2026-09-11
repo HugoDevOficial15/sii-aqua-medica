@@ -45,6 +45,7 @@ const getRemainingSurveyTime = (item) => {
 
 const ESTADO_LABEL = {
     pendiente: "Pendiente",
+    pendiente_validacion: "En revisión",
     vencida: "Fuera de tiempo",
     completada: "Completada",
     reprobada: "Reprobada",
@@ -53,6 +54,7 @@ const ESTADO_LABEL = {
 
 const ESTADO_BADGE_CLASS = {
     pendiente: "badge pending",
+    pendiente_validacion: "badge pending",
     vencida: "badge expired",
     completada: "badge approved",
     reprobada: "badge danger",
@@ -89,19 +91,33 @@ export default function OperatorTraining({ onTrainingComplete, onBack, onSelectT
 
 
     const capacitacionesCorregidas = hookTrainings.map(training => {
-        const userResp = userResponses[training.id];
+        const userResp = userResponses[training.id] || training.miRespuesta || null;
         let estadoCorregido = training.estadoActual || "pendiente";
 
         if (userResp) {
+            const enRevision = userResp.estadoActual === "pendiente_validacion" || userResp.tieneRespuestasAbiertas;
+
+            if (enRevision) {
+                estadoCorregido = "pendiente";
+                return {
+                    ...training,
+                    estadoActual: "pendiente",
+                    miPuntaje: userResp.calificacion || userResp.puntuacionObtenida,
+                    intentos: userResp.intentos || 0,
+                    enRevision: true
+                };
+            }
+
             estadoCorregido = userResp.estadoActual || "completada";
             return {
                 ...training,
                 estadoActual: estadoCorregido,
                 miPuntaje: userResp.calificacion || userResp.puntuacionObtenida,
-                intentos: userResp.intentos || 0
+                intentos: userResp.intentos || 0,
+                enRevision: false
             };
         }
-        return { ...training, estadoActual: estadoCorregido };
+        return { ...training, estadoActual: estadoCorregido, enRevision: Boolean(training.enRevision) };
     });
 
     const contadores = {
@@ -287,11 +303,11 @@ export default function OperatorTraining({ onTrainingComplete, onBack, onSelectT
 
                             )}
 
-                            {survey.estadoActual === "pendiente_validacion" && (
+                            {(survey.enRevision || survey.estadoActual === "pendiente_validacion") && (
 
                                 <div className="survey-result pending">
 
-                                    ⏳ Pendiente de revisión por el instructor
+                                    ⏳ En revisión. Esperando la calificación del instructor.
 
                                 </div>
 
@@ -324,7 +340,7 @@ export default function OperatorTraining({ onTrainingComplete, onBack, onSelectT
 
                             <div className="survey-actions">
 
-                                {survey.estadoActual === "pendiente" && (
+                                {survey.estadoActual === "pendiente" && !survey.enRevision && (
 
                                     <button
                                         className="btn-primary"
@@ -333,6 +349,15 @@ export default function OperatorTraining({ onTrainingComplete, onBack, onSelectT
                                         Comenzar evaluación
                                     </button>
 
+                                )}
+
+                                {survey.enRevision && (
+                                    <button
+                                        disabled
+                                        className="btn-disabled"
+                                    >
+                                        Calificando...
+                                    </button>
                                 )}
 
                                 {puedeReintentar && (

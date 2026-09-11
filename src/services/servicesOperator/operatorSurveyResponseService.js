@@ -15,12 +15,6 @@ import {
 // ============================================================
 // Todas las respuestas se guardan y consultan en "respuestasEncuestas"
 // para evitar inconsistencias de nombres en diferentes partes del código.
-const responseCollection =
-    collection(
-        db,
-        "respuestasEncuestas"
-    );
-
 const resolveUserDocIdByFirebaseUid = async (userId) => {
     if (!userId) return null;
 
@@ -35,6 +29,10 @@ const resolveUserDocIdByFirebaseUid = async (userId) => {
 };
 
 const isResponseApproved = (data) => {
+    if (data?.estadoActual === "pendiente_validacion" || data?.tieneRespuestasAbiertas) {
+        return false;
+    }
+
     if (typeof data?.aprobada === "boolean") {
         return data.aprobada;
     }
@@ -43,8 +41,8 @@ const isResponseApproved = (data) => {
     return Number.isFinite(score) && score >= 80;
 };
 
-const getSurveyBucketCollection = (surveyId, approved) => {
-    const bucket = approved ? "aprobados" : "reprobados";
+const getSurveyBucketCollection = (surveyId, bucketName) => {
+    const bucket = bucketName || "aprobados";
     return collection(db, "respuestasEncuestas", String(surveyId), bucket);
 };
 
@@ -56,25 +54,24 @@ const getSurveyBucketCollection = (surveyId, approved) => {
 // cálculos en tiempo real.
 export const saveSurveyResponse =
     async (data) => {
-        const responseRef = doc(responseCollection);
         const userDocId = await resolveUserDocIdByFirebaseUid(data?.userId);
         const anioActual = new Date().getFullYear();
         const surveyId = data?.encuestaId ?? data?.idEncuesta ?? data?.surveyId;
-        const approved = isResponseApproved(data);
-        const estado = approved ? "aprobado" : "reprobado";
+        const isPendingReview = Boolean(data?.estadoActual === "pendiente_validacion" || data?.tieneRespuestasAbiertas);
+        const approved = isPendingReview ? false : isResponseApproved(data);
+        const bucketName = isPendingReview ? "pendientes" : (approved ? "aprobados" : "reprobados");
+        const estado = isPendingReview ? "pendiente_validacion" : (approved ? "aprobado" : "reprobado");
 
         const batch = writeBatch(db);
         const baseResponse = {
             ...data,
-            id: responseRef.id,
+            id: `${surveyId ?? "survey"}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
             estado,
             aprobada: approved,
         };
 
-        batch.set(responseRef, baseResponse);
-
         if (surveyId) {
-            const surveyBucketRef = doc(getSurveyBucketCollection(surveyId, approved));
+            const surveyBucketRef = doc(getSurveyBucketCollection(surveyId, bucketName));
             batch.set(surveyBucketRef, {
                 ...baseResponse,
                 id: surveyBucketRef.id,
@@ -119,47 +116,43 @@ export const saveSurveyResponse =
 
 export const getMyResponses =
     async (userId) => {
+        if (!userId) return [];
 
-        const q = query(
-            responseCollection,
-            where(
-                "userId",
-                "==",
-                userId
-            )
+        const allCollections = [
+            collection(db, "respuestasEncuestas"),
+        ];
+
+        const snapshots = await Promise.all(
+            allCollections.map(async (collectionRef) => getDocs(query(collectionRef, where("userId", "==", userId))))
         );
 
-        const snapshot =
-            await getDocs(q);
-
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-
+        return snapshots.flatMap(snapshot =>
+            snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }))
+        );
     };
 
 // Alias para búsqueda por nómina (algunos componentes antiguos pueden usarlo)
 export const getMyResponsesByNomina =
     async (nominaUsuario) => {
+        if (!nominaUsuario) return [];
 
-        const q = query(
-            responseCollection,
-            where(
-                "nominaUsuario",
-                "==",
-                nominaUsuario
-            )
+        const allCollections = [
+            collection(db, "respuestasEncuestas"),
+        ];
+
+        const snapshots = await Promise.all(
+            allCollections.map(async (collectionRef) => getDocs(query(collectionRef, where("nominaUsuario", "==", nominaUsuario))))
         );
 
-        const snapshot =
-            await getDocs(q);
-
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-
+        return snapshots.flatMap(snapshot =>
+            snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }))
+        );
     };
 
 // ======================
@@ -167,24 +160,15 @@ export const getMyResponsesByNomina =
 // ======================
 export const getResponsesForSurvey =
     async (idEncuesta) => {
+        if (!idEncuesta) return [];
 
-        const q = query(
-            responseCollection,
-            where(
-                "encuestaId",
-                "==",
-                idEncuesta
-            )
-        );
+        const approvedDocs = await getDocs(query(getSurveyBucketCollection(idEncuesta, true)));
+        const rejectedDocs = await getDocs(query(getSurveyBucketCollection(idEncuesta, false)));
 
-        const snapshot =
-            await getDocs(q);
-
-        return snapshot.docs.map(doc => ({
+        return [...approvedDocs.docs, ...rejectedDocs.docs].map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
-
     };
 
 // ======================
@@ -196,26 +180,21 @@ export const hasAnsweredSurvey =
         surveyId,
         userId
     ) => {
+        if (!surveyId || !userId) return false;
 
-        const q = query(
-            responseCollection,
-            where(
-                "encuestaId",
-                "==",
-                surveyId
-            ),
-            where(
-                "userId",
-                "==",
-                userId
-            )
-        );
+        const approvedSnapshot = await getDocs(query(
+            getSurveyBucketCollection(surveyId, true),
+            where("userId", "==", userId)
+        ));
 
-        const snapshot =
-            await getDocs(q);
+        if (!approvedSnapshot.empty) return true;
 
-        return !snapshot.empty;
+        const rejectedSnapshot = await getDocs(query(
+            getSurveyBucketCollection(surveyId, false),
+            where("userId", "==", userId)
+        ));
 
+        return !rejectedSnapshot.empty;
     };
 
 // ======================
@@ -224,24 +203,17 @@ export const hasAnsweredSurvey =
 
 export const getSurveyHistory =
     async (userId) => {
+        if (!userId) return [];
 
-        const q = query(
-            responseCollection,
-            where(
-                "userId",
-                "==",
-                userId
-            )
-        );
+        const rootSnapshot = await getDocs(query(collection(db, "respuestasEncuestas"), where("userId", "==", userId)));
+        if (!rootSnapshot.empty) {
+            return rootSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+        }
 
-        const snapshot =
-            await getDocs(q);
-
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-
+        return [];
     };
 
 // ======================

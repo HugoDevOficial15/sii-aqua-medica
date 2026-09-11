@@ -5,7 +5,7 @@ import { saveSurveyResponse } from "../../services/servicesOperator/operatorSurv
 import { useAuth } from "../../hooks/useAuth";
 import { MAX_SURVEY_ATTEMPTS, MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { createNotification } from "../../utils/createNotification";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { isSurveyInTimeWindow } from "../../utils/surveyTiming";
 
@@ -107,6 +107,23 @@ export default function OperatorSurveyDetail({
 
     const question = tienePreguntas ? preguntas[currentQuestion] : null;
     const isAnswered = question ? answers[question.id] !== undefined && answers[question.id] !== "" : false;
+
+    const getIntentosPrevios = async () => {
+        if (!survey?.id || !user?.uid) return 0;
+
+        const buckets = ["pendientes", "aprobados", "reprobados"];
+        const snapshots = await Promise.all(
+            buckets.map(async (bucket) => {
+                const q = query(
+                    collection(db, "respuestasEncuestas", String(survey.id), bucket),
+                    where("userId", "==", user.uid)
+                );
+                return getDocs(q);
+            })
+        );
+
+        return snapshots.reduce((total, snapshot) => total + snapshot.size, 0);
+    };
 
     const storageTimerKey = `survey_timer_${survey.id}_${user?.uid}`;
     const storageAnswersKey = `survey_answers_${survey.id}_${user?.uid}`;
@@ -238,10 +255,11 @@ export default function OperatorSurveyDetail({
             setIsSubmitting(true);
             setSaving(true);
             const result = calculateScore();
-
-            const intentosPrevios = survey.intentos || 0;
-            const intentosActuales = intentosPrevios + 1;
-            const puedeReintentar = intentosActuales < MAX_SURVEY_ATTEMPTS;
+            const intentosPrevios = await getIntentosPrevios();
+            const intentosActuales = result.tieneRespuestasAbiertas
+                ? intentosPrevios
+                : intentosPrevios + 1;
+            const puedeReintentar = !result.tieneRespuestasAbiertas && intentosActuales < MAX_SURVEY_ATTEMPTS;
 
             let nuevoEstado = "";
 
@@ -252,6 +270,7 @@ export default function OperatorSurveyDetail({
             await saveSurveyResponse({
                 encuestaId: survey.id,
                 idEncuesta: survey.id,
+                titulo: survey?.titulo || "",
                 nominaUsuario: user.nomina,
                 puntuacionObtenida: result.calificacion,
                 userId: user.uid,
@@ -262,11 +281,12 @@ export default function OperatorSurveyDetail({
                 totalPreguntas: preguntas.length,
                 correctas: result.correctas,
                 calificacion: result.calificacion,
-                aprobada: result.calificacion >= MIN_APROBATORIO && !result.tieneRespuestasAbiertas,
+                aprobada: !result.tieneRespuestasAbiertas && result.calificacion >= MIN_APROBATORIO,
                 tieneRespuestasAbiertas: result.tieneRespuestasAbiertas,
                 intentos: intentosActuales,
                 estadoActual: nuevoEstado,
-                fechaRespuesta: new Date().toISOString()
+                fechaRespuesta: new Date().toISOString(),
+                puedeReintentar
             });
 
 

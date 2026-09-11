@@ -62,14 +62,16 @@ export function useOperatorTrainings({ enabled = true } = {}) {
         let reprobadas = 0;
 
         trainings.forEach(training => {
-            if (training.estadoActual === "pendiente") {
+            const enRevision = Boolean(training.enRevision || training.estadoActual === "pendiente_validacion");
+
+            if (training.estadoActual === "pendiente" || enRevision) {
                 pendientes++;
             } else if (training.estadoActual === "completada") {
                 completadas++;
                 if ((training.miPuntaje ?? 0) < MIN_APROBATORIO) {
                     reprobadas++;
                 }
-            } else if (["reprobada", "bloqueada", "vencida", "pendiente_validacion"].includes(training.estadoActual)) {
+            } else if (["reprobada", "bloqueada", "vencida"].includes(training.estadoActual)) {
                 reprobadas++;
             }
         });
