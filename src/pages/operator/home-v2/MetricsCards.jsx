@@ -41,6 +41,7 @@ export default function MetricsCards({ onNavigate }) {
 
     const [pendientes, setPendientes] = useState(() => readCachedSurveyCount(user));
     const [puntos, setPuntos] = useState(0);
+    const [posicionRanking, setPosicionRanking] = useState(0);
 
     // Listener en tiempo real para encuestas pendientes
     useEffect(() => {
@@ -126,6 +127,25 @@ export default function MetricsCards({ onNavigate }) {
         return () => unsubscribe();
     }, [user?.uid]);
 
+    // Listener de ranking en tiempo real (Firestore listener, sin polling)
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        const rankingRef = doc(db, "rankings_users", user.uid);
+
+        const unsubscribe = onSnapshot(rankingRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setPosicionRanking(docSnap.data().posicionArea || 0);
+            } else {
+                setPosicionRanking(0);
+            }
+        }, () => {
+            setPosicionRanking(0);
+        });
+
+        return () => unsubscribe();
+    }, [user?.uid]);
+
     return (
 
         <div className="metrics-grid">
@@ -161,7 +181,7 @@ export default function MetricsCards({ onNavigate }) {
                 </div>
 
                 <h2>
-                    #0
+                    #{posicionRanking || "-"}
                 </h2>
 
                 <span>

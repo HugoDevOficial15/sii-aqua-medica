@@ -3,7 +3,8 @@ import {
     FiAward,
     FiTrendingUp,
     FiTarget,
-    FiStar
+    FiStar,
+    FiBarChart2
 } from "react-icons/fi";
 import MobileBackButton from "./components/MobileBackButton";
 import { useAuth } from "../../hooks/useAuth";
@@ -50,7 +51,7 @@ const TIPO_A_TITULO = {
     cita_asistida: "Cita asistida"
 };
 
-export default function OperatorPoints({ onBack }) {
+export default function OperatorPoints({ onBack, initialTab = "Puntos" }) {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [puntos, setPuntos] = useState(null);
@@ -59,6 +60,7 @@ export default function OperatorPoints({ onBack }) {
     const [topGlobal, setTopGlobal] = useState([]);
     const [ultimosLogros, setUltimosLogros] = useState([]);
     const [objetivos, setObjetivos] = useState([]);
+    const [activeTab, setActiveTab] = useState(initialTab);
 
     useEffect(() => {
         if (!user?.uid) return;
@@ -70,87 +72,89 @@ export default function OperatorPoints({ onBack }) {
 
         const inicializarDatos = async () => {
             try {
-                // 1. Cargar puntos iniciales (crea documento si no existe)
-                const puntosData = await obtenerPuntosUsuario(user.uid);
-                setPuntos(puntosData || { total: 0, nivel: "Bronce", proximoNivel: 500 });
-
-                // 2. Cargar otros datos iniciales
-                const posicion = await obtenerMiPosicionArea(user.uid);
-                setRanking(posicion);
-
-                if (posicion?.nombreArea) {
-                    const top = await obtenerTopArea(posicion.nombreArea, 3);
-                    setTopArea(top);
-                }
-
-                const topGlob = await obtenerTopGlobal(3);
-                setTopGlobal(topGlob);
-
-                const logros = await obtenerUltimosLogros(user.uid, 4);
-                setUltimosLogros(logros);
-
-                const objetivosCompletados = await obtenerObjetivosCompletados(user.uid);
-                setObjetivos(objetivosCompletados);
-
-                // 3. Suscribirse al listener en tiempo real para puntos
+                // NO hacer queries iniciales - los listeners cargarán los datos
                 const año = new Date().getFullYear().toString();
+
+                // Listener 1: Puntos en tiempo real
                 const puntosRef = doc(collection(db, "users", user.uid, año, "informacion", "puntos_general"), "general");
-                unsubscribePuntos = onSnapshot(puntosRef, async (docSnap) => {
+                unsubscribePuntos = onSnapshot(puntosRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const nuevosPuntos = docSnap.data();
                         setPuntos(nuevosPuntos);
-
-                        // Debounce: actualizar ranking solo después de 500ms sin cambios
-                        if (updateRankingTimeout) {
-                            clearTimeout(updateRankingTimeout);
-                        }
-
-                        updateRankingTimeout = setTimeout(async () => {
-                            try {
-                                const posicionActualizada = await obtenerMiPosicionArea(user.uid);
-                                setRanking(posicionActualizada);
-
-                                if (posicionActualizada?.nombreArea) {
-                                    const topActualizado = await obtenerTopArea(posicionActualizada.nombreArea, 3);
-                                    setTopArea(topActualizado);
-                                }
-
-                                const topGlobalActualizado = await obtenerTopGlobal(3);
-                                setTopGlobal(topGlobalActualizado);
-                            } catch (err) {
-                                // Error al actualizar ranking, pero mantener UI activa
-                            }
-                        }, 500);
+                        setLoading(false);
+                    } else {
+                        setPuntos({ total: 0, nivel: "Bronce", proximoNivel: 500 });
+                        setLoading(false);
                     }
                 }, (error) => {
-                    // Error en listener
+                    console.error("Error en listener de puntos:", error);
+                    setPuntos({ total: 0, nivel: "Bronce", proximoNivel: 500 });
+                    setLoading(false);
                 });
 
-                // 4. Listener para historialPuntos para actualizaciones en tiempo real de logros
+                // Listener 2: Ranking en tiempo real
+                const rankingRef = doc(db, "rankings_users", user.uid);
+                const unsubscribeRanking = onSnapshot(rankingRef, async (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        setRanking({
+                            posicionArea: data.posicionArea || 0,
+                            totalEnArea: data.totalEnArea || 0,
+                            nombreArea: data.nombreArea || "Sin Área",
+                            puntos: data.puntos || 0,
+                            nivel: data.nivel || "Bronce"
+                        });
+
+                        // Cargar tops cuando ranking cambie
+                        if (data.nombreArea) {
+                            const top = await obtenerTopArea(data.nombreArea, 3);
+                            setTopArea(top);
+                        }
+
+                        const topGlob = await obtenerTopGlobal(3);
+                        setTopGlobal(topGlob);
+                    } else {
+                        setRanking(null);
+                    }
+                }, (error) => {
+                    console.error("Error en listener de ranking:", error);
+                });
+
+                // Listener 3: Historial de puntos para logros
                 const historialRef = collection(db, "users", user.uid, año, "informacion", "historialPuntos");
                 const q = query(historialRef, orderBy("fechaCreacion", "desc"), limit(4));
-                unsubscribeHistorial = onSnapshot(q, (snapshot) => {
+                unsubscribeHistorial = onSnapshot(q, async (snapshot) => {
                     const logros = snapshot.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data()
                     }));
                     setUltimosLogros(logros);
+
+                    // Cargar objetivos cuando cambie el historial
+                    const objetivosCompletados = await obtenerObjetivosCompletados(user.uid);
+                    setObjetivos(objetivosCompletados);
                 }, (error) => {
-                    // Error en listener de historial
+                    console.error("Error en listener de historial:", error);
                 });
 
-                setLoading(false);
+                // Retornar unsubscriber del ranking para limpieza
+                return unsubscribeRanking;
             } catch (error) {
+                console.error("Error al inicializar datos:", error);
                 setLoading(false);
                 setPuntos({ total: 0, nivel: "Bronce", proximoNivel: 500 });
             }
         };
 
-        inicializarDatos();
+        let unsubscribeRanking;
+        (async () => {
+            unsubscribeRanking = await inicializarDatos();
+        })();
 
         return () => {
             if (unsubscribePuntos) unsubscribePuntos();
             if (unsubscribeHistorial) unsubscribeHistorial();
+            if (unsubscribeRanking) unsubscribeRanking();
             if (updateRankingTimeout) clearTimeout(updateRankingTimeout);
         };
     }, [user?.uid]);
@@ -175,124 +179,161 @@ export default function OperatorPoints({ onBack }) {
                 <p>Qué gusto tenerte de vuelta.</p>
             </div>
 
-            {/* STATS GRID - Puntos + Ranking */}
-            <div className="points-stats-grid">
-                <div className="points-stat-card">
+            {/* STATS TABS - Puntos*/}
+            <div className="points-stats">
+                <div
+                    className="points-stat-card"
+                    onClick={() => setActiveTab("Puntos")}
+                    style={{
+                        cursor: "pointer",
+                        opacity: activeTab === "Puntos" ? 1 : 0.5,
+                        border: activeTab === "Puntos" ? "2px solid #0A4D9D" : "2px solid transparent",
+                        transition: "all 0.3s ease"
+                    }}
+                >
                     <FiAward />
                     <h3>{puntos?.total || 0}</h3>
                     <span>Puntos</span>
                 </div>
 
-                <div className="points-stat-card">
-    <FiTrendingUp />
-    <h3>
-        {ranking?.totalEnArea > 0
-            ? `#${ranking.posicionArea}/${ranking.totalEnArea}`
-            : "-"
-        }
-    </h3>
-    <span>En mi Área</span>
-    {/*  SOLUCIÓN: Condición estricta > 0 */}
-    {ranking?.posicionGlobal > 0 && (
-        <small style={{ fontSize: "0.75rem", opacity: 0.7, display: 'block', marginTop: '4px' }}>
-            Global: #{ranking.posicionGlobal}
-        </small>
-    )}
-</div>
+                <div
+                    className="points-stat-card"
+                    onClick={() => setActiveTab("Área")}
+                    style={{
+                        cursor: "pointer",
+                        opacity: activeTab === "Área" ? 1 : 0.5,
+                        border: activeTab === "Área" ? "2px solid #10b981" : "2px solid transparent",
+                        transition: "all 0.3s ease"
+                    }}
+                >
+                    <FiTrendingUp />
+                    <h3>
+                        {ranking?.totalEnArea > 0
+                            ? `#${ranking.posicionArea}/${ranking.totalEnArea}`
+                            : "-"
+                        }
+                    </h3>
+                    <span>En mi Área</span>
+                </div>
+
             </div>
 
-            {/* PROGRESS CARD */}
-            <div className="points-progress-card">
-                <div className="progress-header">
-                    <h4>Próximo nivel</h4>
-                    <span>{puntos?.total || 0} / 1000</span>
-                </div>
-                <div className="premium-progress">
-                    <div
-                        className="premium-progress-fill"
-                        style={{ width: `${Math.min(porcentajeProgreso, 100)}%` }}
-                    />
-                </div>
-            </div>
-
-            {/* TOP 3 DE MI ÁREA - PRINCIPAL */}
-            {topArea.length > 0 && (
-                <div className="points-card ranking-area-card">
-                    <div className="ranking-header">
-                        <h4>🏅 Top en {nombreAreaVisible || "tu Área"}</h4>
-                        <small>Compañeros de trabajo</small>
-                    </div>
-
-                    <div className="ranking-list">
-                        {topArea.map((usuario, index) => (
-                            <div key={usuario.uid} className="ranking-item">
-                                <div className="ranking-badge">
-                                    {index === 0 && "🥇"}
-                                    {index === 1 && "🥈"}
-                                    {index === 2 && "🥉"}
+            {/* CONTENEDOR DE CONTENIDO - Ranking */}
+            {activeTab === "Área" && (topArea.length > 0 || topGlobal.length > 0) && (
+                <div className="points-content">
+                    {topArea.length > 0 && (
+                        <div className="points-card ranking-card-design">
+                            <div className="ranking-card-header">
+                                <div className="ranking-card-title">
+                                    <span className="ranking-emoji">🏅</span>
+                                    <div>
+                                        <h4>Top {nombreAreaVisible || "tu Área"}</h4>
+                                        <small>Compañeros de trabajo</small>
+                                    </div>
                                 </div>
-
-                                <div className="ranking-info">
-                                    <strong>{usuario.nombre || "Usuario"}</strong>
-                                    <small>{usuario.puntos} pts • {usuario.nivel}</small>
-                                </div>
-
-                                {usuario.uid === user.uid && (
-                                    <span className="ranking-you">Tú</span>
-                                )}
                             </div>
-                        ))}
-                    </div>
+                            <div className="ranking-card-list">
+                                {topArea.map((usuario, index) => (
+                                    <div key={usuario.uid} className="ranking-card-item">
+                                        <div className="ranking-card-left">
+                                            <span className="ranking-card-medal">
+                                                {index === 0 && "🥇"}
+                                                {index === 1 && "🥈"}
+                                                {index === 2 && "🥉"}
+                                            </span>
+                                            <div className="ranking-card-info">
+                                                <strong>{usuario.nombre || "Usuario"}</strong>
+                                                <small>{usuario.puntos} pts • {usuario.nivel}</small>
+                                            </div>
+                                        </div>
+                                        {usuario.uid === user.uid && (
+                                            <span className="ranking-card-badge">Tú</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {topGlobal.length > 0 && (
+                        <div className="points-card ranking-card-design">
+                            <div className="ranking-card-header">
+                                <div className="ranking-card-title">
+                                    <span className="ranking-emoji">🌟</span>
+                                    <div>
+                                        <h4>Top Empresa</h4>
+                                        <small>Ranking global</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="ranking-card-list ranking-global-list">
+                                {topGlobal.map((usuario, index) => (
+                                    <div key={usuario.uid} className="ranking-card-item ranking-global-item">
+                                        <div className="ranking-card-left">
+                                            <span className="ranking-number">#{index + 1}</span>
+                                            <div className="ranking-card-info">
+                                                <strong>{usuario.nombre || "Usuario"}</strong>
+                                            </div>
+                                        </div>
+                                        <span className="ranking-points">{usuario.puntos}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* TOP 3 GLOBAL - SECUNDARIO */}
-            {topGlobal.length > 0 && (
-                <div className="points-card ranking-global-card compact">
-                    <h4>🌟 Top Empresa</h4>
-                    <div className="ranking-compact-list">
-                        {topGlobal.slice(0, 3).map((usuario, index) => (
-                            <div key={usuario.uid} className="ranking-compact-item">
-                                <span>#{index + 1}</span>
-                                <span>{usuario.nombre || "Usuario"}</span>
-                                <span className="points-badge">{usuario.puntos}</span>
-                            </div>
-                        ))}
+            {/* TAB: PUNTOS */}
+            {activeTab === "Puntos" && (
+                <>
+                    {/* PROGRESS CARD */}
+                    <div className="points-progress-card">
+                        <div className="progress-header">
+                            <h4>Próximo nivel</h4>
+                            <span>{puntos?.total || 0} / 1000</span>
+                        </div>
+                        <div className="premium-progress">
+                            <div
+                                className="premium-progress-fill"
+                                style={{ width: `${Math.min(porcentajeProgreso, 100)}%` }}
+                            />
+                        </div>
                     </div>
-                </div>
-            )}
 
-            {/* OBJETIVOS */}
-            <div className="points-card">
-                <h4>Objetivos</h4>
+                    {/* OBJETIVOS */}
+                    <div className="points-card">
+                        <h4>Objetivos</h4>
 
-                {OBJETIVO_TEMPLATE.map((obj) => {
-                    const completado = (objetivos[obj.tipo] || 0) > 0;
-                    return (
-                        <div key={obj.id} className={`goal-item ${completado ? "completed" : ""}`}>
-                            <FiTarget />
-                            <span>{obj.titulo}</span>
-                            {completado && <span className="badge-check">✓</span>}
+                        {OBJETIVO_TEMPLATE.map((obj) => {
+                            const completado = (objetivos[obj.tipo] || 0) > 0;
+                            return (
+                                <div key={obj.id} className={`goal-item ${completado ? "completed" : ""}`}>
+                                    <FiTarget />
+                                    <span>{obj.titulo}</span>
+                                    {completado && <span className="badge-check">✓</span>}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* ÚLTIMOS LOGROS */}
+                    {ultimosLogros.length > 0 && (
+                        <div className="points-card">
+                            <h4>Últimos logros</h4>
+
+                            {ultimosLogros.map((logro) => (
+                                <div key={logro.id} className="achievement-item">
+                                    <FiStar />
+                                    <div className="achievement-content">
+                                        <span>{TIPO_A_TITULO[logro.tipo] || logro.tipo}</span>
+                                        <small className="achievement-points">+{logro.puntos} pts</small>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    );
-                })}
-            </div>
-
-            {/* ÚLTIMOS LOGROS */}
-            {ultimosLogros.length > 0 && (
-                <div className="points-card">
-                    <h4>Últimos logros</h4>
-
-                    {ultimosLogros.map((logro) => (
-                        <div key={logro.id} className="achievement-item">
-                            <FiStar />
-                            <div className="achievement-content">
-                                <span>{TIPO_A_TITULO[logro.tipo] || logro.tipo}</span>
-                                <small className="achievement-points">+{logro.puntos} pts</small>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                    )}
+                </>
             )}
 
         </div>

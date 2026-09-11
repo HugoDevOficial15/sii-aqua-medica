@@ -40,7 +40,8 @@ export async function createSupportTicket({
         administradorRevision: null
     });
 
-    await sendAdminNotification({
+    // Enviar notificación en background (sin bloquear respuesta)
+    sendAdminNotification({
         Titulo: "Nuevo Reporte de Problema",
         Mensaje: `${user?.nombre || "Un usuario"} reportó: "${asunto}"`,
         Destino: "soporte",
@@ -51,7 +52,9 @@ export async function createSupportTicket({
             asunto: asunto,
             pantalla: pantalla
         }
-    }, ["admin_sistemas", "admin_super"]);
+    }, ["admin_sistemas", "admin_super"]).catch(err => {
+        console.error("Error enviando notificación de reporte:", err);
+    });
 
     return { success: true, id: docRef.id };
 }

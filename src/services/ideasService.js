@@ -99,7 +99,8 @@ export const createIdea = async ({ user, titulo, categoria, descripcion, imagenB
         await registrarPuntos(user.id, "sugerencia_enviada", docRef.id);
     }
 
-    await sendAdminNotification({
+    // Enviar notificación en background (sin bloquear respuesta)
+    sendAdminNotification({
         Titulo: "Nueva Idea Recibida",
         Mensaje: `${user?.nombre || "Un usuario"} compartió: "${titulo}"`,
         Destino: "ideas",
@@ -110,7 +111,9 @@ export const createIdea = async ({ user, titulo, categoria, descripcion, imagenB
             titulo: titulo,
             categoria: categoria
         }
-    }, ["admin_sistemas", "admin_super"]);
+    }, ["admin_sistemas", "admin_super"]).catch(err => {
+        console.error("Error enviando notificación a admins:", err);
+    });
 
     return { success: true, id: docRef.id };
 };

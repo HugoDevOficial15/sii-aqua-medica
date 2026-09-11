@@ -1576,6 +1576,17 @@ POINTS
     opacity: .9;
 }
 
+.points-stats {
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 14px;
+
+    margin-bottom: 24px;
+}
+
 .points-stats-grid {
 
     display: grid;
@@ -1626,6 +1637,303 @@ POINTS
     color: var(--operator-text-soft);
 }
 
+/* Área Card con Rankings */
+.points-area-card {
+
+    display: flex;
+
+    flex-direction: column;
+}
+
+.area-card-top {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    margin-bottom: 16px;
+}
+
+.area-card-content {
+
+    border-top: 1px solid #edf2f7;
+
+    padding-top: 16px;
+}
+
+.area-ranking-group {
+
+    margin-bottom: 16px;
+}
+
+.area-ranking-group:last-child {
+
+    margin-bottom: 0;
+}
+
+.area-ranking-group h5 {
+
+    margin: 0 0 12px 0;
+
+    color: var(--operator-text);
+
+    font-weight: 700;
+
+    font-size: 14px;
+}
+
+.area-ranking-list {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+}
+
+.area-ranking-item {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 10px;
+
+    background: rgba(10, 77, 157, 0.04);
+
+    border-radius: 12px;
+}
+
+.area-badge {
+
+    font-size: 18px;
+
+    min-width: 24px;
+
+    text-align: center;
+}
+
+.area-ranking-info {
+
+    flex: 1;
+
+    min-width: 0;
+}
+
+.area-ranking-info strong {
+
+    display: block;
+
+    color: var(--operator-text);
+
+    font-size: 14px;
+
+    margin-bottom: 2px;
+}
+
+.area-ranking-info small {
+
+    color: var(--operator-text-soft);
+
+    font-size: 12px;
+}
+
+.area-you-badge {
+
+    background: #10b981;
+
+    color: white;
+
+    padding: 4px 10px;
+
+    border-radius: 6px;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+/* Diseño de ranking card mejorado */
+.ranking-card-design {
+
+    background: rgba(10, 77, 157, 0.06);
+
+    border: 1px solid rgba(10, 77, 157, 0.1);
+
+    padding: 20px;
+
+    margin-bottom: 20px;
+}
+
+.ranking-card-header {
+
+    margin-bottom: 16px;
+}
+
+.ranking-card-title {
+
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 12px;
+}
+
+.ranking-emoji {
+
+    font-size: 24px;
+
+    flex-shrink: 0;
+}
+
+.ranking-card-title h4 {
+
+    margin: 0;
+
+    color: var(--operator-text);
+
+    font-weight: 700;
+
+    font-size: 16px;
+}
+
+.ranking-card-title small {
+
+    color: var(--operator-text-soft);
+
+    font-size: 12px;
+
+    display: block;
+
+    margin-top: 2px;
+}
+
+.ranking-card-list {
+
+    display: flex;
+
+    flex-direction: column;
+}
+
+.ranking-card-item {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 14px 0;
+
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.ranking-card-item:last-child {
+
+    border-bottom: none;
+}
+
+.ranking-card-left {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    flex: 1;
+}
+
+.ranking-card-medal {
+
+    font-size: 20px;
+
+    min-width: 24px;
+
+    text-align: center;
+}
+
+.ranking-number {
+
+    font-weight: 700;
+
+    color: var(--operator-text);
+
+    min-width: 32px;
+
+    font-size: 14px;
+}
+
+.ranking-card-info {
+
+    flex: 1;
+
+    min-width: 0;
+}
+
+.ranking-card-info strong {
+
+    display: block;
+
+    color: var(--operator-text);
+
+    font-size: 14px;
+
+    margin-bottom: 2px;
+}
+
+.ranking-card-info small {
+
+    color: var(--operator-text-soft);
+
+    font-size: 12px;
+}
+
+.ranking-card-badge {
+
+    background: #0A4D9D;
+
+    color: white;
+
+    padding: 6px 12px;
+
+    border-radius: 16px;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+
+    flex-shrink: 0;
+}
+
+.ranking-points {
+
+    color: var(--operator-text);
+
+    font-weight: 700;
+
+    font-size: 14px;
+
+    flex-shrink: 0;
+
+    min-width: 40px;
+
+    text-align: right;
+}
+
+.ranking-global-item {
+
+    padding: 14px 12px;
+}
+
 .points-progress-card {
 
     background: white;
@@ -1673,19 +1981,35 @@ POINTS
     position: relative;
 }
 
+@keyframes progress-loading {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 40px 0;
+    }
+}
+
 .premium-progress-fill {
 
     height: 100%;
 
-    background: linear-gradient(135deg,
-            #0A4D9D,
-            #1E6DD8);
+    background: linear-gradient(50deg,
+            #0A4D9D 0%,
+            #0A4D9D 25%,
+            #1E6DD8 50%,
+            #0A4D9D 75%,
+            #0A4D9D 100%);
+
+    background-size: 40px 100%;
 
     transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
 
     position: relative;
 
     box-shadow: 0 0 10px rgba(10, 77, 157, 0.6);
+
+    animation: progress-loading 3s linear infinite;
 }
 
 .premium-progress-fill::after {
@@ -1698,18 +2022,59 @@ POINTS
 
     left: 0;
 
-    right: 0;
+}
 
-    bottom: 0;
+/* =====================================
+SECCIÓN EN MI ÁREA - Rankings
+===================================== */
 
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.3),
-        transparent
-    );
+.points-rankings-section {
 
-    animation: progressShine 2s infinite;
+    margin-bottom: 24px;
+}
+
+.points-rankings-section > h4 {
+
+    margin: 0 0 16px 0;
+
+    color: var(--operator-text);
+
+    font-weight: 700;
+
+    font-size: 16px;
+}
+
+.points-content {
+
+    margin-bottom: 24px;
+
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+
+    from {
+
+        opacity: 0;
+
+        transform: translateY(10px);
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform: translateY(0);
+    }
+}
+
+.area-content-section {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 16px;
 }
 
 @keyframes progressShine {
@@ -3067,19 +3432,24 @@ CERTIFICATES
 RANKING - ÁREA + GLOBAL
 ===================================== */
 
-.ranking-area-card {
-    background: linear-gradient(135deg, rgba(10, 77, 157, 0.08), rgba(30, 109, 216, 0.08));
-    border: 1px solid var(--operator-border);
+.ranking-area-card,
+.ranking-global-card {
+    background: white;
+    border-radius: 24px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .05);
 }
 
 .ranking-header {
     margin-bottom: 16px;
 }
 
-.ranking-header h4 {
+.ranking-header h5 {
     margin: 0;
     color: var(--operator-text);
     font-weight: 700;
+    font-size: 15px;
 }
 
 .ranking-header small {

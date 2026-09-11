@@ -153,6 +153,8 @@ export default function AppOperator() {
                 return <OperatorMore onNavigate={setScreen} />;
             case "points":
                 return <OperatorPoints onBack={() => setScreen("more")} />;
+            case "ranking":
+                return <OperatorPoints onBack={() => setScreen("home")} initialTab="Área" />;
             case "recognitions":
                 return <OperatorRecognitions usuarioActual={user} onBack={() => setScreen("more")} />;
             case "incidences":

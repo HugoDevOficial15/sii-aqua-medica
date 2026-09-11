@@ -17,6 +17,33 @@ import { actualizarRankingConArea } from "./rankingService";
 // Helper para obtener el año actual
 const obtenerAñoActual = () => new Date().getFullYear().toString();
 
+// CACHE SYSTEM
+const PUNTOS_CACHE_TTL = 30 * 1000; // 30 segundos
+const puntosCache = new Map();
+
+const getCachePuntos = (key) => {
+  const cached = puntosCache.get(key);
+  if (!cached) return null;
+
+  const ahora = Date.now();
+  if (ahora - cached.timestamp > PUNTOS_CACHE_TTL) {
+    puntosCache.delete(key);
+    return null;
+  }
+  return cached.data;
+};
+
+const setCachePuntos = (key, data) => {
+  puntosCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+};
+
+const clearCachePuntos = (key) => {
+  puntosCache.delete(key);
+};
+
 const obtenerHistorialRef = (userDocId, año) =>
   collection(db, "users", userDocId, año, "informacion", "historialPuntos");
 
@@ -89,7 +116,11 @@ export const registrarPuntos = async (userId, tipo, referencia) => {
     // 3. Actualizar ranking
     await actualizarRankingConArea(userDocId, año);
 
-    // 4. Limpiar cache para forzar refetch inmediato
+    // 4. Limpiar caches locales para forzar refetch inmediato
+    clearCachePuntos(`puntos-${userDocId}-${año}`);
+    clearCachePuntos(`historial-${userDocId}-${año}-10`);
+    clearCachePuntos(`logros-${userDocId}-${año}-4`);
+    clearCachePuntos(`objetivos-${userDocId}-${año}`);
     try {
       localStorage.removeItem(`posicion-${userDocId}`);
     } catch (e) {
@@ -169,6 +200,10 @@ export const calcularProximoNivel = (puntos) => {
 // Obtener historial de puntos del usuario
 export const obtenerHistorialPuntos = async (userId, limitNum = 10, año = obtenerAñoActual()) => {
   try {
+    const cacheKey = `historial-${userId}-${año}-${limitNum}`;
+    const cached = getCachePuntos(cacheKey);
+    if (cached) return cached;
+
     const q = query(
       obtenerHistorialRef(userId, año),
       orderBy("fechaCreacion", "desc"),
@@ -176,10 +211,12 @@ export const obtenerHistorialPuntos = async (userId, limitNum = 10, año = obten
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
+    const data = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+    setCachePuntos(cacheKey, data);
+    return data;
   } catch (error) {
     console.error("Error al obtener historial de puntos:", error);
     return [];
@@ -189,12 +226,18 @@ export const obtenerHistorialPuntos = async (userId, limitNum = 10, año = obten
 // Obtener puntos del usuario
 export const obtenerPuntosUsuario = async (userId, año = obtenerAñoActual()) => {
   try {
+    const cacheKey = `puntos-${userId}-${año}`;
+    const cached = getCachePuntos(cacheKey);
+    if (cached) return cached;
+
     const docSnap = await getDoc(
       obtenerPuntosRef(userId, año)
     );
 
     if (docSnap.exists()) {
-      return docSnap.data();
+      const data = docSnap.data();
+      setCachePuntos(cacheKey, data);
+      return data;
     }
 
     // Si no existe, crear documento vacío
@@ -208,11 +251,13 @@ export const obtenerPuntosUsuario = async (userId, año = obtenerAñoActual()) =
       }
     );
 
-    return {
+    const defaultData = {
       total: 0,
       nivel: "Bronce",
       proximoNivel: 500
     };
+    setCachePuntos(cacheKey, defaultData);
+    return defaultData;
   } catch (error) {
     console.error("Error al obtener información de puntos");
     return null;
@@ -222,6 +267,10 @@ export const obtenerPuntosUsuario = async (userId, año = obtenerAñoActual()) =
 // Obtener últimos logros (últimas acciones)
 export const obtenerUltimosLogros = async (userId, limitNum = 4, año = obtenerAñoActual()) => {
   try {
+    const cacheKey = `logros-${userId}-${año}-${limitNum}`;
+    const cached = getCachePuntos(cacheKey);
+    if (cached) return cached;
+
     const snapshot = await getDocs(
       obtenerHistorialRef(userId, año)
     );
@@ -234,6 +283,7 @@ export const obtenerUltimosLogros = async (userId, limitNum = 4, año = obtenerA
       .sort((a, b) => b.fechaCreacion?.toMillis() - a.fechaCreacion?.toMillis())
       .slice(0, limitNum);
 
+    setCachePuntos(cacheKey, logros);
     return logros;
   } catch (error) {
     console.error("Error al obtener últimos logros:", error);
@@ -244,6 +294,10 @@ export const obtenerUltimosLogros = async (userId, limitNum = 4, año = obtenerA
 // Obtener objetivos completados del mes
 export const obtenerObjetivosCompletados = async (userId, año = obtenerAñoActual()) => {
   try {
+    const cacheKey = `objetivos-${userId}-${año}`;
+    const cached = getCachePuntos(cacheKey);
+    if (cached) return cached;
+
     const ahora = new Date();
     const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
 
@@ -266,6 +320,7 @@ export const obtenerObjetivosCompletados = async (userId, año = obtenerAñoActu
       }
     });
 
+    setCachePuntos(cacheKey, objetivos);
     return objetivos;
   } catch (error) {
     console.error("Error al obtener objetivos completados:", error);

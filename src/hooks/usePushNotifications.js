@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 /**
@@ -77,12 +77,36 @@ export function usePushNotifications(user) {
           async (token) => {
 
             try {
-              const userRef = doc(db, 'usuarios', uidReal);
+              console.log('📱 Token FCM recibido:', token.value?.substring(0, 20) + '...');
 
+              // 1. Verificar en qué colección existe el usuario
+              let userCollection = 'usuarios';
+              let userRef = doc(db, 'usuarios', uidReal);
+              let userSnap = await getDoc(userRef);
+
+              if (!userSnap.exists()) {
+                console.warn('⚠️ Usuario NO encontrado en "usuarios", buscando en "users"...');
+                userRef = doc(db, 'users', uidReal);
+                userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                  userCollection = 'users';
+                  console.log('✓ Usuario encontrado en "users"');
+                } else {
+                  console.error('✗ Usuario NO encontrado en "usuarios" NI en "users"');
+                  console.error('✗ UID:', uidReal);
+                  return;
+                }
+              } else {
+                console.log('✓ Usuario encontrado en "usuarios"');
+              }
+
+              // 2. Guardar token en la colección correcta
               await setDoc(userRef, {
                 fcmToken: token.value,
                 fcmTokenActualizado: new Date().toISOString()
               }, { merge: true });
+
+              console.log('✓ Token guardado en colección:', userCollection);
 
             } catch (errFirestore) {
               console.error('✗ Error guardando token en Firestore:',
