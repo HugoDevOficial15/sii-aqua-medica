@@ -74,18 +74,19 @@ export default function AppRouter() {
 
         felicitacionesCheckedRef.current = true;
 
-        const timer = setTimeout(async () => {
-            try {
-                const todayKey = new Date().toISOString().slice(0, 10);
-                const cacheKey = `felicitaciones-check-${user.uid}-${todayKey}`;
-                if (localStorage.getItem(cacheKey) === "true") return;
-
-                await verificarYCrearFelicitaciones(user);
-                localStorage.setItem(cacheKey, "true");
-            } catch (error) {
-                console.error("Error al verificar felicitaciones al entrar a la app:", error);
-            }
-        }, 1200);
+        // Ejecutar en background SIN bloquear la app
+        const timer = setTimeout(() => {
+            // NO usar await aquí - ejecutar en background
+            verificarYCrearFelicitaciones(user)
+                .then(() => {
+                    const todayKey = new Date().toISOString().slice(0, 10);
+                    const cacheKey = `felicitaciones-check-${user.uid}-${todayKey}`;
+                    localStorage.setItem(cacheKey, "true");
+                })
+                .catch((error) => {
+                    console.error("⚠️ Error al verificar felicitaciones (no bloqueante):", error);
+                });
+        }, 2000); // 2 segundos después de que carga la app
 
         return () => clearTimeout(timer);
     }, [user?.uid]);

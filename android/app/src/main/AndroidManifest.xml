@@ -23,6 +23,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <intent-filter>
+                <action android:name="OPEN_NOTIFICATIONS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -47,7 +52,7 @@
         <!-- Configuración por defecto para notificaciones FCM -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="sii_aqua_canal_v4" />
+            android:value="sii_aqua_canal_v5" />
 
     </application>
 

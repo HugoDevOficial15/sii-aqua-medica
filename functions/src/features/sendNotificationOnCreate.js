@@ -24,6 +24,18 @@ exports.sendNotificationOnCreate = onDocumentCreated("notificaciones/{notifId}",
         let userSnap = await userRef.get();
         let userData = userSnap.exists ? userSnap.data() : null;
 
+        if (!userData) {
+            const usersByUid = await db.collection("usuarios")
+                .where("uid", "==", String(destinatario))
+                .limit(1)
+                .get();
+            if (!usersByUid.empty) {
+                userSnap = usersByUid.docs[0];
+                userRef = userSnap.ref;
+                userData = userSnap.data();
+            }
+        }
+
         if (userData) {
             token = userData.fcmToken;
         } else {
@@ -31,6 +43,17 @@ exports.sendNotificationOnCreate = onDocumentCreated("notificaciones/{notifId}",
             userRef = db.collection("users").doc(String(destinatario));
             userSnap = await userRef.get();
             userData = userSnap.exists ? userSnap.data() : null;
+            if (!userData) {
+                const usersByUid = await db.collection("users")
+                    .where("uid", "==", String(destinatario))
+                    .limit(1)
+                    .get();
+                if (!usersByUid.empty) {
+                    userSnap = usersByUid.docs[0];
+                    userRef = userSnap.ref;
+                    userData = userSnap.data();
+                }
+            }
             if (userData) {
                 token = userData.fcmToken;
             }
@@ -49,13 +72,15 @@ exports.sendNotificationOnCreate = onDocumentCreated("notificaciones/{notifId}",
             },
             android: {
                 notification: {
-                    sound: "default", 
-                    channelId: "sii_aqua_canal_v4" // <-- Fíjate en este valor
+                    sound: "default",
+                    channelId: "sii_aqua_canal_v4",
+                    clickAction: "OPEN_NOTIFICATIONS"
                 }
             },
             data: {
                 destino: String(notif.Destino || ""),
-                accion: String(notif.Accion || "")
+                accion: String(notif.Accion || ""),
+                open_notifications: "true"
             }
         };
 

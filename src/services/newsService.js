@@ -33,7 +33,7 @@ export const crearNoticia = async (titulo, contenido, archivoImagen) => {
     const usersSnapshot = await getDocs(activeUsersQuery);
 
     const notificacionesPromises = usersSnapshot.docs.map(userDoc => {
-      const userId = userDoc.id;
+      const userId = userDoc.data()?.uid || userDoc.id;
       return createNotification({
         IdUsuario: userId,
         Titulo: "📰 Nueva noticia",

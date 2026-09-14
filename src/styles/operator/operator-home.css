@@ -558,14 +558,13 @@ DRAWER V2
     left: -100%;
     width: 88%;
     max-width: 360px;
-    height: 100vh;
-    height: 100dvh;
-    max-height: 100vh;
-    max-height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
     background: white;
     z-index: 9500;
     transition: .35s;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: contain;
     touch-action: pan-y;
     display: flex;

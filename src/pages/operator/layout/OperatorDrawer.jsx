@@ -246,7 +246,7 @@ export default function OperatorDrawer({
 
 
                 <div className="text-center">
-                    <span>HARV 2026 | V. 4.0.1</span>
+                    <span>HARV 2026 | V. 4.0.2</span>
                 </div>
 
                 <button

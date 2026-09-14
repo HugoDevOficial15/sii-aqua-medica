@@ -1,6 +1,7 @@
 import './App.css';
 import { useEffect, useState } from 'react';
 import AppRouter from './router/AppRouter';
+import { useFirebaseMessaging } from './hooks/useFirebaseMessaging';
 import { AuthProvider } from './context/AuthProvider';
 import { LoaderProvider } from './context/LoaderProvider';
 import { PreferencesProvider } from './context/PreferencesProvider';
@@ -11,6 +12,16 @@ writeMemoryCache(APP_BOOTSTRAP_CACHE_KEY, {
   appCssLoaded: true,
   shellInitialized: true,
 });
+
+function AppContent() {
+  useFirebaseMessaging();
+
+  return (
+    <LoaderProvider>
+      <AppRouter />
+    </LoaderProvider>
+  );
+}
 
 function App() {
   const [isOffline, setIsOffline] = useState(() => {
@@ -115,9 +126,7 @@ function App() {
     <>
       <PreferencesProvider>
         <AuthProvider>
-          <LoaderProvider>
-            <AppRouter />
-          </LoaderProvider>
+          <AppContent />
         </AuthProvider>
       </PreferencesProvider>
 

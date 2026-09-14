@@ -33,9 +33,11 @@ export default function OperatorRecognitions({ onBack, usuarioActual }) {
                     return;
                 }
 
+                const empleadoId = usuarioActual.id || usuarioActual.uid;
+
                 const q = query(
                     collection(db, "reconocimientos"),
-                    where("empleadoId", "==", usuarioActual.id)
+                    where("empleadoId", "==", empleadoId)
                 );
 
                 const snapshot = await getDocs(q);

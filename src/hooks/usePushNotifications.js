@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 /**
@@ -19,7 +19,7 @@ export const crearCanalDeNotificacion = async () => {
 
     // Crear el canal con todas las propiedades necesarias
     await LocalNotifications.createChannel({
-      id: 'sii_aqua_canal_v4',
+      id: 'sii_aqua_canal_v5',
       name: 'Avisos Urgentes SII AQUA',
       description: 'Canal para notificaciones importantes y solicitudes de cambios',
       importance: 5,           // Máxima importancia (IMPORTANCE_MAX)
@@ -68,45 +68,54 @@ export function usePushNotifications(user) {
         }
 
 
-        // 3. Registrar con FCM
-        await PushNotifications.register();
-
-        // 4. Escuchar el token FCM (se dispara cuando se registra y cuando se renueva)
+        // 3. Escuchar el token antes de registrar para no perder el evento inicial
         const unsubscribeRegistration = PushNotifications.addListener(
           'registration',
           async (token) => {
 
             try {
-              console.log('📱 Token FCM recibido:', token.value?.substring(0, 20) + '...');
-
               // 1. Verificar en qué colección existe el usuario
               let userCollection = 'usuarios';
               let userRef = doc(db, 'usuarios', uidReal);
               let userSnap = await getDoc(userRef);
 
+              const findUserByUid = async (collectionName) => {
+                const usersSnapshot = await getDocs(
+                  query(collection(db, collectionName), where('uid', '==', uidReal))
+                );
+
+                if (usersSnapshot.empty) return null;
+
+                return usersSnapshot.docs[0].ref;
+              };
+
               if (!userSnap.exists()) {
-                console.warn('⚠️ Usuario NO encontrado en "usuarios", buscando en "users"...');
-                userRef = doc(db, 'users', uidReal);
-                userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
-                  userCollection = 'users';
-                  console.log('✓ Usuario encontrado en "users"');
-                } else {
-                  console.error('✗ Usuario NO encontrado en "usuarios" NI en "users"');
-                  console.error('✗ UID:', uidReal);
-                  return;
-                }
-              } else {
-                console.log('✓ Usuario encontrado en "usuarios"');
+                userRef = await findUserByUid('usuarios');
+                userSnap = userRef ? await getDoc(userRef) : { exists: () => false };
               }
 
-              // 2. Guardar token en la colección correcta
+              if (!userSnap.exists()) {
+                userRef = doc(db, 'users', uidReal);
+                userSnap = await getDoc(userRef);
+                if (!userSnap.exists()) {
+                  userRef = await findUserByUid('users');
+                  userSnap = userRef ? await getDoc(userRef) : { exists: () => false };
+                }
+                if (userSnap.exists()) {
+                  userCollection = 'users';
+                } else {
+                  // El token puede crear el documento base si el perfil aún no existe.
+                  userCollection = 'usuarios';
+                  userRef = doc(db, 'usuarios', uidReal);
+                }
+              }
+
+              // 2. Guardar token en la colección correcta CON el UID
               await setDoc(userRef, {
+                uid: uidReal,
                 fcmToken: token.value,
                 fcmTokenActualizado: new Date().toISOString()
               }, { merge: true });
-
-              console.log('✓ Token guardado en colección:', userCollection);
 
             } catch (errFirestore) {
               console.error('✗ Error guardando token en Firestore:',
@@ -114,6 +123,9 @@ export function usePushNotifications(user) {
             }
           }
         );
+
+        // 4. Registrar con FCM; el listener ya está activo
+        await PushNotifications.register();
 
         // 5. Escuchar notificaciones que llegan (FOREGROUND)
         // Nota: En BACKGROUND/APP CERRADA, el FirebaseMessagingService de Android las maneja
@@ -127,7 +139,7 @@ export function usePushNotifications(user) {
                 title: notification.title || 'SII AQUA Médica',
                 body: notification.body || 'Tienes un nuevo aviso importante.',
                 id: Date.now(),
-                channelId: 'sii_aqua_canal_v4',
+                channelId: 'sii_aqua_canal_v5',
                 sound: 'default',
                 vibration: true,
                 extra: notification.data || {}
@@ -142,12 +154,7 @@ export function usePushNotifications(user) {
           async (action) => {
 
             const notification = action.notification;
-            const destino = notification?.data?.destino;
-
-            if (destino) {
-              // Usar history.push() o navigate() según tu router
-              window.location.href = destino;
-            }
+            window.dispatchEvent(new CustomEvent('sii-aqua-open-notifications'));
           }
         );
 

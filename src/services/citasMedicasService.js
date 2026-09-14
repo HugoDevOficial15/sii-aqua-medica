@@ -542,6 +542,24 @@ export const bookAppointment = async (appointmentData) => {
         });
     }
 
+    // Notificar al usuario que su cita ha sido agendada
+    try {
+        await createNotification({
+            IdUsuario: userId,
+            Titulo: "📅 Cita Agendada",
+            Mensaje: `Tu cita médica ha sido agendada para el ${fecha} a las ${horaInicio}`,
+            Destino: "citas-medicas",
+            Accion: "cita_agendada",
+            extra: {
+                citaId: docRef.id,
+                fecha,
+                horaInicio
+            }
+        });
+    } catch (error) {
+        console.error("Error al notificar cita agendada:", error);
+    }
+
     return {
         id: docRef.id,
         ...nuevaCita

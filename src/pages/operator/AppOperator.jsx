@@ -49,7 +49,17 @@ export default function AppOperator() {
 
     const { user, updateUserProfile } = useAuth();
 
-    const [screen, setScreen] = useState("home");
+    const [screen, setScreen] = useState(() => {
+        if (typeof window === "undefined") return "home";
+
+        const shouldOpenNotifications = localStorage.getItem("siiAquaOpenNotifications") === "true";
+        if (shouldOpenNotifications) {
+            localStorage.removeItem("siiAquaOpenNotifications");
+            return "notifications";
+        }
+
+        return "home";
+    });
     const [selectedSurvey, setSelectedSurvey] = useState(null);
     const [selectedTraining, setSelectedTraining] = useState(null);
     const [surveyResult, setSurveyResult] = useState(null);
@@ -58,6 +68,13 @@ export default function AppOperator() {
 
     // Creamos un estado para guardar el número de notificaciones nuevas
     const [notificacionesCount, setNotificacionesCount] = useState(0);
+
+    useEffect(() => {
+        const openNotifications = () => setScreen("notifications");
+        window.addEventListener("sii-aqua-open-notifications", openNotifications);
+
+        return () => window.removeEventListener("sii-aqua-open-notifications", openNotifications);
+    }, []);
 
     const {
         surveys,
