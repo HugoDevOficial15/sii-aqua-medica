@@ -145,7 +145,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
             .form-nombre:focus {
                 border-color: var(--operator-primary);
                 box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-                background: var(--operator-card);
+                background: var(--operator-form);
                 color: var(--operator-text);
             }
 

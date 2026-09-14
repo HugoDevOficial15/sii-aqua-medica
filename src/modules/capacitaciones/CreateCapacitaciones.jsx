@@ -1008,7 +1008,7 @@ export default function CreateCapacitaciones() {
 
                                             <div className="col-span-2">
                                                 <label>
-                                                    <strong>Duración total de Capacitación</strong>
+                                                    <strong>Duración total</strong>
                                                 </label>
                                                 <input
                                                     type="text"
@@ -1219,14 +1219,6 @@ export default function CreateCapacitaciones() {
                                             <h5 className="m-0">
                                                 Preguntas
                                             </h5>
-                                            <button
-                                                type="button"
-                                                className="btn btn-custom btn-primary"
-                                                onClick={addPregunta}
-                                            >
-                                                <FaPlus className="me-2" />
-                                                Agregar pregunta
-                                            </button>
                                         </div>
 
                                         {fields.map((item, index) => {
@@ -1318,6 +1310,16 @@ export default function CreateCapacitaciones() {
                                             );
                                         })}
                                     </div>
+
+                                        <button
+                                        type="button"
+                                        className="btn-agregar-pregunta"
+                                        onClick={addPregunta}
+                                        >
+                                        <FaPlus className="me-2" />
+                                            Agregar pregunta
+                                        </button>
+                                        
                                 </>
                             )}
 
@@ -1858,7 +1860,7 @@ export default function CreateCapacitaciones() {
     height: 50px;
     border-radius: 12px !important;
     border: 1px solid var(--operator-border);
-    background: var(--operator-border);
+    background: var(--operator-form);
     color: var(--operator-text) !important;
     padding: 0 14px;
     font-size: 14px;
@@ -1896,6 +1898,10 @@ export default function CreateCapacitaciones() {
 
 .form-check:hover {
     background: rgba(10, 77, 157, 0.08);
+}
+
+.form-control::placeholder {
+    color: var(--operator-text-soft);
 }
 
 .areas-grid {
@@ -1950,6 +1956,8 @@ export default function CreateCapacitaciones() {
     align-items: center;
     gap: 10px;
     width: 100%;
+    border-top: none;
+    padding: 0;
 }
 
 .area-card-icon {
@@ -1962,6 +1970,27 @@ export default function CreateCapacitaciones() {
     font-size: 14px;
     font-weight: 600;
     color: var(--operator-text);
+}
+
+.btn-agregar-pregunta {
+    height: 50px;
+    min-height: 50px;
+    width: fit-content;
+    padding: 0 24px;
+    border-radius: 12px;
+    align-items: center;
+    text-weight: 700;
+    background: var(--operator-primary);
+    color: #fff;
+    border: none;
+    box-shadow: 0 0px 10px 1px var(--operator-primary-light);
+    margin-left: 40px;
+}
+
+.btn-agregar-pregunta:hover {
+    transform: translateY(-1px);
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 0 15px 2px var(--operator-primary-light); 
 }
 
 /* ==================================================
@@ -2016,7 +2045,7 @@ export default function CreateCapacitaciones() {
 
 .modal-footer-actions {
     display: flex;
-    justify-content: space-between;
+    justify-content: end;
     align-items: center;
     gap: 12px;
     margin-top: 8px;
@@ -2213,7 +2242,7 @@ function OpcionesMultiple({ control, register, index, watch, setValue }) {
                 <label>Opciones</label>
                 <button
                     type="button"
-                    className="btn btn-sm btn-primary"
+                    className="btn btn-primary"
                     onClick={() => append({ texto: "" })}
                 >
                     +

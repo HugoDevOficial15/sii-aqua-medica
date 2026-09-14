@@ -111,8 +111,8 @@ export default function RackInventory({ rack }) {
 
         if (tipo === "materia_prima") {
             return {
-                bg: "#7afbff",
-                text: "#4da0a3"
+                bg: "var(--operator-materia-prima)",
+                text: "var(--operator-materia-prima-text)"
             };
         }
 
@@ -121,14 +121,14 @@ export default function RackInventory({ rack }) {
             "material_acondicionamiento"
         ) {
             return {
-                bg: "#c7c3b5",
-                text: "#816957"
+                bg: "var(--operator-material-acondicionamiento)",
+                text: "var(--operator-material-acondicionamiento-text)"
             };
         }
 
         return {
-            bg: "#ff9d9d",
-            text: "#651616"
+            bg: "var(--operator-producto-terminado)",
+            text: "var(--operator-producto-terminado-text)"
         };
     };
 

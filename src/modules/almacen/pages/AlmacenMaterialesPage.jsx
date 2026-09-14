@@ -408,10 +408,10 @@ export default function AlmacenMaterialesPage() {
                         <span
                           className={`badge ${
                             item.tipoItem === "materia_prima"
-                              ? "bg-info"
+                              ? "materia-prima-badge"
                               : item.tipoItem === "producto_terminado"
-                                ? "bg-danger"
-                                : "bg-secondary"
+                                ? "producto-terminado-badge"
+                                : "material-acondicionamiento-badge"
                           }`}
                         >
                           {getTipoLabel(item.tipoItem)}
@@ -519,6 +519,24 @@ export default function AlmacenMaterialesPage() {
                 display: inline-block;
             }
 
+/*  COLOR BADGES */
+
+            .materia-prima-badge {
+              color: var(--operator-materia-prima-text);
+              background-color: var(--operator-materia-prima);
+            }
+
+            .producto-terminado-badge {
+              color: var(--operator-producto-terminado-text);
+              background-color: var(--operator-producto-terminado);
+            }
+
+            .material-acondicionamiento-badge {
+              color: var(--operator-material-acondicionamiento-text);
+              background-color: var(--operator-material-acondicionamiento);
+            }
+
+
 /* TABLA PRINCIPAL */
 
             .table-principal thead tr {
@@ -532,8 +550,35 @@ export default function AlmacenMaterialesPage() {
 
                 word-break: break-word;
                 overflow-wrap: anywhere;
-                max-width: 230px;
-                min-width: 100px;
+
+            }
+
+            .table-principal thead th:nth-child(5) {
+              border-bottom: none !important;
+              display: flex;
+              justify-content: center;
+              box-shadow: none !important;
+            }
+
+            .table-principal tbody tr {
+                border-bottom: 3px solid var(--operator-border);
+                height: 50px;
+                font-size: 14px;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
+            }
+
+            .table-principal tbody td:nth-child(5) {
+              justify-content: center;
+              display: flex;
+              box-shadow: none !important;
+            }
+
+
+            .table-tbody tr:hover {
+                background-color: var(--operator-background) !important;
             }
 
             .rack-location-list {
@@ -546,21 +591,19 @@ export default function AlmacenMaterialesPage() {
                 border-spacing: 0;
                 background: var(--operator-card);
                 color: var(--operator-text);
-                border-bottom: 1px solid var(--operator-border);
                 overflow: hidden;
+                padding: 2px !important;
             }
 
             .rack-location-table thead th {
                 background: var(--operator-card);
                 color: var(--operator-text);
-                border-bottom: 1px solid var(--operator-border);
                 padding: 10px 12px;
                 font-weight: 600;
                 font-size: 14px;
             }
 
             .rack-location-head {                
-                border-bottom: 3px solid var(--operator-text);
                 font-size: 20px;
                 font-weight: 900;
                 padding: 5px 5px;
@@ -570,8 +613,8 @@ export default function AlmacenMaterialesPage() {
 
                 word-break: break-word;
                 overflow-wrap: anywhere;
-                max-width: 230px;
-                min-width: 100px;
+                max-width: 170px;
+                min-width: 170px;
             
             }
 
@@ -580,8 +623,6 @@ export default function AlmacenMaterialesPage() {
                 max-width: 70px;
                 min-width: 70px;
             }
-
-/*  TABLA DESPLEGABLE  */
 
 
 /*  DESHABILITAR HOVER DE LA TABLA  */

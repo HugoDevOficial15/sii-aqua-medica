@@ -256,7 +256,11 @@ export default function AgendaMesPage() {
 
     const [showDisponibilidad, setShowDisponibilidad] = useState(false);
 
-    return (
+    if (loading) {
+        return <Loader text="Cargando agenda..."/>;
+    }
+
+    return (    
         <div className="container-fluid page-transition">
 
             <div className="d-flex justify-content-between mb-3 custom-users-header">
@@ -282,7 +286,7 @@ export default function AgendaMesPage() {
                 </button>
             </div>
 
-            {loading ? <Loader /> : (
+            
 
                 <div className="card shadow-sm custom-users-card">
 
@@ -410,8 +414,6 @@ export default function AgendaMesPage() {
                     </div>
 
                 </div>
-
-            )}
 
             {showModal && selectedEquipo && (
                 <AgendarServicioModal

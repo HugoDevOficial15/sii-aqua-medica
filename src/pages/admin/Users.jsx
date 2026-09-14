@@ -1971,8 +1971,8 @@ export default function Users({ onClose }) {
 
         .form-control:focus {
           border-color: var(--operator-primary);
+          background: var(--operator-form);
           box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-          background: var(--operator-card);
           color: var(--operator-text);
         }
 

@@ -33,8 +33,36 @@
     --operator-aprobado: #36f077ce;
 
     --operator-aprobado-text: #334155;
+    
+    --operator-materia-prima: #93f5f8;
 
-    --operator-radius: 24px;
+    --operator-materia-prima-text: #346e70;
+
+    --operator-material-acondicionamiento: #dfdaca;
+
+    --operator-material-acondicionamiento-text: #463930;
+
+    --operator-producto-terminado: #fab4b4;
+
+    --operator-producto-terminado-text: #4d1111;
+
+    --operator-activo: #61e773;
+
+    --operator-activo-text: #0f3f15;
+
+    --operator-traslado: #c6ddfc;
+
+    --operator-traslado-text: #0856ff;
+
+    --operator-cambio: #fffbeb;
+
+    --operator-cambio-text: #b45309;
+
+    --operator-aqua: #bedafd;
+
+    --operator-aqua-text:  #1d68fd;
+
+    --operator-radius: 24px; 
 
     --operator-shadow:
         0 10px 30px rgba(0, 0, 0, .06);
@@ -101,6 +129,33 @@ html[data-theme="dark"] {
 
     --operator-aprobado-text: #51e444d5;
 
+    --operator-materia-prima: #2080836b;
+
+    --operator-materia-prima-text: #30d2d8;
+
+    --operator-material-acondicionamiento: #807b6f83;
+
+    --operator-material-acondicionamiento-text: #cca88d;
+
+    --operator-producto-terminado: #ac67677a;
+
+    --operator-producto-terminado-text: #fc3a3a;
+
+    --operator-activo: #10701d77;
+
+    --operator-activo-text: #27c73cd7;
+
+    --operator-traslado: #646c7788;
+
+    --operator-traslado-text: #89acf7;
+
+    --operator-cambio: #8f8a7b8f;
+
+    --operator-cambio-text: #fc9d54;
+
+    --operator-aqua: #5f6c7a70;
+
+    --operator-aqua-text:  #6cb4f7;
 }
 
 /* Superficies principales del shell operador que no usan las variables

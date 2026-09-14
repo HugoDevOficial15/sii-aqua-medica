@@ -530,6 +530,7 @@ export default function News() {
 
         .btn-secondary {
           height: 50px;
+          max-width: 200px;
           padding: 0 24px;   
           border: none;
           border-radius: 14px;

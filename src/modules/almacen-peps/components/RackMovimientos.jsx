@@ -83,8 +83,8 @@ export default function RackMovimientos({
                 label: log.rackOrigenNumero
                     ? `Entrada ← Rack #${log.rackOrigenNumero}`
                     : "Entrada",
-                color: "#16a34a",
-                bg: "#dcfce7"
+                color: "var(--operator-activo-text)",
+                bg: "var(--operator-activo)"
             };
         }
 
@@ -92,8 +92,8 @@ export default function RackMovimientos({
 
             return {
                 label: "Salida",
-                color: "#dc2626",
-                bg: "#fee2e2"
+                color: "var(--operator-producto-terminado-text)",
+                bg: "var(--operator-producto-terminado)"
             };
         }
 
@@ -101,8 +101,8 @@ export default function RackMovimientos({
 
             return {
                 label: `Traslado → Rack #${log.rackDestinoNumero}`,
-                color: "#2563eb",
-                bg: "#dbeafe"
+                color: "var(--operator-traslado-text)",
+                bg: "var(--operator-traslado)"
             };
         }
 

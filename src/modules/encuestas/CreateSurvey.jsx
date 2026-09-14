@@ -1996,6 +1996,8 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
     align-items: center;
     gap: 10px;
     width: 100%;
+    border-top: none;
+    padding: 0;
 }
 
 .area-card-icon {

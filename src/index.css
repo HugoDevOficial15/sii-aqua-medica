@@ -103,7 +103,6 @@ html[data-theme="dark"] .text-white-50,
 html[data-theme="dark"] .small,
 html[data-theme="dark"] .muted,
 html[data-theme="dark"] .form-label,
-html[data-theme="dark"] .badge-title,
 html[data-theme="dark"] .card-subtitle,
 html[data-theme="dark"] .card .text-muted {
   color: var(--operator-text-soft, #94a3b8) !important;
@@ -171,18 +170,16 @@ img {
 
   border-radius: 999px;
 
-  background:
-    linear-gradient(135deg,
-      #dbeafe,
-      #eff6ff);
+  background: var(--operator-aqua, #dbeafe);
 
-  color: #2563eb;
+  color: var(--operator-aqua-text);
 
   font-size: 12px;
   font-weight: 600;
   
   border:
     1px solid rgba(37, 99, 235, 0.08);
+
 }
 
 /* ==========================================================================
@@ -241,7 +238,7 @@ html:not([data-theme="dark"]) .evidence-section {
 
 html:not([data-theme="dark"]) .card h1, html:not([data-theme="dark"]) .card h2,
 html:not([data-theme="dark"]) .card h3, html:not([data-theme="dark"]) .card h4,
-html:not([data-theme="dark"]) .card p, html:not([data-theme="dark"]) .card span,
+html:not([data-theme="dark"]) .card p, html:not([data-theme="dark"]) 
 html:not([data-theme="dark"]) .card small,
 html:not([data-theme="dark"]) .create-card h1, html:not([data-theme="dark"]) .create-card p,
 html:not([data-theme="dark"]) .create-card span,

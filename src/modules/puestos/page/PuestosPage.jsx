@@ -160,10 +160,10 @@ export default function PuestosPage() {
                 font-size: 14px;
                 outline: none;
             }
-
+        
             .form-control:focus {
 
-                background: var(--operator-card);
+                background: var(--operator-form);
                 color: var(--operator-text);
                 border-color: var(--operator-primary);
             }

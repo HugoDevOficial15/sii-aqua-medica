@@ -42,10 +42,7 @@ export default function LogsEquipoModal({
 
     const dynamicStyles = {
         modal: {
-            background: isDark ? "#0f172a" : "#fff",
-            boxShadow: isDark
-                ? "0 20px 40px rgba(0,0,0,0.6)"
-                : "0 20px 40px rgba(0,0,0,0.2)"
+            background: "var(--operator-card)",
         },
         header: {
             borderBottom: isDark ? "1px solid #334155" : "1px solid #eee"
@@ -57,20 +54,21 @@ export default function LogsEquipoModal({
             color: isDark ? "#f8fafc" : "#111827"
         },
         infoCard: {
-            background: isDark ? "#0f172a" : "#f9fafb",
+            background: "var(--operator-card)",
             borderBottom: isDark ? "1px solid #334155" : "1px solid #eee",
             color: isDark ? "#e2e8f0" : "#111827"
         },
         textarea: {
-            background: isDark ? "#0f172a" : "#fff",
+            background: "var(--operator-form)",
             color: isDark ? "#e2e8f0" : "#111827",
             border: isDark ? "1px solid #334155" : "1px solid #d1d5db"
         },
         iconCircle: {
-            background: isDark ? "#334155" : "#f3f4f6"
+            background: "var(--operator-card)",
+            border: isDark ? "1px solid #334155" : "1px solid #d1d5db"
         },
         content: {
-            background: isDark ? "#0f172a" : "#fff",
+            background: "var(--operator-card)",
             border: isDark ? "1px solid #334155" : "1px solid #eee",
             color: isDark ? "#e2e8f0" : "#111827"
         },

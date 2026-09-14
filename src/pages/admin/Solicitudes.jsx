@@ -32,9 +32,9 @@ const CAMPOS_LABEL = {
 };
 
 const ESTADO_BADGE = {
-    Pendiente: "bg-warning",
-    Aprobada: "bg-success",
-    Rechazada: "bg-danger"
+    Pendiente: "pendiente-badge",
+    Aprobada: "aprobado-badge",
+    Rechazada: "rechazado-badge"
 };
 
 const formatFecha = (timestamp) => {
@@ -285,7 +285,7 @@ export default function Solicitudes() {
                                 <span className="badge-title">Nómina {seleccionada.nominaActual}</span>
                             </div>
 
-                            <span className={`badge ${ESTADO_BADGE[seleccionada.estado]}`}>
+                            <span className={`estado ${ESTADO_BADGE[seleccionada.estado]}`}>
                                 {seleccionada.estado}
                             </span>
 
@@ -393,25 +393,51 @@ export default function Solicitudes() {
     justify-content: space-between;
     gap: 12px;
     padding: 10px 0;
-    border-bottom: 1px solid #eef2f6;
+    border-bottom: 3px solid var(--operator-border);
 }
 
 .diff-row strong {
-    color: #64748b;
+    color: var(--operator-text-soft);
     font-size: 13px;
     font-weight: 600;
 }
 
 .diff-row.diff-changed {
-    background: #fffbeb;
+    background: var(--operator-cambio);
     border-radius: 8px;
     padding: 10px 10px;
     border-bottom: none;
 }
 
 .diff-row.diff-changed span {
-    color: #b45309;
+    color: var(--operator-cambio-text);
     font-weight: 700;
+}
+
+            /* ESTADOS MODAL */
+
+.estado {
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 10px;
+        display: inline-block;
+}
+
+
+.estado.aprobado-badge {
+        background: var(--operator-activo);
+        color: var(--operator-activo-text);
+}
+
+.estado.pendiente-badge {
+        background: var(--operator-cambio);
+        color: var(--operator-cambio-text);
+}
+
+.estado.rechazado-badge {
+        background: var(--operator-producto-terminado);
+        color: var(--operator-producto-terminado-text);
 }
 
                 `}</style>
@@ -514,7 +540,7 @@ export default function Solicitudes() {
                                     <td>{s.nominaActual}</td>
                                     <td>{formatFecha(s.fechaSolicitud)}</td>
                                     <td>
-                                        <span className={`badge ${ESTADO_BADGE[s.estado]}`}>
+                                        <span className={`estado ${ESTADO_BADGE[s.estado]}`}>
                                             {s.estado}
                                         </span>
                                     </td>
@@ -846,11 +872,32 @@ export default function Solicitudes() {
         transform: scale(1.01);
 }
 
-            /* ESTADOS */
 
-.badge {
 
+            /* ESTADOS TABLA PRINCIPAL */
+
+.estado {
         border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 10px;
+        display: inline-block;
+}
+
+
+.estado.aprobado-badge {
+        background: var(--operator-activo);
+        color: var(--operator-activo-text);
+}
+
+.estado.pendiente-badge {
+        background: var(--operator-cambio);
+        color: var(--operator-cambio-text);
+}
+
+.estado.rechazado-badge {
+        background: var(--operator-producto-terminado);
+        color: var(--operator-producto-terminado-text);
 }
 
 

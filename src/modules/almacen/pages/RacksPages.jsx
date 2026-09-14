@@ -231,20 +231,20 @@ export default function RacksPages() {
 
                       <td>
                         {r.tipoAlmacenamiento === "producto_terminado" && (
-                          <span className="badge bg-primary-subtle text-primary">
+                          <span className="producto-terminado-badge">
                             Producto terminado
                           </span>
                         )}
 
                         {r.tipoAlmacenamiento === "materia_prima" && (
-                          <span className="badge bg-primary-subtle text-primary">
+                          <span className="materia-prima-badge">
                             Materia prima
                           </span>
                         )}
 
                         {r.tipoAlmacenamiento ===
                           "material_acondicionamiento" && (
-                          <span className="badge bg-primary-subtle text-primary">
+                          <span className="material-acondicionamiento-badge">
                             Material acondicionamiento
                           </span>
                         )}
@@ -516,6 +516,43 @@ export default function RacksPages() {
 
         .table thead th:nth-child(7) {
           text-align: center;
+          justify-content: center;
+        }
+
+        .table tbody td:nth-child(7) {
+          display: flex;
+          text-align: center;
+          justify-content: center;
+        }
+
+        /*  COLOR BADGES  */
+
+        .producto-terminado-badge {
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--operator-producto-terminado-text);
+          background-color: var(--operator-producto-terminado);
+        }
+
+
+        .materia-prima-badge {
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--operator-materia-prima-text);
+          background-color: var(--operator-materia-prima);
+        }
+
+        .material-acondicionamiento-badge {
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;}
+          color: var(--operator-material-acondiconamiento-text);
+          background-color: var(--operator-material-acondicionamiento);
         }
 
         /* MENU DESPLEGABLE */

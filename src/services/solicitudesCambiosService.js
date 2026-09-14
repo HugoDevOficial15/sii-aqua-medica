@@ -20,6 +20,10 @@ import { readCachedData, writeCachedData, clearCachedData } from "../utils/cache
 const requestCollection = collection(db, "solicitudesCambios");
 const CACHE_KEY = "sii-aqua-solicitudes-cache";
 
+const invalidateRequestsCache = () => {
+    clearCachedData(CACHE_KEY);
+};
+
 // Campos de perfil que un operador puede solicitar cambiar. Se usa tanto
 // para armar el snapshot de "datosActuales" como para limitar qué llaves
 // de "changes" se guardan como "datosSolicitados" (nunca más que esto).
@@ -75,6 +79,8 @@ export const requestProfileChange = async (user, changes) => {
         fechaRevision: null,
         administradorRevision: null
     });
+
+    invalidateRequestsCache();
 
     return { success: true, id: docRef.id };
 };
@@ -162,7 +168,7 @@ export const approveRequest = async (requestId, administradorRevision) => {
         fechaRevision: serverTimestamp(),
         administradorRevision
     });
-    clearCachedData(CACHE_KEY);
+    invalidateRequestsCache();
 
     // 🔥 USAMOS LA UTILIDAD CREATE NOTIFICATION (Dispara la Push Notification)
     await createNotification({
@@ -196,7 +202,7 @@ export const rejectRequest = async (requestId, administradorRevision, comentario
         fechaRevision: serverTimestamp(),
         administradorRevision
     });
-    clearCachedData(CACHE_KEY);
+    invalidateRequestsCache();
 
     // 🔥 USAMOS LA UTILIDAD CREATE NOTIFICATION (Dispara la Push Notification)
     await createNotification({
@@ -231,6 +237,7 @@ export const eliminarSolicitud = async (requestId) => {
     }
 
     await deleteDoc(requestRef);
+    invalidateRequestsCache();
 
     return { success: true };
 

@@ -698,7 +698,7 @@ export default function IdeasAdmin() {
               </div>
             </div>
             <div style={styles.footer}>
-              <button className="btn btn-secondary px-4" onClick={() => setModalOpen(false)}>
+              <button className="btn btn-secondary px-4 text-white" style={{ backgroundColor: "var(--operator-form)", }} onClick={() => setModalOpen(false)}>
                 Cerrar
               </button>
             </div>
@@ -712,18 +712,18 @@ export default function IdeasAdmin() {
 
 const styles = {
   input: {
-    backgroundColor: "var(--operator-background)",
+    backgroundColor: "var(--operator-form)",
     color: "var(--operator-text)",
-    border: "1px solid var(--operator-border)",
+    border: "3px solid var(--operator-border)",
     borderRadius: "10px",
   },
   fieldBox: {
-    backgroundColor: "var(--operator-card)",
+    backgroundColor: "var(--operator-form)",
     border: "1px solid var(--operator-border)",
     borderRadius: "12px",
     padding: "14px",
     minHeight: "52px",
-    color: "var(--operator-text)",
+    color: "var(--operator-text-soft)",
   },
   backdrop: {
     position: "fixed",

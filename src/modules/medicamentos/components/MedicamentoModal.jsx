@@ -102,7 +102,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
     const getInputStyle = (fieldName, hasError = false) => ({
         ...styles.input,
-        ...(hoveredField === fieldName || focusedField === fieldName
+        ...(focusedField === fieldName
             ? styles.inputActive
             : {}),
         ...(hasError ? styles.inputError : {})
@@ -110,7 +110,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
     const getTextareaStyle = (fieldName, hasError = false) => ({
         ...styles.textarea,
-        ...(hoveredField === fieldName || focusedField === fieldName
+        ...(focusedField === fieldName
             ? styles.textareaActive
             : {}),
         ...(hasError ? styles.inputError : {})
@@ -573,7 +573,7 @@ const styles = {
 
     inputActive: {
 
-        background: "var(--operator-card)",
+        background: "var(--operator-form)",
 
         border: "1px solid var(--operator-primary)",
 
@@ -584,7 +584,7 @@ const styles = {
 
     textareaActive: {
 
-        background: "var(--operator-card)",
+        background: "var(--operator-form)",
 
         border: "1px solid var(--operator-primary)",
 

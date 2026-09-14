@@ -1,17 +1,7 @@
 import { useState, useEffect } from "react";
 import Loader from "../../components/Loader";
 import { getDashboardStats, refreshDashboardStats } from "../../services/usersService";
-import {
-    FaUsers,
-    FaUserCheck,
-    FaUserSlash,
-    FaUserShield,
-    FaFemale,
-    FaMale,
-    FaChartPie,
-    FaChartBar,
-    FaSyncAlt,
-} from "react-icons/fa";
+import { FaUserCheck,FaLaptopCode, FaUserSlash, FaUserShield,FaFemale,FaMale,FaChartPie,FaChartBar,FaSyncAlt,FaWarehouse,FaFlask,FaUtensils,FaUserTie, FaCalculator, FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaHeartbeat,FaShieldAlt,FaHandsHelping,FaStethoscope,FaClipboardCheck,FaEye,FaShoppingCart} from "react-icons/fa";
 
 import CountUp from "react-countup";
 import { usePreferences } from "../../hooks/usePreferences";
@@ -24,6 +14,31 @@ export default function Dashboard() {
     const { resolvedTheme } = usePreferences();
     const isDark = resolvedTheme === "dark";
     const [chartLib, setChartLib] = useState(null);
+
+    const AREA_ICONS = {
+            "Almacen": FaWarehouse,
+            "Control de Calidad": FaFlask,
+            "Comedor": FaUtensils,
+            "Comité Técnico": FaUserTie,
+            "Contabilidad": FaCalculator,
+            "Dirección General": FaBuilding,
+            "Mantenimiento": FaTools,
+            "Gerencia de Operaciones": FaHardHat,
+            "Gestión Sostenible": FaLeaf,
+            "Producción": FaIndustry,
+            "Recepcion": FaDoorOpen,
+            "Recursos Humanos": FaUsers,
+            "Responsable Sanitario": FaShieldAlt,
+            "Salud Ocupacional": FaHeartbeat,
+            "Seguridad": FaShieldAlt,
+            "Servicios": FaHandsHelping,
+            "Servicio Médico": FaStethoscope,
+            "Sistemas": FaLaptopCode,
+            "Validaciones": FaClipboardCheck,
+            "Vigilancia": FaEye,
+            "Compras": FaShoppingCart,
+        };
+
 
     useEffect(() => {
         let active = true;
@@ -623,15 +638,16 @@ export default function Dashboard() {
                 </div>
 
                 <div className="chart-legend">
-                    {usuariosPorArea.map((item, index) => (
-                        <div key={`${item.area}-${index}`} className="legend-item">
-                            <span
-                                className="legend-dot"
-                                style={{ background: pieChartColors[index % pieChartColors.length] }}
-                            />
-                            <span>{item.area}</span>
-                        </div>
-                    ))}
+                    {usuariosPorArea.map((item, index) => {
+                        const IconComponent = AREA_ICONS[item.area] || FaUser;
+                        return (
+                            <div key={`${item.area}-${index}`} className="legend-item" align-items="center">
+                                <IconComponent className="legend-icon" 
+                                style={{ height: "20px", width: "20px", color: pieChartColors[index % pieChartColors.length] }}/>
+                                <span>{item.area}</span>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -983,13 +999,16 @@ export default function Dashboard() {
 
                 .legend-item{
                     display:inline-flex;
-                    align-items:center;
                     border: 1px solid var(--operator-border);
                     gap:8px;
-                    background: var(--operator-card);
+                    background: var(--operator-form);
                     border-radius:999px;
-                    padding:6px 10px;
+                    padding: 10px 10px;
                     color: var(--operator-text);
+                    font-size: 14px;
+                    font-weight: 500;
+                    justify-content: center;
+                    text-align: center;
                 }
 
                 .legend-dot{

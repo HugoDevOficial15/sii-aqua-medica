@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, addDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { FaSearch, FaUserInjured, FaFingerprint, FaCheckCircle, FaClock, FaHeartbeat, FaCheckDouble, FaTrash, FaEllipsisV } from "react-icons/fa";
+import { FaSearch, FaUserInjured, FaFingerprint, FaCheckCircle, FaClock, FaHeartbeat, FaCheckDouble, FaTrash, FaEllipsisV, FaHandHoldingMedical} from "react-icons/fa";
 import { FiTrash2 } from "react-icons/fi";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete, notifyInfo } from "../../utils/notify";
 import { useAuth } from "../../hooks/useAuth";
@@ -568,6 +568,7 @@ export default function DetalleOrdenMedica() {
                                   setOpenActionsId(null);
                                 }}
                               >
+                                <FaHandHoldingMedical className="me-2" />
                                 Atender
                               </button>
 

@@ -51,10 +51,10 @@ export default function MaterialesTable({ data, onEdit }) {
                         <td>
                             <span
                                 className={`badge ${item.tipo === "materia_prima"
-                                    ? "bg-info"
+                                    ? "materia-prima-badge"
                                     : item.tipo === "producto_terminado"
-                                        ? "bg-danger"
-                                        : "bg-secondary"
+                                        ? "producto-terminado-badge"
+                                        : "material-acondicionamiento-badge"
                                     }`}
                             >
                                 {item.tipo?.replaceAll("_", " ")}
@@ -65,8 +65,8 @@ export default function MaterialesTable({ data, onEdit }) {
 
                         <td>
                             <span className={`badge ${item.estatus === "activo"
-                                ? "bg-success-subtle text-success"
-                                : "bg-danger-subtle text-danger"}`}>
+                                ? "activo-badge"
+                                : "inactivo-badge"}`}>
                                 {item.estatus}
                             </span>
                         </td>
@@ -135,8 +135,7 @@ export default function MaterialesTable({ data, onEdit }) {
         }
 
         .table thead th {
-            
-            border-bottom: 3px solid var(--operator-text);
+
             font-size: 20px;
             font-weight: 900;
             padding: 5px 5px;
@@ -174,6 +173,27 @@ export default function MaterialesTable({ data, onEdit }) {
           box-shadow: none !important;
         }
 
+        /*  COLORS BADGES   */
+
+        .materia-prima-badge {
+          color: var(--operator-materia-prima-text);
+          background-color: var(--operator-materia-prima);
+        }
+
+        .producto-terminado-badge {
+          color: var(--operator-producto-terminado-text);
+          background-color: var(--operator-producto-terminado);
+        }
+
+        .material-acondicionamiento-badge {
+          color: var(--operator-material-acondicionamiento-text);
+          background-color: var(--operator-material-acondicionamiento);
+        }
+
+        .activo-badge {
+          color: var(--operator-activo-text);
+          background-color: var(--operator-activo);
+        }
 
         /* MENU DE ACCIONES */
 
