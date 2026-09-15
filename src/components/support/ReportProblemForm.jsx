@@ -165,6 +165,7 @@ export default function ReportProblemForm({
                         onChange={(e) => setAsunto(e.target.value)}
                         placeholder="Ej. La encuesta no carga"
                         maxLength={120}
+                        style = {{backgroundColor: "var(--operator-form)"}}
                     />
                     {errors.asunto && (
                         <div className="report-field-error">{errors.asunto}</div>
@@ -177,6 +178,7 @@ export default function ReportProblemForm({
                         id="report-pantalla"
                         value={pantalla}
                         onChange={(e) => setPantalla(e.target.value)}
+                        style = {{backgroundColor: "var(--operator-form)"}}
                     >
                         {pantallas.map(p => (
                             <option key={p} value={p}>{p}</option>
@@ -192,6 +194,7 @@ export default function ReportProblemForm({
                         onChange={(e) => setDescripcion(e.target.value)}
                         placeholder="Cuéntanos con el mayor detalle posible qué ocurrió"
                         maxLength={1000}
+                        style = {{backgroundColor: "var(--operator-form)"}}
                     />
                     {errors.descripcion && (
                         <div className="report-field-error">{errors.descripcion}</div>
@@ -209,6 +212,7 @@ export default function ReportProblemForm({
                         accept="image/*"
                         onChange={handleImageChange}
                         className="adaptive-input"
+                        style = {{backgroundColor: "var(--operator-form)"}}
                     />
                     
                     {/* 🔥 NUEVO: Renderizado del preview para una sola imagen */}
@@ -233,7 +237,7 @@ export default function ReportProblemForm({
                                         width: "24px",
                                         height: "24px",
                                         cursor: "pointer",
-                                        background: "rgba(0, 0, 0, 0.7)",
+                                        backgroundColor: "var(--operator-border)",
                                         color: "white",
                                         fontSize: "14px",
                                         lineHeight: "1"
@@ -250,6 +254,7 @@ export default function ReportProblemForm({
                     type="submit"
                     className="report-submit-btn"
                     disabled={status === "sending"}
+                    style = {{backgroundColor: "var(--operator-border)"}}
                 >
                     <FiSend />
                     {status === "sending" ? "Enviando..." : "Enviar"}

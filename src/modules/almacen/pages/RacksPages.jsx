@@ -356,7 +356,7 @@ export default function RacksPages() {
         .card {
           border-radius: 30px;
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
-          padding: 40px;
+          padding: 46px;
         }
 
         .contenedor-header {
@@ -440,6 +440,7 @@ export default function RacksPages() {
           overflow: visible;
           max-width: 100%;
           position: relative;
+          padding: 0;
         }
 
         .table-scroll-container {

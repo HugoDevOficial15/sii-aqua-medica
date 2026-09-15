@@ -37,15 +37,19 @@ export const crearAgenda = async (data) => {
     });
     clearCachedData(CACHE_KEY);
 
-    // Crear notificación para usuarios activos
+    // Crear notificación para operadores activos.
     try {
         const activeUsersQuery = query(
-            collection(db, "usuarios"),
-            where("activo", "==", true)
+            collection(db, "users"),
+            where("rol", "==", "operador")
         );
         const usersSnapshot = await getDocs(activeUsersQuery);
 
-        const notificacionesPromises = usersSnapshot.docs.map(userDoc => {
+        const notificacionesPromises = usersSnapshot.docs
+            .filter(userDoc => userDoc.data()?.activo === true)
+            .map(userDoc => {
+            // El identificador de la notificación debe ser el ID del documento:
+            // es el mismo que usa AuthProvider para consultar notificaciones.
             const userId = userDoc.id;
             return createNotification({
                 IdUsuario: userId,

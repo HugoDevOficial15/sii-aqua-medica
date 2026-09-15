@@ -5,6 +5,7 @@ import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 import { getMessaging } from "firebase/messaging";
 import { FIREBASE_BOOTSTRAP_CACHE_KEY, writeMemoryCache, writeSessionCache } from "../utils/cacheStore";
+import { connectFunctionsEmulator } from "firebase/functions";
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -31,6 +32,11 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
+
+
+if (import.meta.env.DEV) {
+    connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+}
 
 // Firebase Messaging solo está disponible en navegadores con soporte
 // para Service Workers (no en SSR ni en algunos navegadores/webviews)

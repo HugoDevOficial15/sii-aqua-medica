@@ -303,7 +303,7 @@ export default function AgendaMedicaPage() {
                     <FiArrowLeft /> Volver a la lista
                 </button>
 
-                <div className="card border-0 p-4 shadow-sm agenda-medica-card" style={{ borderRadius: '16px' }}>
+                <div className="agenda-medica-card">
                     <h4 className="fw-bold mb-4">Editar Campaña Médica</h4>
                     
                     <form onSubmit={handleGuardarEdicion}>
@@ -361,7 +361,7 @@ export default function AgendaMedicaPage() {
                 </div>
                 <style>{`
                     .agenda-medica-page { color: var(--operator-text); }
-                    .agenda-medica-card { background: var(--operator-card); color: var(--operator-text); border: 1px solid var(--operator-border) !important; }
+                    .agenda-medica-card { background: var(--operator-card); color: var(--operator-text); border: 1px solid var(--operator-border) !important; padding: 30px !important; }
                     .agenda-medica-input { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
                     .agenda-medica-input:focus { background: var(--operator-background); color: var(--operator-text); border-color: var(--operator-border); }
                 `}</style>
@@ -402,7 +402,7 @@ export default function AgendaMedicaPage() {
             <div className="card border-0 shadow-sm agenda-medica-card" style={{ borderRadius: '12px' }}>
                 <div className="card-body p-0">
                     <div className="table-responsive">
-                        <table className="table table-borderless table-hover mb-0 agenda-medica-table">
+                        <table className="table table-borderless mb-0 agenda-medica-table">
                             <thead>
                                 <tr>
                                     <th>Nombre</th>
@@ -525,9 +525,14 @@ export default function AgendaMedicaPage() {
                 .agenda-medica-card { 
                     background: var(--operator-card);
                     color: var(--operator-text);
-                    border: 1px solid var(--operator-border) !important; 
+                    border: 1px solid var(--operator-border) !important;
+                    padding: 30px !important;
                 }
 
+                .table-responsive{
+                    padding:16px;
+                }
+                    
                 .agenda-medica-input {
                     background: var(--operator-background);
                     color: var(--operator-text);

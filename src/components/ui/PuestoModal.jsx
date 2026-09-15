@@ -258,7 +258,7 @@ const styles = {
     },
     body: {
         border: "none",
-        padding: "10px",
+        padding: "0 20px",
         background: "var(--operator-card)",
     },
     inputGroup: {
@@ -293,7 +293,7 @@ const styles = {
         display: "flex",
         justifyContent: "flex-end",
         gap: "10px",
-        padding: "16px 20px",
+        padding: "30px",
         border: "none",
         background: "var(--operator-card-bg)"
     },

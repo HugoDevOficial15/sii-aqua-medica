@@ -34,8 +34,6 @@ import {
 
 } from "react-icons/fa";
 
-import { FaMattressPillow } from "react-icons/fa6";
-
 export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMenu }) {
 
     const { can, user } = useAuth();

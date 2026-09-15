@@ -131,7 +131,7 @@ export default function MaterialesTable({ data, onEdit }) {
 
         .table-responsive-container {
             overflow-x: auto;
-            padding: 15px 15px;
+            padding: 30px;
         }
 
         .table thead th {

@@ -65,7 +65,7 @@ export default function PuestosPage() {
       </div>
 
       {/* TABLE */}
-      <div className="card shadow-sm custom-users-card">
+      <div className="custom-users-card">
         <div className="card-body">
           <PuestoTable
             puestos={filteredPuestos}
@@ -93,7 +93,7 @@ export default function PuestosPage() {
             }
 
             .card-body {
-                padding: 8px;
+                padding: 0;
             }
 
             /* CONTENEDOR HEADER */
@@ -176,9 +176,10 @@ export default function PuestosPage() {
                 /* CONTENEDOR DE LA TABLA */
 
             .custom-users-card {
-        background: var(--operator-card);
-        border-radius: 30px; 
-        box-shadow: 0 8px 25px var(--operator-shadow);
+              background: var(--operator-card);
+              border-radius: 30px; 
+              box-shadow: 0 8px 25px var(--operator-shadow);
+              padding: 46px !important;
             }
                     
                 /* TABLA */
@@ -188,6 +189,7 @@ export default function PuestosPage() {
                     width: 100%;
                     border-collapse: separate !important;
                     border-spacing: 0 10px !important;
+                    padding: 0;
                 }
 
 

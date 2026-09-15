@@ -57,7 +57,7 @@
   position: relative;
   overflow-x: auto;
   border-radius: 30px;
-  padding: 38px;
+  padding: 46px;
   z-index: 0;
 }
 
@@ -302,6 +302,11 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.personal-record-view-btn:hover {
+  color: var(--operator-primary);
+  scale: 1.02;
 }
 
 .personal-status-badge {

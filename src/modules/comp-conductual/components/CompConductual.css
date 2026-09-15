@@ -9,10 +9,11 @@
 
 .comp-conductual-card {
   background: var(--operator-card, #ffffff);
-  border-radius: 14px;
+  border-radius: 30px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
   overflow: visible;
+  padding: 46px;
 }
 
 .filtro-contenedor {
@@ -21,7 +22,7 @@
   width: 100%;
   justify-content: end;
   align-items: center;
-  border-radius: 12px;
+  border-radius: 30px;
   margin-bottom: 20px;
   padding: 12px 14px;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);

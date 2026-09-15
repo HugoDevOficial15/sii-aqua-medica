@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaFilePdf } from "react-icons/fa";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { sanitizeText } from "../../../utils/sanitize";
 import { generateCompConductualReportPDF } from "./pdfGenerator";

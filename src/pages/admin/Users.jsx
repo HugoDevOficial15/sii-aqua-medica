@@ -1067,7 +1067,6 @@ export default function Users({ onClose }) {
                 <th
                   width="10%"
                   onClick={() => handleSort("nomina")}
-                  style={{ cursor: "pointer" }}
                 >
                   N.Nomina
                 </th>
@@ -1698,10 +1697,12 @@ export default function Users({ onClose }) {
           border-radius: 30px;
           box-shadow: 0 8px 25px var(--operator-shadow);
           overflow: visible;
+          padding: 46px;
         }
 
         .card-body.table-responsive-container {
           overflow: visible;
+          padding: 0;
         }
 
         .btn-outline-warning {
@@ -1730,6 +1731,7 @@ export default function Users({ onClose }) {
           width: 100%;
           border-collapse: separate !important;
           border-spacing: 0 10px !important;
+          padding: 0;
         }
 
         .custom-table tbody tr:hover {

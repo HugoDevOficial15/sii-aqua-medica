@@ -138,7 +138,7 @@ export default function CompConductual() {
       </div>
     </div>
 
-      <div className="card comp-conductual-card w-100">
+      <div className="comp-conductual-card w-100">
         <div className="card-header">
         </div>
 

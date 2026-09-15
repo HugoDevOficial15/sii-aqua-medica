@@ -173,9 +173,9 @@ export default function InventarioPage() {
       {loading ? (
         <Loader />
       ) : (
-        <div className="card shadow-sm custom-users-card">
-          <div className="card-body table-responsive-container">
-            <table className="table custom-table">
+        <div className="custom-users-card">
+          <div className="table-responsive-container">
+            <table className="custom-table">
               <thead>
                 <tr>
                   <th>Código</th>
@@ -379,9 +379,10 @@ export default function InventarioPage() {
 
 
                 .custom-users-card {
+                    background: var(--operator-card);
                     border-radius: 30px;
-
-                    border: none;
+                    padding: 30px; 
+                    border: 1px solid var(--operator-border);
                     box-shadow: 0 8px 25px var(--operator-shadow);
 
                 }
@@ -393,6 +394,7 @@ export default function InventarioPage() {
                     empty-cells: hide;
                     table-layout: fixed;
                     width: 100%;
+                    padding: 16px !important;
                 }
 
                 .custom-table thead th {

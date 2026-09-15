@@ -77,7 +77,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                     </div>
 
                     <textarea
-                        className="form-control custom-textarea"
+                        className="custom-textarea"
                         placeholder="Escribe la observación del servicio..."
                         value={observacion}
                         onChange={(e) => setObservacion(sanitizeText(e.target.value))}
@@ -173,7 +173,9 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
 
             .custom-textarea {
                 border-radius: 10px;
+                background: var(--operator-form);
                 border: 1px solid var(--operator-border);
+                padding: 10px;
                 min-height: 100px;
                 font-size: 13px;
                 transition: all 0.2s ease;

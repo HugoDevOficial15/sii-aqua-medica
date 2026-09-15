@@ -471,6 +471,7 @@ export default function AgendaMesPage() {
                 border-radius: 16px;
                 border: none;
                 box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+                padding: 30px;
             }
 
             /* TABLE */
@@ -479,6 +480,7 @@ export default function AgendaMesPage() {
                 width: 100%;
                 border-collapse: separate !important;
                 border-spacing: 0 10px !important;
+                padding: 16px !important;
             }
 
             .custom-table thead th {
@@ -494,6 +496,12 @@ export default function AgendaMesPage() {
                 overflow-wrap: anywhere;
                 max-width: 230px;
                 min-width: 100px;
+            }
+
+            .custom-table thead th:nth-child(10) {
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             .custom-table tbody tr {
@@ -530,6 +538,12 @@ export default function AgendaMesPage() {
                 max-width: 230px;
                 min-width: 100px;
             }
+
+            .table-responsive-container {
+                padding:0;
+            }
+
+
 
             /* BADGES */
             .custom-badge-success {

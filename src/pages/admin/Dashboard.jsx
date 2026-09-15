@@ -692,7 +692,7 @@ export default function Dashboard() {
                 .dashboard-refresh-button{
                     border:none;
                     border-radius:12px;
-                    padding:12px 18px;
+                    padding:15px;
                     background:linear-gradient(135deg, #2563eb, #1d4ed8);
                     color:#fff;
                     font-weight:700;

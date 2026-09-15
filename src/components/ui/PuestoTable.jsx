@@ -47,7 +47,7 @@ useEffect(() => {
 
     return (
 
-        <div className="table-responsive-container">
+        <div className="responsive-container">
 
             <table className="table align-middle custom-table">
 

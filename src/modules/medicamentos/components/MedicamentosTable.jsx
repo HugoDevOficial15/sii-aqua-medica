@@ -139,6 +139,7 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
         .card {
           border-radius: 30px;
           overflow: visible;
+          padding: 16px;
         }
 
         .custom-badge-success {
@@ -196,6 +197,10 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
           min-width: 100px;
         }
         /* 🔥 TABLE */
+
+        .table-responsive-container {
+          padding:0;
+        }
 
         .table {
           table-layout: fixed;

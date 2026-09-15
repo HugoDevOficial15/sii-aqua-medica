@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaBoxes } from "react-icons/fa";
+import { FaBoxes, FaEye } from "react-icons/fa";
 import Loader from "../../../components/Loader";
 import { obtenerRacks } from "../../../services/rackService";
 import { suscribirStock } from "../../../services/rackStockService";
@@ -458,6 +458,7 @@ export default function AlmacenMaterialesPage() {
                                             handleVerRack(rack);
                                           }}
                                         >
+                                        <FaEye />
                                           Ver
                                         </button>
                                       </th>
@@ -538,6 +539,11 @@ export default function AlmacenMaterialesPage() {
 
 
 /* TABLA PRINCIPAL */
+
+
+            .table-responsive-container {
+                padding: 30px;
+            }
 
             .table-principal thead tr {
                 border-bottom: 3px solid var(--operator-text);
@@ -636,17 +642,21 @@ export default function AlmacenMaterialesPage() {
             .rack-location-button {
                 background: var(--operator-primary);
                 color: #fff;
-                border-radius: 8px;
-                padding: 0.35rem 0.7rem;
-                font-size: 0.8rem;
+                border-radius: 12px;
+                padding: 5px 2px;
+                font-size: 14px;
                 font-weight: 600;
-                bordercolor: none;
+                border: none;
                 transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+                align-items: center;
+                justify-content: center;
+                min-width: 70px;
             }
 
             .rack-location-button:hover {
-                background: var(--operator-background);
-
+                background: var(--operator-border);
+                color: var(--operator-primary);
+                border: none;
                 transform: translateY(-1px);
             }
 
@@ -718,25 +728,6 @@ export default function AlmacenMaterialesPage() {
                 background-color: var(--operator-card);
                 color: var(--operator-text);
                 opacity: 0.6;
-            }
-
-            .rack-location-button {
-                height: 30px;
-                padding: 0 20px;
-                border-radius: 10px;
-                border: none;
-                background: var(--operator-primary);
-                color: #fff;
-                font-weight: 700;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .rack-location-button:hover {
-                background: var(--operator-border);
-                color: var(--operator-primary);
             }
 
             `}</style>

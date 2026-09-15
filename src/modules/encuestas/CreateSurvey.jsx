@@ -1431,32 +1431,6 @@ export default function CreateSurvey() {
     flex-direction: column;
 }
 
-
-.badge-title {
-    width: fit-content;
-
-    margin-top: 6px;
-
-    padding: 6px 12px;
-
-    border-radius: 999px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #dbeafe,
-            #eff6ff
-        );
-
-    color: #123a91;
-
-    font-size: 12px;
-    font-weight: 600;
-
-    border:
-        1px solid rgba(37,99,235,0.08);
-}
-
 .contenedor-header {
     width: 100%;
     align-items: flex-end;

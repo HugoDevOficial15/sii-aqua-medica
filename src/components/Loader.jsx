@@ -1,12 +1,8 @@
 import { useMemo } from "react";
 import "../styles/loader.css";
-import { LOADER_CACHE_KEY, readMemoryCache, writeMemoryCache } from "../utils/cacheStore";
-
-let hasRenderedLoaderOnce = false;
 
 export default function Loader({ text }) {
     const resolvedText = text || "Prepaando la aplicación...";
-    const cachedLoader = readMemoryCache(LOADER_CACHE_KEY);
 
     const loaderNode = useMemo(
         () => (
@@ -36,19 +32,6 @@ export default function Loader({ text }) {
         ),
         [resolvedText]
     );
-
-    if (cachedLoader && cachedLoader.text === resolvedText && hasRenderedLoaderOnce) {
-        return cachedLoader.node;
-    }
-
-    if (!hasRenderedLoaderOnce) {
-        hasRenderedLoaderOnce = true;
-    }
-
-    writeMemoryCache(LOADER_CACHE_KEY, {
-        text: resolvedText,
-        node: loaderNode,
-    });
 
     return loaderNode;
 }

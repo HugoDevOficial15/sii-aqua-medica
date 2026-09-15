@@ -712,7 +712,7 @@ export default function IdeasAdmin() {
 
 const styles = {
   input: {
-    backgroundColor: "var(--operator-form)",
+    backgroundColor: "var(--operator-card)",
     color: "var(--operator-text)",
     border: "3px solid var(--operator-border)",
     borderRadius: "10px",

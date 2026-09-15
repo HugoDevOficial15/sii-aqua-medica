@@ -1020,7 +1020,7 @@ export default function EncuestaResultados({ survey, onBack }) {
     height: 50px;
     border-radius: 12px;
     border: 3px solid var(--operator-border);
-    background: var(--operator-form);
+    background: var(--operator-card);
     color: var(--operator-text);
 }
 

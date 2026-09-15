@@ -163,18 +163,6 @@ export default function AgendaPage() {
 
             <style>{`
 
-            .badge-title{
-                    background:#e0e7ff;
-                    color:#4338ca;
-
-                    padding:6px 14px;
-
-                    border-radius:999px;
-
-                    font-size:12px;
-                    font-weight:600;
-                }
-
                 .agenda-container {
                     height: 85vh;
                     display: flex;

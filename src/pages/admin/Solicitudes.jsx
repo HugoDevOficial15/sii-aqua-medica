@@ -512,7 +512,7 @@ export default function Solicitudes() {
 
                 <div className="card-body table-responsive-container">
 
-                    <table className="table table-sol">
+                    <table className="table-sol">
 
                         <thead>
                             <tr>
@@ -634,6 +634,7 @@ export default function Solicitudes() {
 /* TABLE RESPONSIVE */
 .table-responsive-container {
     overflow: visible !important;
+    padding: 16;
 }
 
 .table-responsive-inner {
@@ -675,12 +676,12 @@ export default function Solicitudes() {
 .solicitudes-actions-menu {
     position: absolute;
     right: -50px;
-    top: 100%;
+    top: -40px;
     min-width: 180px;
     padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 4px; 
     z-index: 99999 !important;
     border: 1px solid var(--operator-background);
     border-radius: 10px;
@@ -688,6 +689,10 @@ export default function Solicitudes() {
     box-shadow: 0 10px 24px var(--operator-shadow);
     margin-top: 5px;
     overflow: visible;
+}
+
+.table-sol {
+    padding: 0px;
 }
 
 .table-sol tbody tr {
