@@ -121,6 +121,50 @@
     scroll-padding-bottom: calc(var(--operator-bottom-nav-height, 82px) + var(--safe-bottom) + 24px);
 }
 
+.operator-error-screen {
+    min-height: 45vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.operator-error-card {
+    width: min(100%, 360px);
+    padding: 24px;
+    text-align: center;
+    color: var(--operator-text);
+    background: var(--operator-card);
+    border: 1px solid var(--operator-border);
+    border-radius: 12px;
+}
+
+.operator-error-card h2 {
+    margin: 0 0 10px;
+    font-size: 20px;
+}
+
+.operator-error-card p {
+    margin: 0;
+    color: var(--operator-text-soft);
+}
+
+.operator-error-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.operator-error-actions button {
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #fff;
+    background: #0d6efd;
+}
+
 
 
 /* 

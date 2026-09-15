@@ -260,7 +260,7 @@ export default function News() {
         });
 
         const notifications = usuariosDestino.map((userDoc) => ({
-          IdUsuario: userDoc.id,
+          IdUsuario: userDoc.data()?.uid || userDoc.id,
           Titulo: "📰 Nueva noticia",
           Mensaje: `Nueva noticia: "${tituloSanitizado}"`,
           Destino: "/news",

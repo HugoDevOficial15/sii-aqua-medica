@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { PushNotifications } from '@capacitor/push-notifications';
-import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { collection, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -127,34 +126,32 @@ export function usePushNotifications(user) {
         // 4. Registrar con FCM; el listener ya está activo
         await PushNotifications.register();
 
-        // 5. Escuchar notificaciones que llegan (FOREGROUND)
-        // Nota: En BACKGROUND/APP CERRADA, el FirebaseMessagingService de Android las maneja
-        const unsubscribePushReceived = PushNotifications.addListener(
-          'pushNotificationReceived',
-          async (notification) => {
-
-            // Mostrar como notificación local (para mejor UX)
-            await LocalNotifications.schedule({
-              notifications: [{
-                title: notification.title || 'SII AQUA Médica',
-                body: notification.body || 'Tienes un nuevo aviso importante.',
-                id: Date.now(),
-                channelId: 'sii_aqua_canal_v5',
-                sound: 'default',
-                vibration: true,
-                extra: notification.data || {}
-              }]
-            });
-          }
-        );
-
-        // 6. Escuchar cuando el usuario hace click en notificación
+        // El servicio nativo ya muestra la notificación visible en Android.
+        // Escuchamos únicamente la acción para abrir la pantalla correcta.
         const unsubscribeAction = PushNotifications.addListener(
           'pushNotificationActionPerformed',
           async (action) => {
 
             const notification = action.notification;
-            window.dispatchEvent(new CustomEvent('sii-aqua-open-notifications'));
+            const destino = notification.data?.destino || "notifications";
+
+            // Mapeo de destinos a rutas
+            const destinoMap = {
+              "notifications": "notifications",
+              "citas-medicas": "notifications",
+              "surveys": "notifications",
+              "training": "notifications",
+              "capacitaciones": "notifications",
+              "incidencias": "notifications",
+              "reconocimientos": "notifications"
+            };
+
+            const screen = destinoMap[destino] || "notifications";
+
+            // Disparar evento con destino específico
+            window.dispatchEvent(new CustomEvent('sii-aqua-open-notifications', {
+              detail: { destino, screen, data: notification.data }
+            }));
           }
         );
 
@@ -162,7 +159,6 @@ export function usePushNotifications(user) {
         // Cleanup: Remover listeners cuando el componente se desmonta
         return () => {
           unsubscribeRegistration?.remove?.();
-          unsubscribePushReceived?.remove?.();
           unsubscribeAction?.remove?.();
         };
 

@@ -1,5 +1,7 @@
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, doc, Timestamp, writeBatch } from "firebase/firestore";
 import { db } from "../config/firebase";
+
+const BATCH_LIMIT = 450;
 
 // 🔹 Genera bloques de tiempo según duración
 const generarHoras = (inicio, fin, duracion) => {
@@ -44,6 +46,15 @@ export const generarSlots = async (agenda) => {
 
     let current = new Date(fechaInicio);
     const end = new Date(fechaFin);
+    let batch = writeBatch(db);
+    let batchSize = 0;
+
+    const commitBatch = async () => {
+        if (batchSize === 0) return;
+        await batch.commit();
+        batch = writeBatch(db);
+        batchSize = 0;
+    };
 
     while (current <= end) {
 
@@ -68,8 +79,8 @@ export const generarSlots = async (agenda) => {
                 );
 
                 for (let b of bloques) {
-
-                    await addDoc(collection(db, "citas_medicas"), {
+                    const citaRef = doc(collection(db, "citas_medicas"));
+                    batch.set(citaRef, {
                         agendaId: id,
                         fecha: fechaStr,
                         horaInicio: b.inicio,
@@ -85,7 +96,11 @@ export const generarSlots = async (agenda) => {
 
                         createdAt: Timestamp.now()
                     });
+                    batchSize += 1;
 
+                    if (batchSize >= BATCH_LIMIT) {
+                        await commitBatch();
+                    }
                 }
             }
         }
@@ -93,4 +108,6 @@ export const generarSlots = async (agenda) => {
         // siguiente día
         current.setDate(current.getDate() + 1);
     }
+
+    await commitBatch();
 };

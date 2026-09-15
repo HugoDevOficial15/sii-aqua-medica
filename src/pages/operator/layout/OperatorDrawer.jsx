@@ -14,7 +14,9 @@ import {
     FiX,
     FiHeart
 } from "react-icons/fi";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { doc, collection, onSnapshot } from "firebase/firestore";
+import { db } from "../../../config/firebase";
 
 import { useAuth } from "../../../hooks/useAuth";
 import { useLogout } from "../../../hooks/useLogout";
@@ -34,6 +36,31 @@ export default function OperatorDrawer({
     const { user } = useAuth();
     const handleLogout = useLogout();
     const datosUsuario = usuarioActual || user;
+    const [puntos, setPuntos] = useState({ total: 0, nivel: "Bronce" });
+
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        const año = new Date().getFullYear().toString();
+        const puntosRef = doc(collection(db, "users", user.uid, año, "informacion", "puntos_general"), "general");
+
+        const unsubscribe = onSnapshot(
+            puntosRef,
+            (docSnap) => {
+                if (docSnap.exists()) {
+                    setPuntos(docSnap.data());
+                } else {
+                    setPuntos({ total: 0, nivel: "Bronce" });
+                }
+            },
+            (error) => {
+                console.error("Error cargando puntos en drawer:", error);
+                setPuntos({ total: 0, nivel: "Bronce" });
+            }
+        );
+
+        return () => unsubscribe();
+    }, [user?.uid]);
 
     const items = [
 
@@ -175,7 +202,7 @@ export default function OperatorDrawer({
                         </span>
 
                         <strong>
-                            {datosUsuario?.nivel || "Bronce"}
+                            {puntos?.nivel || "Bronce"}
                         </strong>
 
                     </div>
@@ -187,7 +214,7 @@ export default function OperatorDrawer({
                         </span>
 
                         <strong>
-                            {datosUsuario?.puntos || 0}
+                            {puntos?.total || 0}
                         </strong>
 
                     </div>

@@ -5,20 +5,25 @@ import { saveSurveyResponse } from "../../services/servicesOperator/operatorSurv
 import { useAuth } from "../../hooks/useAuth";
 import { MAX_SURVEY_ATTEMPTS, MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { createNotification } from "../../utils/createNotification";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, getDoc, doc } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { isSurveyInTimeWindow } from "../../utils/surveyTiming";
 
-export default function OperatorSurveyDetail({
+export default function OperatorSurveyDetail(props) {
+    if (!props.survey) return null;
+    return <OperatorSurveyDetailContent {...props} />;
+}
+
+function OperatorSurveyDetailContent({
     survey,
     onBack,
     onNavigate,
     onSurveyResult,
     onFinished
 }) {
-    if (!survey) return null;
-
     const { user } = useAuth();
+    const [surveyLoaded, setSurveyLoaded] = useState(false);
+    const [fullSurvey, setFullSurvey] = useState(survey);
 
     // HORA DE RESPUESTA
 
@@ -76,33 +81,7 @@ export default function OperatorSurveyDetail({
         && !sessionExpired
         && (timeRemaining === null || timeRemaining > 0);
 
-    if (!puedeResponder) {
-        return (
-            <div className="survey-detail-page">
-                <MobileBackButton onBack={onBack} />
-                <div className="op-survey-header-card" style={{ textAlign: "center", padding: "40px 20px" }}>
-                    <div className="op-survey-badge" style={{ margin: "0 auto 16px" }}>⏰ Fuera de Plazo</div>
-                    <h1>{survey.titulo}</h1>
-                    <p style={{ marginTop: "16px", color: "var(--operator-text-soft)" }}>
-                        {!dentroRangoFechas
-                            ? (hoy < fechaInicio
-                                ? `Esta encuesta estará disponible a partir del ${fechaInicio}`
-                                : `El plazo para responder esta encuesta venció el ${fechaFin}`)
-                            : `La encuesta solo está disponible entre ${horaInicioSesion} y ${horaFinSesion} en los días hábiles del periodo.`
-                        }
-                    </p>
-                    <button
-                        className="op-survey-btn-secondary"
-                        onClick={onBack}
-                        style={{ marginTop: "30px", width: "100%" }}
-                    >
-                        Volver
-                    </button>
-                </div>
-            </div>
-        );
-    }
-    const preguntas = survey.preguntas || [];
+    const preguntas = fullSurvey.preguntas || [];
     const tienePreguntas = preguntas.length > 0;
 
     const question = tienePreguntas ? preguntas[currentQuestion] : null;
@@ -128,23 +107,55 @@ export default function OperatorSurveyDetail({
     const storageTimerKey = `survey_timer_${survey.id}_${user?.uid}`;
     const storageAnswersKey = `survey_answers_${survey.id}_${user?.uid}`;
 
+    // Cargar survey completo si falta información
+    useEffect(() => {
+        const loadFullSurvey = async () => {
+            if (!survey?.id) {
+                setSurveyLoaded(true);
+                return;
+            }
+
+            // Si ya tiene preguntas, no necesita cargar
+            if (survey.preguntas && survey.preguntas.length > 0) {
+                setFullSurvey(survey);
+                setSurveyLoaded(true);
+                return;
+            }
+
+            // Cargar desde Firestore si faltan preguntas
+            try {
+                const surveyRef = doc(db, "encuestas", String(survey.id));
+                const surveySnap = await getDoc(surveyRef);
+                if (surveySnap.exists()) {
+                    const fullData = { id: surveySnap.id, ...surveySnap.data() };
+                    setFullSurvey({ ...survey, ...fullData });
+                }
+            } catch (error) {
+                console.error("Error al cargar survey completo:", error);
+            }
+            setSurveyLoaded(true);
+        };
+
+        loadFullSurvey();
+    }, [survey?.id]);
+
     // Inicializar memoria caché
     useEffect(() => {
-        if (timeRemaining === null && tienePreguntas) {
-            const savedAnswers = localStorage.getItem(storageAnswersKey);
-            if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+        if (!surveyLoaded || timeRemaining !== null || !tienePreguntas) return;
 
-            const savedTime = localStorage.getItem(storageTimerKey);
-            if (savedTime !== null) {
-                setTimeRemaining(parseInt(savedTime, 10));
-            } else {
-                const horas = parseInt(survey.duracionHoras || 0);
-                const minutos = parseInt(survey.duracionMinutos || 0);
-                const segundosTotal = (horas * 3600) + (minutos * 60);
-                setTimeRemaining(segundosTotal > 0 ? segundosTotal : null);
-            }
+        const savedAnswers = localStorage.getItem(storageAnswersKey);
+        if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+
+        const savedTime = localStorage.getItem(storageTimerKey);
+        if (savedTime !== null) {
+            setTimeRemaining(parseInt(savedTime, 10));
+        } else {
+            const horas = parseInt(fullSurvey.duracionHoras || 0);
+            const minutos = parseInt(fullSurvey.duracionMinutos || 0);
+            const segundosTotal = (horas * 3600) + (minutos * 60);
+            setTimeRemaining(segundosTotal > 0 ? segundosTotal : null);
         }
-    }, [survey, timeRemaining, tienePreguntas, user]);
+    }, [fullSurvey, surveyLoaded, tienePreguntas, storageAnswersKey, storageTimerKey]);
 
     // Reloj y autoguardado de tiempo
     useEffect(() => {
@@ -193,6 +204,37 @@ export default function OperatorSurveyDetail({
 
     if (sessionExpired) {
         return null;
+    }
+
+    if (!surveyLoaded) {
+        return <AppLoader text="Cargando evaluación..." />;
+    }
+
+    if (!puedeResponder) {
+        return (
+            <div className="survey-detail-page">
+                <MobileBackButton onBack={onBack} />
+                <div className="op-survey-header-card" style={{ textAlign: "center", padding: "40px 20px" }}>
+                    <div className="op-survey-badge" style={{ margin: "0 auto 16px" }}>⏰ Fuera de Plazo</div>
+                    <h1>{fullSurvey.titulo}</h1>
+                    <p style={{ marginTop: "16px", color: "var(--operator-text-soft)" }}>
+                        {!dentroRangoFechas
+                            ? (hoy < fechaInicio
+                                ? `Esta encuesta estará disponible a partir del ${fechaInicio}`
+                                : `El plazo para responder esta encuesta venció el ${fechaFin}`)
+                            : `La encuesta solo está disponible entre ${horaInicioSesion} y ${horaFinSesion} en los días hábiles del periodo.`
+                        }
+                    </p>
+                    <button
+                        className="op-survey-btn-secondary"
+                        onClick={onBack}
+                        style={{ marginTop: "30px", width: "100%" }}
+                    >
+                        Volver
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     // 🔥 FUNCIÓN VITAL PARA NO PERDER RESPUESTAS AL SALIR
@@ -268,9 +310,9 @@ export default function OperatorSurveyDetail({
             else nuevoEstado = "reprobada";
 
             await saveSurveyResponse({
-                encuestaId: survey.id,
-                idEncuesta: survey.id,
-                titulo: survey?.titulo || "",
+                encuestaId: fullSurvey.id,
+                idEncuesta: fullSurvey.id,
+                titulo: fullSurvey?.titulo || "",
                 nominaUsuario: user.nomina,
                 puntuacionObtenida: result.calificacion,
                 userId: user.uid,
@@ -346,7 +388,7 @@ export default function OperatorSurveyDetail({
                 <MobileBackButton onBack={onBack} />
                 <div className="op-survey-header-card" style={{ textAlign: "center", padding: "40px 20px" }}>
                     <div className="op-survey-badge" style={{ margin: "0 auto 16px" }}>📖 Informativo</div>
-                    <h1>{survey.titulo}</h1>
+                    <h1>{fullSurvey.titulo}</h1>
                     <p style={{ marginTop: "16px", color: "var(--operator-text-soft)" }}>
                         Esta actividad no requiere de una evaluación digital mediante preguntas.
                     </p>
@@ -367,8 +409,8 @@ export default function OperatorSurveyDetail({
 
                 <div className="op-survey-header-card">
                     <div className="op-survey-badge">📝 Evaluación</div>
-                    <h1>{survey.titulo}</h1>
-                    <p>{survey.descripcion}</p>
+                    <h1>{fullSurvey.titulo}</h1>
+                    <p>{fullSurvey.descripcion}</p>
 
                     <div className="op-survey-progress">
                         <div className="op-survey-progress-fill" style={{ width: `${((currentQuestion + 1) / preguntas.length) * 100}%` }} />

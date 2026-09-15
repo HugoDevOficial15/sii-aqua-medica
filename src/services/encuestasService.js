@@ -36,6 +36,16 @@ export const clearSurveyCaches = () => {
     }
 };
 
+// Validar integridad del caché - limpiar si está corrupto
+const validateCacheIntegrity = (data) => {
+    if (!Array.isArray(data)) return false;
+
+    // Verificar que al menos un survey tenga preguntas
+    return data.some(survey =>
+        survey?.preguntas && Array.isArray(survey.preguntas) && survey.preguntas.length > 0
+    );
+};
+
 const getSurveyCacheKey = (usuario) => {
     if (!usuario) return "";
     const userId = usuario.uid || usuario.nomina || usuario.username || "anon";
@@ -57,6 +67,13 @@ const readSurveyCache = (usuario) => {
 
         const isFresh = Date.now() - Number(parsed.cachedAt || 0) < SURVEYS_CACHE_TTL_MS;
         if (!isFresh) {
+            localStorage.removeItem(cacheKey);
+            return null;
+        }
+
+        // ⚠️ Validar integridad: si el caché está corrupto (sin preguntas), descartarlo
+        if (!validateCacheIntegrity(parsed.data)) {
+            console.warn("⚠️ Caché de encuestas corrupto (sin preguntas), regenerando...");
             localStorage.removeItem(cacheKey);
             return null;
         }

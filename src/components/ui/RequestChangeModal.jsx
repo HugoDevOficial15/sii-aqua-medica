@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Swal from "sweetalert2";
 
@@ -13,20 +13,28 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
 
     const [saving, setSaving] = useState(false);
     const [puestos, setPuestos] = useState([]);
+    const [loadingPuestos, setLoadingPuestos] = useState(true);
 
     useEffect(() => {
 
         const loadPuestos = async () => {
+            setLoadingPuestos(true);
             try {
                 const data = await getPuestos();
-                if (data && Array.isArray(data)) {
+                if (data && Array.isArray(data) && data.length > 0) {
+                    const validPuestos = data.filter(p => p && p.nombre);
                     setPuestos(
-                        data.sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }))
+                        validPuestos.sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }))
                     );
+                } else {
+                    console.warn("No se cargaron puestos o la lista está vacía. Crea puestos en Administración > Puestos");
+                    setPuestos([]);
                 }
             } catch (error) {
                 console.error("Error cargando puestos:", error);
                 setPuestos([]);
+            } finally {
+                setLoadingPuestos(false);
             }
         };
 
@@ -36,6 +44,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
 
     const {
         register,
+        control,
         handleSubmit,
         formState: { errors },
     } = useForm({
@@ -175,16 +184,30 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
 
                         <div style={styles.inputGroup}>
                             <label style={styles.label}>Puesto</label>
-                            <select
-                                style={{ ...styles.input, ...styles.selectOverflow, ...(errors.puesto ? styles.inputError : {}) }}
-                                {...register("puesto")}
-                            >
-                                <option value="">Seleccionar...</option>
-                                {puestos.map(p => (
-                                    <option key={p.id} value={p.nombre}>{p.nombre}</option>
-                                ))}
-                            </select>
+                            <Controller
+                                name="puesto"
+                                control={control}
+                                render={({ field }) => (
+                                    <select
+                                        {...field}
+                                        style={{ ...styles.input, ...styles.selectOverflow, ...(errors.puesto ? styles.inputError : {}) }}
+                                        disabled={loadingPuestos || puestos.length === 0}
+                                    >
+                                        <option value="">
+                                            {loadingPuestos ? "Cargando..." : puestos.length === 0 ? "Sin puestos disponibles" : "Seleccionar..."}
+                                        </option>
+                                        {puestos.map(p => (
+                                            <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                                        ))}
+                                    </select>
+                                )}
+                            />
                             {errors.puesto && <div style={styles.errorText}>{errors.puesto.message}</div>}
+                            {puestos.length === 0 && !loadingPuestos && (
+                                <div style={styles.warningText}>
+                                    No hay puestos disponibles. Contacta al administrador para crear puestos.
+                                </div>
+                            )}
                         </div>
 
                         <div style={styles.inputGroup}>
@@ -384,6 +407,11 @@ const styles = {
     errorText: {
         color: "#e74c3c",
         fontSize: "12px"
+    },
+    warningText: {
+        color: "#f59e0b",
+        fontSize: "12px",
+        marginTop: "4px"
     },
     footer: {
         display: "flex",

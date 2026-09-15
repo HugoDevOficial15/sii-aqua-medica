@@ -197,12 +197,15 @@ export default function AgendaMedicaModal({ onClose, onSuccess }) {
 
             const agendaId = await crearAgenda(form);
 
-            await generarSlots({
+            void generarSlots({
                 ...form,
                 id: agendaId
+            }).catch((error) => {
+                console.error("Error generando citas de la agenda:", error);
+                notifyError("Agenda creada", "La agenda se guardó, pero no se pudieron generar todas las citas.");
             });
 
-            notifySuccess("Agenda creada correctamente");
+            notifySuccess("Agenda creada", "La agenda se guardó. Las citas se están generando.");
 
             onSuccess();
             onClose();

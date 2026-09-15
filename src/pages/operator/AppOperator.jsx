@@ -6,6 +6,7 @@ import { useOperatorSurveys } from "../../hooks/hooksOperator/useOperatorSurveys
 import { useOperatorTrainings } from "../../hooks/hooksOperator/useOperatorTrainings";
 
 import OperatorShell from "./layout/OperatorShell";
+import OperatorErrorBoundary from "../../components/OperatorErrorBoundary";
 
 const OperatorHome = lazy(() => import("./OperatorHome"));
 const OperatorSurveys = lazy(() => import("./OperatorSurveys"));
@@ -257,7 +258,9 @@ export default function AppOperator() {
             usuarioActual={user}
         >
             <Suspense fallback={<ScreenLoader />}>
-                {renderScreen()}
+                <OperatorErrorBoundary key={screen}>
+                    {renderScreen()}
+                </OperatorErrorBoundary>
             </Suspense>
         </OperatorShell>
     );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, getDoc, doc } from "firebase/firestore";
 import MobileBackButton from "./components/MobileBackButton";
 import AppLoader from "./components/AppLoader";
 import { saveTrainingResponse } from "../../services/servicesOperator/operatorTrainingResponseService";
@@ -7,17 +7,23 @@ import { useAuth } from "../../hooks/useAuth";
 import { MAX_SURVEY_ATTEMPTS, MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { notifyInfo } from "../../utils/notify";
 import { isSurveyInTimeWindow } from "../../utils/surveyTiming";
+import { createNotification } from "../../utils/createNotification";
 import { db } from "../../config/firebase";
 
-export default function OperatorTrainingDetail({
+export default function OperatorTrainingDetail(props) {
+    if (!props.training) return null;
+    return <OperatorTrainingDetailContent {...props} />;
+}
+
+function OperatorTrainingDetailContent({
     training,
     onBack,
     onNavigate,
     onFinished
 }) {
-    if (!training) return null;
-
     const { user } = useAuth();
+    const [trainingLoaded, setTrainingLoaded] = useState(false);
+    const [fullTraining, setFullTraining] = useState(training);
 
     const timeToMinutes = (value) => {
         if (!value) return 0;
@@ -68,7 +74,7 @@ export default function OperatorTrainingDetail({
     const [sessionExpired, setSessionExpired] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const preguntas = training?.preguntas || [];
+    const preguntas = fullTraining?.preguntas || [];
     const tienePreguntas = preguntas.length > 0;
     const question = tienePreguntas ? preguntas[currentQuestion] : null;
 
@@ -81,6 +87,38 @@ export default function OperatorTrainingDetail({
     const timerKey = training ? `training_timer_${training.id}_${user?.uid}` : null;
     const answersKey = training ? `training_answers_${training.id}_${user?.uid}` : null;
     const autoSubmitLockRef = useRef(false);
+
+    // Cargar training completo si falta información
+    useEffect(() => {
+        const loadFullTraining = async () => {
+            if (!training?.id) {
+                setTrainingLoaded(true);
+                return;
+            }
+
+            // Si ya tiene preguntas, no necesita cargar
+            if (training.preguntas && training.preguntas.length > 0) {
+                setFullTraining(training);
+                setTrainingLoaded(true);
+                return;
+            }
+
+            // Cargar desde Firestore si faltan preguntas
+            try {
+                const trainingRef = doc(db, "capacitaciones", String(training.id));
+                const trainingSnap = await getDoc(trainingRef);
+                if (trainingSnap.exists()) {
+                    const fullData = { id: trainingSnap.id, ...trainingSnap.data() };
+                    setFullTraining({ ...training, ...fullData });
+                }
+            } catch (error) {
+                console.error("Error al cargar training completo:", error);
+            }
+            setTrainingLoaded(true);
+        };
+
+        loadFullTraining();
+    }, [training?.id]);
 
     useEffect(() => {
         setLoading(true);
@@ -142,7 +180,7 @@ export default function OperatorTrainingDetail({
         let calificables = 0;
         let tieneRespuestasAbiertas = false;
 
-        training.preguntas?.forEach((pregunta) => {
+        fullTraining.preguntas?.forEach((pregunta) => {
             const respuestaUsuario = answers[pregunta.id];
 
             if (pregunta.tipo === "abierta") {
@@ -216,8 +254,8 @@ export default function OperatorTrainingDetail({
             else nuevoEstado = "reprobada";
 
             await saveTrainingResponse({
-                idCapacitacion: training.id,
-                capacitacionId: training.id,
+                idCapacitacion: fullTraining.id,
+                capacitacionId: fullTraining.id,
                 nominaUsuario: user.nomina,
                 userId: user.uid,
                 username: user.username,
@@ -232,8 +270,26 @@ export default function OperatorTrainingDetail({
                 intentos: intentosActuales,
                 estadoActual: nuevoEstado,
                 fechaEnviado: new Date(),
-                titulo: training.titulo
+                titulo: fullTraining.titulo
             });
+
+            // Crear notificación de capacitación completada
+            try {
+                await createNotification({
+                    IdUsuario: user.uid,
+                    Titulo: "🎓 Capacitación Completada",
+                    Mensaje: `Completaste la capacitación: "${fullTraining.titulo}" con calificación de ${result.calificacion}/100`,
+                    Destino: "training",
+                    Accion: "capacitacion_completada",
+                    extra: {
+                        capacitacionId: fullTraining.id,
+                        calificacion: result.calificacion,
+                        aprobada: result.calificacion >= MIN_APROBATORIO
+                    }
+                });
+            } catch (error) {
+                console.error("Error al notificar capacitación completada:", error);
+            }
 
             localStorage.removeItem(timerKey);
             localStorage.removeItem(answersKey);
@@ -259,10 +315,10 @@ export default function OperatorTrainingDetail({
 
         autoSubmitLockRef.current = true;
         notifyInfo("Tiempo agotado", "Se enviaron tus respuestas automáticamente.");
-        handleSubmit();
+        handleFinishTraining();
     }, [timeRemaining, training?.id]);
 
-    if (loading) return <AppLoader text="Cargando capacitación..." />;
+    if (!trainingLoaded || loading) return <AppLoader text="Cargando capacitación..." />;
 
     if (!puedeResponder) {
         return (
@@ -270,7 +326,7 @@ export default function OperatorTrainingDetail({
                 <MobileBackButton onBack={onBack} />
                 <div className="op-survey-header-card" style={{ textAlign: "center", padding: "40px 20px" }}>
                     <div className="op-survey-badge" style={{ margin: "0 auto 16px" }}>⏰ Fuera de horario</div>
-                    <h1>{training.titulo}</h1>
+                    <h1>{fullTraining.titulo}</h1>
                     <p style={{ marginTop: "16px", color: "var(--operator-text-soft)" }}>
                         Esta capacitación está disponible de {horaInicioSesion} a {horaFinSesion}
                         <br />
@@ -290,7 +346,7 @@ export default function OperatorTrainingDetail({
                 <MobileBackButton onBack={onBack} />
                 <div className="op-survey-header-card" style={{ textAlign: "center", padding: "40px 20px" }}>
                     <div className="op-survey-badge" style={{ margin: "0 auto 16px" }}>📚 Capacitación</div>
-                    <h1>{training.titulo}</h1>
+                    <h1>{fullTraining.titulo}</h1>
                     <p style={{ marginTop: "16px", color: "var(--operator-text-soft)" }}>
                         Esta capacitación no requiere una evaluación digital mediante preguntas.
                     </p>
@@ -311,8 +367,8 @@ export default function OperatorTrainingDetail({
 
                 <div className="op-survey-header-card">
                     <div className="op-survey-badge">🎓 Capacitación</div>
-                    <h1>{training.titulo}</h1>
-                    <p>{training.descripcion}</p>
+                    <h1>{fullTraining.titulo}</h1>
+                    <p>{fullTraining.descripcion}</p>
 
                     <div className="op-survey-progress">
                         <div className="op-survey-progress-fill" style={{ width: `${((currentQuestion + 1) / preguntas.length) * 100}%` }} />

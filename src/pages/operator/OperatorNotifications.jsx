@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, where, orderBy, doc, deleteDoc, writeBatch, limit } from "firebase/firestore";
+import { collection, query, where, doc, deleteDoc, writeBatch, limit, onSnapshot } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { FaTrash } from "react-icons/fa";
 
@@ -7,7 +7,7 @@ import { useAuth } from "../../hooks/useAuth";
 import NotificationCard from "../../components/operator/NotificationCard";
 import MobileBackButton from "./components/MobileBackButton";
 import { confirmDelete } from "../../utils/notify";
-import { filterDismissedNotifications, dismissNotification } from "../../utils/notificationPersistence";
+import { filterDismissedNotifications, dismissNotification, clearDismissedNotifications } from "../../utils/notificationPersistence";
 
 // Ruta a la que navega cada tipo de notificación dinámica al completarla.
 // Los tipos festivos (Cumpleaños/Aniversario) no tienen pantalla propia:
@@ -27,7 +27,8 @@ const RUTA_POR_DESTINO = {
     "CitaCancelada": "citas-medicas",
     "CitaCanceladaConfirmacion": "citas-medicas",
     "/solicitudes": "solicitudes",
-    "capacitaciones": "capacitaciones",
+    "capacitaciones": "training",
+    "training": "training",
     "surveys": "surveys",
     "medical-appointments": "citas-medicas",
     "expediente-clinico": "expediente-clinico",
@@ -54,6 +55,11 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
     const [notificaciones, setNotificaciones] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // Limpiar notificaciones descartadas al montar (en caso de que el caché esté corrupto)
+    useEffect(() => {
+        clearDismissedNotifications();
+    }, []);
+
     useEffect(() => {
         const currentUserId = user?.uid || user?.id;
 
@@ -63,50 +69,41 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
             return;
         }
 
-        let cancelled = false;
+        // Usar listener en tiempo real (onSnapshot) - sin orderBy en la query (Firestore requiere índice)
+        // Ordenar en JavaScript para evitar necesidad de índice compuesto
+        const q = query(
+            collection(db, "notificaciones"),
+            where("IdUsuario", "==", currentUserId),
+            limit(50)
+        );
 
-        const loadNotifications = async () => {
-            try {
-                const q = query(
-                    collection(db, "notificaciones"),
-                    where("IdUsuario", "==", currentUserId)
-                );
-
-                const snapshot = await getDocs(q);
+        const unsubscribe = onSnapshot(
+            q,
+            (snapshot) => {
                 const notifs = filterDismissedNotifications(
                     snapshot.docs
                         .map(docItem => ({
                             id: docItem.id,
                             ...docItem.data()
                         }))
+                        // Ordenar por fecha (más recientes primero)
                         .sort((a, b) => {
                             const aTime = a.fechaCreacion?.toDate ? a.fechaCreacion.toDate().getTime() : new Date(a.fechaCreacion || 0).getTime();
                             const bTime = b.fechaCreacion?.toDate ? b.fechaCreacion.toDate().getTime() : new Date(b.fechaCreacion || 0).getTime();
                             return bTime - aTime;
                         })
-                        .slice(0, 50)
                 );
-
-                if (!cancelled) {
-                    setNotificaciones(notifs);
-                }
-            } catch (error) {
-                console.error("Error cargando notificaciones:", error);
-                if (!cancelled) {
-                    setNotificaciones([]);
-                }
-            } finally {
-                if (!cancelled) {
-                    setLoading(false);
-                }
+                setNotificaciones(notifs);
+                setLoading(false);
+            },
+            (error) => {
+                console.error("Error en listener de notificaciones:", error);
+                setNotificaciones([]);
+                setLoading(false);
             }
-        };
+        );
 
-        loadNotifications();
-
-        return () => {
-            cancelled = true;
-        };
+        return () => unsubscribe();
     }, [user?.uid, user?.id]);
 
     //  FUNCIÓN PARA BORRAR Y NAVEGAR

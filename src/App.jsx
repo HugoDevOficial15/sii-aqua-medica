@@ -79,46 +79,35 @@ function App() {
   }, [isOffline]);
 
   // Prevenir desplazamiento de la página cuando el teclado se abre en móviles
+  // Usa delegación de eventos (focusin/focusout) en vez de MutationObserver +
+  // querySelectorAll en cada mutación del DOM, que causaba bloqueos severos
+  // en pantallas con muchos elementos (evaluaciones, listas, etc).
   useEffect(() => {
-    const handleInputFocus = () => {
+    const isFormField = (target) =>
+      target instanceof Element && target.matches('input, textarea, select');
+
+    const handleFocusIn = (event) => {
+      if (!isFormField(event.target)) return;
       document.documentElement.style.height = '100vh';
       document.documentElement.style.overflow = 'hidden';
       document.body.style.height = '100vh';
       document.body.style.overflow = 'hidden';
     };
 
-    const handleInputBlur = () => {
+    const handleFocusOut = (event) => {
+      if (!isFormField(event.target)) return;
       document.documentElement.style.height = '';
       document.documentElement.style.overflow = '';
       document.body.style.height = '';
       document.body.style.overflow = '';
     };
 
-    const inputs = document.querySelectorAll('input, textarea, select');
-    inputs.forEach((input) => {
-      input.addEventListener('focus', handleInputFocus);
-      input.addEventListener('blur', handleInputBlur);
-    });
-
-    const observer = new MutationObserver(() => {
-      const newInputs = document.querySelectorAll('input, textarea, select');
-      newInputs.forEach((input) => {
-        if (!input.dataset.keyboardListenerAdded) {
-          input.addEventListener('focus', handleInputFocus);
-          input.addEventListener('blur', handleInputBlur);
-          input.dataset.keyboardListenerAdded = 'true';
-        }
-      });
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
 
     return () => {
-      observer.disconnect();
-      inputs.forEach((input) => {
-        input.removeEventListener('focus', handleInputFocus);
-        input.removeEventListener('blur', handleInputBlur);
-      });
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
     };
   }, []);
 

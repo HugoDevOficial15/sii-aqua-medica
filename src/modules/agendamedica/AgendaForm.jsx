@@ -220,9 +220,15 @@ export default function AgendaForm({ onSaved }) {
             };
 
             const agendaId = await crearAgenda(datosAgenda);
-            await generarSlots({ id: agendaId, ...datosAgenda });
 
-            notifySuccess("Agenda creada", "La agenda médica y sus citas se generaron correctamente.");
+            // La agenda no debe quedar bloqueada mientras se generan cientos
+            // de citas. La disponibilidad continúa en segundo plano.
+            void generarSlots({ id: agendaId, ...datosAgenda }).catch((error) => {
+                console.error("Error generando citas de la agenda:", error);
+                notifyError("Agenda creada", "La agenda se guardó, pero no se pudieron generar todas las citas.");
+            });
+
+            notifySuccess("Agenda creada", "La agenda médica se guardó. Las citas se están generando.");
             onSaved?.();
         } catch (err) {
             console.error("Error al guardar la agenda:", err);
