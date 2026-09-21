@@ -1,5 +1,6 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { db, admin } = require("../config/firebase");
+const { FieldValue } = require("firebase-admin/firestore");
 
 // Dispara un mensaje FCM cuando se crea un documento en la colección
 // `notificaciones` dirigido a un `IdUsuario` que tenga `fcmToken`.
@@ -66,8 +67,16 @@ exports.sendNotificationOnCreate = onDocumentCreated("notificaciones/{notifId}",
 
         const message = {
             token,
+            notification: {
+                title: String(notif.Titulo || "SII AQUA Médica"),
+                body: String(notif.Mensaje || "Tienes un nuevo aviso."),
+            },
             android: {
-                priority: "high"
+                priority: "high",
+                notification: {
+                    channelId: "sii_aqua_canal_v5",
+                    sound: "default",
+                },
             },
             data: {
                 title: String(notif.Titulo || "SII AQUA Médica"),
@@ -83,7 +92,7 @@ exports.sendNotificationOnCreate = onDocumentCreated("notificaciones/{notifId}",
         // Marcamos la notificación como enviada por el servidor
         await db.collection("notificaciones").doc(notifId).update({
             enviado: true,
-            fechaEnviado: admin.firestore.FieldValue.serverTimestamp(),
+            fechaEnviado: FieldValue.serverTimestamp(),
             enviadoPorServidor: true,
             messagingId: response
         });

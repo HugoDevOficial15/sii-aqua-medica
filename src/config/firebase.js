@@ -34,7 +34,7 @@ export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
 
-if (import.meta.env.DEV) {
+if (import.meta.env.VITE_USE_FUNCTIONS_EMULATOR === "true") {
     connectFunctionsEmulator(functions, "127.0.0.1", 5001);
 }
 

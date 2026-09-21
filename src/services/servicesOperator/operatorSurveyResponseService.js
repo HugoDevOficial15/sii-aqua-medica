@@ -1,4 +1,6 @@
 import { db } from "../../config/firebase";
+import { functions } from "../../config/firebase";
+import { httpsCallable } from "firebase/functions";
 
 import {
     collection,
@@ -9,6 +11,8 @@ import {
     where,
     writeBatch
 } from "firebase/firestore";
+
+const saveOperatorSurveyResponseFunction = httpsCallable(functions, "saveOperatorSurveyResponse");
 
 // ============================================================
 // COLECCIÓN ÚNICA DE RESPUESTAS DE ENCUESTAS
@@ -54,58 +58,8 @@ const getSurveyBucketCollection = (surveyId, bucketName) => {
 // cálculos en tiempo real.
 export const saveSurveyResponse =
     async (data) => {
-        const userDocId = await resolveUserDocIdByFirebaseUid(data?.userId);
-        const anioActual = new Date().getFullYear();
-        const surveyId = data?.encuestaId ?? data?.idEncuesta ?? data?.surveyId;
-        const isPendingReview = Boolean(data?.estadoActual === "pendiente_validacion" || data?.tieneRespuestasAbiertas);
-        const approved = isPendingReview ? false : isResponseApproved(data);
-        const bucketName = isPendingReview ? "pendientes" : (approved ? "aprobados" : "reprobados");
-        const estado = isPendingReview ? "pendiente_validacion" : (approved ? "aprobado" : "reprobado");
-
-        const batch = writeBatch(db);
-        const baseResponse = {
-            ...data,
-            id: `${surveyId ?? "survey"}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-            estado,
-            aprobada: approved,
-        };
-
-        if (surveyId) {
-            const surveyBucketRef = doc(getSurveyBucketCollection(surveyId, bucketName));
-            batch.set(surveyBucketRef, {
-                ...baseResponse,
-                id: surveyBucketRef.id,
-                encuestaId: surveyId,
-                usuarioDocId: userDocId,
-                tipo: "encuesta",
-                createdAt: new Date().toISOString(),
-            });
-        }
-
-        if (userDocId) {
-            const userYearSurveyResultsCollection = collection(
-                db,
-                "users",
-                userDocId,
-                String(anioActual),
-                "informacion",
-                "Resultados",
-                "Encuestas",
-                "items"
-            );
-
-            const userYearSurveyResultsRef = doc(userYearSurveyResultsCollection);
-
-            batch.set(userYearSurveyResultsRef, {
-                ...baseResponse,
-                id: userYearSurveyResultsRef.id,
-                usuarioDocId: userDocId,
-                tipo: "encuesta",
-                createdAt: new Date().toISOString(),
-            });
-        }
-
-        await batch.commit();
+        const result = await saveOperatorSurveyResponseFunction(data);
+        return result.data;
     };
 
 // ======================

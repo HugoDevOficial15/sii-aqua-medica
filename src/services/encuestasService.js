@@ -1,6 +1,10 @@
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../config/firebase";
+import { functions } from "../config/firebase";
+import { httpsCallable } from "firebase/functions";
 import { isSurveyTimeExpired } from "../utils/surveyTiming";
+
+const getOperatorSurveysFunction = httpsCallable(functions, "getOperatorSurveys");
 
 const SURVEYS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -123,70 +127,18 @@ export const getEncuestasDisponibles = async (usuario, options = {}) => {
     }
 
     try {
-        const nominaStr = String(usuario.nomina || usuario.username || "").trim();
-        const queries = [];
-
-        queries.push(
-            query(
-                collection(db, "encuestas"),
-                where("asignacion.tipo", "==", "global")
-            )
-        );
-
-        if (usuario.area) {
-            queries.push(
-                query(
-                    collection(db, "encuestas"),
-                    where("asignacion.tipo", "==", "area"),
-                    where("asignacion.valores", "array-contains", usuario.area)
-                )
-            );
-        }
-
-        if (nominaStr) {
-            queries.push(
-                query(
-                    collection(db, "encuestas"),
-                    where("asignacion.tipo", "==", "usuarios"),
-                    where("asignacion.valores", "array-contains", nominaStr)
-                )
-            );
-        }
-
-        const snapshots = await Promise.all(queries.map(q => getDocs(q)));
-        const encuestasMap = new Map();
-
-        snapshots.forEach(snapshot => {
-            snapshot.docs.forEach(docSnap => {
-                const data = { id: docSnap.id, ...docSnap.data() };
-                if (data.activa !== false && !encuestasMap.has(data.id)) {
-                    encuestasMap.set(data.id, data);
-                }
-            });
+        const result = await getOperatorSurveysFunction({
+            userId: usuario.id || usuario.uid,
+            nomina: usuario.nomina || usuario.nominaUsuario || usuario.numeroNomina,
         });
+        const { surveys: encuestasAccesibles = [], responses: respuestasUsuario = [] } = result.data || {};
 
-        const encuestasAccesibles = Array.from(encuestasMap.values())
+        const encuestasOrdenadas = encuestasAccesibles
             .sort((a, b) => {
                 const aTime = a.fechaInicio?.toDate ? a.fechaInicio.toDate().getTime() : new Date(a.fechaInicio || 0).getTime();
                 const bTime = b.fechaInicio?.toDate ? b.fechaInicio.toDate().getTime() : new Date(b.fechaInicio || 0).getTime();
                 return bTime - aTime;
             });
-
-        const idsEncuestas = encuestasAccesibles.map(e => e.id);
-        let respuestasUsuario = [];
-
-        if (usuario.uid && idsEncuestas.length > 0) {
-            const bucketQueries = idsEncuestas.flatMap((encuestaId) => [
-                query(collection(db, "respuestasEncuestas", String(encuestaId), "pendientes"), where("userId", "==", usuario.uid)),
-                query(collection(db, "respuestasEncuestas", String(encuestaId), "aprobados"), where("userId", "==", usuario.uid)),
-                query(collection(db, "respuestasEncuestas", String(encuestaId), "reprobados"), where("userId", "==", usuario.uid))
-            ]);
-
-            const bucketSnapshots = await Promise.all(bucketQueries.map(q => getDocs(q)));
-            respuestasUsuario = bucketSnapshots.flatMap(snapshot =>
-                snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-            );
-        }
 
         const getResponseTimestamp = (response) => {
             const rawValue = response?.fechaRespuesta ?? response?.fechaEnviado ?? response?.createdAt ?? 0;

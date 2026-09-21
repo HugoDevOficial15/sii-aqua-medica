@@ -4,8 +4,6 @@ import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaSave, FaTrash, FaChartB
 // Service
 import { createSurvey, getSurveys, updateSurvey, deleteSurvey } from "../../services/surveyService";
 // Firebase
-import { collection, getDocs, query, where, deleteDoc, doc } from "firebase/firestore";
-import { db } from "../../config/firebase";
 // Resultados/respuestas
 import EncuestaResultados from "./EncuestaResultados";
 // Notificaciones
@@ -381,7 +379,6 @@ export default function CreateSurvey() {
         const tipoAsignacion = data.asignacion?.tipo;
 
         // La lógica global solo aplica cuando el usuario eligió explícitamente
-        // "Todas las áreas". No se activa por defecto ni en otros modos.
         if (tipoAsignacion === "global") {
             return { tipo: "global", valores: [] };
         }
@@ -434,7 +431,7 @@ export default function CreateSurvey() {
             const totalHoras = Math.floor(totalMinutos / 60);
             const totalMinutosRestantes = totalMinutos % 60;
 
-//  LIMPIAR undefined y propiedades no usadas (CLAVE)
+//  LIMPIAR undefined y propiedades no usadas
             const cleanData = {
                 ...sanitizedData,
                 preguntas: sanitizedData.preguntas.map((p) => {
@@ -580,33 +577,6 @@ export default function CreateSurvey() {
         const result = await confirmDelete("¿Eliminar encuesta?", "Esta acción no se puede deshacer.");
         if (result.isConfirmed) {
             try {
-                // Eliminar respuestas de encuestas
-                try {
-                    const qResponses = query(collection(db, "respuestasEncuestas"), where("encuestaId", "==", survey.id));
-                    const snapshotResponses = await getDocs(qResponses);
-
-                    const deleteResponsePromises = snapshotResponses.docs.map(docResponse => {
-                        return deleteDoc(doc(db, "respuestasEncuestas", docResponse.id));
-                    });
-                    await Promise.all(deleteResponsePromises);
-                } catch (responseError) {
-                    console.warn("No se encontraron respuestas asociadas o error al eliminarlas:", responseError);
-                }
-
-                // Eliminar notificaciones asociadas
-                try {
-                    const qNotif = query(collection(db, "notificaciones"), where("extra.encuestaId", "==", survey.id));
-                    const snapshotNotif = await getDocs(qNotif);
-
-                    const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
-                        return deleteDoc(doc(db, "notificaciones", docNotif.id));
-                    });
-                    await Promise.all(deleteNotifPromises);
-                } catch (notifError) {
-                    console.warn("No se encontraron notificaciones asociadas o error al eliminarlas:", notifError);
-                }
-
-                // Eliminar encuesta
                 await deleteSurvey(survey.id);
                 const data = await getSurveys();
                 setSurveys(data);

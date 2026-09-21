@@ -17,7 +17,7 @@ export function useOperatorSurveys({ enabled = true } = {}) {
 
     const fetchData = useCallback(async () => {
 
-        if (!enabled || !user?.nomina) return;
+        if (!enabled || !(user?.id || user?.uid || user?.nomina)) return;
 
         setLoading(true);
         setError(null);
@@ -47,13 +47,13 @@ export function useOperatorSurveys({ enabled = true } = {}) {
     }, [enabled, user]);
 
     useEffect(() => {
-        if (!enabled || !user?.uid || !user?.nomina) {
+        if (!enabled || !(user?.id || user?.uid || user?.nomina)) {
             setRawSurveys([]);
             return;
         }
 
         fetchData();
-    }, [enabled, fetchData, user?.uid, user?.nomina]);
+    }, [enabled, fetchData, user?.id, user?.uid, user?.nomina]);
 
     // Adapta la salida del servicio (estado/miPuntaje) al contrato que ya
     // consumen las pantallas existentes (estadoActual/miPuntaje).
