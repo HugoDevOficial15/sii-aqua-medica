@@ -1,39 +1,8 @@
-import { db } from "../../config/firebase";
-import {
-    collection,
-    addDoc,
-    doc,
-    getDocs,
-    query,
-    where,
-    writeBatch
-} from "firebase/firestore";
+import { db, functions } from "../../config/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 
-const resolveUserDocIdByFirebaseUid = async (userId) => {
-    if (!userId) return null;
-
-    try {
-        const q = query(collection(db, "users"), where("uid", "==", userId));
-        const snapshot = await getDocs(q);
-        return snapshot.empty ? null : snapshot.docs[0].id;
-    } catch (error) {
-        console.error("Error resolviendo el docId del usuario para capacitaciones:", error);
-        return null;
-    }
-};
-
-const isResponseApproved = (data) => {
-    if (data?.estadoActual === "pendiente_validacion" || data?.tieneRespuestasAbiertas) {
-        return false;
-    }
-
-    if (typeof data?.aprobada === "boolean") {
-        return data.aprobada;
-    }
-
-    const score = Number(data?.calificacion ?? data?.resultado ?? 0);
-    return Number.isFinite(score) && score >= 80;
-};
+const saveOperatorTrainingResponseFunction = httpsCallable(functions, "saveOperatorTrainingResponse");
 
 const getTrainingBucketCollection = (trainingId, bucketName) => {
     const bucket = bucketName || "aprobados";
@@ -44,58 +13,8 @@ const getTrainingBucketCollection = (trainingId, bucketName) => {
 // GUARDAR RESPUESTA
 // ======================
 export const saveTrainingResponse = async (data) => {
-    const userDocId = await resolveUserDocIdByFirebaseUid(data?.userId);
-    const anioActual = new Date().getFullYear();
-    const trainingId = data?.capacitacionId ?? data?.idCapacitacion ?? data?.trainingId;
-    const isPendingReview = Boolean(data?.estadoActual === "pendiente_validacion" || data?.tieneRespuestasAbiertas);
-    const approved = isPendingReview ? false : isResponseApproved(data);
-    const bucketName = isPendingReview ? "pendientes" : (approved ? "aprobados" : "reprobados");
-    const estado = isPendingReview ? "pendiente_validacion" : (approved ? "aprobado" : "reprobado");
-
-    const batch = writeBatch(db);
-    const baseResponse = {
-        ...data,
-        id: `${trainingId ?? "training"}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        estado,
-        aprobada: approved,
-    };
-
-    if (trainingId) {
-        const trainingBucketRef = doc(getTrainingBucketCollection(trainingId, bucketName));
-        batch.set(trainingBucketRef, {
-            ...baseResponse,
-            id: trainingBucketRef.id,
-            capacitacionId: trainingId,
-            usuarioDocId: userDocId,
-            tipo: "capacitacion",
-            createdAt: new Date().toISOString(),
-        });
-    }
-
-    if (userDocId) {
-        const userYearTrainingResultsCollection = collection(
-            db,
-            "users",
-            userDocId,
-            String(anioActual),
-            "informacion",
-            "Resultados",
-            "Capacitaciones",
-            "items"
-        );
-
-        const userYearTrainingResultsRef = doc(userYearTrainingResultsCollection);
-
-        batch.set(userYearTrainingResultsRef, {
-            ...baseResponse,
-            id: userYearTrainingResultsRef.id,
-            usuarioDocId: userDocId,
-            tipo: "capacitacion",
-            createdAt: new Date().toISOString(),
-        });
-    }
-
-    await batch.commit();
+    const result = await saveOperatorTrainingResponseFunction(data);
+    return result.data;
 };
 
 // ======================

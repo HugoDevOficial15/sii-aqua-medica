@@ -8,6 +8,7 @@
   },
   "scripts": {
     "serve": "firebase emulators:start --only hosting,functions",
+    "seed:emulator": "node seed-emulator.cjs",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log"
   },

@@ -9,7 +9,9 @@
 
 const locks = require("./features/locks");
 const surveys = require("./features/surveys");
+const capacitaciones = require("./features/capacitaciones");
 const notificationTriggers = require("./features/sendNotificationOnCreate");
+const usuarios = require("./features/usuarios");
 
 const initPushNotifications = async () => {
   console.log("✓ Servicio local de push desactivado. Cloud Functions al mando.");
@@ -24,7 +26,9 @@ const stopPushNotifications = () => {
 module.exports = {
   ...locks,
   ...surveys,
+  ...capacitaciones,
   ...notificationTriggers,
+  ...usuarios,
   initPushNotifications,
   stopPushNotifications,
 };

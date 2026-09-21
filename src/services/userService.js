@@ -1,4 +1,3 @@
-// Import Firebase
 import "../config/firebase";
 import { getFirestore, query, collection, where, getDocs } from "firebase/firestore";
 import { readSessionCache, writeSessionCache } from "../utils/cacheStore";
@@ -20,14 +19,11 @@ export const getUserData = async (nominaValue) => {
         }
 
         const email = `${nomina}@aquamedica.com`;
-
         const q = query(
             collection(db, "users"),
             where("email", "==", email)
         );
-
         const snapshot = await getDocs(q);
-
         if (snapshot.empty) return null;
 
         const userData = {

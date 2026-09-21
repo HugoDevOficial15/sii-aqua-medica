@@ -1,6 +1,8 @@
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
 import { isSurveyTimeExpired } from "../utils/surveyTiming";
+
+const getOperatorTrainingsFunction = httpsCallable(functions, "getOperatorTrainings");
 
 // ============================================================
 // CONSULTA DE CAPACITACIONES DISPONIBLES PARA UN USUARIO
@@ -15,17 +17,9 @@ export const getCapacitacionesDisponibles = async (usuario) => {
     if (!usuario) return [];
 
     try {
-        // Traer todas las capacitaciones (sin filtro de activa para mejor compatibilidad)
-        const q = query(
-            collection(db, "capacitaciones"),
-            orderBy("fechaInicio", "desc")
-        );
-
-        const snapshot = await getDocs(q);
-        const capacitaciones = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        const result = await getOperatorTrainingsFunction();
+        const capacitaciones = result.data?.trainings || [];
+        const respuestasUsuario = result.data?.responses || [];
 
         // Filtrar: solo activas (o que no tengan el campo activa definido)
         const capacitacionesActivas = capacitaciones.filter(e => e.activa !== false);
@@ -51,23 +45,6 @@ export const getCapacitacionesDisponibles = async (usuario) => {
                     return false;
             }
         });
-
-        // Traer respuestas del usuario para este conjunto de capacitaciones
-        const idsCapacitaciones = capacitacionesAccesibles.map(e => e.id);
-        let respuestasUsuario = [];
-
-        if (idsCapacitaciones.length > 0 && usuario.uid) {
-            const bucketQueries = idsCapacitaciones.flatMap((capacitacionId) => [
-                query(collection(db, "respuestasCapacitaciones", String(capacitacionId), "pendientes"), where("userId", "==", usuario.uid)),
-                query(collection(db, "respuestasCapacitaciones", String(capacitacionId), "aprobados"), where("userId", "==", usuario.uid)),
-                query(collection(db, "respuestasCapacitaciones", String(capacitacionId), "reprobados"), where("userId", "==", usuario.uid))
-            ]);
-
-            const bucketSnapshots = await Promise.all(bucketQueries.map(q => getDocs(q)));
-            respuestasUsuario = bucketSnapshots.flatMap(snapshot =>
-                snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-            );
-        }
 
         // Enriquecer capacitaciones con información calculada
         const hoy = new Date();

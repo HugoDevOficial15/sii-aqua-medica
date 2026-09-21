@@ -9,17 +9,19 @@ import Loader from "../../components/Loader";
 
 // Servicio Users
 import {
-  getUsers,
-  getUsersPageData,
+  getUsersPage,
+  searchUsers,
+  migrateUserSearchFields,
   createUser,
   updateUser,
   createIncapacidad,
-  getIncapacidadesByUsers,
+  getIncapacidadesByUser,
   nominaExists,
   findDuplicateNominas,
   findEmailNominaMismatch,
   fixEmailNominaMismatch,
 } from "../../services/usersService";
+import { getPuestos } from "../../services/puestos-service";
 
 // CSV (curp/rfc/nss pendientes)
 import {
@@ -89,9 +91,13 @@ export default function Users({ onClose }) {
 
   // Paginacion
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageCursors, setPageCursors] = useState([null]);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const usersLoadedRef = useRef(false);
+  const searchRequestRef = useRef(0);
 
   // Puestos
-  const [puestos, setPuestos] = useState();
+  const [puestos, setPuestos] = useState([]);
 
   // Input oculto para importar CSV
   const csvInputRef = useRef(null);
@@ -147,18 +153,19 @@ export default function Users({ onClose }) {
   const hasActiveIncapacidad = (user, incapacidades = []) => {
     if (!user || user.activo === false) return false;
 
-    const estadoActual = String(user?.estado || "")
-      .trim()
-      .toLowerCase();
-
-    if (estadoActual === "incapacidad") {
-      return true;
-    }
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    return incapacidades.some((incapacidad) => {
+    const records = incapacidades.length > 0
+      ? incapacidades
+      : String(user?.estado || "").trim().toLowerCase() === "incapacidad"
+        ? [{
+            fechaInicio: user.fechaInicioIncapacidad,
+            fechaFin: user.fechaFinIncapacidad,
+          }]
+        : [];
+
+    return records.some((incapacidad) => {
       const fechaInicio = incapacidad?.fechaInicio
         ? new Date(`${incapacidad.fechaInicio}T00:00:00`)
         : null;
@@ -193,12 +200,9 @@ export default function Users({ onClose }) {
       return startOk && endOk;
     });
 
-    if (
-      activeIncapacidad &&
-      String(user?.estado || "")
-        .trim()
-        .toLowerCase() !== "incapacidad"
-    ) {
+    const estadoActual = String(user?.estado || "").trim().toLowerCase();
+
+    if (activeIncapacidad && estadoActual !== "incapacidad") {
       await updateUser(user.id, {
         estado: "incapacidad",
         activo: true,
@@ -210,7 +214,19 @@ export default function Users({ onClose }) {
       return true;
     }
 
-    return Boolean(activeIncapacidad);
+    if (!activeIncapacidad && estadoActual === "incapacidad") {
+      await updateUser(user.id, {
+        estado: "activo",
+        activo: true,
+        tipoIncapacidad: null,
+        fechaInicioIncapacidad: null,
+        fechaFinIncapacidad: null,
+        notaIncapacidad: "",
+      });
+      return true;
+    }
+
+    return false;
   };
 
   const getUserStatusBadge = (user, hasActive = false) => {
@@ -243,6 +259,12 @@ export default function Users({ onClose }) {
   } = useForm({
     resolver: zodResolver(userSchema),
   });
+
+  const handleInvalidUser = (formErrors) => {
+    console.error("Formulario de usuario inválido:", formErrors);
+    const firstError = Object.values(formErrors)[0];
+    notifyError("Datos incompletos", firstError?.message || "Revisa los campos del formulario.");
+  };
 
   // Cerrar menú de acciones al hacer clic fuera
   useEffect(() => {
@@ -376,12 +398,12 @@ export default function Users({ onClose }) {
           "El usuario ha sido actualizado correctamente.",
         );
       } else {
+        const created = await createUser(userData);
         const createdUser = {
-          id: currentId || `tmp-${Date.now()}`,
+          id: created.id,
+          uid: created.uid,
           ...userData,
         };
-
-        await createUser(userData);
 
         setUsers((prev) => [createdUser, ...prev]);
 
@@ -397,6 +419,7 @@ export default function Users({ onClose }) {
 
       setShowModal(false);
       setEditing(false);
+      setCurrentId(null);
     } catch (error) {
       console.log("Error Save User:", error);
       Swal.close();
@@ -445,10 +468,17 @@ export default function Users({ onClose }) {
     if (!result.isConfirmed) return;
 
     try {
+      const incapacidadVigente = newStatus && hasActiveIncapacidad(
+        { ...user, activo: true },
+        userIncapacidades[user.id] || [],
+      );
+      const nextEstado = incapacidadVigente ? "incapacidad" : "activo";
+
       await updateUser(user.id, {
         activo: newStatus,
         bloqueado: !newStatus,
         intentosFallidos: newStatus ? 0 : user.intentosFallidos || 0,
+        estado: nextEstado,
       });
 
       notifySuccess(
@@ -464,6 +494,7 @@ export default function Users({ onClose }) {
                 activo: newStatus,
                 bloqueado: !newStatus,
                 intentosFallidos: newStatus ? 0 : item.intentosFallidos || 0,
+                estado: nextEstado,
               }
             : item,
         ),
@@ -638,9 +669,8 @@ export default function Users({ onClose }) {
           `Se corrigieron ${mismatches.length} usuario(s). Refresca la página.`,
         );
 
-        // Recargar usuarios
-        const usersData = await getUsers();
-        setUsers(usersData);
+        // Recargar únicamente la página actual
+        await loadUsersPage(currentPage, pageCursors[currentPage - 1]);
       }
     } catch (error) {
       console.error("Error en diagnóstico de email/nomina:", error);
@@ -651,6 +681,29 @@ export default function Users({ onClose }) {
   {
     /* INCAPACIDADES */
   }
+
+  const loadUsersPage = async (page = 1, cursor = null) => {
+    setLoading(true);
+
+    try {
+      const pageData = await getUsersPage({ cursor, pageSize: 30 });
+      setUsers(pageData.users || []);
+      usersLoadedRef.current = true;
+      setHasNextPage(Boolean(pageData.hasMore));
+      setCurrentPage(page);
+      setExpandedUserId(null);
+      setPageCursors((previous) => {
+        const next = [...previous];
+        next[page] = pageData.nextCursor || null;
+        return next;
+      });
+    } catch (error) {
+      console.error("Error cargando página de usuarios:", error);
+      notifyError("Error", "No se pudo cargar la página de usuarios.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getTodayDate = () => new Date().toISOString().split("T")[0];
 
@@ -672,13 +725,8 @@ export default function Users({ onClose }) {
     }));
 
     try {
-      const visibleUserIds = users
-        .filter((item) => item?.id)
-        .map((item) => item.id);
-
-      const incapacidadesMap = visibleUserIds.length
-        ? await getIncapacidadesByUsers(visibleUserIds, users)
-        : {};
+      const incapacidades = await getIncapacidadesByUser(user.id, user.nomina);
+      const incapacidadesMap = { [user.id]: incapacidades };
 
       setUserIncapacidades((prev) => ({
         ...prev,
@@ -689,8 +737,29 @@ export default function Users({ onClose }) {
       const updated = await syncUserIncapacidadStatus(user, validIncapacidades);
 
       if (updated) {
-        const refreshedUsers = await getUsers();
-        setUsers(refreshedUsers);
+        const activeIncapacidad = validIncapacidades.find((incapacidad) => {
+          const fechaInicio = incapacidad?.fechaInicio
+            ? new Date(`${incapacidad.fechaInicio}T00:00:00`)
+            : null;
+          const fechaFin = incapacidad?.fechaFin
+            ? new Date(`${incapacidad.fechaFin}T23:59:59`)
+            : null;
+          return (!fechaInicio || fechaInicio <= new Date())
+            && (!fechaFin || fechaFin >= new Date());
+        });
+        setUsers((previous) => previous.map((item) => (
+          item.id === user.id
+            ? {
+                ...item,
+                estado: activeIncapacidad ? "incapacidad" : "activo",
+                activo: true,
+                tipoIncapacidad: activeIncapacidad?.tipo || null,
+                fechaInicioIncapacidad: activeIncapacidad?.fechaInicio || null,
+                fechaFinIncapacidad: activeIncapacidad?.fechaFin || null,
+                notaIncapacidad: activeIncapacidad?.nota || "",
+              }
+            : item
+        )));
       }
     } catch (error) {
       console.error("Error cargando incapacidades del usuario:", error);
@@ -899,16 +968,28 @@ export default function Users({ onClose }) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { users: syncedUsers, puestos: puestosData } = await getUsersPageData();
+        const migrationKey = "sii-aqua-user-search-fields-migrated";
+        if (sessionStorage.getItem(migrationKey) !== "true") {
+          await migrateUserSearchFields();
+          sessionStorage.setItem(migrationKey, "true");
+        }
+
+        const [pageData, puestosData] = await Promise.all([
+          getUsersPage({ pageSize: 30 }),
+          getPuestos(),
+        ]);
 
         const ordenados = [...puestosData].sort((a, b) =>
           a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
         );
 
-        setUsers(syncedUsers);
+        setUsers(pageData.users || []);
+        usersLoadedRef.current = true;
+        setHasNextPage(Boolean(pageData.hasMore));
+        setPageCursors([null, pageData.nextCursor || null]);
         setPuestos(ordenados);
       } catch (error) {
-        console.log("Error al acargar data:", error);
+        console.log("Error al cargar data:", error);
       } finally {
         setLoading(false);
       }
@@ -916,6 +997,42 @@ export default function Users({ onClose }) {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!usersLoadedRef.current) return;
+
+    const term = sanitizeText(search).trim();
+    if (!term) {
+      if (users.length === 0 || currentPage !== 1 || hasNextPage === false) {
+        loadUsersPage(1, null);
+      }
+      return;
+    }
+
+    const requestId = searchRequestRef.current + 1;
+    searchRequestRef.current = requestId;
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const result = await searchUsers(term);
+        if (searchRequestRef.current !== requestId) return;
+        setUsers(result.users || []);
+        setCurrentPage(1);
+        setPageCursors([null]);
+        setHasNextPage(false);
+        setExpandedUserId(null);
+      } catch (error) {
+        if (searchRequestRef.current === requestId) {
+          console.error("Error buscando usuarios:", error);
+          notifyError("Error", "No se pudo buscar usuarios.");
+        }
+      } finally {
+        if (searchRequestRef.current === requestId) setLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -935,17 +1052,19 @@ export default function Users({ onClose }) {
     return <Loader text="Cargando Usuarios..." />;
   }
 
-  // Paginacion
-  const userPerPAge = 50;
+  // La paginación se realiza en Functions; aquí solo se filtra la página actual.
+  const currentUsers = sortedUsers;
+  const totalPages = hasNextPage ? currentPage + 1 : currentPage;
 
-  // Indices de paginación
-  const indexLastUser = currentPage * userPerPAge;
-  const indexFirstUSer = indexLastUser - userPerPAge;
+  const handlePreviousPage = () => {
+    if (currentPage <= 1) return;
+    loadUsersPage(currentPage - 1, pageCursors[currentPage - 2]);
+  };
 
-  // Visibles
-  const currentUsers = sortedUsers.slice(indexFirstUSer, indexLastUser);
-
-  const totalPages = Math.ceil(sortedUsers.length / userPerPAge);
+  const handleNextPage = () => {
+    if (!hasNextPage) return;
+    loadUsersPage(currentPage + 1, pageCursors[currentPage]);
+  };
 
   // Exportar Excel
   const exportToExcel = async () => {
@@ -1049,6 +1168,7 @@ export default function Users({ onClose }) {
                 rfc: "",
                 nss: "",
               });
+              setCurrentId(null);
               setEditing(false);
               setShowModal(true);
             }}
@@ -1124,7 +1244,7 @@ export default function Users({ onClose }) {
                     >
                       <td>{user.nomina}</td>
                       <td>{user.nombre}</td>
-                      <td>{user.area.toUpperCase()}</td>
+                      <td>{String(user.area ?? "").toUpperCase()}</td>
                       <td>{user.puesto}</td>
 
                       <td>
@@ -1316,7 +1436,7 @@ export default function Users({ onClose }) {
             <button
               className="btn btn-sm btn-outline-primary me-2 custom-btn"
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
+              onClick={handlePreviousPage}
             >
               Anterior
             </button>
@@ -1327,8 +1447,8 @@ export default function Users({ onClose }) {
 
             <button
               className="btn btn-sm btn-outline-primary custom-btn"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={!hasNextPage}
+              onClick={handleNextPage}
             >
               Siguiente
             </button>
@@ -1549,7 +1669,7 @@ export default function Users({ onClose }) {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit(handleSaveUser)}>
+            <form onSubmit={handleSubmit(handleSaveUser, handleInvalidUser)}>
               <div className="modal-body">
                 <div className="row g-3">
                   <div className="col-md-12">

@@ -1,7 +1,7 @@
 import { collection, addDoc, getDocs, updateDoc, doc } from "firebase/firestore";
 
 import { db } from "../config/firebase";
-import { readSessionCache, writeSessionCache, readMemoryCache, writeMemoryCache } from "../utils/cacheStore";
+import { clearCachedData, readSessionCache, writeSessionCache, readMemoryCache, writeMemoryCache } from "../utils/cacheStore";
 
 const ref = collection(db, "puestos");
 
@@ -32,11 +32,13 @@ export const getPuestos = async () => {
 
 // Crear
 export const createPuesto = async (data) => {
-    return await addDoc(ref, {
+    const result = await addDoc(ref, {
         nombre: data.nombre,
         activo: true,
         createdAt: new Date(),
     });
+    clearCachedData(PUESTOS_CACHE_KEY);
+    return result;
 }
 
 // editar
@@ -44,5 +46,7 @@ export const updatePuesto = async (id, data) => {
 
     const ref = doc(db, "puestos", id)
 
-    return await updateDoc(ref, data);
+    const result = await updateDoc(ref, data);
+    clearCachedData(PUESTOS_CACHE_KEY);
+    return result;
 }

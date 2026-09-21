@@ -9,6 +9,15 @@ import MobileBackButton from "./components/MobileBackButton";
 import { confirmDelete } from "../../utils/notify";
 import { filterDismissedNotifications, dismissNotification, clearDismissedNotifications } from "../../utils/notificationPersistence";
 
+const getNotificationUserIds = (user) => [...new Set([
+    user?.uid,
+    user?.id,
+    user?.userId,
+    user?.nomina,
+    user?.nominaUsuario,
+    user?.numeroNomina
+].map(value => String(value ?? '').trim()).filter(Boolean))];
+
 // Ruta a la que navega cada tipo de notificación dinámica al completarla.
 // Los tipos festivos (Cumpleaños/Aniversario) no tienen pantalla propia:
 // simplemente se descartan y regresan a Inicio.
@@ -54,6 +63,7 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
     // Ahora guardamos TODAS las notificaciones dinámicas juntas
     const [notificaciones, setNotificaciones] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(null);
 
     // Limpiar notificaciones descartadas al montar (en caso de que el caché esté corrupto)
     useEffect(() => {
@@ -61,19 +71,23 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
     }, []);
 
     useEffect(() => {
-        const currentUserId = user?.uid || user?.id;
+        const notificationUserIds = getNotificationUserIds(user);
 
-        if (!currentUserId) {
+        if (!notificationUserIds.length) {
             setLoading(false);
             setNotificaciones([]);
+            setLoadError(null);
             return;
         }
+
+        setLoading(true);
+        setLoadError(null);
 
         // Usar listener en tiempo real (onSnapshot) - sin orderBy en la query (Firestore requiere índice)
         // Ordenar en JavaScript para evitar necesidad de índice compuesto
         const q = query(
             collection(db, "notificaciones"),
-            where("IdUsuario", "==", currentUserId),
+            where("IdUsuario", "in", notificationUserIds),
             limit(50)
         );
 
@@ -99,12 +113,13 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
             (error) => {
                 console.error("Error en listener de notificaciones:", error);
                 setNotificaciones([]);
+                setLoadError(error);
                 setLoading(false);
             }
         );
 
         return () => unsubscribe();
-    }, [user?.uid, user?.id]);
+    }, [user?.uid, user?.id, user?.userId, user?.nomina, user?.nominaUsuario, user?.numeroNomina]);
 
     //  FUNCIÓN PARA BORRAR Y NAVEGAR
     const handleCompletarTarea = async (idNotificacion, ruta) => {
@@ -173,7 +188,14 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
                 {/* ==========================================
                     NOTIFICACIONES DINÁMICAS (Desde Firebase)
                     ========================================== */}
-                {!loading && notificaciones.length === 0 && (
+                {!loading && loadError && (
+                    <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--operator-text-soft)" }}>
+                        <p style={{ fontSize: "16px", marginBottom: "8px" }}>No se pudieron cargar las notificaciones.</p>
+                        <p style={{ fontSize: "14px" }}>Revisa tu conexión y vuelve a intentarlo.</p>
+                    </div>
+                )}
+
+                {!loading && !loadError && notificaciones.length === 0 && (
                     <div style={{
                         textAlign: "center",
                         padding: "40px 20px",

@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import { useOperatorSurveys } from "../../hooks/hooksOperator/useOperatorSurveys";
@@ -46,6 +46,15 @@ const ScreenLoader = () => (
     </div>
 );
 
+const getNotificationUserIds = (user) => [...new Set([
+    user?.uid,
+    user?.id,
+    user?.userId,
+    user?.nomina,
+    user?.nominaUsuario,
+    user?.numeroNomina
+].map(value => String(value ?? '').trim()).filter(Boolean))];
+
 export default function AppOperator() {
 
     const { user, updateUserProfile } = useAuth();
@@ -65,8 +74,6 @@ export default function AppOperator() {
     const [selectedTraining, setSelectedTraining] = useState(null);
     const [surveyResult, setSurveyResult] = useState(null);
     const [selectedNews, setSelectedNews] = useState(null);
-    const notificationCountKeyRef = useRef("");
-
     // Creamos un estado para guardar el número de notificaciones nuevas
     const [notificacionesCount, setNotificacionesCount] = useState(0);
 
@@ -93,50 +100,31 @@ export default function AppOperator() {
         refetch: refetchTrainings
     } = useOperatorTrainings({ enabled: screen === "training" });
 
-    // La cuenta de notificaciones solo se debe consultar cuando el usuario
-    // entra a la vista de notificaciones. El home no necesita ese fetch.
+    // La campana debe actualizarse aunque el usuario esté en Encuestas u otra vista.
     useEffect(() => {
-        const currentUserId = user?.uid || user?.id;
+        const notificationUserIds = getNotificationUserIds(user);
 
-        if (!currentUserId || screen !== "notifications") {
-            notificationCountKeyRef.current = "";
+        if (!notificationUserIds.length) {
             setNotificacionesCount(0);
             return;
         }
 
-        const cacheKey = `notif-count:${currentUserId}:${screen}`;
-        if (notificationCountKeyRef.current === cacheKey) {
-            return;
-        }
+        const q = query(
+            collection(db, "notificaciones"),
+            where("IdUsuario", "in", notificationUserIds)
+        );
 
-        notificationCountKeyRef.current = cacheKey;
-
-        const loadNotificationCount = async () => {
-            try {
-                const q = query(
-                    collection(db, "notificaciones"),
-                    where("IdUsuario", "==", currentUserId)
-                );
-
-                const snapshot = await getDocs(q);
-                const notificacionesRecientes = snapshot.docs
-                    .map(docItem => ({ id: docItem.id, ...docItem.data() }))
-                    .sort((a, b) => {
-                        const aTime = a.fechaCreacion?.toDate ? a.fechaCreacion.toDate().getTime() : new Date(a.fechaCreacion || 0).getTime();
-                        const bTime = b.fechaCreacion?.toDate ? b.fechaCreacion.toDate().getTime() : new Date(b.fechaCreacion || 0).getTime();
-                        return bTime - aTime;
-                    })
-                    .slice(0, 50);
-
-                setNotificacionesCount(notificacionesRecientes.length);
-            } catch (error) {
+        const unsubscribe = onSnapshot(
+            q,
+            (snapshot) => setNotificacionesCount(snapshot.size),
+            (error) => {
                 console.error("Error contando notificaciones del usuario:", error);
                 setNotificacionesCount(0);
             }
-        };
+        );
 
-        loadNotificationCount();
-    }, [user?.uid, user?.id, screen]);
+        return () => unsubscribe();
+    }, [user?.uid, user?.id, user?.userId, user?.nomina, user?.nominaUsuario, user?.numeroNomina]);
 
     // No sincronizamos el perfil del usuario en cada arranque: la sesión ya viene
     // completa y se actualiza solo cuando el usuario hace cambios explícitos.

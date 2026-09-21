@@ -35,6 +35,9 @@
     "functions": {
       "port": 5001
     },
+    "auth": {
+      "port": 9099
+    },
     "singleProjectsMode": true,
     "firestore": {
       "port": 8080

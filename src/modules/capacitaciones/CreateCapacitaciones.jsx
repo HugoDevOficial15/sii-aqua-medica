@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createTraining, getTrainings, updateTraining, deleteTraining } from "../../services/trainingService";
+import { createTraining, getTraining, updateTraining, deleteTraining } from "../../services/trainingService";
 import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
 import Loader from "../../components/Loader";
 import FloatingAlert from "../../components/FloatingAlert";
@@ -343,10 +343,11 @@ export default function CreateCapacitaciones() {
 
     useEffect(() => {
         const load = async () => {
-            const data = await getTrainings();
+            const data = await getTraining();
             setTrainings(data);
             setLoading(false);
-        }
+        };
+
         load();
     }, []);
 
@@ -511,7 +512,7 @@ export default function CreateCapacitaciones() {
                 notifySuccess("Capacitación Creada", "La capacitación fue registrada");
             }
 
-            const update = await getTrainings();
+            const update = await getTraining();
             setTrainings(update);
             setShowModal(false);
             setEditing(false);
@@ -550,14 +551,14 @@ export default function CreateCapacitaciones() {
     const toggleTraining = async (training) => {
         const update = { ...training, activa: !training.activa };
         await updateTraining(training.id, update);
-        const data = await getTrainings();
+        const data = await getTraining();
         setTrainings(data);
     };
 
     const updateTrainingState = async (training, newState) => {
         const update = { ...training, estado: newState };
         await updateTraining(training.id, update);
-        const data = await getTrainings();
+        const data = await getTraining();
         setTrainings(data);
     };
 
@@ -642,7 +643,7 @@ export default function CreateCapacitaciones() {
 
                 // Eliminar capacitación
                 await deleteTraining(training.id);
-                const data = await getTrainings();
+                const data = await getTraining();
                 setTrainings(data);
                 notifySuccess("Capacitación eliminada", "La capacitación, respuestas y archivos fueron eliminados correctamente");
             } catch (error) {
