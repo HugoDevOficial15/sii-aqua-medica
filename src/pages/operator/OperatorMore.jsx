@@ -12,6 +12,7 @@ import {
     FiActivity,
     FiHeart
 } from "react-icons/fi";
+import { FaUtensils } from "react-icons/fa";
 
 export default function OperatorMore({
     onNavigate
@@ -45,6 +46,13 @@ export default function OperatorMore({
             icon: <FiBookOpen />,
             title: "Capacitaciones",
             subtitle: "Cursos asignados"
+        },
+
+        {
+            id: "comedor",
+            icon: <FaUtensils />,
+            title: "Comedor",
+            subtitle: "Menús y reservas"
         },
 
         {

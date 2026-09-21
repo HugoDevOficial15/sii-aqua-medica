@@ -43,6 +43,7 @@ const Capacitaciones = lazy(() => import("../pages/admin/Capacitaciones"));
 const CompConductual = lazy(() => import("../modules/comp-conductual/CompConductual"));
 const MisCitasMedicas = lazy(() => import("../pages/operator/MisCitasMedicas"));
 const ExpedienteClinico = lazy(() => import("../pages/operator/ExpedienteClinico"));
+const OperadorComedor = lazy(() => import("../pages/operator/OperadorComedor"));
 
 const RouteFallback = () => <Loader text="Preparando la página..." />;
 
@@ -422,12 +423,22 @@ export default function AppRouter() {
                         }
                     />   
 
-                    {/*EXPEDIENTE MÉDICO PARA EMPLEADOS */} 
+                    {/*EXPEDIENTE MÉDICO PARA EMPLEADOS */}
                     <Route
                         path="/expediente-clinico"
                         element={
                             <ProtectedRoute role="operador">
                                 <ExpedienteClinico />
+                            </ProtectedRoute>
+                        }
+                    />
+
+                    {/*COMEDOR */}
+                    <Route
+                        path="/comedor"
+                        element={
+                            <ProtectedRoute role="operador">
+                                <OperadorComedor />
                             </ProtectedRoute>
                         }
                     />

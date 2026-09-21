@@ -14,6 +14,7 @@ import {
     FiX,
     FiHeart
 } from "react-icons/fi";
+import { FaUtensils } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { doc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../../../config/firebase";
@@ -98,6 +99,12 @@ export default function OperatorDrawer({
             id: "expediente-clinico",
             icon: <FiHeart />,
             label: "Mi expediente Médico"            
+        },
+
+        {
+            id: "comedor",
+            icon: <FaUtensils />,
+            label: "Comedor"
         },
 
         {

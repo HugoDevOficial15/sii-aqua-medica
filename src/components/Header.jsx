@@ -9,7 +9,8 @@ import {
     FaSignOutAlt,
     FaClipboardCheck,
     FaTimes,
-    FaSyringe
+    FaSyringe,
+    FaUtensils,
 } from "react-icons/fa";
 
 import { db } from "../config/firebase";
@@ -80,6 +81,7 @@ export default function Header({ toggleSidebar }) {
                     if (n.Titulo?.includes("📋")) icon = <FaUserCircle />;
                     if (n.Titulo?.includes("📚")) icon = <FaUserCircle />;
                     if (n.Titulo?.includes("🚨")) icon = <FaUserCircle />;
+                    if (n.Titulo?.includes("🍽️")) icon = <FaUserUtensils />;
 
                     return {
                         id: n.id,
