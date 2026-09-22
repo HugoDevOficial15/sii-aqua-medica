@@ -1,14 +1,6 @@
-import { db } from "../config/firebase";
-import {
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    where,
-    doc,
-    updateDoc,
-    deleteDoc
-} from "firebase/firestore";
+﻿import { httpsCallable } from "firebase/functions";
+import { functions, db } from "../config/firebase";
+import { collection, addDoc } from "firebase/firestore";
 import {
     readSessionCache,
     writeCachedData,
@@ -18,12 +10,24 @@ import {
 const SERVICIOS_CACHE_KEY = "sii-aqua-servicios-cache";
 const SERVICIOS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
+const call = (name) => httpsCallable(functions, name);
+
+const getServiciosFunction = call("getServicios");
+const getServiciosGlobalFunction = call("getServiciosGlobal");
+const crearServicioFunction = call("crearServicio");
+const actualizarServicioFunction = call("actualizarServicio");
+const getDiasBloqueadosFunction = call("getDiasBloqueados");
+const bloquearDiaFunction = call("bloquearDia");
+const eliminarDiaBloqueadoFunction = call("eliminarDiaBloqueado");
+const bloquearHorarioFunction = call("bloquearHorario");
+const getBloqueosHorariosFunction = call("getBloqueosHorarios");
+const eliminarBloqueosHorarioFunction = call("eliminarBloqueosHorario");
+
 const invalidateServiciosCaches = () => {
     clearCachedByPrefix(`${SERVICIOS_CACHE_KEY}:`);
     clearCachedByPrefix("sii-aqua-servicios-programados-cache:");
 };
 
-// 🔹 Obtener servicios por área + mes + año (NO TOCAR)
 export const getServicios = async (areaId, anio, mes) => {
     const cacheKey = `${SERVICIOS_CACHE_KEY}:${String(areaId || "global")}:${anio}:${mes}`;
     const cached = readSessionCache(cacheKey, SERVICIOS_CACHE_TTL_MS);
@@ -31,26 +35,14 @@ export const getServicios = async (areaId, anio, mes) => {
         return cached;
     }
 
-    const areaID = areaId.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    const q = query(
-        collection(db, "servicios_programados"),
-        where("areaId", "==", areaID),
-        where("anio", "==", anio),
-        where("mes", "==", mes)
-    );
-
-    const snap = await getDocs(q);
-    const servicios = snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+    const areaID = String(areaId || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const result = await getServiciosFunction({ areaId: areaID, anio, mes });
+    const servicios = Array.isArray(result?.data) ? result.data : [];
 
     writeCachedData(cacheKey, servicios);
     return servicios;
 };
 
-// 🔥 GLOBAL (NO TOCAR)
 export const getServiciosGlobal = async (anio, mes) => {
     const cacheKey = `${SERVICIOS_CACHE_KEY}:global:${anio}:${mes}`;
     const cached = readSessionCache(cacheKey, SERVICIOS_CACHE_TTL_MS);
@@ -58,40 +50,31 @@ export const getServiciosGlobal = async (anio, mes) => {
         return cached;
     }
 
-    const q = query(
-        collection(db, "servicios_programados"),
-        where("anio", "==", anio),
-        where("mes", "==", mes)
-    );
-
-    const snap = await getDocs(q);
-    const servicios = snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+    const result = await getServiciosGlobalFunction({ anio, mes });
+    const servicios = Array.isArray(result?.data) ? result.data : [];
 
     writeCachedData(cacheKey, servicios);
     return servicios;
 };
 
-// 🔹 Crear servicio (NO TOCAR)
 export const crearServicio = async (data) => {
-
     const payload = {
         ...data,
         estado: "pendiente",
         createdAt: new Date()
     };
 
-    return await addDoc(collection(db, "servicios_programados"), payload);
+    const result = await crearServicioFunction(payload);
+    const servicio = result?.data ?? null;
+    invalidateServiciosCaches();
+    return servicio;
 };
 
-// 🔹 Actualizar (NO TOCAR)
 export const actualizarServicio = async (id, data) => {
-    const ref = doc(db, "servicios_programados", id);
-    const result = await updateDoc(ref, data);
+    const result = await actualizarServicioFunction({ id, ...data });
+    const servicio = result?.data ?? null;
     invalidateServiciosCaches();
-    return result;
+    return servicio;
 };
 
 export const crearLogEquipo = async (equipoId, log) => {
@@ -99,72 +82,37 @@ export const crearLogEquipo = async (equipoId, log) => {
 };
 
 export const getDiasBloqueados = async (anio, mes) => {
-
-    const q = query(
-        collection(db, "dias_bloqueados"),
-        where("anio", "==", anio),
-        where("mes", "==", mes)
-    );
-
-    const snap = await getDocs(q);
-
-    return snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+    const result = await getDiasBloqueadosFunction({ anio, mes });
+    return Array.isArray(result?.data) ? result.data : [];
 };
 
-
-
 export const bloquearDia = async (fecha, motivo) => {
-
-    const [anio, mes, dia] = fecha.split("-");
-    const fechaObj = new Date(anio, mes - 1, dia);
-
-    return await addDoc(collection(db, "dias_bloqueados"), {
-        fecha,
-        motivo,
-        anio: fechaObj.getFullYear(),
-        mes: fechaObj.getMonth() + 1,
-        createdAt: new Date()
-    });
+    const result = await bloquearDiaFunction({ fecha, motivo });
+    const bloqueado = result?.data ?? null;
+    invalidateServiciosCaches();
+    return bloqueado;
 };
 
 export const eliminarDiaBloqueado = async (id) => {
-    const ref = doc(db, "dias_bloqueados", id);
-    return await deleteDoc(ref);
+    const result = await eliminarDiaBloqueadoFunction({ id });
+    invalidateServiciosCaches();
+    return result?.data ?? null;
 };
 
-// 🔥 BLOQUEOS HORARIOS (YA ESTABA BIEN)
 export const bloquearHorario = async (fecha, motivo, horaInicio, horaFin) => {
-
-    return await addDoc(collection(db, "bloqueosHorarios"), {
-        fecha,
-        motivo,
-        horaInicio,
-        horaFin,
-        createdAt: new Date()
-    });
+    const result = await bloquearHorarioFunction({ fecha, motivo, horaInicio, horaFin });
+    const bloqueo = result?.data ?? null;
+    invalidateServiciosCaches();
+    return bloqueo;
 };
 
 export const getBloqueosHorarios = async (anio, mes) => {
-
-    const q = query(
-        collection(db, "bloqueosHorarios"),
-        where("fecha", ">=", `${anio}-${String(mes).padStart(2, "0")}-01`),
-        where("fecha", "<=", `${anio}-${String(mes).padStart(2, "0")}-31`)
-    );
-
-    const snap = await getDocs(q);
-
-    return snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
+    const result = await getBloqueosHorariosFunction({ anio, mes });
+    return Array.isArray(result?.data) ? result.data : [];
 };
 
-
 export const eliminarBloqueoHorario = async (id) => {
-    const ref = doc(db, "bloqueosHorarios", id);
-    return await deleteDoc(ref);
+    const result = await eliminarBloqueosHorarioFunction({ id });
+    invalidateServiciosCaches();
+    return result?.data ?? null;
 };

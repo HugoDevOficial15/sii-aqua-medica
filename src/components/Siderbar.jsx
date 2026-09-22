@@ -174,12 +174,16 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
 ========================= */
 
 .pro-sidebar {
-    position: relative;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
 
     width: 280px;
-    height: 100vh;
+    height: 130vh;
+    max-height: 110vh;
 
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
 
     display: flex;
     flex-direction: column;

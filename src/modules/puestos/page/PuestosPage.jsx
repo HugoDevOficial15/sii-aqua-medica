@@ -10,6 +10,7 @@ import Loader from "../../../components/Loader";
 
 export default function PuestosPage() {
   const { puestos, loading, refresh } = usePuestos();
+  const safePuestos = Array.isArray(puestos) ? puestos : [];
 
   const [showModal, setShowModal] = useState(false);
   const [puestoEdit, setPuestoEdit] = useState(null);
@@ -18,7 +19,7 @@ export default function PuestosPage() {
   const [search, setSaerch] = useState("");
 
   // Filtro
-  const filteredPuestos = puestos.filter((p) => {
+  const filteredPuestos = safePuestos.filter((p) => {
     const termino = sanitizeText(search).trim().toLowerCase();
     const valor = sanitizeText(p.nombre || p.no || "").toLowerCase();
     return valor.includes(termino);
@@ -71,6 +72,7 @@ export default function PuestosPage() {
             puestos={filteredPuestos}
             loading={loading}
             onEdit={handleEdit}
+            onRefresh={refresh}
           />
         </div>
       </div>

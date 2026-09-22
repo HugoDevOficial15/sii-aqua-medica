@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
 import { FaEye } from "react-icons/fa";
-import { db } from "../../../config/firebase";
+import { getPersonalRecordsByUsers } from "../../../services/personalService";
 import RecordDetailModal from "./RecordDetailModal";
 
 export default function CapacitacionesPersonal({ usuario }) {
@@ -12,44 +11,45 @@ export default function CapacitacionesPersonal({ usuario }) {
   useEffect(() => {
     const loadCapacitaciones = async () => {
       try {
-        if (!usuario?.uid && !usuario?.id) {
+        if (!usuario?.uid && !usuario?.id && !usuario?.nomina) {
           setLoading(false);
           return;
         }
 
-        const userId = usuario.uid || usuario.id;
-        const q = query(
-          collection(db, "respuestasCapacitaciones"),
-          where("userId", "==", userId),
-          where("certificado", "==", true)
-        );
+        const records = await getPersonalRecordsByUsers([usuario]);
+        const userCapacitaciones = (records?.capacitaciones || []).filter((record) => {
+          const employeeIds = [usuario?.uid, usuario?.id, usuario?.uidFirebase, usuario?.userId]
+            .filter(Boolean)
+            .map((value) => String(value).trim());
+          const employeeNomina = String(usuario?.nomina || "").trim();
 
-        const snapshot = await getDocs(q);
+          const recordUserIds = [
+            record?.empleadoId,
+            record?.userId,
+            record?.usuarioId,
+            record?.uid,
+            record?.idPaciente,
+            record?.pacienteId,
+            record?.usuarioDocId,
+          ]
+            .filter(Boolean)
+            .map((value) => String(value).trim());
+          const recordNomina = String(
+            record?.empleadoNomina ||
+              record?.nomina ||
+              record?.nominaUsuario ||
+              record?.nominaEmpleado ||
+              "",
+          ).trim();
 
-        // Get all capacitaciones to create a map
-        const capacitacionesSnapshot = await getDocs(collection(db, "capacitaciones"));
-        const capacitacionesMap = {};
-        capacitacionesSnapshot.docs.forEach(doc => {
-          capacitacionesMap[doc.id] = doc.data();
+          return employeeIds.some((id) => recordUserIds.includes(id)) ||
+            (employeeNomina && recordNomina && employeeNomina === recordNomina);
         });
 
-        const capacitacionesData = snapshot.docs.map(respuestaDoc => {
-          const respuestaData = respuestaDoc.data();
-          const capacitacionId = respuestaData.capacitacionId || respuestaData.idCapacitacion;
-          const capacitacionInfo = capacitacionesMap[capacitacionId] || {};
-
-          return {
-            id: respuestaDoc.id,
-            type: "capacitacion",
-            ...respuestaData,
-            descripcion: capacitacionInfo.descripcion || "",
-            fecha: capacitacionInfo.fechaCurso || capacitacionInfo.fechaInicio,
-          };
-        });
-
-        setCapacitaciones(capacitacionesData);
+        setCapacitaciones(userCapacitaciones);
       } catch (error) {
         console.error("Error loading capacitaciones:", error);
+        setCapacitaciones([]);
       } finally {
         setLoading(false);
       }

@@ -187,6 +187,12 @@ export const updateUser = async (id, data) => {
   return result.data;
 };
 
+export const updateUserPasswordByReset = async ({ userId, password, nomina }) => {
+  const result = await call("updateUserPasswordByReset")({ userId, password, nomina });
+  invalidateUserAndPersonalCaches();
+  return result.data;
+};
+
 export const createIncapacidad = async (data) => {
   const result = await call("createIncapacidad")(data);
   invalidateUserAndPersonalCaches();

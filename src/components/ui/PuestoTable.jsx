@@ -3,38 +3,53 @@ import Loader from "../Loader";
 import { useState, useEffect } from "react";
 import { updatePuesto } from "../../services/puestos-service";
 import { notifySuccess, notifyError } from "../../utils/notify";
-
-export default function PuestoTable({ puestos = [], loading, onEdit }) {
-
+import Swal from "sweetalert2";
+export default function PuestoTable({ puestos = [], loading, onEdit, onRefresh }) {
 
     const [openActionsId, setOpenActionsId] = useState(null);
+    const [localPuestos, setLocalPuestos] = useState(puestos);
 
-    // Cerrar el menú de acciones al hacer clic fuera de él
-    
-useEffect(() => {
-    const closeMenu = (event) => {
-        if (!event.target.closest(".puesto-actions-cell")) {
-            setOpenActionsId(null);
-        }
-    };
+    useEffect(() => {
+        setLocalPuestos(puestos);
+    }, [puestos]);
 
-    document.addEventListener("mousedown", closeMenu);
+    useEffect(() => {
+        const closeMenu = (event) => {
+            if (!event.target.closest(".puesto-actions-cell")) {
+                setOpenActionsId(null);
+            }
+        };
 
-    return () => document.removeEventListener("mousedown", closeMenu);
-}, []);
+        document.addEventListener("mousedown", closeMenu);
+
+        return () => document.removeEventListener("mousedown", closeMenu);
+    }, []);
 
     const toggleEstado = async (puesto) => {
+        const nextActivo = !puesto.activo;
         try {
-
-            await updatePuesto(puesto.id, {
-                activo: !puesto.activo
+            const updated = await updatePuesto(puesto.id, {
+                activo: nextActivo,
             });
 
-            notifySuccess("Estado actualizado");
+            setLocalPuestos((prev) =>
+                prev.map((item) =>
+                    item.id === puesto.id
+                        ? {
+                            ...item,
+                            activo: updated?.activo ?? nextActivo,
+                            nombre: updated?.nombre ?? item.nombre,
+                        }
+                        : item
+                )
+            );
 
-            // recargar página suavemente
-            window.location.reload();
+            if (typeof onRefresh === "function") {
 
+                await onRefresh();
+            }
+
+            notifySuccess("Estado actualizado", `El puesto quedó ${nextActivo ? "activo" : "inactivo"}.`);
         } catch (error) {
             notifyError("No se pudo actualizar el estado");
         }
@@ -42,7 +57,7 @@ useEffect(() => {
 
     if (loading) return <Loader />;
 
-    if (!puestos.length)
+    if (!localPuestos.length)
         return <div className="text-center py-4">Sin registros</div>;
 
     return (
@@ -61,7 +76,7 @@ useEffect(() => {
 
             <tbody>
 
-                {puestos.map((p) => (
+                {localPuestos.map((p) => (
 
                     <tr key={p.id}
                         className={openActionsId === p.id ? "puesto-row-active" : ""}>

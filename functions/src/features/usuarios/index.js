@@ -28,6 +28,38 @@ const searchFields = (data = {}, nomina = data.nomina) => ({
 
 const userFromSnapshot = (snapshot) => ({ id: snapshot.id, ...snapshot.data() });
 
+const applyUserFilters = (query, filters = {}) => {
+  let nextQuery = query;
+  const { empresaId, rol, activo } = filters;
+
+  if (empresaId !== undefined && empresaId !== null && empresaId !== "") {
+    nextQuery = nextQuery.where("empresaId", "==", String(empresaId));
+  }
+
+  if (rol !== undefined && rol !== null && rol !== "") {
+    nextQuery = nextQuery.where("rol", "==", String(rol));
+  }
+
+  if (activo !== undefined && activo !== null && activo !== "") {
+    nextQuery = nextQuery.where("activo", "==", activo === true || activo === "true");
+  }
+
+  return nextQuery;
+};
+
+const buildUsersPageQuery = ({ cursor = null, pageSize = 30, filters = {} } = {}) => {
+  const limit = Math.min(Math.max(Number(pageSize || 30), 1), 60);
+  let query = usersCollection.orderBy("nomina", "asc").limit(limit + 1);
+
+  query = applyUserFilters(query, filters);
+
+  if (cursor !== undefined && cursor !== null && cursor !== "") {
+    query = query.startAfter(Number(cursor));
+  }
+
+  return query;
+};
+
 const sortIncapacidades = (items) => items.sort((a, b) =>
   String(b.fechaInicio || "").localeCompare(String(a.fechaInicio || "")));
 
@@ -99,22 +131,50 @@ const getIncapacidadesForUser = async (userSnapshot, nomina) => {
 
 exports.getUsers = onCall(async (request) => {
   requireAuth(request);
-  const snapshot = await usersCollection.orderBy("nomina", "asc").get();
+  const data = request.data || {};
+  const filters = {
+    empresaId: data.empresaId,
+    rol: data.rol,
+    activo: data.activo,
+  };
+
+  const pageSize = data.pageSize !== undefined && data.pageSize !== null && data.pageSize !== ""
+    ? Number(data.pageSize)
+    : null;
+
+  if (pageSize !== null) {
+    const query = buildUsersPageQuery({ cursor: data.cursor, pageSize, filters });
+    const snapshot = await query.get();
+    const limit = Math.min(Math.max(pageSize, 1), 60);
+    const hasMore = snapshot.docs.length > limit;
+    const pageDocs = hasMore ? snapshot.docs.slice(0, limit) : snapshot.docs;
+    const users = pageDocs.map(userFromSnapshot);
+
+    return {
+      users,
+      hasMore,
+      nextCursor: hasMore ? users[users.length - 1]?.nomina ?? null : null,
+    };
+  }
+
+  let query = usersCollection.orderBy("nomina", "asc");
+  query = applyUserFilters(query, filters);
+  const snapshot = await query.get();
   return snapshot.docs.map(userFromSnapshot);
 });
 
 exports.getUsersPage = onCall(async (request) => {
   requireAuth(request);
-  const requestedSize = Number(request.data?.pageSize || 30);
-  const pageSize = Math.min(Math.max(requestedSize, 1), 30);
-  const cursor = request.data?.cursor;
-  let query = usersCollection.orderBy("nomina", "asc").limit(pageSize + 1);
+  const data = request.data || {};
+  const filters = {
+    empresaId: data.empresaId,
+    rol: data.rol,
+    activo: data.activo,
+  };
 
-  if (cursor !== undefined && cursor !== null && cursor !== "") {
-    query = query.startAfter(Number(cursor));
-  }
-
+  const query = buildUsersPageQuery({ cursor: data.cursor, pageSize: data.pageSize || 30, filters });
   const snapshot = await query.get();
+  const pageSize = Math.min(Math.max(Number(data.pageSize || 30), 1), 60);
   const hasMore = snapshot.docs.length > pageSize;
   const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
   const users = pageDocs.map(userFromSnapshot);
@@ -128,17 +188,41 @@ exports.getUsersPage = onCall(async (request) => {
 
 exports.searchUsers = onCall(async (request) => {
   requireAuth(request);
-  const search = normalizeSearchText(request.data?.search);
-  if (!search) return { users: [], hasMore: false };
+  const data = request.data || {};
+  const search = normalizeSearchText(data.search);
+  const filters = {
+    empresaId: data.empresaId,
+    rol: data.rol,
+    activo: data.activo,
+  };
+
+  if (!search) {
+    const query = buildUsersPageQuery({ cursor: data.cursor, pageSize: data.pageSize || 30, filters });
+    const snapshot = await query.get();
+    const pageSize = Math.min(Math.max(Number(data.pageSize || 30), 1), 60);
+    const hasMore = snapshot.docs.length > pageSize;
+    const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+    const users = pageDocs.map(userFromSnapshot);
+
+    return { users, hasMore, nextCursor: hasMore ? users[users.length - 1]?.nomina ?? null : null };
+  }
 
   const end = `${search}\uf8ff`;
-  const [nameSnapshot, nominaSnapshot] = await Promise.all([
-    usersCollection.where("nombreBusqueda", ">=", search).where("nombreBusqueda", "<=", end).limit(30).get(),
-    usersCollection.where("nominaBusqueda", ">=", search).where("nominaBusqueda", "<=", end).limit(30).get(),
-  ]);
+  const queryBuilders = [
+    usersCollection.where("nombreBusqueda", ">=", search).where("nombreBusqueda", "<=", end),
+    usersCollection.where("nominaBusqueda", ">=", search).where("nominaBusqueda", "<=", end),
+  ].map((query) => applyUserFilters(query, filters));
+
+  const [nameSnapshot, nominaSnapshot] = await Promise.all(
+    queryBuilders.map((query) => query.limit(Number(data.pageSize || 30)).get()),
+  );
+
   const records = new Map();
   [...nameSnapshot.docs, ...nominaSnapshot.docs].forEach((doc) => records.set(doc.id, userFromSnapshot(doc)));
-  const users = [...records.values()].sort((a, b) => Number(a.nomina) - Number(b.nomina)).slice(0, 30);
+
+  const users = [...records.values()]
+    .sort((a, b) => Number(a.nomina) - Number(b.nomina))
+    .slice(0, Number(data.pageSize || 30));
 
   return { users, hasMore: false, nextCursor: null };
 });
@@ -275,6 +359,32 @@ exports.updateUserFields = onCall(async (request) => {
   const nextData = { ...user.data(), ...updates };
   await user.ref.update({ ...updates, ...searchFields(nextData, nextData.nomina), updatedAt: FieldValue.serverTimestamp() });
   return { success: true, data: { id: user.id, ...user.data(), ...updates } };
+});
+
+exports.updateUserPasswordByReset = onCall(async (request) => {
+  requireAuth(request);
+  const { userId, password, nomina } = request.data || {};
+  const userSnapshot = await getUserByUidOrId(userId);
+  if (!userSnapshot) throw new HttpsError("not-found", "Usuario no encontrado.");
+
+  const userData = userSnapshot.data() || {};
+  const uid = userData.uid;
+  if (!uid) throw new HttpsError("not-found", "No se encontró el UID del usuario.");
+
+  const resetPassword = String(password || "").trim() || `AQUAmedica${userData.nomina ?? nomina ?? ""}`;
+  if (!resetPassword) throw new HttpsError("invalid-argument", "La contraseña de reset no es válida.");
+
+  await admin.auth().updateUser(uid, { password: resetPassword });
+  await userSnapshot.ref.update({
+    mustChangePassword: true,
+    activo: true,
+    bloqueado: false,
+    intentosFallidos: 0,
+    ultimoIntentoFallido: null,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  return { success: true, userId: userSnapshot.id, uid, password: resetPassword };
 });
 
 exports.resetFailedLoginAttempts = onCall(async (request) => {

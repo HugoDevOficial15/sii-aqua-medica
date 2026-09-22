@@ -48,9 +48,10 @@ export default function InventarioPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await getEquipos();
+      const response = await getEquipos({ pageSize: 50 });
+      const data = Array.isArray(response) ? response : response?.items || [];
 
-      const ordenados = data.sort((a, b) =>
+      const ordenados = [...data].sort((a, b) =>
         a.codigo.localeCompare(b.codigo, undefined, {
           numeric: true,
           sensitivity: "base",

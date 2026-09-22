@@ -1,73 +1,70 @@
-// Import Firebase
-import { db } from "../config/firebase";
-import { getFirestore, doc, getDoc, query, collection, where, getDocs, addDoc, updateDoc, orderBy } from "firebase/firestore";
-import { readSessionCache, writeSessionCache, readMemoryCache, writeMemoryCache } from "../utils/cacheStore";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
+import {
+  readSessionCache,
+  writeSessionCache,
+  readMemoryCache,
+  writeMemoryCache,
+  clearCachedByPrefix,
+} from "../utils/cacheStore";
 
-const collectionName = "equipos";
 const CACHE_KEY = "sii-aqua-equipos-cache";
+const call = (name) => httpsCallable(functions, name);
 
-// Obtener datos!
-export const getEquipos = async ({ estado = null, tipo = null } = {}) => {
-    const cacheKey = `${CACHE_KEY}:${estado === null ? "all" : String(estado)}:${tipo || "all"}`;
-    const cached = readMemoryCache(cacheKey) ?? readSessionCache(cacheKey);
-    if (cached) {
-        return cached;
-    }
+const getEquiposFunction = call("getEquipos");
+const createEquipoFunction = call("createEquipo");
+const updateEquipoFunction = call("updateEquipo");
+const activarEquipoFunction = call("activarEquipo");
+const bajaEquipoFunction = call("bajaEquipo");
 
-    const constraints = [];
-    if (estado !== null && estado !== undefined) {
-        constraints.push(where("estado", "==", estado));
-    }
-    if (tipo) {
-        constraints.push(where("tipo", "==", tipo));
-    }
-    constraints.push(orderBy("codigo", "asc"));
+const invalidateEquiposCache = () => {
+  clearCachedByPrefix(CACHE_KEY);
+};
 
-    const q = query(collection(db, collectionName), ...constraints);
-    const snap = await getDocs(q);
-    const equipos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+export const getEquipos = async ({ estado = null, tipo = null, pageSize = null, cursor = null } = {}) => {
+  const cacheKey = `${CACHE_KEY}:${estado === null ? "all" : String(estado)}:${tipo || "all"}:${pageSize ?? "all"}:${cursor ?? "first"}`;
+  const cached = readMemoryCache(cacheKey) ?? readSessionCache(cacheKey);
 
+  if (cached && pageSize === null) {
+    return cached;
+  }
+
+  const result = await getEquiposFunction({ estado, tipo, pageSize, cursor });
+  const data = result?.data ?? [];
+  const equipos = Array.isArray(data) ? data : (data.items ?? []);
+
+  if (pageSize === null) {
     writeMemoryCache(cacheKey, equipos);
     writeSessionCache(cacheKey, equipos);
-    return equipos;
-}
+  }
 
-// Crear uno
+  return data;
+};
+
 export const createEquipo = async (data) => {
+  const result = await createEquipoFunction(data);
+  const equipo = result?.data ?? null;
+  invalidateEquiposCache();
+  return equipo;
+};
 
-    return await addDoc(collection(db, collectionName), {
-        ...data,
-        estado: true,
-        createdAt: new Date()
-    });
-
-}
-
-// Actualizar Equipo
 export const updateEquipo = async (id, data) => {
-
-    const ref = doc(db, collectionName, id)
-    return await updateDoc(ref, {
-        ...data,
-        updateAt: new Date()
-    });
-
-}
+  const result = await updateEquipoFunction({ id, ...data });
+  const equipo = result?.data ?? null;
+  invalidateEquiposCache();
+  return equipo;
+};
 
 export const activarEquipo = async (id) => {
-    const ref = doc(db, collectionName, id)
-    return await updateDoc(ref, {
-        estado: true
-    })
-}
+  const result = await activarEquipoFunction({ id });
+  const equipo = result?.data ?? null;
+  invalidateEquiposCache();
+  return equipo;
+};
 
-// BAja equipo.
 export const bajaEquipo = async (id) => {
-
-    const ref = doc(db, collectionName, id);
-    return await updateDoc(ref, {
-        estado: false
-    })
-
-
-}
+  const result = await bajaEquipoFunction({ id });
+  const equipo = result?.data ?? null;
+  invalidateEquiposCache();
+  return equipo;
+};

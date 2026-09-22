@@ -11,7 +11,7 @@ export const usePuestos = () => {
         setLoading(true);
         const data = await getPuestos();
 
-        setPuestos(data);
+        setPuestos(Array.isArray(data) ? data : []);
         setLoading(false);
 
     }

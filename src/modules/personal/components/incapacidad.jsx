@@ -6,6 +6,7 @@ import {
   invalidateUserAndPersonalCaches,
   updateUser,
 } from "../../../services/usersService";
+import { createPersonalIncapacidad } from "../../../services/personalService";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { notifyError } from "../../../utils/notify";
 import { FaHouseUser } from "react-icons/fa";
@@ -380,12 +381,8 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
       const tipo = sanitizeTextTrim(isWoman(usuario) ? form.tipo : "incapacidad") || "incapacidad";
       const nota = sanitizeText(form.nota);
 
-      await createIncapacidad({
-        userId: usuario.id,
-        nomina: sanitizeTextTrim(usuario.nomina),
-        nombre: sanitizeTextTrim(usuario.nombre),
-        genero: sanitizeTextTrim(usuario.Genero || usuario.genero || ""),
-        area: sanitizeTextTrim(usuario.area || ""),
+      await createPersonalIncapacidad({
+        empleado: usuario,
         tipo,
         fechaInicio: form.fechaInicio,
         fechaFin: form.fechaFin,

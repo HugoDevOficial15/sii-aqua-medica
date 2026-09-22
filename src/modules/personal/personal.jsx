@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
 import "./components/personal.css";
 import {
   FaEllipsisV,
@@ -13,12 +12,15 @@ import {
   FaChalkboardTeacher
 } from "react-icons/fa";
 
-import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import Loader from "../../components/Loader";
 import { readSessionCache, writeSessionCache, readMemoryCache, writeMemoryCache } from "../../utils/cacheStore";
-import { getAllowedUsersForPersonal, canAccessPersonalSection, } from "../../services/personalConfig";
-import { getUsersPageData } from "../../services/usersService";
+import { canAccessPersonalSection } from "../../services/personalConfig";
+import {
+  getPersonalUsers,
+  getPersonalPageData,
+  getPersonalRecordsByUsers,
+} from "../../services/personalService";
 import ReconocimientoModal from "./components/reconocimiento";
 import IncidenciaModal from "./components/incidencia";
 import RecordDetailModal from "./components/RecordDetailModal"; 
@@ -100,16 +102,6 @@ const mapMedicalHistoryRecords = (docs = []) =>
       fecha: doc.data().fechaCierre || doc.data().fechaApertura,
     }));
 
-const BATCH_IN_QUERY_LIMIT = 10;
-
-const chunkArray = (items = [], size = BATCH_IN_QUERY_LIMIT) => {
-  const chunks = [];
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-  return chunks;
-};
-
 const dedupeRecords = (records = []) => {
   const seen = new Set();
   return records.filter((record) => {
@@ -141,132 +133,6 @@ const buildEmptyRecordsState = () => ({
   historialesMedicos: [],
   capacitaciones: [],
 });
-
-const fetchUserScopedRecords = async (usuarios = [], usuarioActual = null, options = {}) => {
-  const { forceRefresh = false } = options;
-  const cacheKey = getPersonalRecordsCacheKey(usuarioActual);
-
-  if (!forceRefresh) {
-    const cachedRecords = readMemoryCache(cacheKey) ?? readSessionCache(cacheKey);
-    const hasCachedData =
-      cachedRecords &&
-      Object.values(cachedRecords).some((records) => Array.isArray(records) && records.length > 0);
-
-    if (hasCachedData) {
-      return cachedRecords;
-    }
-  }
-
-  const validUsers = (usuarios || []).filter((user) => user && (user.id || user.uid || user.nomina));
-  if (!validUsers.length) {
-    const empty = {
-      reconocimientos: [],
-      incidencias: [],
-      incapacidades: [],
-      historialesMedicos: [],
-      capacitaciones: [],
-    };
-    writeSessionCache(cacheKey, empty);
-    return empty;
-  }
-
-  const userIds = [
-    ...new Set(
-      validUsers.flatMap((user) => {
-        const values = [user.uid, user.id, user.uidFirebase].filter(Boolean).map((value) => String(value).trim());
-        return values;
-      }),
-    ),
-  ].filter(Boolean);
-  const nominas = [...new Set(validUsers.map((user) => String(user.nomina || "").trim()).filter((value) => value && /^\d+$/.test(value)))];
-  const queryMode = userIds.length > 0 ? "userIds" : "nominas";
-
-  const addUniqueQuery = (queryList, collectionName, field, values) => {
-    if (!Array.isArray(values) || values.length === 0) return;
-
-    const key = `${collectionName}:${field}:${values.slice().sort().join("|")}`;
-    if (queryList.some((item) => item.key === key)) return;
-
-    queryList.push({
-      key,
-      queryRef: query(collection(db, collectionName), where(field, "in", values)),
-    });
-  };
-  
-/*  QUERYS */
-  const recognitionQueries = [];
-  const incidenceQueries = [];
-  const incapacidadQueries = [];
-  const medicalQueries = [];
-  const capacitacionQueries = [];
-
-  if (queryMode === "userIds") {
-    chunkArray(userIds, BATCH_IN_QUERY_LIMIT).forEach((chunk) => {
-      addUniqueQuery(recognitionQueries, "reconocimientos", "empleadoId", chunk);
-      addUniqueQuery(incidenceQueries, "incidencias_personal", "empleadoId", chunk);
-      addUniqueQuery(incapacidadQueries, "incapacidades", "userId", chunk);
-      addUniqueQuery(medicalQueries, "ordenes_medicas", "idPaciente", chunk);
-      addUniqueQuery(capacitacionQueries, "respuestasCapacitaciones", "userId", chunk);
-    });
-  } else {
-    chunkArray(nominas, BATCH_IN_QUERY_LIMIT).forEach((chunk) => {
-      const numericChunk = chunk.map(Number).filter((value) => Number.isFinite(value));
-      addUniqueQuery(recognitionQueries, "reconocimientos", "empleadoNomina", chunk);
-      addUniqueQuery(incidenceQueries, "incidencias_personal", "empleadoNomina", chunk);
-      if (numericChunk.length) {
-        addUniqueQuery(incapacidadQueries, "incapacidades", "nomina", numericChunk);
-      }
-      addUniqueQuery(medicalQueries, "ordenes_medicas", "nominaPaciente", chunk);
-      if (numericChunk.length) {
-        addUniqueQuery(medicalQueries, "ordenes_medicas", "nominaPacienteNum", numericChunk);
-      }
-      addUniqueQuery(capacitacionQueries, "respuestasCapacitaciones", "nominaUsuario", chunk);
-    });
-  }
-
-  const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap, ordenesSnap, capacitacionesSnap, capacitacionesMetaSnap] = await Promise.all([
-    Promise.all(recognitionQueries.map(({ queryRef }) => getDocs(queryRef))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
-    Promise.all(incidenceQueries.map(({ queryRef }) => getDocs(queryRef))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
-    Promise.all(incapacidadQueries.map(({ queryRef }) => getDocs(queryRef))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
-    Promise.all(medicalQueries.map(({ queryRef }) => getDocs(queryRef))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
-    Promise.all(capacitacionQueries.map(({ queryRef }) => getDocs(queryRef))).then((groups) => dedupeRecords(groups.flatMap((group) => group.docs.map((doc) => ({ id: doc.id, ...doc.data() }))))),
-    getDocs(collection(db, "capacitaciones")).then((snapshot) => snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))),
-  ]);
-
-  const capacitacionesMetaMap = new Map(
-    (capacitacionesMetaSnap || []).map((doc) => [doc.id, doc])
-  );
-
-  const capacitacionesArray = (Array.isArray(capacitacionesSnap) ? capacitacionesSnap : []).map((respuesta) => {
-    const metadata = capacitacionesMetaMap.get(respuesta.capacitacionId);
-    return {
-      ...respuesta,
-      descripcion: metadata?.descripcion || respuesta.descripcion || "",
-      fecha: respuesta.fechaEnviado || respuesta.fechaRespuesta || respuesta.createdAt,
-      titulo: respuesta.titulo || metadata?.titulo || metadata?.nombre || "",
-    };
-  });
-
-  const records = {
-    reconocimientos: reconocimientosSnap,
-    incidencias: incidenciasSnap,
-    incapacidades: incapacidadesSnap,
-    historialesMedicos: mapMedicalHistoryRecords(
-      ordenesSnap.filter((record) => {
-        const estado = String(record?.estado ?? "").trim().toLowerCase();
-        return ["cerrada", "en tratamiento", "pendiente"].includes(estado);
-      }).map((record) => ({
-        id: record.id,
-        data: () => record,
-      }))
-    ),
-    capacitaciones: capacitacionesArray,
-  };
-
-  writeMemoryCache(cacheKey, records);
-  writeSessionCache(cacheKey, records);
-  return records;
-};
 
 export default function Personal() {
   const { user } = useAuth();
@@ -342,10 +208,7 @@ export default function Personal() {
       return cachedUsers;
     }
 
-    const { users: syncedUsers } = await getUsersPageData({ forceRefresh });
-    const allowedUsers = getAllowedUsersForPersonal(syncedUsers, user);
-    const visibleUsers = allowedUsers.length ? allowedUsers : [];
-
+    const visibleUsers = await getPersonalUsers({ forceRefresh });
     writeMemoryCache(cacheKey, visibleUsers);
     writeSessionCache(cacheKey, visibleUsers);
     setUsuarios(visibleUsers);
@@ -375,15 +238,7 @@ export default function Personal() {
         const visibleUsers = await refreshVisibleUsers({ forceRefresh: false });
         if (cancelled) return;
 
-        const recordsCacheKey = getPersonalRecordsCacheKey(user);
-        const cachedRecords = readMemoryCache(recordsCacheKey) ?? readSessionCache(recordsCacheKey);
-
-        if (cachedRecords && Object.values(cachedRecords).some((records) => Array.isArray(records) && records.length > 0)) {
-          setAllRecords(cachedRecords);
-          return;
-        }
-
-        const records = await fetchUserScopedRecords(visibleUsers, user, { forceRefresh: false });
+        const records = await getPersonalRecordsByUsers(visibleUsers);
         if (!cancelled) {
           setAllRecords(records);
         }
@@ -405,13 +260,13 @@ export default function Personal() {
     return () => {
       cancelled = true;
     };
-  }, [userKey]);
+  }, [userKey, user]);
 
   const accesoPermitido = canAccessPersonalSection(user);
   const allowedUsers = useMemo(() => {
     if (!user) return [];
-    return getAllowedUsersForPersonal(usuarios, user);
-  }, [usuarios, user]);
+    return usuarios;
+  }, [usuarios]);
 
   const usuariosFiltrados = useMemo(() => {
     const texto = filtro.trim().toLowerCase();
@@ -547,16 +402,8 @@ export default function Personal() {
   const refreshUserRecords = async (usuario) => {
     if (!usuario) return;
 
-    const userCacheKey = getPersonalRecordsCacheKey(usuario);
-    const cachedRecords = readMemoryCache(userCacheKey) ?? readSessionCache(userCacheKey);
-
     try {
-      const scopedRecords = cachedRecords
-        ? cachedRecords
-        : await fetchUserScopedRecords([usuario], usuario, { forceRefresh: true });
-
-      writeMemoryCache(userCacheKey, scopedRecords);
-      writeSessionCache(userCacheKey, scopedRecords);
+      const scopedRecords = await getPersonalRecordsByUsers([usuario]);
       setAllRecords((current) => mergeRecordsState(current, scopedRecords));
     } catch (error) {
       console.error("Error recargando registros del usuario:", error);
@@ -571,14 +418,7 @@ export default function Personal() {
         return buildEmptyRecordsState();
       }
 
-      const recordsCacheKey = getPersonalRecordsCacheKey(user);
-      const cachedRecords = forceRefresh ? null : (readMemoryCache(recordsCacheKey) ?? readSessionCache(recordsCacheKey));
-      const nextRecords = cachedRecords && Object.values(cachedRecords).some((records) => Array.isArray(records) && records.length > 0)
-        ? cachedRecords
-        : await fetchUserScopedRecords(visibleUsers, user, { forceRefresh });
-
-      writeMemoryCache(recordsCacheKey, nextRecords);
-      writeSessionCache(recordsCacheKey, nextRecords);
+      const nextRecords = await getPersonalRecordsByUsers(visibleUsers);
       setAllRecords(nextRecords);
       return nextRecords;
     } catch (error) {

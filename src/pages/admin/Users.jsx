@@ -14,6 +14,7 @@ import {
   migrateUserSearchFields,
   createUser,
   updateUser,
+  updateUserPasswordByReset,
   createIncapacidad,
   getIncapacidadesByUser,
   nominaExists,
@@ -520,13 +521,18 @@ export default function Users({ onClose }) {
     if (!result.isConfirmed) return;
 
     try {
-      await updateUser(user.id, {
-        mustChangePassword: true,
+      const generatedPassword = `AQUAmedica${user.nomina}`;
+      await updateUserPasswordByReset({
+        userId: user.id,
+        nomina: user.nomina,
+        password: generatedPassword,
       });
 
-      notifySuccess("Acceso reiniciado", `Password: AQUAmedica${user.nomina}`);
+      setUsers((prev) => prev.map((item) => (item.id === user.id ? { ...item, mustChangePassword: true } : item)));
+
+      notifySuccess("Acceso reiniciado", `Password: ${generatedPassword}`);
     } catch (error) {
-      console.log("Cambiar paasword:", error);
+      console.log("Cambiar password:", error);
 
       notifyError("Error", "No se pudo resetear el acceso");
     }

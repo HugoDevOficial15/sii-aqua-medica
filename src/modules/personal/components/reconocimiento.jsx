@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
-import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch } from "firebase/firestore";
-import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
-import { createNotification } from "../../../utils/createNotification";
 import { notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
-import { invalidateUserAndPersonalCaches } from "../../../services/usersService";
+import { createPersonalReconocimiento } from "../../../services/personalService";
 import { FaMedal } from "react-icons/fa";
 
 export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
@@ -20,53 +17,10 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
   const [isPrimeraVez, setIsPrimeraVez] = useState(null);
 
   useEffect(() => {
-    const verificarPrimerReconocimiento = async () => {
-      if (!empleado?.id && !empleado?.uid) return;
-
-      try {
-        const q = query(
-          collection(db, "reconocimientos"),
-          where("empleadoId", "==", empleado.id || empleado.uid)
-        );
-        const snapshot = await getDocs(q);
-        setIsPrimeraVez(snapshot.empty);
-      } catch (err) {
-        console.error("Error verificando reconocimientos previos:", err);
-        setIsPrimeraVez(false);
-      }
-    };
-
-    verificarPrimerReconocimiento();
-  }, [empleado]);
+    setIsPrimeraVez(null);
+  }, [empleado?.id, empleado?.uid]);
 
   if (!empleado) return null;
-
-  const resolveUserFirestoreDocId = (empleadoData) => {
-    const candidates = [
-      empleadoData?.docId,
-      empleadoData?.id,
-      empleadoData?.uid,
-      empleadoData?.uidFirebase,
-      empleadoData?.firebaseUid,
-      empleadoData?.userUid,
-    ];
-
-    const found = candidates.find((value) => typeof value === "string" && value.trim().length > 0);
-    return found ? String(found).trim() : null;
-  };
-
-  const resolveUserFirebaseUid = (empleadoData) => {
-    const candidates = [
-      empleadoData?.uidFirebase,
-      empleadoData?.firebaseUid,
-      empleadoData?.userUid,
-      empleadoData?.uid,
-      empleadoData?.id,
-    ];
-
-    const found = candidates.find((value) => typeof value === "string" && value.trim().length > 0);
-    return found ? String(found).trim() : null;
-  };
 
   const handleChange = (field, value) => {
     const nextValue = typeof value === "string" ? sanitizeText(value) : value;
@@ -90,79 +44,12 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
     try {
       const tipoReconocimiento = isPrimeraVez ? "primer_logro" : sanitizeTextTrim(form.tipo);
 
-      const userDocId = resolveUserFirestoreDocId(empleado);
-      const userFirebaseUid = resolveUserFirebaseUid(empleado);
-      if (!userDocId) {
-        throw new Error("No se encontró el id del documento del usuario para crear la ruta de reconocimientos.");
-      }
-
-      const anioActual = new Date().getFullYear();
-      const reconocimientoRef = doc(collection(db, "reconocimientos"));
-
-      // En este proyecto, los usuarios en users/ se guardan por doc.id, no por uid.
-      // Firestore crea la ruta completa automáticamente si no existe:
-      // users/{userDocId}/{anioActual}/informacion/Reconocimientos/{docId}
-      const userYearRecognitionCollection = collection(
-        db,
-        "users",
-        userDocId,
-        String(anioActual),
-        "informacion",
-        "Reconocimientos"
-      );
-      const userYearRecognitionRef = doc(userYearRecognitionCollection);
-      const payload = {
-        id: reconocimientoRef.id,
-        usuarioDocId: userDocId,
-        usuarioUid: userFirebaseUid,
-        empleadoId: empleado.id || empleado.uid || null,
-        empleadoNombre: sanitizeTextTrim(empleado.nombre || "Trabajador") || "Trabajador",
-        empleadoNomina: sanitizeTextTrim(empleado.nomina || ""),
-        empleadoArea: sanitizeTextTrim(empleado.area || ""),
-        emitidoPor: sanitizeTextTrim(user?.nombre || "Sistema") || "Sistema",
-        emitidoPorUid: user?.uid || null,
-        emitidoPorNomina: sanitizeTextTrim(user?.nomina || ""),
+      await createPersonalReconocimiento({
+        empleado,
         titulo,
         descripcion,
         tipo: tipoReconocimiento,
-        estado: "activo",
-        anio: anioActual,
-        fecha: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-      };
-
-      const batch = writeBatch(db);
-      batch.set(reconocimientoRef, payload);
-
-      if (userYearRecognitionRef) {
-        batch.set(userYearRecognitionRef, {
-          ...payload,
-          id: userYearRecognitionRef.id,
-          createdAt: serverTimestamp(),
-        });
-      }
-
-      await batch.commit();
-      invalidateUserAndPersonalCaches();
-
-      if (!userFirebaseUid) {
-        console.warn("No se pudo identificar al destinatario del reconocimiento; no se envió la notificación.");
-        onSuccess?.();
-        onClose?.();
-        return;
-      }
-
-      await createNotification({
-        IdUsuario: userFirebaseUid,
-        Titulo: "🏆 Reconocimiento recibido",
-        Mensaje: `${user?.nombre || "Tu líder"} te otorgó el reconocimiento "${titulo}".`,
-        Destino: "reconocimientos",
-        Accion: "reconocimiento",
-        extra: {
-          empleadoId: payload.empleadoId,
-          tipo: tipoReconocimiento,
-          titulo,
-        },
+        isPrimeraVez: Boolean(isPrimeraVez),
       });
 
       onSuccess?.();

@@ -1,11 +1,8 @@
 import { useState } from "react";
-import { addDoc, collection, doc, getDocs, serverTimestamp, writeBatch } from "firebase/firestore";
-import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
-import { createNotification } from "../../../utils/createNotification";
 import { notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
-import { invalidateUserAndPersonalCaches } from "../../../services/usersService";
+import { createPersonalIncidencia } from "../../../services/personalService";
 import { FaUserTimes } from "react-icons/fa";
 
 export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
@@ -20,20 +17,6 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
   const [error, setError] = useState("");
 
   if (!empleado) return null;
-
-  const resolveUserFirestoreDocId = (empleadoData) => {
-    const candidates = [
-      empleadoData?.docId,
-      empleadoData?.id,
-      empleadoData?.uid,
-      empleadoData?.uidFirebase,
-      empleadoData?.firebaseUid,
-      empleadoData?.userUid,
-    ];
-
-    const found = candidates.find((value) => typeof value === "string" && value.trim().length > 0);
-    return found ? String(found).trim() : null;
-  };
 
   const handleChange = (field, value) => {
     const nextValue = typeof value === "string" ? sanitizeText(value) : value;
@@ -57,68 +40,12 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
     setError("");
 
     try {
-      const userDocId = resolveUserFirestoreDocId(empleado);
-      if (!userDocId) {
-        throw new Error("No se encontró el id del documento del usuario para crear la ruta de incidencias.");
-      }
-
-      const payload = {
-        usuarioDocId: userDocId,
-        empleadoId: empleado.id || empleado.uid || null,
-        empleadoNombre: sanitizeTextTrim(empleado.nombre || "Trabajador") || "Trabajador",
-        empleadoNomina: sanitizeTextTrim(empleado.nomina || ""),
-        empleadoArea: sanitizeTextTrim(empleado.area || ""),
-        reportadoPor: sanitizeTextTrim(user?.nombre || "Sistema") || "Sistema",
-        reportadoPorUid: user?.uid || null,
-        reportadoPorNomina: sanitizeTextTrim(user?.nomina || ""),
+      await createPersonalIncidencia({
+        empleado,
         titulo,
         descripcion,
         tipo,
         prioridad,
-        estado: "pendiente",
-        fecha: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-      };
-
-      const globalRef = doc(collection(db, "incidencias_personal"));
-      const anioActual = new Date().getFullYear();
-      const userYearIncidenciaCollection = collection(
-        db,
-        "users",
-        userDocId,
-        String(anioActual),
-        "informacion",
-        "Incidencias"
-      );
-      const userYearIncidenciaRef = doc(userYearIncidenciaCollection);
-
-      const batch = writeBatch(db);
-      batch.set(globalRef, { ...payload, id: globalRef.id });
-      batch.set(userYearIncidenciaRef, { ...payload, id: userYearIncidenciaRef.id, createdAt: serverTimestamp() });
-      await batch.commit();
-
-      invalidateUserAndPersonalCaches();
-
-      const uidDestino = empleado?.uid || empleado?.uidFirebase || empleado?.firebaseUid || null;
-
-      if (!uidDestino) {
-        console.warn("No se pudo identificar al destinatario de la incidencia; no se envió la notificación.");
-        onSuccess?.();
-        onClose?.();
-        return;
-      }
-
-      await createNotification({
-        IdUsuario: uidDestino,
-        Titulo: "⚠️ Incidencia registrada",
-        Mensaje: `${user?.nombre || "Tu líder"} registró una incidencia para ti: "${titulo}".`,
-        Destino: "incidencias",
-        Accion: "incidencia",
-        extra: {
-          incidenciaId: globalRef.id,
-          empleadoId: payload.empleadoId,
-          prioridad,
-        },
       });
 
       onSuccess?.();

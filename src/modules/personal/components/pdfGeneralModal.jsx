@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../../config/firebase";
 import logo2Image from "../../../utils/img/logo2.jpg";
 import { notifyError } from "../../../utils/notify";
 import { FaGlobe, FaNotesMedical, FaChalkboardTeacher, FaHouseUser, FaMedal, FaUserTimes, FaFilePdf } from "react-icons/fa";
+import { getPersonalPdfReportData } from "../../../services/personalService";
 
 const normalizeDate = (value) => {
   if (!value) return "Sin fecha";
@@ -335,7 +334,7 @@ export default function PdfGeneralModal({
         return;
       }
 
-      const targetUsers =
+      const localTargetUsers =
         tipoReporte === "nomina"
           ? usuarios.filter((usuario) => {
               const texto = nomina.trim().toLowerCase();
@@ -348,28 +347,23 @@ export default function PdfGeneralModal({
             })
           : usuarios;
 
-      if (tipoReporte === "nomina" && targetUsers.length === 0) {
+      if (tipoReporte === "nomina" && localTargetUsers.length === 0) {
         notifyError("No se encontró ningún usuario con esa nómina o nombre.");
         return;
       }
 
-      const [reconocimientosSnap, incidenciasSnap, incapacidadesSnap, ordenesSnap, capacitacionesSnap, capacitacionesInfoSnap] =
-        await Promise.all([
-          getDocs(collection(db, "reconocimientos")),
-          getDocs(collection(db, "incidencias_personal")),
-          getDocs(collection(db, "incapacidades")),
-          getDocs(collection(db, "ordenes_medicas")),
-          getDocs(collection(db, "respuestasCapacitaciones")),
-          getDocs(collection(db, "capacitaciones")),
-        ]);
+      const reportData = await getPersonalPdfReportData({
+        tipoReporte,
+        nomina,
+        categoria,
+        fechaInicio,
+        fechaFin,
+      });
 
-      const capacitacionesMap = new Map(
-        capacitacionesInfoSnap.docs.map((trainingDoc) => [
-          trainingDoc.id,
-          trainingDoc.data(),
-        ]),
-      );
-
+      const targetUsers = Array.isArray(reportData?.users) && reportData.users.length
+        ? reportData.users
+        : localTargetUsers;
+      const records = Array.isArray(reportData?.records) ? reportData.records : [];
       const matchesUser = (record, usuario) => {
         const empleadoId = String(usuario?.id || usuario?.uid || "").trim();
         const recordEmpleadoId = String(
@@ -388,104 +382,20 @@ export default function PdfGeneralModal({
           .trim()
           .toLowerCase();
 
-        // Match by ID
         if (empleadoId && recordEmpleadoId && recordEmpleadoId.toLowerCase() === empleadoId.toLowerCase()) {
           return true;
         }
 
-        // Match by nomina (works for all record types including capacitaciones)
         if (userNomina && recordNomina && recordNomina.toLowerCase() === userNomina.toLowerCase()) {
           return true;
         }
 
-        // Match by nombre
         if (userNombre && recordNombre && recordNombre === userNombre) {
           return true;
         }
 
         return false;
       };
-
-      const rawRecords = [
-        ...reconocimientosSnap.docs.map((doc) => ({
-          id: doc.id,
-          type: "reconocimiento",
-          ...doc.data(),
-        })),
-        ...incidenciasSnap.docs.map((doc) => ({
-          id: doc.id,
-          type: "incidencia",
-          ...doc.data(),
-        })),
-        ...incapacidadesSnap.docs.map((doc) => ({
-          id: doc.id,
-          type: "incapacidad",
-          ...doc.data(),
-        })),
-        ...ordenesSnap.docs
-          .filter((doc) => {
-            const estado = String(doc.data().estado ?? "").trim().toLowerCase();
-            return ["cerrada", "en tratamiento", "pendiente"].includes(estado);
-          })
-          .map((doc) => ({
-            id: doc.id,
-            type: "historialMedico",
-            ...doc.data(),
-            fecha: doc.data().fechaCierre || doc.data().fechaApertura,
-          })),
-        ...capacitacionesSnap.docs.map((trainingDoc) => {
-          const response = trainingDoc.data();
-          const training = capacitacionesMap.get(
-            response.capacitacionId || response.idCapacitacion,
-          ) || {};
-
-          return {
-            id: trainingDoc.id,
-            type: "capacitacion",
-            ...response,
-            titulo: response.titulo || training.titulo || training.nombre,
-            descripcion: training.descripcion || response.descripcion || "",
-            fecha:
-              response.fechaRespuesta ||
-              response.createdAt ||
-              training.fechaCurso ||
-              training.fechaInicio,
-          };
-        }),
-      ];
-
-      const records = rawRecords
-        .filter((record) => {
-          // El reporte por nómina debe respetar el empleado también en las
-          // capacitaciones; el reporte general ya contiene a todo el personal.
-          return targetUsers.some((usuario) => matchesUser(record, usuario));
-        })
-        .filter((record) => matchesDateRange(record))
-        .filter((record) => {
-          const recordType = resolveRecordType(record);
-          if (categoria === "general") return true;
-          if (categoria === "incidencias") return recordType === "incidencia";
-          if (categoria === "reconocimientos") return recordType === "reconocimiento";
-          if (categoria === "incapacidades") return recordType === "incapacidad";
-          if (categoria === "capacitacion") return recordType === "capacitacion";
-          if (categoria === "historialMedico") return recordType === "historialMedico";
-          return true;
-        })
-        .sort((a, b) => {
-          const aTime =
-            a.createdAt && typeof a.createdAt.toDate === "function"
-              ? a.createdAt.toDate().getTime()
-              : new Date(
-                  a.fecha || a.fechaInicio || a.createdAt || 0,
-                ).getTime();
-          const bTime =
-            b.createdAt && typeof b.createdAt.toDate === "function"
-              ? b.createdAt.toDate().getTime()
-              : new Date(
-                  b.fecha || b.fechaInicio || b.createdAt || 0,
-                ).getTime();
-          return bTime - aTime;
-        });
 
       const [{ default: jsPDF }, autoTableModule] = await Promise.all([
         import("jspdf"),
