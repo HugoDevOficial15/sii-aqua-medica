@@ -1,89 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaUtensils, FaCoffee, FaDrumstickBite, FaMoon } from "react-icons/fa";
 import { FiArrowLeft, FiChevronDown } from "react-icons/fi";
+import { useComedorMenus } from "../../hooks/useComedorMenus";
+import { useComedorOrdenes } from "../../hooks/useComedorOrdenes";
+import { useAuth } from "../../hooks/useAuth";
+import { DIAS_SEMANA } from "../../config/comedorConfig";
 
 export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
+    const { user } = useAuth();
+    const { menus, loading: menusLoading, error: menusError } = useComedorMenus();
+    const { guardarOrden, loading: ordenLoading, error: ordenError, success: ordenSuccess, verificarOrdenEnFirestore } = useComedorOrdenes(user?.uid);
+
     const [expandedDay, setExpandedDay] = useState(null);
-    const [activeMealTab, setActiveMealTab] = useState("desayuno");
+    const [activeMealTab, setActiveMealTab] = useState("Desayuno");
     const [mealSelections, setMealSelections] = useState({});
-
-    const menuData = [
-        {
-            day: "Lunes",
-            meals: {
-                desayuno: "Huevos con jamón",
-                comida: "Pollo a la naranja",
-                cena: "Sopa de verduras"
-            }
-        },
-        {
-            day: "Martes",
-            meals: {
-                desayuno: "Hotcakes",
-                comida: "Pasta Carbonara",
-                cena: "Tacos al pastor"
-            }
-        },
-        {
-            day: "Miércoles",
-            meals: {
-                desayuno: "Huevos revueltos",
-                comida: "Carne Asada",
-                cena: "Ensalada"
-            }
-        },
-        {
-            day: "Jueves",
-            meals: {
-                desayuno: "Chilaquiles",
-                comida: "Pescado Empanizado",
-                cena: "Quesadillas"
-            }
-        },
-        {
-            day: "Viernes",
-            meals: {
-                desayuno: "Frutas",
-                comida: "Tacos",
-                cena: "Fajitas"
-            }
-        },
-        {
-            day: "Sábado",
-            meals: {
-                desayuno: "ensalada de frutas",
-                comida: "Ensalada de pollo",
-                cena: "Sopa de pollo"
-            }
-        },
-        {
-            day: "Domingo",
-            meals: {
-                desayuno: "sándwich de jamón",
-                comida: "Sopa de verduras",
-                cena: "Ensalada"
-            }
-        }
-    ];
-
-    const mealTypes = [
-        { type: "desayuno", label: "Desayuno", color: "#FF9800", icon: <FaCoffee /> },
-        { type: "comida", label: "Comida", color: "#2196F3", icon: <FaDrumstickBite /> },
-        { type: "cena", label: "Cena", color: "#9C27B0", icon: <FaMoon /> }
-    ];
-
-    const mealOptions = [
-        "Una orden",
-        "Media orden",
-        "Orden y media",
-        "Dos órdenes"
-    ];
+    const [confirmacion, setConfirmacion] = useState(null);
+    const [ordenPendiente, setOrdenPendiente] = useState(null);
+    const [ordenesAcumuladas, setOrdenesAcumuladas] = useState([]);
 
     const mealExtras = [
         "Jugo Natural",
         "Pan",
         "Licuado"
     ];
+
+    const mealTypes = [
+        { type: "Desayuno", label: "Desayuno", color: "#FF9800", icon: <FaCoffee /> },
+        { type: "Comida", label: "Comida", color: "#2196F3", icon: <FaDrumstickBite /> },
+        { type: "Cena", label: "Cena", color: "#9C27B0", icon: <FaMoon /> }
+    ];
+
+    // Construir menuData desde los datos reales de Firebase
+    const menuData = menus
+        ? DIAS_SEMANA.map((day, index) => {
+            const desayunos = menus.desayunos || [];
+            const comidas = menus.comidas || [];
+            const cenas = menus.cenas || [];
+
+            return {
+                day,
+                meals: {
+                    Desayuno: desayunos[index]?.G1 || "No disponible",
+                    Comida: comidas[index]?.G1 || "No disponible",
+                    ComidaSopa: comidas[index]?.SOPA || "NA",
+                    Cena: cenas[index]?.G1 || "No disponible",
+                }
+            };
+          })
+        : [];
+
 
     return (
         <div style={styles.container}>
@@ -100,7 +65,14 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
                     <FaUtensils />
                 </div>
                 <h2 style={styles.heroTitle}>Menú de la semana</h2>
-                <p style={styles.dateRange}>28.09.2026 - 04.10.2026</p>
+                <p style={styles.dateRange}>
+                    {menus?.semana || "Cargando..."}
+                </p>
+                {menusError && (
+                    <p style={{ color: "#c62828", fontSize: "12px", margin: "8px 0 0 0" }}>
+                        Error: {menusError}
+                    </p>
+                )}
             </div>
 
             {/* Meal Type Cards */}
@@ -147,6 +119,9 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
                                     .filter((meal) => meal.type === activeMealTab)
                                     .map((meal) => {
                                         const key = `${day.day}-${meal.type}`;
+                                        const menuText = day.meals[meal.type];
+                                        const soupText = day.meals[`${meal.type}Sopa`];
+
                                         return (
                                             <div key={meal.type} style={styles.mealSection}>
                                                 <div
@@ -155,80 +130,132 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
                                                         borderLeftColor: meal.color
                                                     }}
                                                 >
-                                                    DESCRIPCIÓN
+                                                    MENÚ {meal.label.toUpperCase()}
                                                 </div>
                                                 <div style={styles.mealItem}>
-                                                    {/* Menu Selection: Principal or Asada */}
+                                                    {/* Plato Principal */}
                                                     <div style={styles.menuSelectionContainer}>
-                                                        {["Principal", "Asada"].map((menuType) => {
-                                                            const menuKey = `${key}-menu`;
-                                                            return (
-                                                                <label key={menuType} style={styles.menuRadio}>
-                                                                    <input
-                                                                        type="radio"
-                                                                        name={menuKey}
-                                                                        value={menuType}
-                                                                        checked={mealSelections[menuKey] === menuType}
-                                                                        onChange={(e) => setMealSelections({...mealSelections, [menuKey]: e.target.value})}
-                                                                        style={{marginRight: "6px"}}
-                                                                    />
-                                                                    {menuType === "Principal" ? "G1 - MENU PRINCIPAL" : "G2 - ASADA"}
-                                                                </label>
-                                                            );
-                                                        })}
+                                                        <label style={styles.menuRadio}>
+                                                            <input
+                                                                type="radio"
+                                                                name={`${key}-menu`}
+                                                                value={menuText}
+                                                                checked={mealSelections[key] === menuText}
+                                                                onChange={(e) => setMealSelections({...mealSelections, [key]: e.target.value})}
+                                                                style={{marginRight: "6px"}}
+                                                            />
+                                                            <strong>G1 - PRINCIPAL:</strong> {menuText}
+                                                        </label>
                                                     </div>
 
-                                                    {/* Orden Selector */}
-                                                    <div style={styles.ordenContainer}>
-                                                        <button style={styles.ordenButton}>Orden</button>
-                                                        <select
-                                                            style={styles.mealSelect}
-                                                            value={mealSelections[key] || ""}
-                                                            onChange={(e) => setMealSelections({...mealSelections, [key]: e.target.value})}
-                                                        >
-                                                            <option value="">Seleccionar opción</option>
-                                                            {mealOptions.map((option) => (
-                                                                <option key={option} value={option}>{option}</option>
-                                                            ))}
-                                                        </select>
+                                                    <div style={styles.menuSelectionContainer}>
+                                                        <label style={styles.menuRadio}>
+                                                            <input
+                                                                type="radio"
+                                                                name={`${key}-menu`}
+                                                                value="Asada"
+                                                                checked={mealSelections[key] === "Asada"}
+                                                                onChange={(e) => setMealSelections({...mealSelections, [key]: e.target.value})}
+                                                                style={{marginRight: "6px"}}
+                                                            />
+                                                            <strong>G2 - SECONDARIO: </strong>  ASADA
+                                                        </label>
                                                     </div>
 
-                                                    {/* Extras Section */}
-                                                    <div style={styles.extrasSection}>
-                                                        <div style={styles.extrasLabel}>Extras</div>
-                                                        <div style={styles.extrasGrid}>
-                                                            {mealExtras.map((extra) => {
-                                                                const extraKey = `${key}-${extra}`;
-                                                                return (
-                                                                    <label key={extra} style={styles.extraCheckbox}>
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={mealSelections[extraKey] || false}
-                                                                            onChange={(e) => setMealSelections({...mealSelections, [extraKey]: e.target.checked})}
-                                                                            style={{marginRight: "6px"}}
-                                                                        />
-                                                                        {extra}
-                                                                    </label>
-                                                                );
-                                                            })}
+                                                    {/* Sopa (solo en comida) */}
+                                                    {soupText && soupText !== "NA" && (
+                                                        <div style={styles.soupContainer}>
+                                                            <span style={styles.soupLabel}>SOPA: {soupText}</span>
                                                         </div>
+                                                    )}
+
+                                                    {/* Extras (solo en Desayuno) */}
+                                                    {meal.type === "Desayuno" && (
+                                                        <div style={styles.extrasSection}>
+                                                            <div style={styles.extrasLabel}>Extras</div>
+                                                            <div style={styles.extrasGrid}>
+                                                                {mealExtras.map((extra) => {
+                                                                    const extraKey = `${key}-${extra}`;
+                                                                    return (
+                                                                        <label key={extra} style={styles.extraCheckbox}>
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={mealSelections[extraKey] || false}
+                                                                                onChange={(e) => setMealSelections({...mealSelections, [extraKey]: e.target.checked})}
+                                                                                style={{marginRight: "6px"}}
+                                                                            />
+                                                                            {extra}
+                                                                        </label>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Botones para guardar y limpiar */}
+                                                    <div style={styles.buttonGroup}>
+                                                        <button
+                                                            style={{
+                                                                ...styles.guardarOrdenButton,
+                                                                opacity: mealSelections[key] ? 1 : 0.5,
+                                                                flex: 2,
+                                                            }}
+                                                            onClick={() => {
+                                                                if (mealSelections[key]) {
+                                                                    const extrasSeleccionados = meal.type === "Desayuno"
+                                                                        ? mealExtras.filter(extra => mealSelections[`${key}-${extra}`])
+                                                                        : [];
+
+                                                                    // Agregar directamente al carrito
+                                                                    const nuevaOrden = {
+                                                                        id: `${day.day}-${meal.type}-${Date.now()}`,
+                                                                        dia: day.day,
+                                                                        tipo: meal.type,
+                                                                        menu: mealSelections[key],
+                                                                        extras: extrasSeleccionados,
+                                                                        costo: 25,
+                                                                    };
+
+                                                                    setOrdenesAcumuladas([...ordenesAcumuladas, nuevaOrden]);
+
+                                                                    // Limpiar selección de este día
+                                                                    const newSelections = {...mealSelections};
+                                                                    delete newSelections[key];
+                                                                    if (meal.type === "Desayuno") {
+                                                                        mealExtras.forEach(extra => {
+                                                                            delete newSelections[`${key}-${extra}`];
+                                                                        });
+                                                                    }
+                                                                    setMealSelections(newSelections);
+                                                                }
+                                                            }}
+                                                            disabled={!mealSelections[key] || ordenLoading}
+                                                        >
+                                                            {ordenLoading ? "Guardando..." : "✓ Agregar a Carrito"}
+                                                        </button>
+
+                                                        <button
+                                                            style={{...styles.clearButton, flex: 1}}
+                                                            onClick={() => {
+                                                                const newSelections = {...mealSelections};
+                                                                delete newSelections[key];
+                                                                if (meal.type === "Desayuno") {
+                                                                    mealExtras.forEach(extra => {
+                                                                        delete newSelections[`${key}-${extra}`];
+                                                                    });
+                                                                }
+                                                                setMealSelections(newSelections);
+                                                            }}
+                                                        >
+                                                            🗑️ Limpiar
+                                                        </button>
                                                     </div>
 
-                                                    {/* Clear Button */}
-                                                    <button
-                                                        style={styles.clearButton}
-                                                        onClick={() => {
-                                                            const newSelections = {...mealSelections};
-                                                            delete newSelections[`${key}-menu`];
-                                                            delete newSelections[key];
-                                                            mealExtras.forEach(extra => {
-                                                                delete newSelections[`${key}-${extra}`];
-                                                            });
-                                                            setMealSelections(newSelections);
-                                                        }}
-                                                    >
-                                                        🗑️ Borrar selecciones
-                                                    </button>
+                                                    {ordenError && (
+                                                        <div style={styles.errorAlert}>
+                                                            {ordenError}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -241,25 +268,77 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
 
             {/* Total Section */}
             <div style={styles.totalCard}>
-                <h3 style={styles.totalTitle}>Consumo Total</h3>
-                <p style={styles.totalDateRange}>21.09.2026 - 27.09.2026</p>
+                <h3 style={styles.totalTitle}>Información de Órdenes</h3>
+                <p style={styles.totalDateRange}>{menus?.semana || "Cargando..."}</p>
 
-                <div style={styles.totalStats}>
-                    <div style={styles.totalStat}>
-                        <div style={styles.totalLabel}>Total {activeMealTab.charAt(0).toUpperCase() + activeMealTab.slice(1)}</div>
-                        <div style={styles.totalValue}>$$$</div>
+                {confirmacion && (
+                    <div style={styles.confirmationBanner}>
+                        ✓ {confirmacion}
                     </div>
-                    <div style={styles.totalStat}>
-                        <div style={styles.totalLabel}>Total Semana</div>
-                        <div style={styles.totalValue}>$$$</div>
-                    </div>
-                </div>
+                )}
 
                 <p style={styles.totalNote}>
-                    <strong>NOTA:</strong> Para cualquier duda o aclaración acudir al área correspondiente.
+                    <strong>NOTA:</strong> Selecciona el tipo de comida y el día para ver las opciones disponibles. Marca tu selección y haz clic en "Guardar Orden" para confirmar.
                 </p>
 
             </div>
+            {/* Resumen de órdenes acumuladas */}
+            {ordenesAcumuladas.length > 0 && (
+                <div style={styles.carritoSection}>
+                    <h2 style={styles.carritoTitle}>🛒 Órdenes Acumuladas ({ordenesAcumuladas.length})</h2>
+
+                    <div style={styles.carritoContent}>
+                        {ordenesAcumuladas.map((orden, index) => (
+                            <div key={orden.id} style={styles.ordenItem}>
+                                <div style={styles.ordenInfo}>
+                                    <span style={styles.ordenDia}>{orden.dia}</span>
+                                    <span style={styles.ordenTipo}>{orden.tipo}</span>
+                                    <span style={styles.ordenMenu}>{orden.menu}</span>
+                                    {orden.extras.length > 0 && (
+                                        <span style={styles.ordenExtras}>+ {orden.extras.join(", ")}</span>
+                                    )}
+                                </div>
+                                <div style={styles.ordenCosto}>${orden.costo}</div>
+                                <button
+                                    style={styles.eliminarButton}
+                                    onClick={() => {
+                                        setOrdenesAcumuladas(ordenesAcumuladas.filter((_, i) => i !== index));
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={styles.carritoTotal}>
+                        <strong>TOTAL: ${ordenesAcumuladas.reduce((sum, o) => sum + o.costo, 0)}</strong>
+                    </div>
+
+                    <button
+                        style={styles.confirmarCarritoButton}
+                        onClick={async () => {
+                            // Guardar todas las órdenes
+                            for (const orden of ordenesAcumuladas) {
+                                await guardarOrden(
+                                    orden.tipo,
+                                    orden.menu,
+                                    menus.semana,
+                                    orden.dia,
+                                    orden.extras
+                                );
+                            }
+                            // Limpiar carrito después de guardar todas
+                            setOrdenesAcumuladas([]);
+                            setMealSelections({});
+                        }}
+                        disabled={ordenLoading}
+                    >
+                        {ordenLoading ? "Guardando todas..." : "✓ Confirmar Todas las Órdenes"}
+                    </button>
+                </div>
+            )}
+
                 <div style={{ textAlign: "center", marginTop: "30px" }}>
                 <button
                     style={styles.suggestButton}
@@ -268,6 +347,69 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
                     💡 Enviar sugerencia
                 </button>
             </div>
+
+            {/* Panel de confirmación de orden (debajo de la selección) */}
+            {ordenPendiente && (
+                <div style={{...styles.confirmationPanel, marginBottom: "40px"}}>
+                    <h3 style={styles.panelTitle}>
+                        {ordenPendiente.tipo} seleccionada
+                    </h3>
+
+                    <div style={styles.panelContent}>
+                        <div style={styles.summaryRow}>
+                            <span style={styles.summaryLabel}>Día:</span>
+                            <span style={styles.summaryValue}>{ordenPendiente.dia.toUpperCase()}</span>
+                        </div>
+
+                        <div style={styles.summaryRow}>
+                            <span style={styles.summaryLabel}>Menú:</span>
+                            <span style={styles.summaryValue}>{ordenPendiente.menu.toUpperCase()}</span>
+                        </div>
+
+                        {ordenPendiente.extras.length > 0 && (
+                            <div style={styles.summaryRow}>
+                                <span style={styles.summaryLabel}>Extras:</span>
+                                <span style={styles.summaryValue}>{ordenPendiente.extras.join(", ")}</span>
+                            </div>
+                        )}
+
+                        <div style={styles.summaryTotal}>
+                            <strong>TOTAL: $25</strong>
+                        </div>
+                    </div>
+
+                    <div style={styles.panelButtons}>
+                        <button
+                            style={styles.cancelButton}
+                            onClick={() => setOrdenPendiente(null)}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            style={styles.submitButton}
+                            onClick={async () => {
+                                // Agregar a la lista acumulada
+                                const nuevaOrden = {
+                                    id: `${ordenPendiente.dia}-${ordenPendiente.tipo}-${Date.now()}`,
+                                    dia: ordenPendiente.dia,
+                                    tipo: ordenPendiente.tipo,
+                                    menu: ordenPendiente.menu,
+                                    extras: ordenPendiente.extras,
+                                    costo: 25,
+                                };
+
+                                setOrdenesAcumuladas([...ordenesAcumuladas, nuevaOrden]);
+
+                                // Limpiar panel actual pero mantener el estado
+                                setOrdenPendiente(null);
+                            }}
+                            disabled={ordenLoading}
+                        >
+                            ✓ Agregar a Carrito
+                        </button>
+                    </div>
+                </div>
+            )}
 
         </div>
     );
@@ -493,6 +635,11 @@ const styles = {
         gap: "12px",
         alignItems: "center",
     },
+    buttonGroup: {
+        display: "flex",
+        gap: "12px",
+        alignItems: "center",
+    },
     ordenButton: {
         padding: "10px 16px",
         backgroundColor: "#79a8d4",
@@ -552,5 +699,218 @@ const styles = {
         transition: "all 0.2s ease",
         fontFamily: "inherit",
         marginTop: "8px",
+    },
+    soupContainer: {
+        padding: "10px 12px",
+        backgroundColor: "rgba(182, 209, 243, 0.3)",
+        borderRadius: "8px",
+        borderLeft: "3px solid #2196F3",
+        marginTop: "8px",
+    },
+    soupLabel: {
+        fontSize: "13px",
+        color: "var(--operator-text)",
+        fontWeight: "500",
+    },
+    guardarOrdenButton: {
+        padding: "12px 16px",
+        backgroundColor: "#4CAF50",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        fontWeight: "600",
+        fontSize: "14px",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "inherit",
+        width: "100%",
+    },
+    errorAlert: {
+        padding: "10px 12px",
+        backgroundColor: "#ffebee",
+        borderRadius: "8px",
+        color: "#c62828",
+        fontSize: "12px",
+        marginTop: "8px",
+        border: "1px solid #ef5350",
+    },
+    confirmationBanner: {
+        padding: "12px 16px",
+        backgroundColor: "#c8e6c9",
+        borderRadius: "8px",
+        color: "#2e7d32",
+        fontSize: "13px",
+        fontWeight: "600",
+        marginBottom: "16px",
+        textAlign: "center",
+    },
+    confirmationPanel: {
+        backgroundColor: "var(--operator-card)",
+        borderRadius: "12px",
+        padding: "16px",
+        marginBottom: "24px",
+        border: "2px solid #2196F3",
+        boxShadow: "0 4px 12px rgba(33, 150, 243, 0.2)",
+    },
+    panelTitle: {
+        fontSize: "16px",
+        fontWeight: "700",
+        color: "#2196F3",
+        margin: "0 0 12px 0",
+    },
+    panelContent: {
+        backgroundColor: "var(--operator-background)",
+        borderRadius: "8px",
+        padding: "12px",
+        marginBottom: "12px",
+    },
+    summaryRow: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingBottom: "8px",
+        marginBottom: "8px",
+        borderBottom: "1px solid var(--operator-border)",
+    },
+    summaryLabel: {
+        fontSize: "13px",
+        fontWeight: "600",
+        color: "var(--operator-text-soft)",
+    },
+    summaryValue: {
+        fontSize: "13px",
+        fontWeight: "600",
+        color: "var(--operator-text)",
+    },
+    summaryTotal: {
+        paddingTop: "8px",
+        textAlign: "center",
+        color: "#2196F3",
+        fontSize: "14px",
+        fontWeight: "700",
+    },
+    panelButtons: {
+        display: "flex",
+        gap: "12px",
+    },
+    cancelButton: {
+        flex: 1,
+        padding: "10px 16px",
+        backgroundColor: "#757575",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        fontWeight: "600",
+        fontSize: "13px",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "inherit",
+    },
+    submitButton: {
+        flex: 1,
+        padding: "10px 16px",
+        backgroundColor: "#2196F3",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        fontWeight: "600",
+        fontSize: "13px",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "inherit",
+    },
+    carritoSection: {
+        backgroundColor: "var(--operator-card)",
+        borderRadius: "12px",
+        padding: "16px",
+        marginBottom: "24px",
+        border: "2px solid #4CAF50",
+        boxShadow: "0 4px 12px rgba(76, 175, 80, 0.2)",
+    },
+    carritoTitle: {
+        fontSize: "16px",
+        fontWeight: "700",
+        color: "#4CAF50",
+        margin: "0 0 12px 0",
+    },
+    carritoContent: {
+        marginBottom: "12px",
+        maxHeight: "300px",
+        overflowY: "auto",
+    },
+    ordenItem: {
+        padding: "10px 12px",
+        backgroundColor: "var(--operator-background)",
+        borderRadius: "8px",
+        marginBottom: "8px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        fontSize: "12px",
+    },
+    ordenInfo: {
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+    },
+    ordenDia: {
+        fontWeight: "700",
+        color: "#2196F3",
+    },
+    ordenTipo: {
+        fontSize: "11px",
+        color: "var(--operator-text-soft)",
+        textTransform: "uppercase",
+    },
+    ordenMenu: {
+        color: "var(--operator-text)",
+        fontWeight: "500",
+    },
+    ordenExtras: {
+        fontSize: "11px",
+        color: "#FF9800",
+    },
+    ordenCosto: {
+        fontWeight: "700",
+        color: "#4CAF50",
+        marginRight: "8px",
+        minWidth: "40px",
+        textAlign: "right",
+    },
+    eliminarButton: {
+        padding: "4px 8px",
+        backgroundColor: "#ef4444",
+        color: "white",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+        fontSize: "12px",
+        fontWeight: "700",
+        transition: "all 0.2s ease",
+        fontFamily: "inherit",
+    },
+    carritoTotal: {
+        padding: "12px 16px",
+        backgroundColor: "#c8e6c9",
+        borderRadius: "8px",
+        color: "#2e7d32",
+        textAlign: "center",
+        fontSize: "14px",
+        marginBottom: "12px",
+        fontWeight: "700",
+    },
+    confirmarCarritoButton: {
+        width: "100%",
+        padding: "12px 16px",
+        backgroundColor: "#4CAF50",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        fontWeight: "600",
+        fontSize: "14px",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "inherit",
     },
 };

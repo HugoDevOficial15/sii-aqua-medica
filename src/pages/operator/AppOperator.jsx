@@ -36,6 +36,7 @@ const OperadorComedor = lazy(() => import("./OperadorComedor"));
 const ComedorVisualizacionSemanal = lazy(() => import("./ComedorVisualizacionSemanal"));
 const ComedorVistaLectura = lazy(() => import("./ComedorVistaLectura"));
 const ComedorSugerencias = lazy(() => import("./ComedorSugerencias"));
+const CostosComedor = lazy(() => import("./CostosComedor"));
 const ScreenLoader = () => (
     <div style={{
         minHeight: "220px",
@@ -215,7 +216,9 @@ export default function AppOperator() {
             case "comedor-lectura":
                 return <ComedorVistaLectura onBack={() => setScreen("comedor")} onNavigateSuggestions={() => setScreen("comedor-sugerencias")} />;
             case "comedor-sugerencias":
-                return <ComedorSugerencias onBack={() => setScreen("comedor")} />;
+                return <ComedorSugerencias onBack={() => setScreen("comedor")} uid={user?.uid} />;
+            case "costos-comedor":
+                return <CostosComedor onBack={() => setScreen("more")} />;
             case "expediente-clinico":
                 return <ExpedienteClinico onBack={() => setScreen("more")} />;
             case "suggestion-create":

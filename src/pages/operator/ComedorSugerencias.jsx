@@ -1,28 +1,34 @@
-import { useState } from "react";
-import { FiArrowLeft, FiCamera, FiToggleLeft, FiToggleRight } from "react-icons/fi";
+import { useState, useEffect } from "react";
+import { FiArrowLeft, FiCamera, FiToggleLeft, FiToggleRight, FiRefreshCw } from "react-icons/fi";
+import { useComedorSugerencias } from "../../hooks/useComedorSugerencias";
 
-export default function ComedorSugerencias({ onBack }) {
+export default function ComedorSugerencias({ onBack, uid }) {
     const [suggestion, setSuggestion] = useState("");
     const [isAnonymous, setIsAnonymous] = useState(false);
     const [photoAdded, setPhotoAdded] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
+    const { guardarSugerencia, obtenerSugerencias, sugerencias, loading, error, success } = useComedorSugerencias(uid);
 
-    const handleSubmit = () => {
-        if (suggestion.trim()) {
-            setSubmitted(true);
-            setTimeout(() => {
-                setSuggestion("");
-                setIsAnonymous(false);
-                setPhotoAdded(false);
-                setSubmitted(false);
-            }, 2000);
+    // Cargar sugerencias al montar el componente
+    useEffect(() => {
+        obtenerSugerencias();
+    }, [obtenerSugerencias]);
+
+    const handleSubmit = async () => {
+        if (!suggestion.trim()) return;
+
+        const guardada = await guardarSugerencia(suggestion, isAnonymous, null);
+
+        if (guardada) {
+            setSuggestion("");
+            setIsAnonymous(false);
+            setPhotoAdded(false);
         }
     };
 
     return (
         <div style={styles.container}>
             {/* Header */}
-            <div style={styles.header}>
+            <div className="d-flex align-items-center gap-2">
                 <button onClick={onBack} style={styles.backButton}>
                     <FiArrowLeft />
                 </button>
@@ -40,7 +46,10 @@ export default function ComedorSugerencias({ onBack }) {
 
                     {/* Options */}
                     <div style={styles.optionsRow}>
-                        <div style={styles.optionItem}>
+                        <div
+                            style={{...styles.optionItem, cursor: "pointer"}}
+                            onClick={() => setIsAnonymous(!isAnonymous)}
+                        >
                             <div style={styles.toggleContainer}>
                                 {isAnonymous ?
                                     <FiToggleRight style={styles.toggleIconActive} /> :
@@ -69,26 +78,79 @@ export default function ComedorSugerencias({ onBack }) {
                         onChange={(e) => setSuggestion(e.target.value)}
                     />
 
+                    {/* Error Message */}
+                    {error && (
+                        <div style={styles.errorAlert}>
+                            <p style={styles.errorAlertText}>{error}</p>
+                        </div>
+                    )}
+
                     {/* Submit Button */}
                     <button
                         style={styles.submitButton}
                         onClick={handleSubmit}
-                        disabled={!suggestion.trim()}
+                        disabled={!suggestion.trim() || loading}
                     >
-                        Enviar sugerencia
+                        {loading ? "Enviando..." : "Enviar sugerencia"}
                     </button>
                 </div>
             </div>
 
             {/* Submitted Suggestions Section */}
-            {submitted && (
+            {success && (
                 <div style={styles.section}>
                     <div style={styles.submittedCard}>
-                        <h3 style={styles.submittedTitle}>Respuesta a sugerencias</h3>
+                        <h3 style={styles.submittedTitle}>✓ Sugerencia enviada</h3>
                         <div style={styles.suggestionItem}>
-                            <p style={styles.suggestionText}>Sugerencia realizada:</p>
-                            <p style={styles.suggestionDate}>22 de may. de 2026</p>
+                            <p style={styles.suggestionText}>Tu sugerencia ha sido registrada exitosamente</p>
+                            <p style={styles.suggestionDate}>{new Date().toLocaleDateString('es-ES')}</p>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Respuesta a sugerencias de otros usuarios */}
+            {sugerencias.length > 0 && (
+                <div style={styles.section}>
+                    <div style={styles.responseCard}>
+                        <h3 style={styles.responseTitle}>Respuesta a sugerencias</h3>
+
+                        {sugerencias.map((sug, index) => (
+                            <div key={index} style={styles.suggestionResponseItem}>
+                                <div style={styles.suggestionHeader}>
+                                    <span style={styles.suggestionUser}>
+                                        {sug.anonimo ? "Anónimo" : sug.nombre || sug.Nombre || "Usuario"}
+                                    </span>
+                                    <span style={styles.suggestionDate}>
+                                        {sug.fecha ? new Date(sug.fecha).toLocaleDateString('es-ES') :
+                                         sug.Fecha ? new Date(sug.Fecha).toLocaleDateString('es-ES') : ""}
+                                    </span>
+                                </div>
+
+                                {(sug.texto || sug.Texto || sug.comentario || sug.Comentario) && (
+                                    <p style={styles.suggestionContent}>
+                                        {sug.texto || sug.Texto || sug.comentario || sug.Comentario}
+                                    </p>
+                                )}
+
+                                {(sug.foto || sug.Foto) && (
+                                    <div style={styles.suggestionImage}>
+                                        <img
+                                            src={sug.foto || sug.Foto}
+                                            alt="Foto de sugerencia"
+                                            style={styles.image}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+
+                        {loading && (
+                            <div style={styles.loadingContainer}>
+                                <FiRefreshCw style={{animation: "spin 1s linear infinite"}} />
+                                <p>Cargando sugerencias...</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -283,5 +345,75 @@ const styles = {
         fontSize: "13px",
         color: "var(--operator-text-soft)",
         margin: 0,
+    },
+    errorAlert: {
+        backgroundColor: "#ffebee",
+        border: "1px solid #ef5350",
+        borderRadius: "8px",
+        padding: "12px",
+        marginBottom: "16px",
+    },
+    errorAlertText: {
+        fontSize: "13px",
+        color: "#c62828",
+        margin: 0,
+        fontWeight: "600",
+    },
+    responseCard: {
+        backgroundColor: "var(--operator-card)",
+        borderRadius: "16px",
+        padding: "24px",
+        border: "1px solid var(--operator-border)",
+    },
+    responseTitle: {
+        fontSize: "16px",
+        fontWeight: "600",
+        color: "#2196F3",
+        margin: "0 0 16px 0",
+    },
+    suggestionResponseItem: {
+        padding: "16px",
+        backgroundColor: "var(--operator-background)",
+        borderRadius: "8px",
+        marginBottom: "12px",
+        border: "1px solid var(--operator-border)",
+    },
+    suggestionHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "8px",
+    },
+    suggestionUser: {
+        fontSize: "13px",
+        fontWeight: "600",
+        color: "#2196F3",
+    },
+    suggestionContent: {
+        fontSize: "13px",
+        color: "var(--operator-text)",
+        margin: "8px 0",
+        lineHeight: "1.4",
+    },
+    suggestionImage: {
+        marginTop: "12px",
+        borderRadius: "8px",
+        overflow: "hidden",
+        maxHeight: "200px",
+    },
+    image: {
+        width: "100%",
+        height: "auto",
+        display: "block",
+    },
+    loadingContainer: {
+        textAlign: "center",
+        padding: "20px",
+        color: "var(--operator-text-soft)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        gap: "8px",
     },
 };
