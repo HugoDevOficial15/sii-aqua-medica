@@ -3,10 +3,11 @@ import { FaUtensils, FaCoffee, FaDrumstickBite, FaMoon } from "react-icons/fa";
 import { FiArrowLeft, FiChevronDown } from "react-icons/fi";
 import { useComedorMenus } from "../../hooks/useComedorMenus";
 import { useComedorOrdenes } from "../../hooks/useComedorOrdenes";
+import "../../styles/operator/operator-comedor.css";
 import { useAuth } from "../../hooks/useAuth";
 import { DIAS_SEMANA } from "../../config/comedorConfig";
 
-export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
+export default function OperadorComedor({ onBack }) {
     const { user } = useAuth();
     const { menus, loading: menusLoading, error: menusError } = useComedorMenus();
     const { guardarOrden, loading: ordenLoading, error: ordenError, success: ordenSuccess, verificarOrdenEnFirestore } = useComedorOrdenes(user?.uid);
@@ -64,7 +65,7 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
                 <div style={styles.heroIcon}>
                     <FaUtensils />
                 </div>
-                <h2 style={styles.heroTitle}>Menú de la semana</h2>
+                <h2 style={styles.heroTitle}>Menú de la siguiente semana</h2>
                 <p style={styles.dateRange}>
                     {menus?.semana || "Cargando..."}
                 </p>
@@ -81,13 +82,17 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
                     <button
                         key={meal.type}
                         onClick={() => setActiveMealTab(meal.type)}
+                        className="comedor-meal-card"
                         style={{
                             ...styles.mealCard,
                             ...(activeMealTab === meal.type && styles.mealCardActive),
-                            borderColor: meal.color
+                            borderColor: activeMealTab === meal.type ? meal.color : "transparent"
                         }}
                     >
-                        <div style={{ ...styles.mealIcon, color: meal.color }}>
+                        <div style={{
+                            ...styles.mealIcon,
+                            color: activeMealTab === meal.type ? meal.color : "var(--operator-text-soft)"
+                        }}>
                             {meal.icon}
                         </div>
                         <div style={styles.mealLabel}>{meal.label}</div>
@@ -101,6 +106,7 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
                 {menuData.map((day, index) => (
                     <div key={index} style={styles.dayCard}>
                         <button
+                            className="comedor-day-header"
                             style={styles.dayHeader}
                             onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}
                         >
@@ -231,7 +237,7 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
                                                             }}
                                                             disabled={!mealSelections[key] || ordenLoading}
                                                         >
-                                                            {ordenLoading ? "Guardando..." : "✓ Agregar a Carrito"}
+                                                            {ordenLoading ? "Guardando..." : "✓ Agregar"}
                                                         </button>
 
                                                         <button
@@ -339,15 +345,6 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
                 </div>
             )}
 
-                <div style={{ textAlign: "center", marginTop: "30px" }}>
-                <button
-                    style={styles.suggestButton}
-                    onClick={onNavigateSuggestions}
-                >
-                    💡 Enviar sugerencia
-                </button>
-            </div>
-
             {/* Panel de confirmación de orden (debajo de la selección) */}
             {ordenPendiente && (
                 <div style={{...styles.confirmationPanel, marginBottom: "40px"}}>
@@ -405,7 +402,7 @@ export default function OperadorComedor({ onBack, onNavigateSuggestions }) {
                             }}
                             disabled={ordenLoading}
                         >
-                            ✓ Agregar a Carrito
+                            ✓ Agregar
                         </button>
                     </div>
                 </div>
@@ -466,37 +463,43 @@ const styles = {
     },
     mealCardsContainer: {
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-        gap: "16px",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "12px",
         marginBottom: "32px",
     },
     mealCard: {
         backgroundColor: "var(--operator-card)",
         border: "2px solid transparent",
-        borderRadius: "16px",
-        padding: "20px",
+        borderRadius: "12px",
+        padding: "12px 8px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         cursor: "pointer",
-        transition: "all 0.3s ease",
+        transition: "all 0.2s ease",
         fontFamily: "inherit",
+        minWidth: 0,
+    },
+    mealCardHover: {
+        transform: "translateY(-2px)",
+        boxShadow: "0 8px 20px rgba(0, 0, 0, 0.1)",
     },
     mealCardActive: {
         backgroundColor: "rgba(10, 77, 157, 0.08)",
     },
     mealIcon: {
-        fontSize: "32px",
-        marginBottom: "12px",
+        fontSize: "24px",
+        marginBottom: "6px",
     },
     mealLabel: {
-        fontSize: "13px",
+        fontSize: "11px",
         fontWeight: "600",
         color: "var(--operator-text)",
-        marginBottom: "8px",
+        marginBottom: "4px",
+        textAlign: "center",
     },
     mealCount: {
-        fontSize: "20px",
+        fontSize: "16px",
         fontWeight: "800",
         color: "var(--operator-text)",
     },

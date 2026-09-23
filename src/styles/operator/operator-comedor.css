@@ -1,0 +1,117 @@
+/* =======================================
+COMEDOR
+======================================= */
+
+/* TARJETAS DE MENÚ (Desayuno, Comida, Cena) */
+.comedor-meal-card {
+    transition: all 0.2s ease;
+}
+
+.comedor-meal-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* TARJETAS DE DÍAS */
+.comedor-day-card {
+    transition: all 0.2s ease;
+}
+
+.comedor-day-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.comedor-day-header {
+    transition: all 0.2s ease;
+}
+
+.comedor-day-header:hover {
+    background: rgba(10, 77, 157, 0.04);
+}
+
+/* BOTONES */
+.comedor-orden-button {
+    transition: all 0.2s ease;
+}
+
+.comedor-orden-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(122, 168, 212, 0.3);
+}
+
+.comedor-clear-button {
+    transition: all 0.2s ease;
+}
+
+.comedor-clear-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.comedor-suggest-button {
+    transition: all 0.2s ease;
+}
+
+.comedor-suggest-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(10, 77, 157, 0.3);
+}
+
+/* INPUTS Y SELECTS */
+.comedor-select {
+    transition: all 0.2s ease;
+}
+
+.comedor-select:focus {
+    outline: none;
+    border-color: #2196F3;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+/* CHECKBOXES */
+.comedor-checkbox {
+    transition: all 0.2s ease;
+}
+
+.comedor-checkbox:hover {
+    transform: scale(1.05);
+}
+
+/* RADIO BUTTONS */
+.comedor-radio {
+    transition: all 0.2s ease;
+}
+
+.comedor-radio:hover {
+    transform: scale(1.05);
+}
+
+/* MODO OSCURO */
+html[data-theme="dark"] .comedor-meal-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .comedor-day-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme="dark"] .comedor-day-header:hover {
+    background: rgba(33, 150, 243, 0.08);
+}
+
+html[data-theme="dark"] .comedor-orden-button:hover {
+    box-shadow: 0 4px 12px rgba(122, 168, 212, 0.2);
+}
+
+html[data-theme="dark"] .comedor-clear-button:hover:not(:disabled) {
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+html[data-theme="dark"] .comedor-suggest-button:hover:not(:disabled) {
+    box-shadow: 0 8px 20px rgba(33, 150, 243, 0.2);
+}
+
+html[data-theme="dark"] .comedor-select:focus {
+    border-color: #2196F3;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
+}

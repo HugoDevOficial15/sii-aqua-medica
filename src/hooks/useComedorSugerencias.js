@@ -51,6 +51,19 @@ export const useComedorSugerencias = (uid) => {
     [uid]
   );
 
+  const normalizarSugerencia = (sug) => {
+    return {
+      ...sug,
+      mensaje: sug.mensaje || sug.text || sug.Text || sug.texto || sug.Texto || sug.comentario || sug.Comentario || "",
+      imagen: sug.imagen || sug.image || sug.foto || sug.Foto || sug.urlStorage || null,
+      nombre: sug.nombre || sug.Nombre || "",
+      fecha: sug.fecha || sug.Fecha || sug.DatePost || new Date().toISOString(),
+      
+      // SOLUCIÓN: Buscar 'Anonima' (con 'a') que es lo que devuelve el backend
+      anonimo: sug.Anonima === true || sug.Anonima === "true" || sug.anonimo === true || sug.Anonimo === true,
+    };
+  };
+
   const obtenerSugerencias = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -68,8 +81,15 @@ export const useComedorSugerencias = (uid) => {
       const data = await response.json();
 
       if (data.status === "OK" && data.sugerencias) {
-        setSugerencias(data.sugerencias);
-        console.log("✓ Sugerencias obtenidas:", data.sugerencias);
+        const sugerenciasNormalizadas = data.sugerencias.map(normalizarSugerencia);
+        setSugerencias(sugerenciasNormalizadas);
+        
+        // Console log actualizado para leer la variable correcta de la API
+        console.log("Verificación Anonima:", {
+          original: data.sugerencias[0]?.Anonima, // Con 'a'
+          normalizado: sugerenciasNormalizadas[0]?.anonimo,
+          nombre: sugerenciasNormalizadas[0]?.nombre,
+        });
         return true;
       } else {
         setError("Sin sugerencias disponibles");

@@ -1,6 +1,6 @@
 import { FiArrowLeft, FiMapPin, FiEye } from "react-icons/fi";
 
-export default function ComedorVisualizacionSemanal({ onBack, onNavigate }) {
+export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavigateSuggestions }) {
     return (
         <div style={styles.container}>
             {/* Header */}
@@ -45,6 +45,13 @@ export default function ComedorVisualizacionSemanal({ onBack, onNavigate }) {
                         <p style={styles.cardDate}>28.09.2026-04.10.2026</p>
                     </div>
                     <div style={styles.cardArrow}>→</div>
+                </button>
+            </div>
+
+            {/* Suggestion Button */}
+            <div style={{ textAlign: "center", marginTop: "40px" }}>
+                <button style={styles.suggestButton} onClick={onNavigateSuggestions}>
+                    💡 Enviar sugerencia
                 </button>
             </div>
         </div>
@@ -133,5 +140,18 @@ const styles = {
         color: "var(--operator-text-soft)",
         marginLeft: "16px",
         fontWeight: "600",
+    },
+    suggestButton: {
+        width: "100%",
+        padding: "12px 24px",
+        backgroundColor: "#2196F3",
+        color: "white",
+        border: "none",
+        borderRadius: "12px",
+        fontSize: "14px",
+        fontWeight: "600",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "inherit",
     },
 };

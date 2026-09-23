@@ -48,7 +48,7 @@ export const useComedorMenus = () => {
 
   useEffect(() => {
     obtenerMenus();
-  }, [obtenerMenus]);
+  }, []);
 
   // Obtener precio según tipo de comida
   const obtenerPrecio = (tipo) => {

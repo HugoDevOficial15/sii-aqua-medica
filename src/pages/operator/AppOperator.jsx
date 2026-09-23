@@ -210,11 +210,11 @@ export default function AppOperator() {
             case "citas-medicas":
                 return <OperadorCitasMedicas onBack={() => setScreen("more")} />;
             case "comedor":
-                return <ComedorVisualizacionSemanal onBack={() => setScreen("more")} onNavigate={setScreen} />;
+                return <ComedorVisualizacionSemanal onBack={() => setScreen("more")} onNavigate={setScreen} onNavigateSuggestions={() => setScreen("comedor-sugerencias")} />;
             case "comedor-menu":
-                return <OperadorComedor onBack={() => setScreen("comedor")} onNavigateSuggestions={() => setScreen("comedor-sugerencias")} />;
+                return <OperadorComedor onBack={() => setScreen("comedor")} />;
             case "comedor-lectura":
-                return <ComedorVistaLectura onBack={() => setScreen("comedor")} onNavigateSuggestions={() => setScreen("comedor-sugerencias")} />;
+                return <ComedorVistaLectura onBack={() => setScreen("comedor")} uid={user?.uid} />;
             case "comedor-sugerencias":
                 return <ComedorSugerencias onBack={() => setScreen("comedor")} uid={user?.uid} />;
             case "costos-comedor":

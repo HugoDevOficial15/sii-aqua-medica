@@ -6,12 +6,20 @@ export default function ComedorSugerencias({ onBack, uid }) {
     const [suggestion, setSuggestion] = useState("");
     const [isAnonymous, setIsAnonymous] = useState(false);
     const [photoAdded, setPhotoAdded] = useState(false);
+    const [paginaActual, setPaginaActual] = useState(1);
+    const itemsPorPagina = 10;
     const { guardarSugerencia, obtenerSugerencias, sugerencias, loading, error, success } = useComedorSugerencias(uid);
 
     // Cargar sugerencias al montar el componente
     useEffect(() => {
         obtenerSugerencias();
     }, [obtenerSugerencias]);
+
+    // Calcular sugerencias a mostrar
+    const indiceInicio = (paginaActual - 1) * itemsPorPagina;
+    const indiceFin = indiceInicio + itemsPorPagina;
+    const sugerenciasActuales = sugerencias.slice(indiceInicio, indiceFin);
+    const totalPaginas = Math.ceil(sugerencias.length / itemsPorPagina);
 
     const handleSubmit = async () => {
         if (!suggestion.trim()) return;
@@ -50,11 +58,18 @@ export default function ComedorSugerencias({ onBack, uid }) {
                             style={{...styles.optionItem, cursor: "pointer"}}
                             onClick={() => setIsAnonymous(!isAnonymous)}
                         >
-                            <div style={styles.toggleContainer}>
-                                {isAnonymous ?
-                                    <FiToggleRight style={styles.toggleIconActive} /> :
-                                    <FiToggleLeft style={styles.toggleIcon} />
-                                }
+                            <div style={{
+                                ...styles.toggleContainer,
+                                backgroundColor: isAnonymous ? "rgba(33, 150, 243, 0.2)" : "var(--operator-border)",
+                                boxShadow: isAnonymous ? "0 0 20px rgba(33, 150, 243, 0.6), inset 0 0 10px rgba(33, 150, 243, 0.2)" : "none",
+                                border: isAnonymous ? "2px solid #2196F3" : `1px solid var(--operator-border)`,
+                            }}>
+                                <div style={{
+                                    ...styles.toggleCircle,
+                                    transform: isAnonymous ? "translateX(20px)" : "translateX(0)",
+                                    boxShadow: isAnonymous ? "0 0 15px rgba(33, 150, 243, 0.8)" : "0 2px 4px rgba(0, 0, 0, 0.2)",
+                                    backgroundColor: isAnonymous ? "#2196F3" : "var(--operator-text-soft)",
+                                }}></div>
                             </div>
                             <span style={styles.optionLabel}>Sugerencia anónima</span>
                         </div>
@@ -113,42 +128,114 @@ export default function ComedorSugerencias({ onBack, uid }) {
             {sugerencias.length > 0 && (
                 <div style={styles.section}>
                     <div style={styles.responseCard}>
-                        <h3 style={styles.responseTitle}>Respuesta a sugerencias</h3>
+                        <h3 style={styles.responseTitle}>
+                            Respuesta a sugerencias ({sugerencias.length})
+                        </h3>
 
-                        {sugerencias.map((sug, index) => (
-                            <div key={index} style={styles.suggestionResponseItem}>
-                                <div style={styles.suggestionHeader}>
-                                    <span style={styles.suggestionUser}>
-                                        {sug.anonimo ? "Anónimo" : sug.nombre || sug.Nombre || "Usuario"}
-                                    </span>
-                                    <span style={styles.suggestionDate}>
-                                        {sug.fecha ? new Date(sug.fecha).toLocaleDateString('es-ES') :
-                                         sug.Fecha ? new Date(sug.Fecha).toLocaleDateString('es-ES') : ""}
-                                    </span>
-                                </div>
+                        {sugerenciasActuales.map((sug, index) => {
+                            // Evaluamos si está revisada para cambiar el color del borde
+                            const estaRevisada = sug.estado === "Revisado" || sug.okRH || sug.okComedor;
+                            const colorBorde = estaRevisada ? "#28a745" : "#dc3545"; // Verde si está revisada, Rojo si es pendiente
 
-                                {(sug.texto || sug.Texto || sug.comentario || sug.Comentario) && (
-                                    <p style={styles.suggestionContent}>
-                                        {sug.texto || sug.Texto || sug.comentario || sug.Comentario}
-                                    </p>
-                                )}
-
-                                {(sug.foto || sug.Foto) && (
-                                    <div style={styles.suggestionImage}>
-                                        <img
-                                            src={sug.foto || sug.Foto}
-                                            alt="Foto de sugerencia"
-                                            style={styles.image}
-                                        />
+                            return (
+                                <div key={index} style={{ ...styles.suggestionResponseItem, borderColor: colorBorde }}>
+                                    
+                                    {/* Cabecera (Nombre y Fecha) */}
+                                    <div style={styles.suggestionHeader}>
+                                        <span style={styles.suggestionUser}>
+                                            {sug.anonimo ? "ANÓNIMO" : (sug.nombre || "Usuario").toUpperCase()}
+                                        </span>
+                                        <span style={styles.suggestionDate}>
+                                            {sug.fecha ? new Date(sug.fecha).toLocaleDateString('es-ES') : ""}
+                                        </span>
                                     </div>
-                                )}
-                            </div>
-                        ))}
+
+                                    {/* Texto de la sugerencia */}
+                                    {(sug.mensaje || sug.texto || sug.Texto || sug.comentario || sug.Comentario) && (
+                                        <p style={styles.suggestionContent}>
+                                            {sug.mensaje || sug.texto || sug.Texto || sug.comentario || sug.Comentario}
+                                        </p>
+                                    )}
+
+                                    {/* Fotografía adjunta */}
+                                    {(sug.imagen || sug.foto || sug.Foto) && (
+                                        <div style={styles.suggestionImage}>
+                                            <img
+                                                src={sug.imagen || sug.foto || sug.Foto}
+                                                alt="Foto de sugerencia"
+                                                style={styles.image}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Respuestas de Recursos Humanos */}
+                                    {sug.okRH && sug.comentarioRH && (
+                                        <div style={styles.responseBox}>
+                                            <div style={styles.responseDepartment}>Servicios Médicos</div>
+                                            <div style={styles.responseDate}>
+                                                {sug.fechaRH ? new Date(sug.fechaRH).toLocaleDateString('es-ES') : ""}
+                                            </div>
+                                            <p style={styles.responseContent}>{sug.comentarioRH}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Respuestas de Comedor */}
+                                    {sug.okComedor && sug.comentarioComedor && (
+                                        <div style={styles.responseBox}>
+                                            <div style={styles.responseDepartment}>Comedor</div>
+                                            <div style={styles.responseDate}>
+                                                {sug.fechaComedor ? new Date(sug.fechaComedor).toLocaleDateString('es-ES') : ""}
+                                            </div>
+                                            <p style={styles.responseContent}>{sug.comentarioComedor}</p>
+                                        </div>
+                                    )}
+
+                                    {/* BLOQUE NUEVO: Mensaje de Pendiente */}
+                                    {!estaRevisada && (
+                                        <div style={styles.pendingBox}>
+                                            <div style={styles.pendingTitle}>Pendiente de revisión</div>
+                                            <p style={styles.pendingContent}>Estamos analizando tu sugerencia.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
 
                         {loading && (
                             <div style={styles.loadingContainer}>
                                 <FiRefreshCw style={{animation: "spin 1s linear infinite"}} />
                                 <p>Cargando sugerencias...</p>
+                            </div>
+                        )}
+
+                        {/* Paginación */}
+                        {totalPaginas > 1 && (
+                            <div style={styles.paginationContainer}>
+                                <button
+                                    style={{
+                                        ...styles.paginationButton,
+                                        opacity: paginaActual === 1 ? 0.5 : 1,
+                                    }}
+                                    onClick={() => setPaginaActual(prev => Math.max(1, prev - 1))}
+                                    disabled={paginaActual === 1}
+                                >
+                                    ← Anterior
+                                </button>
+
+                                <span style={styles.paginationInfo}>
+                                    Página {paginaActual} de {totalPaginas}
+                                </span>
+
+                                <button
+                                    style={{
+                                        ...styles.paginationButton,
+                                        opacity: paginaActual === totalPaginas ? 0.5 : 1,
+                                    }}
+                                    onClick={() => setPaginaActual(prev => Math.min(totalPaginas, prev + 1))}
+                                    disabled={paginaActual === totalPaginas}
+                                >
+                                    Siguiente →
+                                </button>
                             </div>
                         )}
                     </div>
@@ -267,18 +354,19 @@ const styles = {
     toggleContainer: {
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
-        height: "32px",
+        justifyContent: "flex-start",
+        width: "46px",
+        height: "20px",
+        borderRadius: "16px",
+        padding: "2px",
+        position: "relative",
+        transition: "all 0.4s ease",
     },
-    toggleIcon: {
-        fontSize: "28px",
-        color: "var(--operator-text-soft)",
-        cursor: "pointer",
-    },
-    toggleIconActive: {
-        fontSize: "28px",
-        color: "#2196F3",
-        cursor: "pointer",
+    toggleCircle: {
+        width: "20px",
+        height: "20px",
+        borderRadius: "50%",
+        transition: "all 0.45s ease",
     },
     cameraIcon: {
         fontSize: "24px",
@@ -399,12 +487,14 @@ const styles = {
         marginTop: "12px",
         borderRadius: "8px",
         overflow: "hidden",
-        maxHeight: "200px",
+        maxHeight: "100%",
+        maxWidth: "100%",
     },
     image: {
         width: "100%",
         height: "auto",
         display: "block",
+        objectFit: "contain",
     },
     loadingContainer: {
         textAlign: "center",
@@ -415,5 +505,76 @@ const styles = {
         justifyContent: "center",
         flexDirection: "column",
         gap: "8px",
+    },
+    paginationContainer: {
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        gap: "12px",
+        marginTop: "16px",
+        paddingTop: "16px",
+        borderTop: "1px solid var(--operator-border)",
+    },
+    paginationButton: {
+        padding: "8px 16px",
+        backgroundColor: "#2196F3",
+        color: "white",
+        border: "none",
+        borderRadius: "6px",
+        fontWeight: "600",
+        fontSize: "12px",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "inherit",
+    },
+    paginationInfo: {
+        fontSize: "12px",
+        fontWeight: "600",
+        color: "var(--operator-text)",
+        minWidth: "120px",
+        textAlign: "center",
+    },
+    responseBox: {
+        backgroundColor: "#e8f5e9",
+        border: "2px solid #4caf50",
+        borderRadius: "8px",
+        padding: "12px",
+        marginTop: "12px",
+    },
+    responseDepartment: {
+        fontSize: "13px",
+        fontWeight: "700",
+        color: "#2e7d32",
+        marginBottom: "4px",
+    },
+    responseDate: {
+        fontSize: "12px",
+        color: "#558b2f",
+        marginBottom: "8px",
+    },
+    responseContent: {
+        fontSize: "13px",
+        color: "#1b5e20",
+        margin: "0",
+        lineHeight: "1.4",
+    },
+    pendingBox: {
+        backgroundColor: "#fffaf9", // Fondo rojizo muy suave
+        border: "1px solid #dc3545", // Borde rojo
+        borderRadius: "8px",
+        padding: "12px",
+        marginTop: "12px",
+        textAlign: "center"
+    },
+    pendingTitle: {
+        fontSize: "14px",
+        fontWeight: "700",
+        color: "#dc3545", // Título en rojo fuerte
+        marginBottom: "4px",
+    },
+    pendingContent: {
+        fontSize: "13px",
+        color: "#6c757d", // Subtítulo en gris claro
+        margin: "0",
     },
 };
