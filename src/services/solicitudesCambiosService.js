@@ -1,32 +1,14 @@
-import { db } from "../config/firebase";
-import { createNotification } from "../utils/createNotification"; // 👈 Asegúrate de que esta ruta sea correcta según la ubicación de tu archivo
-import {
-    collection,
-    addDoc,
-    getDocs,
-    getDoc,
-    doc,
-    deleteDoc,
-    updateDoc,
-    query,
-    where,
-    orderBy,
-    serverTimestamp
-} from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
 
-import { updateUserFields } from "./usersService";
-import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
+const requestProfileChangeFunction = httpsCallable(functions, "requestProfileChange");
+const getAllRequestsFunction = httpsCallable(functions, "getAllRequests");
+const getPendingRequestsFunction = httpsCallable(functions, "getPendingRequests");
+const getUserRequestsFunction = httpsCallable(functions, "getUserRequests");
+const approveRequestFunction = httpsCallable(functions, "approveRequest");
+const rejectRequestFunction = httpsCallable(functions, "rejectRequest");
+const eliminarSolicitudFunction = httpsCallable(functions, "eliminarSolicitud");
 
-const requestCollection = collection(db, "solicitudesCambios");
-const CACHE_KEY = "sii-aqua-solicitudes-cache";
-
-const invalidateRequestsCache = () => {
-    clearCachedData(CACHE_KEY);
-};
-
-// Campos de perfil que un operador puede solicitar cambiar. Se usa tanto
-// para armar el snapshot de "datosActuales" como para limitar qué llaves
-// de "changes" se guardan como "datosSolicitados" (nunca más que esto).
 const CAMPOS_SOLICITABLES = [
     "nombre",
     "Genero",
@@ -38,207 +20,89 @@ const CAMPOS_SOLICITABLES = [
     "puesto",
     "curp",
     "rfc",
-    "nss"
+    "nss",
 ];
 
-const snapshotCampos = (data) => {
-    const snap = {};
-    CAMPOS_SOLICITABLES.forEach(campo => {
-        snap[campo] = data?.[campo] ?? "";
-    });
-    return snap;
+export const resolveUserNomina = (user = {}) => {
+    const rawNomina = user?.nomina ?? user?.nominaUsuario ?? user?.numeroNomina ?? user?.numeroDeNomina ?? user?.nominaEmpleado;
+    if (rawNomina === undefined || rawNomina === null || rawNomina === "") {
+        return null;
+    }
+
+    const numericNomina = Number(String(rawNomina).trim());
+    return Number.isFinite(numericNomina) ? numericNomina : null;
 };
 
-// ======================
-// CREAR SOLICITUD (Operador)
-// ======================
-export const requestProfileChange = async (user, changes) => {
+const normalizeChanges = (changes = {}) => {
+    const normalized = {};
+    CAMPOS_SOLICITABLES.forEach((campo) => {
+        if (changes[campo] !== undefined) {
+            const value = changes[campo];
+            if (campo === "nomina" && value !== "" && value !== null && value !== undefined) {
+                const numeric = Number(String(value).trim());
+                normalized[campo] = Number.isFinite(numeric) ? numeric : String(value).trim();
+                return;
+            }
 
-    if (!user?.nomina) {
+            if (typeof value === "string") {
+                normalized[campo] = value.trim();
+                return;
+            }
+
+            normalized[campo] = value;
+        }
+    });
+    return normalized;
+};
+
+export const requestProfileChange = async (user, changes) => {
+    const normalizedUser = {
+        ...user,
+        nomina: resolveUserNomina(user),
+    };
+
+    if (!normalizedUser?.nomina) {
         return { success: false, error: "NOMINA_NOT_FOUND" };
     }
 
-    const datosSolicitados = {};
-    CAMPOS_SOLICITABLES.forEach(campo => {
-        if (changes[campo] !== undefined) {
-            datosSolicitados[campo] = changes[campo];
-        }
+    const response = await requestProfileChangeFunction({
+        user: normalizedUser,
+        changes: normalizeChanges(changes),
     });
 
-    const docRef = await addDoc(requestCollection, {
-        idUsuario: user.uid,  // ✅ Usar Firebase UID (no user.id)
-        uid: user.uid || null,
-        nominaActual: user.nomina,
-        nombreActual: user.nombre || "",
-        rol: user.rol || "",
-        fechaSolicitud: serverTimestamp(),
-        estado: "Pendiente",
-        datosActuales: snapshotCampos(user),
-        datosSolicitados,
-        comentariosAdministrador: "",
-        fechaRevision: null,
-        administradorRevision: null
-    });
-
-    invalidateRequestsCache();
-
-    return { success: true, id: docRef.id };
+    return response.data || { success: false, error: "UNKNOWN_ERROR" };
 };
 
-// ======================
-// LISTAR (Administrador)
-// ======================
 export const getAllRequests = async () => {
-    const cached = readCachedData(CACHE_KEY);
-    if (cached) {
-        return cached;
-    }
-
-    const q = query(requestCollection, orderBy("fechaSolicitud", "desc"));
-    const snapshot = await getDocs(q);
-    const requests = snapshot.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-    }));
-
-    writeCachedData(CACHE_KEY, requests);
-    return requests;
+    const response = await getAllRequestsFunction();
+    return response.data || [];
 };
 
 export const getPendingRequests = async () => {
-    const q = query(requestCollection, where("estado", "==", "Pendiente"));
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-    }));
+    const response = await getPendingRequestsFunction();
+    return response.data || [];
 };
 
-// ======================
-// MIS SOLICITUDES (Operador)
-// ======================
 export const getUserRequests = async (nomina) => {
-    const q = query(
-        requestCollection,
-        where("nominaActual", "==", nomina)
-    );
-
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => {
-            const fechaA = a.fechaSolicitud?.toMillis?.() ?? 0;
-            const fechaB = b.fechaSolicitud?.toMillis?.() ?? 0;
-            return fechaB - fechaA;
-        });
+    const response = await getUserRequestsFunction({ nomina });
+    return response.data || [];
 };
 
-// ======================
-// APROBAR (Administrador)
-// ======================
 export const approveRequest = async (requestId, administradorRevision) => {
-
-    const requestRef = doc(db, "solicitudesCambios", requestId);
-    const requestSnap = await getDoc(requestRef);
-
-    if (!requestSnap.exists()) {
-        return { success: false, error: "REQUEST_NOT_FOUND" };
-    }
-
-    const solicitud = requestSnap.data();
-
-    const datosSolicitados = { ...solicitud.datosSolicitados };
-    if (datosSolicitados.nomina !== undefined) {
-        datosSolicitados.nomina = Number(datosSolicitados.nomina);
-    }
-
-    const result = await updateUserFields(
-        solicitud.nominaActual,
-        datosSolicitados
-    );
-
-    if (!result.success) {
-        return result;
-    }
-
-    await updateDoc(requestRef, {
-        estado: "Aprobada",
-        fechaRevision: serverTimestamp(),
-        administradorRevision
-    });
-    invalidateRequestsCache();
-
-    // 🔥 USAMOS LA UTILIDAD CREATE NOTIFICATION (Dispara la Push Notification)
-    await createNotification({
-        IdUsuario: solicitud.idUsuario, // UID del operador
-        Titulo: "Solicitud aprobada",
-        Mensaje: "Tus cambios de perfil fueron aprobados.",
-        Destino: "/solicitudes"
-    });
-
-    return { success: true, data: result.data };
-
+    const response = await approveRequestFunction({ requestId, administradorRevision });
+    return response.data || { success: false, error: "UNKNOWN_ERROR" };
 };
 
-// ======================
-// RECHAZAR (Administrador)
-// ======================
 export const rejectRequest = async (requestId, administradorRevision, comentario) => {
-
-    const requestRef = doc(db, "solicitudesCambios", requestId);
-    const requestSnap = await getDoc(requestRef);
-
-    if (!requestSnap.exists()) {
-        return { success: false, error: "REQUEST_NOT_FOUND" };
-    }
-
-    const solicitud = requestSnap.data();
-
-    await updateDoc(requestRef, {
-        estado: "Rechazada",
-        comentariosAdministrador: comentario,
-        fechaRevision: serverTimestamp(),
-        administradorRevision
+    const response = await rejectRequestFunction({
+        requestId,
+        administradorRevision,
+        comentario,
     });
-    invalidateRequestsCache();
-
-    // 🔥 USAMOS LA UTILIDAD CREATE NOTIFICATION (Dispara la Push Notification)
-    await createNotification({
-        IdUsuario: solicitud.idUsuario, // UID del operador
-        Titulo: "Solicitud rechazada",
-        Mensaje: `Tu solicitud fue rechazada. Motivo: ${comentario || "Sin comentarios"}`,
-        Destino: "/solicitudes"
-    });
-
-    return { success: true };
-
+    return response.data || { success: false, error: "UNKNOWN_ERROR" };
 };
 
-// ======================
-// ELIMINAR SOLICITUD (Administrador)
-// ======================
 export const eliminarSolicitud = async (requestId) => {
-    const requestRef = doc(db, "solicitudesCambios", requestId);
-
-    const requestSnap = await getDoc(requestRef);
-
-    if (!requestSnap.exists()) {
-        return { success: false, error: "REQUEST_NOT_FOUND" };
-    }
-
-    const solicitud = requestSnap.data();
-
-    // Solo permitir eliminar cuando la solicitud NO esté en estado Pendiente
-    // (es decir, permitir eliminación solo después de que haya sido Aprobada o Rechazada)
-    if (solicitud.estado === "Pendiente") {
-        return { success: false, error: "IS_PENDING" };
-    }
-
-    await deleteDoc(requestRef);
-    invalidateRequestsCache();
-
-    return { success: true };
-
+    const response = await eliminarSolicitudFunction({ requestId });
+    return response.data || { success: false, error: "UNKNOWN_ERROR" };
 };

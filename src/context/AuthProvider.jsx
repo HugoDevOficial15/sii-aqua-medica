@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { AuthContext } from "./AuthContext";
 
-import { getUserData } from "../services/userService";
+import { getFreshUserData, getUserData } from "../services/userService";
 import { getPermissionsByRole } from "../services/rolesService";
 import { canAccessPersonalSection } from "../services/personalConfig";
 import { clearSessionCaches, readSessionCache, writeSessionCache } from "../utils/cacheStore";
@@ -205,6 +205,36 @@ export function AuthProvider({ children }) {
         });
     }, []);
 
+    const refreshUserProfile = useCallback(async (nominaValue) => {
+        const identifier = nominaValue ?? user?.nomina ?? user?.nominaUsuario ?? user?.numeroNomina ?? user?.numeroDeNomina ?? user?.nominaEmpleado ?? user?.username ?? user?.email?.split("@")?.[0];
+
+        if (!identifier) {
+            return user;
+        }
+
+        try {
+            const freshUserData = await getFreshUserData(String(identifier));
+
+            if (!freshUserData) {
+                return user;
+            }
+
+            const updatedUser = {
+                ...user,
+                ...freshUserData,
+                username: user?.username || freshUserData.username || freshUserData.email?.split("@")[0] || String(identifier),
+                uid: freshUserData.id || user?.uid || user?.id || freshUserData.uid,
+            };
+
+            setUser(updatedUser);
+            writeSessionCache(USER_CACHE_KEY, updatedUser);
+            return updatedUser;
+        } catch (error) {
+            console.error("Error al refrescar el perfil del usuario:", error);
+            return user;
+        }
+    }, [user]);
+
     // ==========================================================
     // VALIDACIÓN DE PERMISOS
     // ==========================================================
@@ -230,8 +260,9 @@ export function AuthProvider({ children }) {
         loading,
         login,
         logout,
-        updateUserProfile
-    }), [user, permisos, can, loading, login, logout, updateUserProfile]);
+        updateUserProfile,
+        refreshUserProfile
+    }), [user, permisos, can, loading, login, logout, updateUserProfile, refreshUserProfile]);
 
     return (
         <AuthContext.Provider value={value}>

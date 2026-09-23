@@ -16,6 +16,7 @@ import { createIdea, getIdeasByUser } from "../../services/ideasService";
 import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
 import MobileBackButton from "./components/MobileBackButton";
 import "../../styles/operator/operator-suggestions.css";
+import Loader from "../../components/Loader";
 
 export default function OperatorSuggestionCreate({ onBack }) {
     const { user } = useAuth();
@@ -35,13 +36,16 @@ export default function OperatorSuggestionCreate({ onBack }) {
     const loadIdeas = async () => {
         setLoading(true);
         try {
-            const nomina = user?.nomina || user?.uid || null;
-            if (nomina) {
-                const list = await getIdeasByUser(nomina);
+            const userKey = user?.nomina || user?.uid || user?.id || null;
+            if (userKey) {
+                const list = await getIdeasByUser(userKey);
                 setIdeas(list || []);
+            } else {
+                setIdeas([]);
             }
         } catch (err) {
             console.error("Error cargando ideas:", err);
+            setIdeas([]);
         } finally {
             setLoading(false);
         }
@@ -429,7 +433,9 @@ export default function OperatorSuggestionCreate({ onBack }) {
             </button>
 
             {loading ? (
-                <div className="suggestion-empty-state">Cargando sugerencias...</div>
+                <div className="suggestion-empty-state">
+                    <Loader text="Cargando tus ideas..." />
+                </div>
             ) : (
                 <>
                     {/* TABS */}

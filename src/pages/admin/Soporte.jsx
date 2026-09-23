@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { collection, addDoc, getDocs, query, orderBy, doc, updateDoc, serverTimestamp, deleteDoc, where } from "firebase/firestore";
-import { db } from "../../config/firebase";
 import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiTrash } from "react-icons/fi";
 import { FaEllipsisV } from "react-icons/fa";
 
 import { useAuth } from "../../hooks/useAuth";
 import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
-import { sendAdminNotification } from "../../utils/sendAdminNotification";
-import { dismissNotification } from "../../utils/notificationPersistence";
+import {
+  cargarProblemas,
+  cambiarEstadoProblema,
+  eliminarProblema,
+} from "../../services/supportTicketService";
 
 export default function SoporteAdmin() {
   const { user } = useAuth();
@@ -29,19 +30,10 @@ export default function SoporteAdmin() {
   const [actualizando, setActualizando] = useState(false);
   const [openActionsId, setOpenActionsId] = useState(null);
 
-  // Cargar reportes desde "Problemas reportados" en Firebase
-  const cargarProblemas = async () => {
+  const cargarListaProblemas = async () => {
     try {
       setLoading(true);
-      const q = query(
-        collection(db, "Problemas reportados"),
-        orderBy("fechaCreacion", "desc")
-      );
-      const snapshot = await getDocs(q);
-      const lista = snapshot.docs.map((docItem) => ({
-        id: docItem.id,
-        ...docItem.data(),
-      }));
+      const lista = await cargarProblemas();
       setProblemas(lista);
     } catch (error) {
       console.error("Error al cargar los problemas reportados:", error);
@@ -51,7 +43,7 @@ export default function SoporteAdmin() {
   };
 
   useEffect(() => {
-    cargarProblemas();
+    cargarListaProblemas();
   }, []);
 
   useEffect(() => {
@@ -102,12 +94,10 @@ export default function SoporteAdmin() {
     if (!selectedProblema) return;
     setActualizando(true);
     try {
-      const docRef = doc(db, "Problemas reportados", selectedProblema.id);
-      await updateDoc(docRef, {
-        estado: nuevoEstado,
+      await cambiarEstadoProblema({
+        id: selectedProblema.id,
+        nuevoEstado,
         comentarioAdmin: comentario,
-        fechaRevision: serverTimestamp(),
-        administradorRevision: user?.nombre || "Administrador"
       });
 
       if (selectedProblema.idUsuario) {
@@ -129,7 +119,6 @@ export default function SoporteAdmin() {
         }
       }
 
-      // Actualizamos la lista local y el modal
       const problemasActualizados = problemas.map((p) =>
         p.id === selectedProblema.id ? { ...p, estado: nuevoEstado, comentarioAdmin: comentario } : p
       );
@@ -150,31 +139,16 @@ export default function SoporteAdmin() {
 
     setActualizando(true);
     try {
-      // Eliminar notificaciones asociadas
-      const qNotif = query(collection(db, "notificaciones"), where("extra.reporteId", "==", problema.id));
-      const snapshotNotif = await getDocs(qNotif);
+      await eliminarProblema({ id: problema.id });
 
-      const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
-        // 🍪 Persistir en cookies antes de borrar
-        dismissNotification(docNotif.id);
-        return deleteDoc(doc(db, "notificaciones", docNotif.id));
-      });
-      await Promise.all(deleteNotifPromises);
+      setProblemas((prev) => prev.filter((p) => p.id !== problema.id));
 
-      // Eliminar problema
-      const docRef = doc(db, "Problemas reportados", problema.id);
-      await deleteDoc(docRef);
-
-      // Eliminar de la lista local
-      setProblemas(problemas.filter((p) => p.id !== problema.id));
-
-      // Cerrar el modal si el problema eliminado era el seleccionado
       if (selectedProblema?.id === problema.id) {
         setModalOpen(false);
         setSelectedProblema(null);
       }
 
-      notifySuccess("Eliminado", "Reporte y notificaciones eliminados correctamente.");
+      notifySuccess("Eliminado", "Reporte eliminado correctamente.");
     } catch (error) {
       console.error("Error al eliminar el reporte:", error);
       notifyError("Error", "No se pudo eliminar el reporte.");

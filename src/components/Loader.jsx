@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import "../styles/loader.css";
 
 export default function Loader({ text }) {
-    const resolvedText = text || "Prepaando la aplicación...";
+    const resolvedText = text || "Preparando la aplicación...";
 
     const loaderNode = useMemo(
         () => (

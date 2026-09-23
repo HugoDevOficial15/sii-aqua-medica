@@ -12,9 +12,13 @@ const normalizeDigits = (value) => (value ?? "").trim().replace(/[^\d]/g, "");
 export const userSchema = z.object({
 
     nomina: z
-        .string()
-        .min(1, "La nómina es obligatoria")
-        .regex(/^\d+$/, "La nómina debe contener solo números"),
+        .union([z.string(), z.number()])
+        .transform((value) => String(value ?? "").trim())
+        .pipe(
+            z.string()
+                .min(1, "La nómina es obligatoria")
+                .regex(/^\d+$/, "La nómina debe contener solo números")
+        ),
 
     nombre: z
         .string()

@@ -26,7 +26,7 @@ const CAMPOS_LABEL = {
     fechaIngreso: "Fecha de ingreso",
     nomina: "Número de nómina",
     puesto: "Puesto",
-    curp: "CURP",
+    curp: "CURP", 
     rfc: "RFC",
     nss: "NSS"
 };
@@ -37,9 +37,45 @@ const ESTADO_BADGE = {
     Rechazada: "rechazado-badge"
 };
 
-const formatFecha = (timestamp) => {
-    if (!timestamp?.toDate) return "—";
-    return timestamp.toDate().toLocaleDateString("es-MX");
+const normalizeDateValue = (value) => {
+    if (!value) return null;
+
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value?.toDate === "function") {
+        const parsed = value.toDate();
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    if (typeof value === "string") {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+
+    if (typeof value === "number") {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+
+    if (value && typeof value === "object") {
+        const seconds = Number(value.seconds ?? value._seconds ?? value.$seconds ?? 0);
+        const nanoseconds = Number(value.nanoseconds ?? value._nanoseconds ?? value.$nanoseconds ?? 0);
+
+        if (Number.isFinite(seconds)) {
+            const parsed = new Date(seconds * 1000 + (nanoseconds / 1_000_000));
+            if (!Number.isNaN(parsed.getTime())) return parsed;
+        }
+    }
+
+    return null;
+};
+
+const formatFecha = (value) => {
+    const date = normalizeDateValue(value);
+    if (!date || Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleDateString("es-MX");
 };
 
 export default function Solicitudes() {
@@ -77,7 +113,13 @@ export default function Solicitudes() {
 
     useEffect(() => {
         const closeMenu = (event) => {
-            if (!event.target.closest(".solicitudes-actions-cell")) {
+            const target = event?.target;
+
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            if (!target.closest(".solicitudes-actions-cell")) {
                 setOpenActionsId(null);
             }
         };
@@ -96,9 +138,8 @@ export default function Solicitudes() {
             if (filtroArea && s.datosActuales?.area !== filtroArea) return false;
 
             if (filtroFecha) {
-                const fechaStr = s.fechaSolicitud?.toDate
-                    ? s.fechaSolicitud.toDate().toISOString().slice(0, 10)
-                    : "";
+                const fechaDate = normalizeDateValue(s.fechaSolicitud);
+                const fechaStr = fechaDate ? fechaDate.toISOString().slice(0, 10) : "";
                 if (fechaStr !== filtroFecha) return false;
             }
 

@@ -73,6 +73,7 @@ export default function CelebrationCard({ user, type }) {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
+                    max-height: 100px;
 
                     padding: 20px;
                     margin-bottom: 18px;
@@ -222,19 +223,20 @@ export default function CelebrationCard({ user, type }) {
                 .info {
                     display: flex;
                     flex-direction: column;
-                    text-align: right;
+                    text-align: center;
+                    max-height: 50px;
                 }
 
                 .main {
                     font-size: 15px;
                     font-weight: 700;
                     color: #111827;
+                    min-height: 20px;
                 }
 
                 .sub {
                     font-size: 12px;
                     color: #6b7280;
-                    margin-top: 2px;
                 }
 
                 @media (prefers-color-scheme: dark) {

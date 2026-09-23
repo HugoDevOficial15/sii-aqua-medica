@@ -205,6 +205,8 @@ export const updateUserFields = async (nomina, updates) => {
   return result.data;
 };
 
+export const updateUserFieldsByNomina = updateUserFields;
+
 export const nominaExists = async (nomina, excludeId = null) => (await call("nominaExists")({ nomina, excludeId })).data;
 export const findDuplicateNominas = async () => (await call("findDuplicateNominas")()).data;
 export const findEmailNominaMismatch = async () => (await call("findEmailNominaMismatch")()).data;

@@ -7,15 +7,19 @@ const CACHE_KEY = "sii-aqua-user-data";
 
 // Get Data User
 // En la app, el identificador de login es la nómina, no un username.
-export const getUserData = async (nominaValue) => {
+export const getUserData = async (nominaValue, options = {}) => {
+    const { forceRefresh = false } = options;
+
     try {
         const nomina = String(nominaValue ?? "").trim();
         if (!nomina) return null;
 
         const cacheKey = `${CACHE_KEY}:${nomina}`;
-        const cached = readSessionCache(cacheKey);
-        if (cached) {
-            return cached;
+        if (!forceRefresh) {
+            const cached = readSessionCache(cacheKey);
+            if (cached) {
+                return cached;
+            }
         }
 
         const email = `${nomina}@aquamedica.com`;
@@ -37,4 +41,8 @@ export const getUserData = async (nominaValue) => {
         console.log("Error Login Service:", error);
         return null;
     }
+};
+
+export const getFreshUserData = async (nominaValue) => {
+    return getUserData(nominaValue, { forceRefresh: true });
 };

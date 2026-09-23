@@ -1,14 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { collection, getDocs, query, orderBy, deleteDoc, where } from "firebase/firestore";
-import { db } from "../../config/firebase";
 import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiTrash } from "react-icons/fi";
 import { FaEllipsisV } from "react-icons/fa";
 import { useAuth } from "../../hooks/useAuth";
-import { addDoc } from "firebase/firestore";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { createNotification } from "../../utils/createNotification";
 import { notifyError, notifySuccess, confirmDelete } from "../../utils/notify";
-import { dismissNotification } from "../../utils/notificationPersistence";
+import { getAllIdeas, updateIdeaStatus, deleteIdea } from "../../services/ideasService";
 
 export default function IdeasAdmin() {
   const { user } = useAuth();
@@ -31,9 +27,7 @@ export default function IdeasAdmin() {
   const cargarIdeas = async () => {
     try {
       setLoading(true);
-      const q = query(collection(db, "Ideas"), orderBy("fechaCreacion", "desc"));
-      const snapshot = await getDocs(q);
-      const lista = snapshot.docs.map((docItem) => ({ id: docItem.id, ...docItem.data() }));
+      const lista = await getAllIdeas();
       setIdeas(lista);
     } catch (error) {
       console.error("Error al cargar ideas:", error);
@@ -48,7 +42,13 @@ export default function IdeasAdmin() {
 
   useEffect(() => {
     const closeMenu = (event) => {
-      if (!event.target.closest(".solicitudes-actions-cell")) {
+      const target = event?.target;
+
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (!target.closest(".solicitudes-actions-cell")) {
         setOpenActionsId(null);
       }
     };
@@ -80,32 +80,8 @@ export default function IdeasAdmin() {
     setModalOpen(true);
   };
 
-  const handleOpenActions = (ideaId, event) => {
-    const newOpenId = openActionsId === ideaId ? null : ideaId;
-    setOpenActionsId(newOpenId);
-
-    if (newOpenId === ideaId) {
-      setTimeout(() => {
-        const cell = event.currentTarget.closest('.solicitudes-actions-cell');
-        const menu = cell?.querySelector('.solicitudes-actions-menu');
-        if (menu) {
-          const rect = menu.getBoundingClientRect();
-          const spaceBelow = window.innerHeight - rect.top;
-
-          if (spaceBelow < 150) {
-            // Mostrar hacia arriba
-            menu.style.top = 'auto';
-            menu.style.bottom = '100%';
-            menu.style.marginBottom = '8px';
-          } else {
-            // Mostrar hacia abajo
-            menu.style.top = '100%';
-            menu.style.bottom = 'auto';
-            menu.style.marginTop = '8px';
-          }
-        }
-      }, 50);
-    }
+  const handleOpenActions = (ideaId) => {
+    setOpenActionsId((prevId) => (prevId === ideaId ? null : ideaId));
   };
 
   const handleEliminarIdea = async (idea) => {
@@ -114,21 +90,9 @@ export default function IdeasAdmin() {
 
     setActualizando(true);
     try {
-      // Eliminar notificaciones asociadas
-      const qNotif = query(collection(db, "notificaciones"), where("extra.ideaId", "==", idea.id));
-      const snapshotNotif = await getDocs(qNotif);
-
-      const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
-        // 🍪 Persistir en cookies antes de borrar
-        dismissNotification(docNotif.id);
-        return deleteDoc(doc(db, "notificaciones", docNotif.id));
-      });
-      await Promise.all(deleteNotifPromises);
-
-      // Eliminar idea
-      await deleteDoc(doc(db, "Ideas", idea.id));
-      setIdeas(ideas.filter((i) => i.id !== idea.id));
-      notifySuccess("Eliminado", "La idea y notificaciones fueron eliminadas correctamente.");
+      await deleteIdea(idea.id);
+      setIdeas((prevIdeas) => prevIdeas.filter((i) => i.id !== idea.id));
+      notifySuccess("Eliminado", "La idea fue eliminada correctamente.");
     } catch (error) {
       console.error("Error al eliminar idea:", error);
       notifyError("Error", "No se pudo eliminar la idea.");
@@ -141,13 +105,12 @@ export default function IdeasAdmin() {
     if (!selectedIdea) return;
     setActualizando(true);
     try {
-      const ideaRef = doc(db, "Ideas", selectedIdea.id);
-      await updateDoc(ideaRef, {
-        estado: nuevoEstado,
-        comentarioAdmin: comentario,
-        fechaRevision: serverTimestamp(),
-        administradorRevision: user?.nombre || "Administrador"
-      });
+      await updateIdeaStatus(
+        selectedIdea.id,
+        nuevoEstado,
+        comentario,
+        user?.nombre || "Administrador"
+      );
 
       if (selectedIdea.uid) {
         try {
@@ -250,7 +213,9 @@ export default function IdeasAdmin() {
 
         .solicitudes-actions-cell {
             position: relative;
-            width: 100%;
+            width: 100px;
+            min-width: 100px;
+            max-width: 100px;
             height: 100%;
             display: flex;
             align-items: center;
@@ -512,7 +477,7 @@ export default function IdeasAdmin() {
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-secondary solicitudes-actions-toggle"
-                            onClick={(e) => handleOpenActions(item.id, e)}
+                            onClick={() => handleOpenActions(item.id)}
                           >
                             <FaEllipsisV />
                           </button>

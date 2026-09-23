@@ -31,9 +31,45 @@ const ESTADO_COLOR = {
     Rechazada: "#dc2626"
 };
 
-const formatFecha = (timestamp) => {
-    if (!timestamp?.toDate) return "En revisión";
-    return timestamp.toDate().toLocaleDateString("es-MX");
+const normalizeDateValue = (value) => {
+    if (!value) return null;
+
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value?.toDate === "function") {
+        const parsed = value.toDate();
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    if (typeof value === "string") {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+
+    if (typeof value === "number") {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+
+    if (value && typeof value === "object") {
+        const seconds = Number(value.seconds ?? value._seconds ?? value.$seconds ?? 0);
+        const nanoseconds = Number(value.nanoseconds ?? value._nanoseconds ?? value.$nanoseconds ?? 0);
+
+        if (Number.isFinite(seconds)) {
+            const parsed = new Date(seconds * 1000 + (nanoseconds / 1_000_000));
+            if (!Number.isNaN(parsed.getTime())) return parsed;
+        }
+    }
+
+    return null;
+};
+
+const formatFecha = (value) => {
+    const date = normalizeDateValue(value);
+    if (!date || Number.isNaN(date.getTime())) return "En revisión";
+    return date.toLocaleDateString("es-MX");
 };
 
 export default function OperatorProfile({ usuarioActual, onBack, onNavigate }) {

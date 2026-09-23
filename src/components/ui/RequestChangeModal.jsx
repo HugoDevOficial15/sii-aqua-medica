@@ -1,19 +1,39 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Swal from "sweetalert2";
 
+import { useAuth } from "../../hooks/useAuth";
 import { profileChangeSchema } from "../../schemas/profileChangeSchema";
 import { requestProfileChange } from "../../services/solicitudesCambiosService";
 import { getPuestos } from "../../services/puestos-service";
 import { AREAS } from "../../catalogs/areas";
 import { notifySuccess, notifyError } from "../../utils/notify";
+import Loader from "../Loader";
+
+const buildDefaultValues = (userData = {}) => ({
+    nombre: userData?.nombre || "",
+    Genero: userData?.Genero || "",
+    area: userData?.area || "",
+    cumpleanos: userData?.cumpleanos || "",
+    email: userData?.email || "",
+    fechaIngreso: userData?.fechaIngreso || "",
+    nomina: String(userData?.nomina || ""),
+    puesto: userData?.puesto || "",
+    curp: userData?.curp || "",
+    rfc: userData?.rfc || "",
+    nss: userData?.nss || "",
+});
 
 export default function RequestChangeModal({ user, onClose, onSuccess }) {
 
+    const { refreshUserProfile } = useAuth();
     const [saving, setSaving] = useState(false);
     const [puestos, setPuestos] = useState([]);
     const [loadingPuestos, setLoadingPuestos] = useState(true);
+    const [currentUser, setCurrentUser] = useState(user || {});
+    const [isDataReady, setIsDataReady] = useState(false);
+    const hasRefreshedOnOpen = useRef(false);
 
     useEffect(() => {
 
@@ -46,27 +66,53 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
         register,
         control,
         handleSubmit,
+        reset,
         formState: { errors },
     } = useForm({
         resolver: zodResolver(profileChangeSchema),
-        defaultValues: {
-            nombre: user?.nombre || "",
-            Genero: user?.Genero || "",
-            area: user?.area || "",
-            cumpleanos: user?.cumpleanos || "",
-            email: user?.email || "",
-            fechaIngreso: user?.fechaIngreso || "",
-            nomina: String(user?.nomina || ""),
-            puesto: user?.puesto || "",
-            curp: user?.curp || "",
-            rfc: user?.rfc || "",
-            nss: user?.nss || "",
-        }
+        defaultValues: buildDefaultValues(user),
     });
+
+    useEffect(() => {
+        if (hasRefreshedOnOpen.current) return;
+        hasRefreshedOnOpen.current = true;
+
+        let isMounted = true;
+        setIsDataReady(false);
+
+        const refreshLatestUser = async () => {
+            const nomina = user?.nomina ?? user?.nominaUsuario ?? user?.numeroNomina ?? user?.numeroDeNomina ?? user?.nominaEmpleado;
+
+            try {
+                const nextUser = nomina ? (await refreshUserProfile(nomina)) || user || {} : (user || {});
+
+                if (!isMounted) return;
+
+                setCurrentUser(nextUser);
+                reset(buildDefaultValues(nextUser));
+                setIsDataReady(true);
+            } catch (error) {
+                console.error("Error al refrescar el perfil para el modal:", error);
+
+                if (!isMounted) return;
+
+                const fallbackUser = user || {};
+                setCurrentUser(fallbackUser);
+                reset(buildDefaultValues(fallbackUser));
+                setIsDataReady(true);
+            }
+        };
+
+        refreshLatestUser();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const onSubmit = async (data) => {
 
-        if (!user?.nomina) {
+        if (!currentUser?.nomina && !currentUser?.nominaUsuario && !currentUser?.numeroNomina && !currentUser?.numeroDeNomina && !currentUser?.nominaEmpleado) {
             notifyError("Error", "No se pudo identificar tu número de nómina.");
             return;
         }
@@ -85,7 +131,12 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
                 }
             });
 
-            const result = await requestProfileChange(user, data);
+            const normalizedUser = {
+                ...currentUser,
+                nomina: currentUser?.nomina ?? currentUser?.nominaUsuario ?? currentUser?.numeroNomina ?? currentUser?.numeroDeNomina ?? currentUser?.nominaEmpleado,
+            };
+
+            const result = await requestProfileChange(normalizedUser, data);
 
             Swal.close();
 
@@ -119,6 +170,14 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
             setSaving(false);
         }
     };
+
+    if (!isDataReady) {
+        return (
+            <div style={styles.backdrop}>
+                <Loader text="Preparando datos..." />
+            </div>
+        );
+    }
 
     return (
         <div style={styles.backdrop}>
@@ -319,6 +378,30 @@ const styles = {
         alignItems: "center",
         zIndex: 9999,
         padding: "20px"
+    },
+    loadingCard: {
+        background: "var(--operator-card)",
+        borderRadius: "20px",
+        padding: "22px 24px",
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        minWidth: "260px",
+        boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+        border: "1px solid var(--operator-border)"
+    },
+    loadingSpinner: {
+        width: "18px",
+        height: "18px",
+        borderRadius: "50%",
+        border: "2px solid rgba(10,77,157,0.2)",
+        borderTop: "2px solid #0A4D9D",
+        animation: "spin 0.9s linear infinite"
+    },
+    loadingText: {
+        fontSize: "14px",
+        fontWeight: "600",
+        color: "var(--operator-text)"
     },
     modalCard: {
         background: "var(--operator-card)",

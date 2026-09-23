@@ -1,6 +1,7 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db, admin } = require("../../config/firebase");
 const { FieldValue } = require("firebase-admin/firestore");
+const { updateUserFieldsByNomina } = require("./updateUserFieldsService");
 
 const usersCollection = db.collection("users");
 const incapacidadesCollection = db.collection("incapacidades");
@@ -352,13 +353,7 @@ exports.fixEmailNominaMismatch = onCall(async (request) => {
 exports.updateUserFields = onCall(async (request) => {
   requireAuth(request);
   const { nomina, updates = {} } = request.data || {};
-  const snapshot = await usersCollection.where("nomina", "==", normalizeNomina(nomina)).get();
-  if (snapshot.empty) return { success: false, error: "NOMINA_NOT_FOUND" };
-  if (snapshot.size > 1) return { success: false, error: "DUPLICATE_NOMINA" };
-  const user = snapshot.docs[0];
-  const nextData = { ...user.data(), ...updates };
-  await user.ref.update({ ...updates, ...searchFields(nextData, nextData.nomina), updatedAt: FieldValue.serverTimestamp() });
-  return { success: true, data: { id: user.id, ...user.data(), ...updates } };
+  return updateUserFieldsByNomina(nomina, updates);
 });
 
 exports.updateUserPasswordByReset = onCall(async (request) => {

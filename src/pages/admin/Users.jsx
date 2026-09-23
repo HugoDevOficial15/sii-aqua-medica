@@ -95,7 +95,6 @@ export default function Users({ onClose }) {
   const [pageCursors, setPageCursors] = useState([null]);
   const [hasNextPage, setHasNextPage] = useState(false);
   const usersLoadedRef = useRef(false);
-  const searchRequestRef = useRef(0);
 
   // Puestos
   const [puestos, setPuestos] = useState([]);
@@ -332,10 +331,12 @@ export default function Users({ onClose }) {
     try {
       setSaving(true);
 
+      const normalizedNomina = String(data.nomina ?? "").trim();
+
       // Nómina única: nunca crear/editar hacia una nómina que ya
       // pertenece a otro documento (excluyendo el propio al editar).
       const duplicated = await nominaExists(
-        data.nomina,
+        normalizedNomina,
         editing ? currentId : null,
       );
 
@@ -364,8 +365,8 @@ export default function Users({ onClose }) {
         area: sanitizeText(data.area || "").trim(),
         puesto: sanitizeText(data.puesto || "").trim(),
         rol: sanitizeText(data.rol || "").trim(),
-        nomina: Number(data.nomina),
-        email: `${sanitizeText(data.nomina ?? "").trim()}@aquamedica.com`,
+        nomina: Number(normalizedNomina),
+        email: `${normalizedNomina}@aquamedica.com`,
         activo: true,
         estado: "activo",
         curp: sanitizeText(data.curp || "")
@@ -434,7 +435,7 @@ export default function Users({ onClose }) {
   // Actualizar Usuario
   const handleEdit = (user) => {
     reset({
-      nomina: user.nomina,
+      nomina: user.nomina == null ? "" : String(user.nomina),
       nombre: user.nombre,
       area: user.area,
       rol: user.rol,
@@ -1004,41 +1005,26 @@ export default function Users({ onClose }) {
     loadData();
   }, []);
 
-  useEffect(() => {
-    if (!usersLoadedRef.current) return;
-
+  const handleSearchSubmit = async () => {
     const term = sanitizeText(search).trim();
+
     if (!term) {
-      if (users.length === 0 || currentPage !== 1 || hasNextPage === false) {
-        loadUsersPage(1, null);
-      }
+      await loadUsersPage(1, null);
       return;
     }
 
-    const requestId = searchRequestRef.current + 1;
-    searchRequestRef.current = requestId;
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const result = await searchUsers(term);
-        if (searchRequestRef.current !== requestId) return;
-        setUsers(result.users || []);
-        setCurrentPage(1);
-        setPageCursors([null]);
-        setHasNextPage(false);
-        setExpandedUserId(null);
-      } catch (error) {
-        if (searchRequestRef.current === requestId) {
-          console.error("Error buscando usuarios:", error);
-          notifyError("Error", "No se pudo buscar usuarios.");
-        }
-      } finally {
-        if (searchRequestRef.current === requestId) setLoading(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [search]);
+    try {
+      const result = await searchUsers(term);
+      setUsers(result.users || []);
+      setCurrentPage(1);
+      setPageCursors([null]);
+      setHasNextPage(false);
+      setExpandedUserId(null);
+    } catch (error) {
+      console.error("Error buscando usuarios:", error);
+      notifyError("Error", "No se pudo buscar usuarios.");
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -1114,6 +1100,12 @@ export default function Users({ onClose }) {
             placeholder="Nómina o nombre..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleSearchSubmit();
+              }
+            }}
           />
 
           {/* <button className="d-none" onClick={migrateNomina}>

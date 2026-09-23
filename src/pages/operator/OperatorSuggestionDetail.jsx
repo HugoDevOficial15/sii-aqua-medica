@@ -13,11 +13,11 @@ export default function OperatorSuggestionDetail({ onBack }) {
         const load = async () => {
             setLoading(true);
             try {
-                const nomina = user?.nomina || user?.uid || null;
-                if (!nomina) {
+                const userKey = user?.nomina || user?.uid || user?.id || null;
+                if (!userKey) {
                     setIdeas([]);
                 } else {
-                    const list = await getIdeasByUser(nomina);
+                    const list = await getIdeasByUser(userKey);
                     setIdeas(list || []);
                 }
             } catch (err) {
@@ -28,7 +28,7 @@ export default function OperatorSuggestionDetail({ onBack }) {
             }
         };
         load();
-    }, [user?.nomina, user?.uid]);
+    }, [user?.nomina, user?.uid, user?.id]);
 
     if (loading) return <div className="p-4 text-center text-secondary">Cargando sugerencia...</div>;
     const idea = ideas && ideas.length > 0 ? ideas[0] : null;

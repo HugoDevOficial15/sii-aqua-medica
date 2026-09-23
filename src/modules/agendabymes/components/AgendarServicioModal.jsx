@@ -171,7 +171,7 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
                 createdAt: new Date()
             });
 
-            notifySuccess("Servicio agendado correctamente");
+            notifySuccess("Servicio agendado correct    amente");
             onSuccess();
             onClose();
 
@@ -199,7 +199,7 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
                 {/* BODY */}
                 <div className="custom-modal-body">
 
-                    {loading && <Loader />}
+                    {loading && <Loader text="Preparando agenda..." />}
 
                     <form onSubmit={handleSubmit(onSubmit)} className="d-flex flex-column gap-2">
 
