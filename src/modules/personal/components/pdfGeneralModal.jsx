@@ -112,46 +112,51 @@ const loadLogo = async () => {
   });
 };
 
-const buildPdfHeader = async (doc, title, subtitle, fechaActual = null) => {
+const buildPdfHeader = async (doc, title, subtitle, fechaActual = null, { showLogo = true } = {}) => {
   const pageWidth = doc.internal.pageSize.getWidth();
-  const logo = await loadLogo();
+  const logo = showLogo ? await loadLogo() : null;
+  const fechaFormateada = fechaActual
+    ? new Date(fechaActual).toLocaleDateString("es-MX", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    : new Date().toLocaleDateString("es-MX", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
 
   doc.setFillColor(255, 255, 255);
-  doc.rect(0, 0, pageWidth, doc.internal.pageSize.getHeight(), "F");
-
-  // Barra de identidad para que el encabezado se distinga al abrir el PDF.
-  doc.setFillColor(18, 109, 182);
-  doc.rect(0, 0, pageWidth, 10, "F");
+  doc.rect(0, 0, pageWidth, 297, "F");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(255, 255, 255);
-  doc.text("AQUA Médica S.A. de C.V.", 14, 6.5);
+  doc.setFontSize(14);
+  doc.setTextColor(17, 24, 39);
+  doc.text("AQUA Médica S.A. de C.V.", 14, 20);
 
   if (logo) {
-    doc.addImage(logo, "JPEG", 174, 13, 20, 15);
+    doc.addImage(logo, "JPEG", 160, 7, 36, 26);
   }
 
-  doc.setTextColor(17, 24, 39);
-  doc.setFontSize(16);
-  doc.text(title, 14, 21);
+  doc.setFontSize(15);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, 105, 33, { align: "center" });
 
   if (subtitle) {
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(75, 85, 99);
-    doc.text(subtitle, 14, 28);
+    doc.text(subtitle, 105, 40, { align: "center" });
   }
 
-  if (fechaActual) {
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(75, 85, 99);
-    doc.text(`Generado: ${fechaActual}`, 196, 35, { align: "right" });
-  }
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Fecha: ${fechaFormateada}`, 28, 45, { align: "center" });
 
-  doc.setDrawColor(203, 213, 225);
-  doc.line(14, 39, 196, 39);
+  doc.setDrawColor(40, 40, 40);
+  doc.line(14, 47, 196, 47);
+
+  return pageWidth;
 };
 
 const buildPdfFooter = (doc) => {
@@ -404,11 +409,7 @@ export default function PdfGeneralModal({
       const autoTable = autoTableModule.default || autoTableModule;
       const doc = new jsPDF();
       const fileName = `reporte-personal-${new Date().toISOString().slice(0, 10)}.pdf`;
-      const fechaActual = new Date().toLocaleDateString("es-MX", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+      const fechaActual = new Date().toISOString();
       const titleText =
         categoria === "general"
           ? "Reporte general de personal"
@@ -432,7 +433,7 @@ export default function PdfGeneralModal({
           ? `${subtitleBase} • ${fechaInicio || "Sin inicio"} al ${fechaFin || "Sin fin"}`
           : subtitleBase;
 
-      await buildPdfHeader(doc, titleText, subtitle, fechaActual);
+      await buildPdfHeader(doc, titleText, subtitle, fechaActual, { showLogo: true });
 
       let rows = [];
 
@@ -521,36 +522,36 @@ export default function PdfGeneralModal({
           head: [["Nombre", "Nómina", "Tipo", "Título", "Descripción", "Fecha"]],
           body: rows,
           styles: {
-          font: "helvetica",
-          fontSize: 8,
-          cellPadding: 3,
-          overflow: "linebreak",
-          valign: "middle",
-          halign: "center",
-          lineColor: [220, 220, 220],
+            font: "helvetica",
+            fontSize: 8,
+            cellPadding: 3,
+            overflow: "linebreak",
+            valign: "middle",
+            halign: "center",
+            lineColor: [220, 220, 220],
           },
           bodyStyles: {
-          overflow: "linebreak",
-          cellPadding: 3,
+            overflow: "linebreak",
+            cellPadding: 3,
           },
           headStyles: {
-          fillColor: [18, 109, 182],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-          fontSize: 9,
-          halign: "center",
-          valign: "middle",
+            fillColor: [18, 109, 182],
+            textColor: [255, 255, 255],
+            fontStyle: "bold",
+            fontSize: 9,
+            halign: "center",
+            valign: "middle",
           },
           alternateRowStyles: {
-          fillColor: [245, 245, 245],
+            fillColor: [245, 245, 245],
           },
           columnStyles: {
-          0: { cellWidth: 29, overflow: "linebreak" },
-          1: { cellWidth: 20, overflow: "linebreak" },
-          2: { cellWidth: 27, overflow: "linebreak" },
-          3: { cellWidth: 26, overflow: "linebreak" },
-          4: { cellWidth: 58, overflow: "linebreak" },
-          5: { cellWidth: 22, overflow: "linebreak" },
+            0: { cellWidth: 29, overflow: "linebreak" },
+            1: { cellWidth: 20, overflow: "linebreak" },
+            2: { cellWidth: 27, overflow: "linebreak" },
+            3: { cellWidth: 26, overflow: "linebreak" },
+            4: { cellWidth: 58, overflow: "linebreak" },
+            5: { cellWidth: 22, overflow: "linebreak" },
           },
         });
       }
@@ -740,8 +741,9 @@ export default function PdfGeneralModal({
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 24px 30px;
-          background: var(--operator-card);
+          padding: 20px 24px 18px;
+          background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+          border-bottom: 1px solid rgba(148, 163, 184, 0.28);
         }
 
         .personal-modal-header h3 {
@@ -749,6 +751,8 @@ export default function PdfGeneralModal({
           font-size: 1.5rem;
           font-weight: 800;
           color: var(--operator-text);
+          display: flex;
+          align-items: center;
         }
 
         .personal-modal-close {
@@ -984,7 +988,7 @@ export default function PdfGeneralModal({
         .personal-modal-btn.primary {
           background: linear-gradient(135deg, #ef4444, #dc2626);
           color: white;
-          box-shadow: 0 0px 10px rgba(239, 68, 68, 0.35);
+          box-shadow: 0 8px 18px rgba(239, 68, 68, 0.28);
         }
 
         .personal-modal-btn.primary:hover {

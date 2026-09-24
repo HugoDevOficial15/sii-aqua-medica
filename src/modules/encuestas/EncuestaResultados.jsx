@@ -17,9 +17,9 @@ import Loader from "../../components/Loader";
 
 const chartModulesPromise = import("recharts");
 
-import { db } from "../../config/firebase";
-import { collection, doc, getDocs, onSnapshot, query, where, writeBatch } from "firebase/firestore";
 import { getUsers } from "../../services/usersService";
+import { getResponsesForAdmin } from "../../services/surveyService";
+import { certifyTrainingResponses } from "../../services/trainingService";
 
 import { AREAS } from "../../catalogs/areas";
 
@@ -74,29 +74,11 @@ export default function EncuestaResultados({ survey, onBack }) {
     if (!survey?.id) return;
 
     try {
-      const esCapacitacion = survey.tipo === "capacitacion";
-      const rootCollection = esCapacitacion ? "respuestasCapacitaciones" : "respuestasEncuestas";
-
-      const pendingQuery = query(
-        collection(db, rootCollection, String(survey.id), "pendientes"),
-      );
-      const approvedQuery = query(
-        collection(db, rootCollection, String(survey.id), "aprobados"),
-      );
-      const rejectedQuery = query(
-        collection(db, rootCollection, String(survey.id), "reprobados"),
-      );
-
-      const [pendingSnap, approvedSnap, rejectedSnap] = await Promise.all([
-        getDocs(pendingQuery),
-        getDocs(approvedQuery),
-        getDocs(rejectedQuery),
-      ]);
-
-      const nextResponses = [...pendingSnap.docs, ...approvedSnap.docs, ...rejectedSnap.docs].map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      }));
+      const collectionName = survey.tipo === "capacitacion" ? "respuestasCapacitaciones" : "respuestasEncuestas";
+      const nextResponses = await getResponsesForAdmin({
+        surveyId: survey.id,
+        collectionName,
+      });
 
       setResponses(nextResponses);
     } catch (err) {
@@ -593,34 +575,20 @@ export default function EncuestaResultados({ survey, onBack }) {
 
       // Solo actualizar certificados en capacitaciones
       if (survey.tipo === "capacitacion") {
-        const batch = writeBatch(db);
-        const responseCollection = collection(db, "respuestasCapacitaciones");
-        const notificationsCollection = collection(db, "notificaciones");
+        const payload = usuariosRespondidos
+          .filter((user) => user.respuesta?.id)
+          .map((user) => ({
+            responseId: user.respuesta.id,
+            userId: user.uid,
+            surveyId: survey.id,
+            titulo: survey.titulo,
+            certificate: true,
+          }));
 
-        usuariosRespondidos.forEach((user) => {
-          if (!user.respuesta?.id) return;
-          const docRef = doc(responseCollection, user.respuesta.id);
-          batch.update(docRef, { certificado: true });
-
-          // Crear notificación para cada usuario certificado
-          if (user.uid) {
-            const notificationRef = doc(notificationsCollection);
-            batch.set(notificationRef, {
-              IdUsuario: user.uid,
-              Titulo: "📜 Certificado obtenido",
-              Mensaje: `¡Felicidades! Has sido certificado en "${survey.titulo}".`,
-              Destino: "certificates",
-              Accion: "certificado",
-              extra: {
-                capacitacionId: survey.id,
-                titulo: survey.titulo,
-              },
-              fechaCreacion: new Date(),
-            });
-          }
+        await certifyTrainingResponses({
+          trainingId: survey.id,
+          userResponses: payload,
         });
-
-        await batch.commit();
       }
 
       notifySuccess(

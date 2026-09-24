@@ -2,16 +2,16 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FaPlus, FaEdit } from "react-icons/fa";
-
 import { equipoSchema } from "../../../schemas/equipoSchema";
 import { notifySuccess, notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
-import Loader from "../../../components/Loader";
 import { getUsers } from "../../../services/usersService";
 import { AREAS } from "../../../catalogs/areas";
 import { createEquipo, updateEquipo } from "../../../services/equiposServices";
 import { createLogEquipo } from "../../../services/logsServices";
 import { useAuth } from "../../../hooks/useAuth";
+import Swal from "sweetalert2";
+
 
 export default function EquipoModal({ onClose, onSuccess, data }) {
   const { user } = useAuth();
@@ -96,6 +96,13 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
       if (data) {
         await updateEquipo(data.id, payload);
 
+        Swal.fire({
+          title: "Éxito",
+          text: "El equipo se actualizó correctamente",
+          icon: "success",
+          confirmButtonText: "Aceptar"
+        });
+
         if (form.servicioExterno) {
           await createLogEquipo(data.id, {
             tipo: "servicio_externo",
@@ -104,10 +111,16 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
             equipoCodigo: codigoSanitizado,
           });
         }
-
+        Swal.close();
         notifySuccess("Equipo actualizado", "Actualizado correctamente");
       } else {
         const nuevoEquipo = await createEquipo(payload);
+        Swal.fire({
+          title: "Éxito",
+          text: "El equipo se creó correctamente",
+          icon: "success",
+          confirmButtonText: "Aceptar"
+        });
 
         if (form.servicioExterno) {
           await createLogEquipo(nuevoEquipo.id, {
@@ -117,13 +130,14 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
             equipoCodigo: codigoSanitizado,
           });
         }
-
+        Swal.close();
         notifySuccess("Equipo creado", "Creado correctamente");
       }
 
       onSuccess?.();
       onClose?.();
     } catch {
+      Swal.close();
       notifyError("Error", "Error al guardar");
     } finally {
       setLoading(false);
@@ -141,8 +155,6 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
         </div>
 
         <div style={styles.body}>
-          {loading && <Loader />}
-
           <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
             <input
               type="text"

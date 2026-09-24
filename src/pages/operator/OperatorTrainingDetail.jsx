@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, where, getDoc, doc } from "firebase/firestore";
 import MobileBackButton from "./components/MobileBackButton";
 import AppLoader from "./components/AppLoader";
 import { saveTrainingResponse } from "../../services/servicesOperator/operatorTrainingResponseService";
@@ -7,7 +6,6 @@ import { useAuth } from "../../hooks/useAuth";
 import { MAX_SURVEY_ATTEMPTS, MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { notifyInfo } from "../../utils/notify";
 import { createNotification } from "../../utils/createNotification";
-import { db } from "../../config/firebase";
 
 export default function OperatorTrainingDetail(props) {
     if (!props.training) return null;
@@ -22,7 +20,7 @@ function OperatorTrainingDetailContent({
 }) {
     const { user } = useAuth();
     const [trainingLoaded, setTrainingLoaded] = useState(false);
-    const [fullTraining, setFullTraining] = useState(training);
+    const [fullTraining, setFullTraining] = useState(training || null);
 
     const timeToMinutes = (value) => {
         if (!value) return 0;
@@ -80,37 +78,22 @@ function OperatorTrainingDetailContent({
     const answersKey = training ? `training_answers_${training.id}_${user?.uid}` : null;
     const autoSubmitLockRef = useRef(false);
 
-    // Cargar training completo si falta información
     useEffect(() => {
-        const loadFullTraining = async () => {
-            if (!training?.id) {
-                setTrainingLoaded(true);
-                return;
-            }
-
-            // Si ya tiene preguntas, no necesita cargar
-            if (training.preguntas && training.preguntas.length > 0) {
-                setFullTraining(training);
-                setTrainingLoaded(true);
-                return;
-            }
-
-            // Cargar desde Firestore si faltan preguntas
-            try {
-                const trainingRef = doc(db, "capacitaciones", String(training.id));
-                const trainingSnap = await getDoc(trainingRef);
-                if (trainingSnap.exists()) {
-                    const fullData = { id: trainingSnap.id, ...trainingSnap.data() };
-                    setFullTraining({ ...training, ...fullData });
-                }
-            } catch (error) {
-                console.error("Error al cargar training completo:", error);
-            }
+        if (!training) {
+            setFullTraining(null);
             setTrainingLoaded(true);
-        };
+            return;
+        }
 
-        loadFullTraining();
-    }, [training?.id]);
+        setFullTraining({
+            ...training,
+            preguntas: Array.isArray(training.preguntas) ? training.preguntas : [],
+            duracionHoras: training.duracionHoras || "0",
+            duracionMinutos: training.duracionMinutos || "0",
+            duracionTotalMinutos: Number(training.duracionTotalMinutos || 0),
+        });
+        setTrainingLoaded(true);
+    }, [training]);
 
     useEffect(() => {
         setLoading(true);
@@ -207,21 +190,10 @@ function OperatorTrainingDetailContent({
 
     const isAnswered = question && answers[question.id] !== undefined && answers[question.id] !== "";
 
-    const getIntentosPrevios = async () => {
+    const getIntentosPrevios = () => {
         if (!training?.id || !user?.uid) return 0;
-
-        const buckets = ["pendientes", "aprobados", "reprobados"];
-        const snapshots = await Promise.all(
-            buckets.map(async (bucket) => {
-                const q = query(
-                    collection(db, "respuestasCapacitaciones", String(training.id), bucket),
-                    where("userId", "==", user.uid)
-                );
-                return getDocs(q);
-            })
-        );
-
-        return snapshots.reduce((total, snapshot) => total + snapshot.size, 0);
+        const intentos = Number(training.intentos || training.miRespuesta?.intentos || 0);
+        return Number.isFinite(intentos) ? intentos : 0;
     };
 
     const handleFinishTraining = async () => {
@@ -235,7 +207,7 @@ function OperatorTrainingDetailContent({
             setSaving(true);
             setIsSubmitting(true);
             const result = calculateScore();
-            const intentosPrevios = await getIntentosPrevios();
+            const intentosPrevios = getIntentosPrevios();
             const intentosActuales = result.tieneRespuestasAbiertas
                 ? intentosPrevios
                 : intentosPrevios + 1;

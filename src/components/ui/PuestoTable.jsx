@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { updatePuesto } from "../../services/puestos-service";
 import { notifySuccess, notifyError } from "../../utils/notify";
 import Swal from "sweetalert2";
+
 export default function PuestoTable({ puestos = [], loading, onEdit, onRefresh }) {
 
     const [openActionsId, setOpenActionsId] = useState(null);
@@ -28,6 +29,16 @@ export default function PuestoTable({ puestos = [], loading, onEdit, onRefresh }
     const toggleEstado = async (puesto) => {
         const nextActivo = !puesto.activo;
         try {
+            Swal.fire({
+                title: "Actualizando estado",
+                text: "Esperando respuesta del servidor",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
+
             const updated = await updatePuesto(puesto.id, {
                 activo: nextActivo,
             });
@@ -44,13 +55,13 @@ export default function PuestoTable({ puestos = [], loading, onEdit, onRefresh }
                 )
             );
 
-            if (typeof onRefresh === "function") {
-
-                await onRefresh();
-            }
-
-            notifySuccess("Estado actualizado", `El puesto quedó ${nextActivo ? "activo" : "inactivo"}.`);
+            Swal.close();
+            await notifySuccess(
+                "Estado actualizado",
+                `El puesto quedó ${nextActivo ? "activo" : "inactivo"}.`
+            );
         } catch (error) {
+            Swal.close();
             notifyError("No se pudo actualizar el estado");
         }
     };

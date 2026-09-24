@@ -130,6 +130,53 @@ const createSurveyNotifications = async (survey, surveyId, previousAssignment = 
     return usersToNotify.length;
 };
 
+const getSurveyResponsesByUser = async (surveyId, userId) => {
+    const surveyRef = db.collection("respuestasEncuestas").doc(String(surveyId));
+    const buckets = ["pendientes", "aprobados", "reprobados"];
+    const snapshots = await Promise.all(
+        buckets.map((bucket) => surveyRef.collection(bucket).where("userId", "==", userId).get())
+    );
+
+    return snapshots.flatMap((snapshot) => snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+    })));
+};
+
+const normalizeResponseCollectionName = (value, fallback = "respuestasEncuestas") => {
+    const candidate = String(value ?? fallback).trim();
+    if (candidate === "respuestasEncuestas" || candidate === "respuestasCapacitaciones") {
+        return candidate;
+    }
+    return fallback;
+};
+
+const getSurveyResponses = async (surveyId, collectionName = "respuestasEncuestas") => {
+    const safeCollection = normalizeResponseCollectionName(collectionName, "respuestasEncuestas");
+    const surveyRef = db.collection(safeCollection).doc(String(surveyId));
+    const buckets = ["pendientes", "aprobados", "reprobados"];
+    const snapshots = await Promise.all(
+        buckets.map((bucket) => surveyRef.collection(bucket).get())
+    );
+
+    return snapshots.flatMap((snapshot) => snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+    })));
+};
+
+const getSurveyResponsesFromRequest = async (request) => {
+    const data = request?.data || {};
+    const surveyId = String(data.surveyId || data.id || data.trainingId || data.capacitacionId || "").trim();
+    const collectionName = normalizeResponseCollectionName(data.collectionName, "respuestasEncuestas");
+
+    if (!surveyId) {
+        throw new HttpsError("invalid-argument", "Falta el id de la encuesta o capacitación.");
+    }
+
+    return { surveyId, collectionName };
+};
+
 //  OPERADOR
 
 const surveyMatchesOperator = (survey, operator) => {
@@ -178,6 +225,168 @@ exports.getOperatorSurveys = onCall(async (request) => {
     }));
 
     return { surveys, responses, operatorId: operator.id };
+});
+
+exports.getSurveyDetail = onCall(async (request) => {
+    const surveyId = String(request?.data?.surveyId || request?.data?.id || "").trim();
+    if (!surveyId) {
+        throw new HttpsError("invalid-argument", "Falta el id de la encuesta.");
+    }
+
+    const surveyDoc = await getSurveyCollection().doc(surveyId).get();
+    if (!surveyDoc.exists) {
+        throw new HttpsError("not-found", "Encuesta no encontrada.");
+    }
+
+    return {
+        ok: true,
+        survey: { id: surveyDoc.id, ...surveyDoc.data() },
+    };
+});
+
+exports.getSurveyAttempts = onCall(async (request) => {
+    const surveyId = String(request?.data?.surveyId || request?.data?.id || "").trim();
+    const userId = request?.data?.userId || request?.auth?.uid;
+
+    if (!surveyId) {
+        throw new HttpsError("invalid-argument", "Falta el id de la encuesta.");
+    }
+
+    if (!userId) {
+        throw new HttpsError("unauthenticated", "Debes iniciar sesión para consultar intentos.");
+    }
+
+    const responses = await getSurveyResponsesByUser(surveyId, userId);
+    return {
+        ok: true,
+        attempts: responses.length,
+        responses,
+    };
+});
+
+exports.getMySurveyResponses = onCall(async (request) => {
+    const authUserId = request?.auth?.uid;
+    const requestedUserId = request?.data?.userId || authUserId;
+
+    if (!requestedUserId) {
+        throw new HttpsError("unauthenticated", "Debes iniciar sesión para consultar tus respuestas.");
+    }
+
+    const surveysSnapshot = await getSurveyCollection().get();
+    const surveyIds = surveysSnapshot.docs.map((docSnap) => docSnap.id);
+
+    const responses = await Promise.all(
+        surveyIds.map(async (surveyId) => getSurveyResponsesByUser(surveyId, requestedUserId))
+    );
+
+    return {
+        ok: true,
+        responses: responses.flat(),
+    };
+});
+
+exports.getSurveyResponsesForAdmin = onCall(async (request) => {
+    const { surveyId, collectionName } = await getSurveyResponsesFromRequest(request);
+
+    return {
+        ok: true,
+        responses: await getSurveyResponses(surveyId, collectionName),
+    };
+});
+
+exports.reviewSurveyResponse = onCall(async (request) => {
+    const data = request?.data || {};
+    const collectionName = normalizeResponseCollectionName(data.collectionName, "respuestasEncuestas");
+    const surveyId = String(data.surveyId || data.encuestaId || data.capacitacionId || data.id || "").trim();
+    const responseId = String(data.responseId || data.idRespuesta || data.response?.id || "").trim();
+    const response = data.response || {};
+    const finalBucket = data.finalBucket || "aprobados";
+    const finalState = data.finalState || "aprobado";
+
+    if (!surveyId || !responseId) {
+        throw new HttpsError("invalid-argument", "Falta el id del registro o la respuesta.");
+    }
+
+    const pendingRef = db.collection(collectionName).doc(String(surveyId)).collection("pendientes").doc(responseId);
+    const finalRef = db.collection(collectionName).doc(String(surveyId)).collection(finalBucket).doc(responseId);
+    const pendingSnapshot = await pendingRef.get();
+
+    if (!pendingSnapshot.exists) {
+        throw new HttpsError("not-found", "La respuesta no se encontró en pendientes.");
+    }
+
+    const finalPayload = {
+        ...(pendingSnapshot.data() || {}),
+        ...response,
+        id: responseId,
+        estadoActual: finalState,
+        estado: finalState,
+        aprobada: finalState === "aprobado" || finalState === "completada",
+        tieneRespuestasAbiertas: false,
+        revisadoPorAdmin: true,
+        fechaRevision: new Date().toISOString(),
+    };
+
+    const batch = db.batch();
+    batch.set(finalRef, finalPayload, { merge: true });
+    batch.delete(pendingRef);
+    await batch.commit();
+
+    return { ok: true, id: responseId, bucket: finalBucket, estado: finalState };
+});
+
+exports.hasAnsweredSurvey = onCall(async (request) => {
+    const surveyId = String(request?.data?.surveyId || request?.data?.id || "").trim();
+    const userId = request?.data?.userId || request?.auth?.uid;
+
+    if (!surveyId) {
+        throw new HttpsError("invalid-argument", "Falta el id de la encuesta.");
+    }
+    if (!userId) {
+        throw new HttpsError("unauthenticated", "Debes iniciar sesión para consultar si respondiste.");
+    }
+
+    const responses = await getSurveyResponsesByUser(surveyId, userId);
+    return {
+        ok: true,
+        answered: responses.length > 0,
+        responses,
+    };
+});
+
+exports.getSurveyHistory = onCall(async (request) => {
+    const userId = request?.data?.userId || request?.auth?.uid;
+    if (!userId) {
+        throw new HttpsError("unauthenticated", "Debes iniciar sesión para consultar tu historial.");
+    }
+
+    const surveysSnapshot = await getSurveyCollection().get();
+    const surveyIds = surveysSnapshot.docs.map((docSnap) => docSnap.id);
+
+    const responses = await Promise.all(
+        surveyIds.map(async (surveyId) => getSurveyResponsesByUser(surveyId, userId))
+    );
+
+    return {
+        ok: true,
+        history: responses.flat(),
+    };
+});
+
+exports.getSurveyMetrics = onCall(async (request) => {
+    const userId = request?.data?.userId || request?.auth?.uid;
+    if (!userId) {
+        throw new HttpsError("unauthenticated", "Debes iniciar sesión para consultar tus métricas.");
+    }
+
+    const historyResult = await exports.getSurveyHistory({ auth: request.auth, data: { userId } });
+    const history = historyResult.history || [];
+
+    return {
+        ok: true,
+        respondidas: history.length,
+        reprobadas: history.filter((item) => Number(item?.calificacion ?? item?.puntuacionObtenida ?? 0) < 80).length,
+    };
 });
 
 exports.saveOperatorSurveyResponse = onCall(async (request) => {

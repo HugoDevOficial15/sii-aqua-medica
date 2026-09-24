@@ -216,18 +216,180 @@ exports.getOperatorTrainings = onCall(async (request) => {
         .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
         .filter((training) => training.activa !== false && trainingMatchesOperator(training, operator));
 
-    const responses = [];
-    await Promise.all(trainings.map(async (training) => {
+    const responsesByTraining = await Promise.all(trainings.map(async (training) => {
         const buckets = await Promise.all(["pendientes", "aprobados", "reprobados"].map((bucket) =>
-            db.collection("respuestasCapacitaciones").doc(training.id).collection(bucket)
-                .where("userId", "==", operator.id).get()
+            db.collection("respuestasCapacitaciones")
+                .doc(String(training.id))
+                .collection(bucket)
+                .where("userId", "==", operator.id)
+                .get()
         ));
-        buckets.forEach((bucketSnapshot) => bucketSnapshot.docs.forEach((docSnap) => {
-            responses.push({ id: docSnap.id, ...docSnap.data() });
-        }));
+
+        return buckets.flatMap((bucketSnapshot) =>
+            bucketSnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+        );
     }));
 
-    return { trainings, responses, operatorId: operator.id };
+    const responses = responsesByTraining.flat();
+
+    const getResponseTimestamp = (response) => {
+        const rawValue = response?.fechaRespuesta ?? response?.fechaEnviado ?? response?.createdAt ?? 0;
+        if (!rawValue) return 0;
+        if (typeof rawValue?.toDate === "function") return rawValue.toDate().getTime();
+        if (typeof rawValue?.seconds === "number") return rawValue.seconds * 1000;
+        if (rawValue instanceof Date) return rawValue.getTime();
+        const parsed = Date.parse(rawValue);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const enrichTraining = (training) => {
+        const trainingResponses = responses.filter((response) => {
+            const responseTrainingId = String(response?.capacitacionId || response?.idCapacitacion || "");
+            return responseTrainingId === String(training.id);
+        });
+
+        const userResponse = trainingResponses.reduce((latest, response) => {
+            if (!latest) return response;
+            return getResponseTimestamp(response) >= getResponseTimestamp(latest) ? response : latest;
+        }, null);
+
+        const tienePreguntasAbiertas = (training.preguntas || []).some((pregunta) => pregunta?.tipo === "abierta");
+        const enRevision = Boolean(
+            (userResponse?.estadoActual === "pendiente_validacion" || userResponse?.tieneRespuestasAbiertas)
+            && tienePreguntasAbiertas
+        );
+
+        const estadoActual = userResponse
+            ? (enRevision ? "pendiente" : userResponse.estadoActual || "completada")
+            : "pendiente";
+
+        const fechaInicioRaw = training.fechaInicio?.toDate?.() ?? new Date(training.fechaInicio);
+        const fechaFinRaw = training.fechaFin?.toDate?.() ?? new Date(training.fechaFin);
+        const fechaInicio = Number.isNaN(fechaInicioRaw?.getTime?.()) ? null : fechaInicioRaw;
+        const fechaFin = Number.isNaN(fechaFinRaw?.getTime?.()) ? null : fechaFinRaw;
+
+        const duracionHoras = Number(training.duracionHoras || 0);
+        const duracionMinutos = Number(training.duracionMinutos || 0);
+        const duracionTotalMinutos = Number(training.duracionTotalMinutos || (duracionHoras * 60 + duracionMinutos));
+
+        return {
+            ...training,
+            id: String(training.id),
+            titulo: training.titulo || "",
+            descripcion: training.descripcion || "",
+            instructor: training.instructor || "",
+            modalidad: training.modalidad || "",
+            tipoCurso: training.tipoCurso || "",
+            fechaCurso: training.fechaCurso || "",
+            fechaInicio: fechaInicio ? fechaInicio.toISOString().split("T")[0] : "",
+            fechaFin: fechaFin ? fechaFin.toISOString().split("T")[0] : "",
+            horaInicio: training.horaInicio || "00:00",
+            horaFin: training.horaFin || "23:59",
+            duracion: training.duracion || training.duracionHoras || "0",
+            duracionHoras: training.duracionHoras || "0",
+            duracionMinutos: training.duracionMinutos || "0",
+            duracionTotalMinutos,
+            preguntas: Array.isArray(training.preguntas) ? training.preguntas : [],
+            asignacion: training.asignacion || { tipo: "global", valores: [] },
+            respondida: trainingResponses.length > 0,
+            disponible: estadoActual === "pendiente",
+            enRevision,
+            miRespuesta: userResponse || null,
+            miPuntaje: userResponse?.puntuacionObtenida ?? userResponse?.puntajeFinal ?? null,
+            intentos: Math.max(trainingResponses.length, Number(userResponse?.intentos || 0)),
+            estado: estadoActual,
+            estadoActual: estadoActual,
+            aprobada: Boolean(userResponse?.aprobada) || (userResponse && Number(userResponse?.calificacion ?? userResponse?.puntuacionObtenida ?? 0) >= 80),
+            tienePreguntasAbiertas: tienePreguntasAbiertas,
+        };
+    };
+
+    const trainingsEnriquecidas = trainings.map(enrichTraining);
+
+    return { trainings: trainingsEnriquecidas, responses, operatorId: operator.id };
+});
+
+const getOperatorResponsesForTraining = async (operator, trainingId = null) => {
+    const trainingsSnapshot = await getCapacitacionCollection().get();
+    const relevantTrainings = trainingId
+        ? trainingsSnapshot.docs.filter((docSnap) => String(docSnap.id) === String(trainingId))
+        : trainingsSnapshot.docs;
+
+    const responses = [];
+    await Promise.all(relevantTrainings.map(async (docSnap) => {
+        const trainingIdValue = String(docSnap.id);
+        const buckets = await Promise.all(["pendientes", "aprobados", "reprobados"].map(async (bucket) => {
+            const bucketSnapshot = await db.collection("respuestasCapacitaciones")
+                .doc(trainingIdValue)
+                .collection(bucket)
+                .where("userId", "==", operator.id)
+                .get();
+            return bucketSnapshot;
+        }));
+
+        buckets.forEach((bucketSnapshot) => {
+            bucketSnapshot.docs.forEach((responseDoc) => {
+                responses.push({ id: responseDoc.id, ...responseDoc.data() });
+            });
+        });
+    }));
+
+    return responses;
+};
+
+exports.getOperatorTrainingResponses = onCall(async (request) => {
+    const operator = await getOperatorProfile(request);
+    if (!operator) {
+        throw new HttpsError("unauthenticated", "No se encontró el perfil del operador.");
+    }
+
+    const data = request?.data || {};
+    const trainingId = data.trainingId || data.capacitacionId || data.idCapacitacion || null;
+    const responses = await getOperatorResponsesForTraining(operator, trainingId);
+
+    return {
+        responses,
+        userId: operator.id,
+        trainingId: trainingId ? String(trainingId) : null,
+        hasAnswered: responses.length > 0,
+    };
+});
+
+exports.hasOperatorAnsweredTraining = onCall(async (request) => {
+    const operator = await getOperatorProfile(request);
+    if (!operator) {
+        throw new HttpsError("unauthenticated", "No se encontró el perfil del operador.");
+    }
+
+    const data = request?.data || {};
+    const trainingId = data.trainingId || data.capacitacionId || data.idCapacitacion || null;
+    if (!trainingId) {
+        return { answered: false, responses: [] };
+    }
+
+    const responses = await getOperatorResponsesForTraining(operator, trainingId);
+    return { answered: responses.length > 0, responses };
+});
+
+exports.getOperatorTrainingHistory = onCall(async (request) => {
+    const operator = await getOperatorProfile(request);
+    if (!operator) {
+        throw new HttpsError("unauthenticated", "No se encontró el perfil del operador.");
+    }
+
+    const responses = await getOperatorResponsesForTraining(operator);
+    const metrics = {
+        respondidas: responses.length,
+        aprobadas: responses.filter((response) => Number(response?.calificacion ?? response?.puntuacionObtenida ?? 0) >= 80).length,
+        conRespuestasAbiertas: responses.filter((response) => response?.tieneRespuestasAbiertas).length,
+    };
+
+    return {
+        responses,
+        history: responses,
+        metrics,
+        userId: operator.id,
+    };
 });
 
 exports.saveOperatorTrainingResponse = onCall(async (request) => {
@@ -372,6 +534,67 @@ exports.updateTraining = onCall(async (request) => {
     return { ok: true, id};
 });
 
+exports.certifyTrainingResponses = onCall(async (request) => {
+    const uid = request?.auth?.uid;
+    const data = request?.data || {};
+    const trainingId = String(data.trainingId || data.surveyId || data.capacitacionId || data.id || "").trim();
+    const userResponses = Array.isArray(data.userResponses) ? data.userResponses : [];
+
+    if (!uid) {
+        throw new HttpsError("unauthenticated", "Debes iniciar sesión para certificar capacitaciones.");
+    }
+
+    if (!trainingId) {
+        throw new HttpsError("invalid-argument", "Falta el id de la capacitación.");
+    }
+
+    const trainingRef = getCapacitacionCollection().doc(trainingId);
+    const trainingSnapshot = await trainingRef.get();
+    if (!trainingSnapshot.exists || trainingSnapshot.data().userId !== uid) {
+        throw new HttpsError("not-found", "Capacitación no encontrada.");
+    }
+
+    const batch = db.batch();
+    const notifications = [];
+
+    for (const entry of userResponses) {
+        const responseId = String(entry?.responseId || entry?.id || "").trim();
+        if (!responseId) continue;
+
+        const responseRef = db.collection("respuestasCapacitaciones").doc(String(trainingId)).collection("aprobados").doc(responseId);
+        const responseSnapshot = await responseRef.get();
+        if (!responseSnapshot.exists) continue;
+
+        batch.update(responseRef, { certificado: true, certificadoAt: FieldValue.serverTimestamp() });
+
+        if (entry?.userId) {
+            const notificationRef = db.collection("notificaciones").doc();
+            notifications.push({
+                ref: notificationRef,
+                payload: {
+                    IdUsuario: entry.userId,
+                    Titulo: "📜 Certificado obtenido",
+                    Mensaje: `¡Felicidades! Has sido certificado en "${trainingSnapshot.data().titulo || "la capacitación"}".`,
+                    Destino: "certificates",
+                    Accion: "certificado",
+                    extra: {
+                        capacitacionId: trainingId,
+                        titulo: trainingSnapshot.data().titulo || "Capacitación",
+                    },
+                    enviado: false,
+                    fechaCreacion: FieldValue.serverTimestamp(),
+                    fechaEnviado: null,
+                },
+            });
+        }
+    }
+
+    notifications.forEach(({ ref, payload }) => batch.set(ref, payload));
+    await batch.commit();
+
+    return { ok: true, count: userResponses.length };
+});
+
 exports.deleteTraining = onCall(async (request) => {
     const uid = request?.auth?.uid;
     const id = request?.data?.id;
@@ -392,8 +615,8 @@ exports.deleteTraining = onCall(async (request) => {
     }
 
     const [responsesSnapshot, notificationsSnapshot] = await Promise.all([
-        db.collection("respuestasCapacitaciones").where("idCapacitacion", "==", id).get(),
-        db.collection("notificaciones").where("extra.idCapacitacion", "==", id).get(),
+        db.collection("respuestasCapacitaciones").where("capacitacionId", "==", id).get(),
+        db.collection("notificaciones").where("extra.capacitacionId", "==", id).get(),
     ]);
 
     const documentsToDelete = [

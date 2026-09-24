@@ -1,29 +1,12 @@
 import { useMemo, useState } from "react";
 import { FaCheckCircle, FaClipboardCheck, FaExclamationTriangle } from "react-icons/fa";
-import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "../../../config/firebase";
 import { MIN_APROBATORIO } from "../../../constants/surveyConstants";
+import { reviewSurveyResponse } from "../../../services/surveyService";
 
 const getPreguntasAbiertas = (survey) =>
   (survey?.preguntas || []).filter((pregunta) => pregunta?.tipo === "abierta");
 
-const getBucketDocRef = (survey, response, bucketName) => {
-  if (!survey || !response) return null;
-
-  const collectionName = survey?.tipo === "capacitacion" ? "respuestasCapacitaciones" : "respuestasEncuestas";
-  const surveyId = survey?.id || response?.capacitacionId || response?.encuestaId;
-  const bucket = bucketName || (
-    response?.estadoActual === "pendiente_validacion" || response?.tieneRespuestasAbiertas
-      ? "pendientes"
-      : response?.aprobada === true
-        ? "aprobados"
-        : "reprobados"
-  );
-
-  if (!surveyId || !response?.id) return null;
-
-  return doc(db, collectionName, String(surveyId), bucket, response.id);
-};
+const getBucketDocRef = () => null;
 
 export default function CalificarEncuesta({ survey, responses = [], onSaved }) {
   const esCapacitacion = survey?.tipo === "capacitacion";
@@ -116,17 +99,6 @@ export default function CalificarEncuesta({ survey, responses = [], onSaved }) {
       const { calificacionAbiertas, finalScore } = calcularResultado(response);
       const finalState = finalScore >= MIN_APROBATORIO ? "completada" : "reprobada";
       const finalBucket = finalState === "completada" ? "aprobados" : "reprobados";
-      const pendingRef = getBucketDocRef(survey, response, "pendientes");
-      const finalRef = getBucketDocRef(survey, {
-        ...response,
-        aprobada: finalScore >= MIN_APROBATORIO,
-        estadoActual: finalState,
-      }, finalBucket);
-
-      if (!pendingRef || !finalRef) {
-        throw new Error("No se pudo localizar la respuesta en el bucket correcto.");
-      }
-
       const finalPayload = {
         ...response,
         calificacion: finalScore,
@@ -141,8 +113,14 @@ export default function CalificarEncuesta({ survey, responses = [], onSaved }) {
         intentos: Math.max(Number(response?.intentos || 0), 1),
       };
 
-      await setDoc(finalRef, finalPayload, { merge: true });
-      await deleteDoc(pendingRef);
+      await reviewSurveyResponse({
+        surveyId: survey?.id || response?.capacitacionId || response?.encuestaId,
+        responseId: response.id,
+        response: finalPayload,
+        collectionName: survey?.tipo === "capacitacion" ? "respuestasCapacitaciones" : "respuestasEncuestas",
+        finalBucket,
+        finalState,
+      });
 
       setFeedback(`Se calificó la encuesta de ${response.nombre || "usuario"}.`);
 

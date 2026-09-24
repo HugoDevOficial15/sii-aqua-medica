@@ -20,124 +20,15 @@ export const getCapacitacionesDisponibles = async (usuario) => {
             userId: usuario.id || usuario.uid || null,
             nomina: usuario.nomina || usuario.nominaUsuario || usuario.numeroNomina || null,
         });
+
         const capacitaciones = result.data?.trainings || [];
-        const respuestasUsuario = result.data?.responses || [];
-
-        // Filtrar: solo activas (o que no tengan el campo activa definido)
-        const capacitacionesActivas = capacitaciones.filter(e => e.activa !== false);
-
-        // Filtrar por acceso (según asignacion)
-        const capacitacionesAccesibles = capacitacionesActivas.filter(capacitacion => {
-            const asignacion = capacitacion.asignacion || { tipo: "global", valores: [] };
-
-            switch (asignacion.tipo) {
-                case "global":
-                    return true;
-
-                case "area":
-                    // Comparar area del usuario con los valores de asignación
-                    return usuario.area && asignacion.valores.includes(usuario.area);
-
-                case "usuarios":
-                    // Comparar nómina (o username) con los valores de asignación
-                    const nominaStr = String(usuario.nomina || usuario.username || "").trim();
-                    return nominaStr && asignacion.valores.some(v => String(v).trim() === nominaStr);
-
-                default:
-                    return false;
-            }
-        });
-
-        // Enriquecer capacitaciones con información calculada
-        const hoy = new Date();
-        const getResponseTimestamp = (response) => {
-            const rawValue = response?.fechaRespuesta ?? response?.fechaEnviado ?? response?.createdAt ?? 0;
-
-            if (!rawValue) return 0;
-            if (typeof rawValue?.toDate === "function") return rawValue.toDate().getTime();
-            if (typeof rawValue?.seconds === "number") return rawValue.seconds * 1000;
-            if (rawValue instanceof Date) return rawValue.getTime();
-
-            const parsed = Date.parse(rawValue);
-            return Number.isFinite(parsed) ? parsed : 0;
-        };
-
-        const capacitacionesEnriquecidas = capacitacionesAccesibles.map(capacitacion => {
-            const respuestasDeCapacitacion = respuestasUsuario.filter(r => r.capacitacionId === capacitacion.id);
-            const tienePreguntasAbiertas = (capacitacion.preguntas || []).some(p => p?.tipo === "abierta");
-            const respuestasFinales = respuestasDeCapacitacion.filter(response =>
-                !(response?.estadoActual === "pendiente_validacion" || response?.tieneRespuestasAbiertas)
-            );
-            const respondida = respuestasFinales.length > 0 || respuestasDeCapacitacion.length > 0;
-
-            // Parsear fechas (pueden venir como Timestamp o string)
-            const fechaInicio = capacitacion.fechaInicio?.toDate?.()
-                || new Date(capacitacion.fechaInicio);
-            const fechaFin = capacitacion.fechaFin?.toDate?.()
-                || new Date(capacitacion.fechaFin);
-
-            const vencida = false;
-
-            const disponible = !respondida;
-
-            // Buscar respuesta para extraer puntaje y estado
-            const miRespuesta = respuestasDeCapacitacion.reduce((latest, response) => {
-                if (!latest) return response;
-
-                const latestDate = getResponseTimestamp(latest);
-                const responseDate = getResponseTimestamp(response);
-                return responseDate >= latestDate ? response : latest;
-            }, null);
-            const totalIntentos = Math.max(
-                respuestasDeCapacitacion.length,
-                Number(miRespuesta?.intentos || 0)
-            );
-            const miPuntaje = miRespuesta?.puntuacionObtenida || miRespuesta?.puntajeFinal || null;
-            const miEstado = miRespuesta?.estadoActual || null;
-            const enRevision = Boolean((miEstado === "pendiente_validacion" || miRespuesta?.tieneRespuestasAbiertas) && tienePreguntasAbiertas);
-
-            let estadoFinal = miEstado;
-            if (enRevision) {
-                estadoFinal = "pendiente";
-            }
-            if (!estadoFinal) {
-                estadoFinal = vencida ? "vencida" : (respondida ? "completada" : "pendiente");
-            }
-
-            return {
-                id: capacitacion.id,
-                titulo: capacitacion.titulo || "",
-                descripcion: capacitacion.descripcion || "",
-                instructor: capacitacion.instructor || "",
-                modalidad: capacitacion.modalidad || "",
-                fechaCurso: capacitacion.fechaCurso || "",
-                fechaInicio: fechaInicio.toISOString().split("T")[0],
-                fechaFin: fechaFin.toISOString().split("T")[0],
-                horaInicio: capacitacion.horaInicio || "",
-                horaFin: capacitacion.horaFin || "",
-                duracion: capacitacion.duracionHoras || "0",
-                tipoCurso: capacitacion.tipoCurso || "",
-                formaEvaluacion: capacitacion.formaEvaluacion || "",
-
-                // Preguntas
-                preguntas: capacitacion.preguntas || [],
-                duracionHoras: capacitacion.duracionHoras || "0",
-                duracionMinutos: capacitacion.duracionMinutos || "0",
-                intentos: totalIntentos,
-
-                // Calculados
-                estado: estadoFinal,
-                estadoActual: estadoFinal,
-                enRevision,
-                respondida,
-                disponible: estadoFinal === "pendiente",
-                vencida: false,
-                miPuntaje
-            };
-        });
-
-        return capacitacionesEnriquecidas;
-
+        return capacitaciones.map((capacitacion) => ({
+            ...capacitacion,
+            id: String(capacitacion.id),
+            preguntas: Array.isArray(capacitacion.preguntas) ? capacitacion.preguntas : [],
+            estadoActual: capacitacion.estadoActual || capacitacion.estado || "pendiente",
+            disponible: capacitacion.disponible !== false,
+        }));
     } catch (error) {
         console.error("Error al obtener capacitaciones disponibles:", error);
         return [];

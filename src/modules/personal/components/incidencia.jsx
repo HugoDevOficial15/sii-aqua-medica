@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
-import { notifyError } from "../../../utils/notify";
-import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
+import { notifySuccess, notifyError } from "../../../utils/notify";import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { createPersonalIncidencia } from "../../../services/personalService";
 import { FaUserTimes } from "react-icons/fa";
+import Swal from "sweetalert2";
 
 export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -40,6 +40,16 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
     setError("");
 
     try {
+
+      Swal.fire({
+        title: "Registrando incidencia",
+        text: "Esperando respuesta del servidor",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
       await createPersonalIncidencia({
         empleado,
         titulo,
@@ -50,8 +60,11 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
 
       onSuccess?.();
       onClose?.();
+      Swal.close();
+      notifySuccess("Incidencia registrada correctamente.");
     } catch (err) {
       console.error("Error al guardar incidencia:", err);
+      Swal.close();
       setError("No se pudo registrar la incidencia. Intenta de nuevo.");
     } finally {
       setSending(false);

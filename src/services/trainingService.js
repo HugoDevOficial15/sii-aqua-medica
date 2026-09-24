@@ -7,6 +7,8 @@ const getTrainingFunction = httpsCallable(functions, "getTraining");
 const createTrainingFunction = httpsCallable(functions, "createTraining");
 const updateTrainingFunction = httpsCallable(functions, "updateTraining");
 const deleteTrainingFunction = httpsCallable(functions, "deleteTraining");
+const getTrainingResponsesForAdminFunction = httpsCallable(functions, "getSurveyResponsesForAdmin");
+const certifyTrainingResponsesFunction = httpsCallable(functions, "certifyTrainingResponses");
 
 export const clearTrainingCaches = () => {
     if (typeof window === "undefined") return;
@@ -63,3 +65,24 @@ export const deleteTraining = async (id) => {
     clearTrainingCaches();
     return result.data;
 }
+
+export const getTrainingResponsesForAdmin = async (trainingId) => {
+    if (!trainingId) return [];
+    const result = await getTrainingResponsesForAdminFunction({
+        surveyId: trainingId,
+        collectionName: "respuestasCapacitaciones",
+    });
+    return result.data?.responses || [];
+};
+
+export const certifyTrainingResponses = async ({ trainingId, userResponses = [] }) => {
+    if (!trainingId) return { ok: false, count: 0 };
+
+    const result = await certifyTrainingResponsesFunction({
+        surveyId: trainingId,
+        collectionName: "respuestasCapacitaciones",
+        userResponses,
+    });
+
+    return result.data || { ok: false, count: 0 };
+};

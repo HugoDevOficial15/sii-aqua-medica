@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import MobileBackButton from "./components/MobileBackButton";
 import AppLoader from "./components/AppLoader";
-import { saveSurveyResponse } from "../../services/servicesOperator/operatorSurveyResponseService";
+import {
+    saveSurveyResponse,
+    getSurveyDetail,
+    getSurveyAttempts,
+} from "../../services/servicesOperator/operatorSurveyResponseService";
 import { useAuth } from "../../hooks/useAuth";
 import { MAX_SURVEY_ATTEMPTS, MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { createNotification } from "../../utils/createNotification";
-import { collection, getDocs, query, where, getDoc, doc } from "firebase/firestore";
-import { db } from "../../config/firebase";
 
 export default function OperatorSurveyDetail(props) {
     if (!props.survey) return null;
@@ -81,19 +83,8 @@ function OperatorSurveyDetailContent({
 
     const getIntentosPrevios = async () => {
         if (!survey?.id || !user?.uid) return 0;
-
-        const buckets = ["pendientes", "aprobados", "reprobados"];
-        const snapshots = await Promise.all(
-            buckets.map(async (bucket) => {
-                const q = query(
-                    collection(db, "respuestasEncuestas", String(survey.id), bucket),
-                    where("userId", "==", user.uid)
-                );
-                return getDocs(q);
-            })
-        );
-
-        return snapshots.reduce((total, snapshot) => total + snapshot.size, 0);
+        const result = await getSurveyAttempts(survey.id, user.uid);
+        return Number(result?.attempts || 0);
     };
 
     const storageTimerKey = `survey_timer_${survey.id}_${user?.uid}`;
@@ -114,12 +105,9 @@ function OperatorSurveyDetailContent({
                 return;
             }
 
-            // Cargar desde Firestore si faltan preguntas
             try {
-                const surveyRef = doc(db, "encuestas", String(survey.id));
-                const surveySnap = await getDoc(surveyRef);
-                if (surveySnap.exists()) {
-                    const fullData = { id: surveySnap.id, ...surveySnap.data() };
+                const fullData = await getSurveyDetail(String(survey.id));
+                if (fullData) {
                     setFullSurvey({ ...survey, ...fullData });
                 }
             } catch (error) {

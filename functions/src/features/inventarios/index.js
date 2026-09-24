@@ -4,6 +4,30 @@ const { FieldValue } = require("firebase-admin/firestore");
 
 const inventarioCollection = db.collection("equipos");
 
+const formatFechaLog = (value = new Date()) => {
+  const dateValue = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(dateValue.getTime())) {
+    return new Date().toLocaleString("es-MX", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }
+
+  return dateValue.toLocaleString("es-MX", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
+
 const normalizeBoolean = (value, fallback = false) => {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") {
@@ -56,6 +80,62 @@ exports.getEquipos = onCall(async (request) => {
 
   const snapshot = await buildQuery({ estado, tipo }).get();
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+});
+
+exports.getEquipoLogs = onCall(async (request) => {
+  const { equipoId } = getRequestData(request);
+
+  if (!equipoId) {
+    throw new HttpsError("invalid-argument", "El ID del equipo es requerido.");
+  }
+
+  const snapshot = await inventarioCollection
+    .doc(equipoId)
+    .collection("logs")
+    .orderBy("createdAt", "desc")
+    .get();
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+    fechaServicio: doc.data().fechaServicio || formatFechaLog(doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date()),
+  }));
+});
+
+exports.createEquipoLog = onCall(async (request) => {
+  const data = getRequestData(request);
+  const { equipoId, ...payload } = data || {};
+
+  if (!equipoId) {
+    throw new HttpsError("invalid-argument", "El ID del equipo es requerido.");
+  }
+
+  const equipoRef = inventarioCollection.doc(equipoId);
+  const equipoDoc = await equipoRef.get();
+
+  if (!equipoDoc.exists) {
+    throw new HttpsError("not-found", "El equipo no existe.");
+  }
+
+  const log = {
+    ...payload,
+    observacion: String(payload.observacion ?? "").trim(),
+    tipo: String(payload.tipo ?? "observacion").trim() || "observacion",
+    realizadoPor: String(payload.realizadoPor ?? "Sistema").trim() || "Sistema",
+    equipoCodigo: String(payload.equipoCodigo ?? equipoDoc.data()?.codigo ?? "").trim(),
+    fechaServicio: payload.fechaServicio || formatFechaLog(new Date()),
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  const ref = await equipoRef.collection("logs").add(log);
+  const doc = await ref.get();
+
+  return {
+    id: doc.id,
+    ...doc.data(),
+    fechaServicio: doc.data().fechaServicio || formatFechaLog(new Date()),
+  };
 });
 
 exports.createEquipo = onCall(async (request) => {

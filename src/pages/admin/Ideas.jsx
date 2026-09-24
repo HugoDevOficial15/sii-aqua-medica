@@ -5,6 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { createNotification } from "../../utils/createNotification";
 import { notifyError, notifySuccess, confirmDelete } from "../../utils/notify";
 import { getAllIdeas, updateIdeaStatus, deleteIdea } from "../../services/ideasService";
+import Swal from "sweetalert2";
 
 export default function IdeasAdmin() {
   const { user } = useAuth();
@@ -90,11 +91,22 @@ export default function IdeasAdmin() {
 
     setActualizando(true);
     try {
+      Swal.fire({
+        title: "Eliminando idea",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       await deleteIdea(idea.id);
       setIdeas((prevIdeas) => prevIdeas.filter((i) => i.id !== idea.id));
+      Swal.close();
       notifySuccess("Eliminado", "La idea fue eliminada correctamente.");
     } catch (error) {
       console.error("Error al eliminar idea:", error);
+      Swal.close();
       notifyError("Error", "No se pudo eliminar la idea.");
     } finally {
       setActualizando(false);
@@ -105,6 +117,15 @@ export default function IdeasAdmin() {
     if (!selectedIdea) return;
     setActualizando(true);
     try {
+
+      Swal.fire({
+        title: "Actualizando estado",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
       await updateIdeaStatus(
         selectedIdea.id,
         nuevoEstado,
@@ -135,8 +156,10 @@ export default function IdeasAdmin() {
       );
       setIdeas(ideasActualizadas);
       setSelectedIdea({ ...selectedIdea, estado: nuevoEstado, comentarioAdmin: comentario });
+      Swal.close();
+      notifySuccess("Actualizado", "El estado de la idea se actualizó correctamente.");
     } catch (error) {
-      console.error("Error al actualizar el estado de la idea:", error);
+      Swal.close();
       notifyError("Error", "No se pudo actualizar el estado de la idea.");
     } finally {
       setActualizando(false);

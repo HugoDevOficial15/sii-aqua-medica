@@ -6,7 +6,7 @@ import { crearServicio } from "../../../services/serviciosService";
 import Loader from "../../../components/Loader";
 import { notifyError, notifySuccess } from "../../../utils/notify";
 import { useAuth } from "../../../hooks/useAuth";
-
+import Swal from "sweetalert2";
 import { FaSave, FaTimes } from "react-icons/fa";
 
 export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, servicios }) {
@@ -153,7 +153,14 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
 
             console.log("Mes que esta mal", Number(form.fecha.split("-")[1]));
 
-
+            Swal.fire({
+                title: "Agendando servicio",
+                text: "Por favor espera...",
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
             await crearServicio({
                 equipoId: equipo.id,
                 equipoCodigo: equipo.codigo,
@@ -171,12 +178,14 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
                 createdAt: new Date()
             });
 
-            notifySuccess("Servicio agendado correct    amente");
+            Swal.close();
+            notifySuccess("Servicio agendado \n correctamente");
             onSuccess();
             onClose();
 
         } catch (error) {
             console.log(error);
+            Swal.close();
             notifyError("Error al agendar");
         } finally {
             setLoading(false);

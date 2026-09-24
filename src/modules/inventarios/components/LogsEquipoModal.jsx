@@ -14,17 +14,27 @@ import {
     FaPlus,
     FaArrowDown,
     FaCheck,
-    FaTools
+    FaTools,
+    FaFilePdf
 } from "react-icons/fa";
-
-import Loader from "../../../components/Loader";
 
 import {
     notifySuccess,
     notifyError
 } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
+import logo2Image from "../../../utils/img/logo2.jpg";
+import Swal from "sweetalert2";
 
+
+const loadLogo = async () => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = logo2Image;
+    });
+};
 
 export default function LogsEquipoModal({
     equipo,
@@ -134,6 +144,17 @@ export default function LogsEquipoModal({
                 }
             );
 
+            Swal.fire({
+                title: "Guardando Observación",
+                text: "Esperando respuesta del servidor",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                  Swal.showLoading();
+                },
+              });
+              Swal.close();
+
             notifySuccess(
                 "Observación agregada",
                 "Correcto"
@@ -148,6 +169,146 @@ export default function LogsEquipoModal({
             notifyError(
                 "Error",
                 "No se pudo guardar"
+            );
+        }
+    };
+
+    const handleExportPdf = async () => {
+        if (!logs.length) {
+            return notifyError(
+                "Sin historial",
+                "No hay logs para exportar"
+            );
+        }
+
+        try {
+            const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+                import("jspdf"),
+                import("jspdf-autotable")
+            ]);
+
+            const autoTable = autoTableModule.default || autoTableModule;
+            const doc = new jsPDF();
+            const logo = await loadLogo();
+
+            doc.setFillColor(255, 255, 255);
+            doc.rect(0, 0, 210, 297, "F");
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(14);
+            doc.text("AQUA Médica S.A. de C.V.", 14, 20);
+
+            if (logo) {
+                doc.addImage(logo, "JPEG", 160, 7, 36, 26);
+            }
+
+            doc.setFontSize(15);
+            doc.text("Historial del equipo", 105, 33, { align: "center" });
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`${equipo.codigo || "Sin código"} • ${equipo.tipo || "Equipo"}`, 105, 40, { align: "center" });
+
+            const infoRows = [
+                ["Usuario", equipo.usuarioNombre || "-"],
+                ["Área", equipo.areaId || "-"],
+                ["Estado", equipo.estado ? "Activo" : "Baja"],
+                ["Total de logs", String(logs.length)]
+            ];
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text(`Fecha: ${new Date().toLocaleDateString("es-MX")}`, 14, 48);
+            doc.setDrawColor(40, 40, 40);
+            doc.line(14, 50, 196, 50);
+
+            autoTable(doc, {
+                startY: 56,
+                margin: { left: 14, right: 14 },
+                head: [["Campo", "Detalle"]],
+                body: infoRows,
+                styles: {
+                    font: "helvetica",
+                    fontSize: 9,
+                    cellPadding: 3,
+                    overflow: "linebreak",
+                    halign: "center",
+                    valign: "middle"
+                },
+                headStyles: {
+                    fillColor: [18, 109, 182],
+                    textColor: [255, 255, 255],
+                    fontStyle: "bold"
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245]
+                },
+                columnStyles: {
+                    0: { cellWidth: 56, fontStyle: "bold" },
+                    1: { cellWidth: 122 }
+                }
+            });
+
+            const bodyRows = logs.map((log) => [
+                log.fechaServicio || "Sin fecha",
+                (log.tipo || "observacion").replace(/_/g, " "),
+                sanitizeText(log.observacion || "Sin observación").slice(0, 200),
+                sanitizeText(log.realizadoPor || "Sistema")
+            ]);
+
+            autoTable(doc, {
+                startY: doc.lastAutoTable.finalY + 10,
+                margin: { left: 14, right: 14 },
+                head: [["Fecha", "Tipo", "Observación", "Realizado por"]],
+                body: bodyRows,
+                styles: {
+                    font: "helvetica",
+                    fontSize: 7,
+                    cellPadding: 3,
+                    overflow: "linebreak",
+                    valign: "middle"
+                },
+                headStyles: {
+                    fillColor: [18, 109, 182],
+                    textColor: [255, 255, 255],
+                    fontStyle: "bold"
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245]
+                },
+                columnStyles: {
+                    0: { cellWidth: 26 },
+                    1: { cellWidth: 28 },
+                    2: { cellWidth: 96 },
+                    3: { cellWidth: 32 }
+                }
+            });
+
+            const totalPages = doc.getNumberOfPages();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+
+            for (let i = 1; i <= totalPages; i += 1) {
+                doc.setPage(i);
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Página ${i} de ${totalPages}`, pageWidth - 14, pageHeight - 10, {
+                    align: "right"
+                });
+            }
+
+            const pdfBlob = doc.output("blob");
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const previewWindow = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+
+            if (previewWindow) {
+                previewWindow.focus();
+            }
+        } catch (error) {
+            console.error("Error generando PDF del historial:", error);
+            notifyError(
+                "Error",
+                "No se pudo generar el PDF"
             );
         }
     };
@@ -246,14 +407,22 @@ export default function LogsEquipoModal({
                         style={{ ...styles.textarea, ...dynamicStyles.textarea }}
                     />
 
-                    <button
-                        className="btn btn-primary"
-                        onClick={handleCreateLog}
-                        
-                    >
-                        Agregar
-                    </button>
+                    <div style={styles.actionsRow}>
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleCreateLog}
+                        >
+                            Agregar
+                        </button>
 
+                        <button
+                            type="button"
+                            className="btn-pdf"
+                            onClick={handleExportPdf}
+                        >
+                            <FaFilePdf /> PDF
+                        </button>
+                    </div>
                 </div>
 
 
@@ -261,9 +430,7 @@ export default function LogsEquipoModal({
 
                 <div style={styles.timeline}>
 
-                    {loading ? (
-                        <Loader />
-                    ) : logs.length === 0 ? (
+                    {logs.length === 0 ? (
 
                         <div style={{ ...styles.empty, ...dynamicStyles.empty }}>
                             Sin historial
@@ -330,6 +497,12 @@ export default function LogsEquipoModal({
                         box-shadow: 0 0px 20px var(--operator-primary-light);
                     }
 
+                    .actions-row {
+                        display: flex;
+                        gap: 12px;
+                        align-items: center;
+                    }
+
                     .btn-primary:hover {
                         background: var(--operator-primary);
                         box-shadow: 0 0px 10px var(--operator-primary-light);
@@ -345,6 +518,26 @@ export default function LogsEquipoModal({
                         color: var(--operator-text);
                         font-size: 14px;
                         outline: none;
+                    }
+
+                    .btn-pdf {
+                        height: 50px;
+                        padding: 0 24px;
+                        border-radius: 14px;
+                        border: none;
+                        background: var(--operator-danger);
+                        color: #fff;
+                        font-weight: 700;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 0px 10px var(--operator-danger);
+                    }
+
+                    .btn-pdf:hover {
+                        background: var(--operator-danger);
+                        box-shadow: 0 0px 15px var(--operator-danger);
                     }
                 `}</style>
 
@@ -413,6 +606,13 @@ const styles = {
         borderBottom: "1px solid #eee"
     },
 
+    actionsRow: {
+        display: "flex",
+        gap: "12px",
+        alignItems: "center",
+        marginTop: "12px"
+    },
+
     textarea: {
         width: "100%",
         minHeight: "90px",
@@ -420,7 +620,7 @@ const styles = {
         border: "1px solid #d1d5db",
         padding: "12px",
         resize: "none",
-        marginBottom: "12px"
+        marginBottom: 0
     },
 
     saveBtn: {

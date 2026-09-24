@@ -9,6 +9,7 @@ import {
   cambiarEstadoProblema,
   eliminarProblema,
 } from "../../services/supportTicketService";
+import Swal from "sweetalert2";
 
 export default function SoporteAdmin() {
   const { user } = useAuth();
@@ -94,6 +95,15 @@ export default function SoporteAdmin() {
     if (!selectedProblema) return;
     setActualizando(true);
     try {
+      Swal.fire({
+        title: "Actualizando estado",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       await cambiarEstadoProblema({
         id: selectedProblema.id,
         nuevoEstado,
@@ -114,7 +124,12 @@ export default function SoporteAdmin() {
               nuevoEstado: nuevoEstado
             }
           });
+
+          Swal.close();
+          notifySuccess("Actualizado", "El estado del reporte se actualizó correctamente.");
         } catch (notifError) {
+          Swal.close();
+          notifyError("Error", "No se pudo enviar la notificación al usuario.");
           console.error("Error al enviar notificación al usuario:", notifError);
         }
       }
@@ -139,6 +154,15 @@ export default function SoporteAdmin() {
 
     setActualizando(true);
     try {
+      Swal.fire({
+        title: "Eliminando reporte",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       await eliminarProblema({ id: problema.id });
 
       setProblemas((prev) => prev.filter((p) => p.id !== problema.id));
@@ -148,8 +172,10 @@ export default function SoporteAdmin() {
         setSelectedProblema(null);
       }
 
+      Swal.close();
       notifySuccess("Eliminado", "Reporte eliminado correctamente.");
     } catch (error) {
+      Swal.close();
       console.error("Error al eliminar el reporte:", error);
       notifyError("Error", "No se pudo eliminar el reporte.");
     } finally {

@@ -2,8 +2,8 @@ import { useState } from "react";
 import { actualizarServicio, crearLogEquipo } from "../../../services/serviciosService";
 import { notifySuccess, notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
+import Swal from "sweetalert2";
 import { useAuth } from "../../../hooks/useAuth";
-import Loader from "../../../components/Loader";
 import { FaCheck, FaTimes, FaClosedCaptioning } from "react-icons/fa";
 
 export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
@@ -11,7 +11,6 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
     const { user } = useAuth();
 
     const [observacion, setObservacion] = useState("");
-    const [loading, setLoading] = useState(false);
 
     const handleSave = async () => {
 
@@ -23,7 +22,15 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
         }
 
         try {
-            setLoading(true);
+
+            Swal.fire({
+                title: "Actualizando servicio",
+                text: "Por favor espera...",
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
 
             await actualizarServicio(servicio.id, {
                 estado: "realizado"
@@ -39,6 +46,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                 createdAt: new Date()
             });
 
+            Swal.close();
             notifySuccess("Servicio finalizado");
 
             onSuccess();
@@ -46,9 +54,10 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
 
         } catch (error) {
             console.log(error);
+            Swal.close();
             notifyError("Error al actualizar");
         } finally {
-            setLoading(false);
+            Swal.close();
         }
     };
 
@@ -69,9 +78,6 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
 
                 {/* BODY */}
                 <div className="custom-modal-body">
-
-                    {loading && <Loader />}
-
                     <div className="info-box">
                         <strong>{servicio.equipoCodigo}</strong> - {servicio.usuarioNombre}
                     </div>
@@ -98,9 +104,8 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                     <button
                         className="btn btn-success custom-btn"
                         onClick={handleSave}
-                        disabled={loading}
                     >
-                        {loading ? "Guardando..." : "Guardar"}
+                        Guardar
                     </button>
 
                 </div>
@@ -184,6 +189,8 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
             .custom-textarea:focus {
                 border-color: #2563eb;
                 box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+                color: var(--operator-text);
+                outline: none;
             }
 
             .custom-modal-footer {

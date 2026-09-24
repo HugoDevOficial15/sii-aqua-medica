@@ -1,198 +1,67 @@
-import { db } from "../../config/firebase";
 import { functions } from "../../config/firebase";
 import { httpsCallable } from "firebase/functions";
 
-import {
-    collection,
-    addDoc,
-    doc,
-    getDocs,
-    query,
-    where,
-    writeBatch
-} from "firebase/firestore";
-
 const saveOperatorSurveyResponseFunction = httpsCallable(functions, "saveOperatorSurveyResponse");
+const getSurveyDetailFunction = httpsCallable(functions, "getSurveyDetail");
+const getSurveyAttemptsFunction = httpsCallable(functions, "getSurveyAttempts");
+const getMySurveyResponsesFunction = httpsCallable(functions, "getMySurveyResponses");
+const getSurveyResponsesForAdminFunction = httpsCallable(functions, "getSurveyResponsesForAdmin");
+const hasAnsweredSurveyFunction = httpsCallable(functions, "hasAnsweredSurvey");
+const getSurveyHistoryFunction = httpsCallable(functions, "getSurveyHistory");
+const getSurveyMetricsFunction = httpsCallable(functions, "getSurveyMetrics");
 
-// ============================================================
-// COLECCIÓN ÚNICA DE RESPUESTAS DE ENCUESTAS
-// ============================================================
-// Todas las respuestas se guardan y consultan en "respuestasEncuestas"
-// para evitar inconsistencias de nombres en diferentes partes del código.
-const resolveUserDocIdByFirebaseUid = async (userId) => {
-    if (!userId) return null;
-
-    try {
-        const q = query(collection(db, "users"), where("uid", "==", userId));
-        const snapshot = await getDocs(q);
-        return snapshot.empty ? null : snapshot.docs[0].id;
-    } catch (error) {
-        console.error("Error resolviendo el docId del usuario para Resultados:", error);
-        return null;
-    }
+export const getSurveyDetail = async (surveyId) => {
+    if (!surveyId) return null;
+    const result = await getSurveyDetailFunction({ surveyId });
+    return result.data?.survey ?? null;
 };
 
-const isResponseApproved = (data) => {
-    if (data?.estadoActual === "pendiente_validacion" || data?.tieneRespuestasAbiertas) {
-        return false;
-    }
-
-    if (typeof data?.aprobada === "boolean") {
-        return data.aprobada;
-    }
-
-    const score = Number(data?.calificacion ?? data?.resultado ?? 0);
-    return Number.isFinite(score) && score >= 80;
+export const getSurveyAttempts = async (surveyId, userId) => {
+    if (!surveyId) return { attempts: 0, responses: [] };
+    const result = await getSurveyAttemptsFunction({ surveyId, userId });
+    return result.data || { attempts: 0, responses: [] };
 };
 
-const getSurveyBucketCollection = (surveyId, bucketName) => {
-    const bucket = bucketName || "aprobados";
-    return collection(db, "respuestasEncuestas", String(surveyId), bucket);
+export const saveSurveyResponse = async (data) => {
+    const result = await saveOperatorSurveyResponseFunction(data);
+    return result.data;
 };
 
-// ======================
-// GUARDAR RESPUESTA
-// ======================
-// Guarda la respuesta del usuario con todos los metadatos necesarios
-// para poder reconstruir el resultado posteriormente sin depender de
-// cálculos en tiempo real.
-export const saveSurveyResponse =
-    async (data) => {
-        const result = await saveOperatorSurveyResponseFunction(data);
-        return result.data;
+export const getMyResponses = async (userId) => {
+    if (!userId) return [];
+    const result = await getMySurveyResponsesFunction({ userId });
+    return result.data?.responses || [];
+};
+
+export const getMyResponsesByNomina = async (nominaUsuario) => {
+    if (!nominaUsuario) return [];
+    const result = await getMySurveyResponsesFunction({ userId: nominaUsuario });
+    return result.data?.responses || [];
+};
+
+export const getResponsesForSurvey = async (idEncuesta) => {
+    if (!idEncuesta) return [];
+    const result = await getSurveyResponsesForAdminFunction({ surveyId: idEncuesta });
+    return result.data?.responses || [];
+};
+
+export const hasAnsweredSurvey = async (surveyId, userId) => {
+    if (!surveyId || !userId) return false;
+    const result = await hasAnsweredSurveyFunction({ surveyId, userId });
+    return Boolean(result.data?.answered);
+};
+
+export const getSurveyHistory = async (userId) => {
+    if (!userId) return [];
+    const result = await getSurveyHistoryFunction({ userId });
+    return result.data?.history || [];
+};
+
+export const getSurveyMetrics = async (userId) => {
+    if (!userId) return { respondidas: 0, reprobadas: 0 };
+    const result = await getSurveyMetricsFunction({ userId });
+    return {
+        respondidas: Number(result.data?.respondidas || 0),
+        reprobadas: Number(result.data?.reprobadas || 0),
     };
-
-// ======================
-// RESPUESTAS DEL USUARIO (por userId)
-// ======================
-// Descarga todas las respuestas del usuario autenticado.
-// Se usa para cruzar en memoria contra las encuestas asignadas.
-
-export const getMyResponses =
-    async (userId) => {
-        if (!userId) return [];
-
-        const allCollections = [
-            collection(db, "respuestasEncuestas"),
-        ];
-
-        const snapshots = await Promise.all(
-            allCollections.map(async (collectionRef) => getDocs(query(collectionRef, where("userId", "==", userId))))
-        );
-
-        return snapshots.flatMap(snapshot =>
-            snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }))
-        );
-    };
-
-// Alias para búsqueda por nómina (algunos componentes antiguos pueden usarlo)
-export const getMyResponsesByNomina =
-    async (nominaUsuario) => {
-        if (!nominaUsuario) return [];
-
-        const allCollections = [
-            collection(db, "respuestasEncuestas"),
-        ];
-
-        const snapshots = await Promise.all(
-            allCollections.map(async (collectionRef) => getDocs(query(collectionRef, where("nominaUsuario", "==", nominaUsuario))))
-        );
-
-        return snapshots.flatMap(snapshot =>
-            snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }))
-        );
-    };
-
-// ======================
-// RESPUESTAS DE UNA ENCUESTA (panel de Administrador)
-// ======================
-export const getResponsesForSurvey =
-    async (idEncuesta) => {
-        if (!idEncuesta) return [];
-
-        const approvedDocs = await getDocs(query(getSurveyBucketCollection(idEncuesta, true)));
-        const rejectedDocs = await getDocs(query(getSurveyBucketCollection(idEncuesta, false)));
-
-        return [...approvedDocs.docs, ...rejectedDocs.docs].map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-    };
-
-// ======================
-// YA RESPONDIÓ
-// ======================
-
-export const hasAnsweredSurvey =
-    async (
-        surveyId,
-        userId
-    ) => {
-        if (!surveyId || !userId) return false;
-
-        const approvedSnapshot = await getDocs(query(
-            getSurveyBucketCollection(surveyId, true),
-            where("userId", "==", userId)
-        ));
-
-        if (!approvedSnapshot.empty) return true;
-
-        const rejectedSnapshot = await getDocs(query(
-            getSurveyBucketCollection(surveyId, false),
-            where("userId", "==", userId)
-        ));
-
-        return !rejectedSnapshot.empty;
-    };
-
-// ======================
-// HISTORIAL
-// ======================
-
-export const getSurveyHistory =
-    async (userId) => {
-        if (!userId) return [];
-
-        const rootSnapshot = await getDocs(query(collection(db, "respuestasEncuestas"), where("userId", "==", userId)));
-        if (!rootSnapshot.empty) {
-            return rootSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-        }
-
-        return [];
-    };
-
-// ======================
-// MÉTRICAS
-// ======================
-
-export const getSurveyMetrics =
-    async (userId) => {
-
-        const history =
-            await getSurveyHistory(
-                userId
-            );
-
-        return {
-
-            respondidas:
-                history.length,
-
-            reprobadas:
-                history.filter(
-                    item =>
-                        item.calificacion < 80
-                ).length
-
-        };
-
-    };
+};

@@ -8,7 +8,7 @@ import {
 } from "../../../services/usersService";
 import { createPersonalIncapacidad } from "../../../services/personalService";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
-import { notifyError } from "../../../utils/notify";
+import { notifySuccess, notifyError } from "../../../utils/notify";
 import { FaHouseUser } from "react-icons/fa";
 
 export const isWoman = (usuario) => {
@@ -381,6 +381,16 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
       const tipo = sanitizeTextTrim(isWoman(usuario) ? form.tipo : "incapacidad") || "incapacidad";
       const nota = sanitizeText(form.nota);
 
+      Swal.fire({
+        title: "Registrando incapacidad",
+        text: "Esperando respuesta del servidor",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
       await createPersonalIncapacidad({
         empleado: usuario,
         tipo,
@@ -391,8 +401,11 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
 
       await refreshUsersWithIncapacidades(setUsuarios);
       await onSaved?.();
+      Swal.close();
+      notifySuccess("Incapacidad registrada correctamente.");
     } catch (error) {
       console.error("Error guardando incapacidad:", error);
+      Swal.close();
       notifyError("No se pudo guardar la incapacidad.");
     } finally {
       setIsSubmitting(false);

@@ -35,6 +35,7 @@ import ResumenServiciosModal from "../listaservicios/components/ResumenServicioM
 import { getEquipos } from "../../services/equiposServices";
 
 import { exportMantenimientoPDF } from "../../utils/exportMantenimientoPDF";
+import Swal from "sweetalert2";
 
 export default function ListaServiciosPage() {
   const [servicioEliminar, setServicioEliminar] = useState(null);
@@ -84,8 +85,11 @@ export default function ListaServiciosPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async ({ showLoader = true } = {}) => {
+    if (showLoader) {
+      setLoading(true);
+    }
+
     try {
       const data = await getServiciosProgramadosByMes(anio, mes);
       const equiposData = await getEquipos({ estado: true });
@@ -112,12 +116,19 @@ export default function ListaServiciosPage() {
       console.log(e);
       setServicios([]);
     } finally {
-      setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
   };
 
+  const handleAfterServicioUpdate = () => {
+    setSelected(null);
+    fetchData({ showLoader: false });
+  };
+
   useEffect(() => {
-    fetchData();
+    fetchData({ showLoader: true });
   }, [mes]);
 
   const serviciosFiltrados = (servicios || []).filter((s) => {
@@ -138,22 +149,44 @@ export default function ListaServiciosPage() {
 
   const handleEliminarBloqueo = async (id) => {
     try {
+
+      Swal.fire({
+        title: "Eliminando bloqueo de día",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
       await eliminarDiaBloqueado(id);
+      Swal.close();
       notifySuccess("Día desbloqueado");
-      fetchData();
+      fetchData({ showLoader: false });
     } catch (e) {
       console.log(e);
+      Swal.close();
       notifyError("Error al eliminar");
     }
   };
 
   const handleEliminarBloqueoHorario = async (id) => {
     try {
+
+      Swal.fire({
+        title: "Eliminando bloqueo de horario",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
       await eliminarBloqueoHorario(id);
+      Swal.close();
       notifySuccess("Horario desbloqueado");
-      fetchData();
+      fetchData({ showLoader: false });
     } catch (e) {
       console.log(e);
+      Swal.close();
       notifyError("Error al eliminar horario");
     }
   };
@@ -165,14 +198,25 @@ export default function ListaServiciosPage() {
     }
 
     try {
+      Swal.fire({
+        title: "Bloqueando día",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
       await bloquearDia(fechaBloqueoDia, motivoDia);
+      Swal.close();
       notifySuccess("Día bloqueado");
 
       setFechaBloqueoDia("");
       setMotivoDia("");
 
-      fetchData();
+      fetchData({ showLoader: false });
     } catch (e) {
+      Swal.close();
       notifyError("Error al bloquear");
     }
   };
@@ -184,6 +228,15 @@ export default function ListaServiciosPage() {
     }
 
     try {
+
+      Swal.fire({
+        title: "Bloqueando horario",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
       await bloquearHorario(
         fechaBloqueoHorario,
         motivoHorario,
@@ -191,26 +244,39 @@ export default function ListaServiciosPage() {
         horaFinBloqueo,
       );
 
+      Swal.close();
       notifySuccess("Horario bloqueado");
 
-      fetchData();
+      fetchData({ showLoader: false });
     } catch (e) {
+      Swal.close();
       notifyError("Error al bloquear horario");
     }
   };
 
   const handleEliminarServicio = async () => {
     try {
+
+      Swal.fire({
+        title: "Eliminando servicio",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
       await eliminarServicio(servicioEliminar.id);
 
+      Swal.close();
       notifySuccess("Servicio eliminado correctamente");
 
       setServicioEliminar(null);
 
-      fetchData();
+      fetchData({ showLoader: false });
     } catch (error) {
       console.log(error);
 
+      Swal.close();
       notifyError("Error al eliminar servicio");
     }
   };
@@ -608,7 +674,7 @@ export default function ListaServiciosPage() {
         <CambiarEstadoModal
           servicio={selected}
           onClose={() => setSelected(null)}
-          onSuccess={fetchData}
+          onSuccess={handleAfterServicioUpdate}
         />
       )}
 

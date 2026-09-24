@@ -215,15 +215,14 @@ exports.searchUsers = onCall(async (request) => {
   ].map((query) => applyUserFilters(query, filters));
 
   const [nameSnapshot, nominaSnapshot] = await Promise.all(
-    queryBuilders.map((query) => query.limit(Number(data.pageSize || 30)).get()),
+    queryBuilders.map((query) => query.get()),
   );
 
   const records = new Map();
   [...nameSnapshot.docs, ...nominaSnapshot.docs].forEach((doc) => records.set(doc.id, userFromSnapshot(doc)));
 
   const users = [...records.values()]
-    .sort((a, b) => Number(a.nomina) - Number(b.nomina))
-    .slice(0, Number(data.pageSize || 30));
+    .sort((a, b) => Number(a.nomina) - Number(b.nomina));
 
   return { users, hasMore: false, nextCursor: null };
 });

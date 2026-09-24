@@ -9,6 +9,8 @@ const getSurveysFunction = httpsCallable(functions, "getSurveys");
 const createSurveyFunction = httpsCallable(functions, "createSurvey");
 const updateSurveyFunction = httpsCallable(functions, "updateSurvey");
 const deleteSurveyFunction = httpsCallable(functions, "deleteSurvey");
+const getResponsesForAdminFunction = httpsCallable(functions, "getSurveyResponsesForAdmin");
+const reviewSurveyResponseFunction = httpsCallable(functions, "reviewSurveyResponse");
 
 // Obtener encuestas
 export const getSurveys = async () => {
@@ -49,3 +51,31 @@ export const deleteSurvey = async (id) => {
     clearSurveyCaches();
     return result.data;
 }
+
+export const getResponsesForAdmin = async ({ surveyId, collectionName = "respuestasEncuestas" }) => {
+    if (!surveyId) return [];
+    const result = await getResponsesForAdminFunction({ surveyId, collectionName });
+    return result.data?.responses || [];
+};
+
+export const reviewSurveyResponse = async ({
+    surveyId,
+    responseId,
+    response,
+    collectionName = "respuestasEncuestas",
+    finalBucket = "aprobados",
+    finalState = "aprobado",
+}) => {
+    if (!surveyId || !responseId) return null;
+
+    const result = await reviewSurveyResponseFunction({
+        surveyId,
+        responseId,
+        response,
+        collectionName,
+        finalBucket,
+        finalState,
+    });
+
+    return result.data;
+};

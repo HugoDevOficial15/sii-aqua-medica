@@ -1,5 +1,3 @@
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../config/firebase";
 import { functions } from "../config/firebase";
 import { httpsCallable } from "firebase/functions";
 

@@ -9,10 +9,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { trainingSchema } from "../../schemas/trainingSchema";
 import { getAuth } from "firebase/auth";
 import EncuestaResultados from "../../modules/encuestas/EncuestaResultados";
-import { collection, getDocs, query, where, deleteDoc, doc } from "firebase/firestore";
-import { db, storage } from "../../config/firebase";
-import { dismissNotification } from "../../utils/notificationPersistence";
-import { ref, deleteObject } from "firebase/storage";
 import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar,FaWindowClose,FaEllipsisV,FaGlobe,FaWarehouse,FaFlask,FaUtensils,FaUserTie,FaCalculator,FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaShieldAlt,FaHeartbeat,FaHandsHelping,FaStethoscope,FaLaptopCode,FaClipboardCheck,FaEye,FaShoppingCart,FaFileUpload } from "react-icons/fa";
 import { sanitizeText, sanitizeTextTrim } from "../../utils/sanitize";
 import '../../styles/index.css';
@@ -33,6 +29,20 @@ export default function CreateCapacitaciones() {
 
     // Fecha actual para validación (min={today})
     const today = new Date().toISOString().split("T")[0];
+
+    const showLoadingSwal = async (title, text = "Esperando respuesta del servidor") => {
+        const Swal = (await import("sweetalert2")).default;
+        Swal.fire({
+            title,
+            text,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            zIndex: 2147483647,
+            didOpen: () => Swal.showLoading(),
+        });
+
+        return Swal;
+    };
 
     const getEmptyTrainingValues = () => ({
         titulo: "",
@@ -395,6 +405,11 @@ export default function CreateCapacitaciones() {
     };
 
     const handleSaveTraining = async (data) => {
+        const Swal = await showLoadingSwal(
+            editing ? "Actualizando capacitación" : "Guardando capacitación",
+            "Esperando respuesta del servidor"
+        );
+
         try {
             const sanitizedData = sanitizeTrainingData(data);
 
@@ -402,6 +417,7 @@ export default function CreateCapacitaciones() {
             const auth = getAuth();
 
             if (!auth.currentUser) {
+                Swal.close();
                 notifyError("Error", "No hay usuario autenticado");
                 return;
             }
@@ -506,9 +522,11 @@ export default function CreateCapacitaciones() {
 
             if (editing) {
                 await updateTraining(currentId, trainingData);
+                Swal.close();
                 notifySuccess("Capacitación Actualizada", "Se actualizó correctamente");
             } else {
                 await createTraining(trainingData);
+                Swal.close();
                 notifySuccess("Capacitación Creada", "La capacitación fue registrada");
             }
 
@@ -520,6 +538,7 @@ export default function CreateCapacitaciones() {
             reset(getEmptyTrainingValues());
 
         } catch (error) {
+            Swal.close();
             notifyError("Error", "No se pudo crear la capacitación");
         } finally {
             setSaving(false);
@@ -547,107 +566,56 @@ export default function CreateCapacitaciones() {
         setShowModal(true);
     }
 
+    const handleViewResults = (training) => {
+        setViewingResults(training);
+        setOpenActionsId(null);
+    };
+
     // Funciones de estado
     const toggleTraining = async (training) => {
-        const update = { ...training, activa: !training.activa };
-        await updateTraining(training.id, update);
-        const data = await getTraining();
-        setTrainings(data);
+        const Swal = await showLoadingSwal("Actualizando estado", "Cambiando el estado de la capacitación");
+        try {
+            const update = { ...training, activa: !training.activa };
+            await updateTraining(training.id, update);
+            const data = await getTraining();
+            setTrainings(data);
+            Swal.close();
+            notifySuccess("Capacitación actualizada", "El estado de la capacitación se actualizó correctamente");
+        } catch (error) {
+            console.error("Error actualizando capacitación:", error);
+            Swal.close();
+            notifyError("Error", "No se pudo actualizar el estado de la capacitación");
+        }
     };
 
     const updateTrainingState = async (training, newState) => {
-        const update = { ...training, estado: newState };
-        await updateTraining(training.id, update);
-        const data = await getTraining();
-        setTrainings(data);
+        const Swal = await showLoadingSwal("Actualizando estado", "Aplicando el nuevo estado");
+        try {
+            const update = { ...training, estado: newState };
+            await updateTraining(training.id, update);
+            const data = await getTraining();
+            setTrainings(data);
+            Swal.close();
+        } catch (error) {
+            console.error("Error actualizando estado:", error);
+            Swal.close();
+            notifyError("Error", "No se pudo actualizar el estado");
+        }
     };
 
     const handleDeleteTraining = async (training) => {
         const result = await confirmDelete("¿Eliminar capacitación?", "Esta acción no se puede deshacer.");
         if (result.isConfirmed) {
+            const Swal = await showLoadingSwal("Eliminando capacitación", "Se están removiendo los datos asociados");
             try {
-                // Eliminar respuestas de capacitaciones
-                try {
-                    const qResponses = query(collection(db, "respuestasCapacitaciones"), where("capacitacionId", "==", training.id));
-                    const snapshotResponses = await getDocs(qResponses);
-
-                    const extractFilePathFromUrl = (url) => {
-                        if (!url) return null;
-                        try {
-                            const urlObj = new URL(url);
-                            const searchParams = urlObj.searchParams;
-
-                            // Intenta obtener la ruta del parámetro 'o' en la URL
-                            const pathname = urlObj.pathname;
-                            const match = pathname.match(/\/o\/(.+?)(?:\?|$)/);
-                            if (match && match[1]) {
-                                return decodeURIComponent(match[1]);
-                            }
-
-                            // Fallback: busca en toda la URL
-                            const fullMatch = url.match(/\/o\/([^?]+)/);
-                            if (fullMatch && fullMatch[1]) {
-                                return decodeURIComponent(fullMatch[1]);
-                            }
-                        } catch (error) {
-                            console.warn("Error extrayendo ruta de URL:", error);
-                        }
-                        return null;
-                    };
-
-                    const deleteResponsePromises = snapshotResponses.docs.map(async (docResponse) => {
-                        const responseData = docResponse.data();
-
-                        // Intentar eliminar archivos en storage si existen (sin bloquear el proceso)
-                        if (responseData.certificadoUrl) {
-                            Promise.resolve().then(async () => {
-                                try {
-                                    const filePath = extractFilePathFromUrl(responseData.certificadoUrl);
-                                    if (filePath) {
-                                        const certRef = ref(storage, filePath);
-                                        await deleteObject(certRef).catch(() => {
-                                            // Ignorar si el archivo no existe
-                                        });
-                                    }
-                                } catch (storageError) {
-                                    // Silenciosamente ignorar errores de storage
-                                }
-                            });
-                        }
-
-
-                        // Eliminar documento de respuesta (esto sí es crítico)
-                        return deleteDoc(doc(db, "respuestasCapacitaciones", docResponse.id));
-                    });
-                    await Promise.all(deleteResponsePromises);
-                } catch (responseError) {
-                    console.warn("No se encontraron respuestas asociadas o error al eliminarlas:", responseError);
-                    // Continuar sin fallar
-                }
-
-                // Eliminar notificaciones asociadas
-                try {
-                    const qNotif = query(collection(db, "notificaciones"), where("extra.capacitacionId", "==", training.id));
-                    const snapshotNotif = await getDocs(qNotif);
-
-                    const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
-                        // 🍪 Persistir en cookies antes de borrar
-                        dismissNotification(docNotif.id);
-                        return deleteDoc(doc(db, "notificaciones", docNotif.id));
-                    });
-                    await Promise.all(deleteNotifPromises);
-                } catch (notifError) {
-                    console.warn("No se encontraron notificaciones asociadas o error al eliminarlas:", notifError);
-                    // Continuar sin fallar
-                }
-
-                // Eliminar capacitación
                 await deleteTraining(training.id);
                 const data = await getTraining();
                 setTrainings(data);
-                notifySuccess("Capacitación eliminada", "La capacitación, respuestas y archivos fueron eliminados correctamente");
+                Swal.close();
+                notifySuccess("Capacitación eliminada", "La capacitación y sus registros asociados fueron eliminados correctamente");
             } catch (error) {
                 console.error("Error eliminando capacitación:", error);
+                Swal.close();
                 notifyError("Error", "No se pudo eliminar la capacitación");
             }
         }
@@ -781,10 +749,7 @@ export default function CreateCapacitaciones() {
                                                             <button
                                                                 type="button"
                                                                 className="training-action-item respuestas"
-                                                                onClick={() => {
-                                                                    setViewingResults(training);
-                                                                    setOpenActionsId(null);
-                                                                }}
+                                                                onClick={() => handleViewResults(training)}
                                                             >
                                                                 <FaChartBar className="me-2" /> Ver respuestas
                                                             </button>

@@ -30,6 +30,8 @@ import {
 // Logs
 import LogsEquipoModal from "../../modules/inventarios/components/LogsEquipoModal";
 
+import Swal from "sweetalert2";
+
 export default function InventarioPage() {
   const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -45,14 +47,17 @@ export default function InventarioPage() {
   const [tipoFilter, setTipoFilter] = useState("");
 
   // Fetch
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async ({ silent = true } = {}) => {
+    if (!silent) {
+      setLoading(true);
+    }
+
     try {
-      const response = await getEquipos({ pageSize: 50 });
+      const response = await getEquipos({ pageSize: null });
       const data = Array.isArray(response) ? response : response?.items || [];
 
       const ordenados = [...data].sort((a, b) =>
-        a.codigo.localeCompare(b.codigo, undefined, {
+        String(a.codigo ?? "").localeCompare(String(b.codigo ?? ""), undefined, {
           numeric: true,
           sensitivity: "base",
         }),
@@ -60,14 +65,17 @@ export default function InventarioPage() {
 
       setEquipos(ordenados);
     } catch (error) {
+      console.error("Error al cargar los equipos:", error);
       notifyError("Error al cargar los equipos", "error");
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData({ silent: false });
   }, []);
 
   const handleEdit = (item) => {
@@ -82,13 +90,33 @@ export default function InventarioPage() {
 
   const toggleBajaActivar = async (id, estado) => {
     if (estado) {
+      Swal.fire({
+        title: "Dando de baja Equipo",
+        text: "Esperando respuesta del servidor",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
       await bajaEquipo(id);
+      Swal.close();
       notifySuccess("Equipo dado de baja", "Baja correcta");
     } else {
+      Swal.fire({
+        title: "Activando Equipo",
+        text: "Esperando respuesta del servidor",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
       await activarEquipo(id);
+      Swal.close();
       notifySuccess("Equipo activado", "Alta correcta");
     }
-    fetchData();
+    fetchData({ silent: true });
   };
 
   const capitalizar = (texto = "") =>
@@ -96,11 +124,17 @@ export default function InventarioPage() {
 
   // Filtro
   const equiposFiltrados = equipos.filter((e) => {
-    const matchSearch =
-      e.codigo.toLowerCase().includes(search.toLowerCase()) ||
-      e.usuarioNombre.toLowerCase().includes(search.toLowerCase());
+    const normalizedSearch = String(search || "").trim().toLowerCase();
+    const codigo = String(e.codigo ?? "").toLowerCase();
+    const usuarioNombre = String(e.usuarioNombre ?? "").toLowerCase();
 
-    const matchTipo = tipoFilter === "" || e.tipo === tipoFilter;
+    const matchSearch =
+      !normalizedSearch ||
+      codigo.includes(normalizedSearch) ||
+      usuarioNombre.includes(normalizedSearch);
+
+    const tipoActual = String(e.tipo ?? "").trim().toLowerCase();
+    const matchTipo = tipoFilter === "" || tipoActual === String(tipoFilter).trim().toLowerCase();
 
     return matchSearch && matchTipo;
   });

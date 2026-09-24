@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../hooks/useAuth";
-import { notifyError } from "../../../utils/notify";
-import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
+import { notifySuccess, notifyError } from "../../../utils/notify";import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { createPersonalReconocimiento } from "../../../services/personalService";
 import { FaMedal } from "react-icons/fa";
+import Swal from "sweetalert2";
 
 export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -44,6 +44,16 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
     try {
       const tipoReconocimiento = isPrimeraVez ? "primer_logro" : sanitizeTextTrim(form.tipo);
 
+      Swal.fire({
+        title: "Registrando reconocimiento",
+        text: "Esperando respuesta del servidor",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
       await createPersonalReconocimiento({
         empleado,
         titulo,
@@ -54,8 +64,11 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
 
       onSuccess?.();
       onClose?.();
+      Swal.close();
+      notifySuccess("Reconocimiento registrado correctamente.");
     } catch (err) {
       console.error("Error al guardar reconocimiento:", err);
+      Swal.close();
       setError("No se pudo guardar el reconocimiento. Intenta de nuevo.");
     } finally {
       setSending(false);

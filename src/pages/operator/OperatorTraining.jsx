@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 import { FiCheckCircle, FiClock, FiAlertCircle } from "react-icons/fi";
-import { useAuth } from "../../hooks/useAuth";
 import { useOperatorTrainings } from "../../hooks/hooksOperator/useOperatorTrainings";
 import Loader from "../../components/Loader";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../../config/firebase";
 import { notifyInfo } from "../../utils/notify";
 import MobileBackButton from "./components/MobileBackButton";
 import { isSurveyInTimeWindow, buildSurveyDateTime } from "../../utils/surveyTiming";
@@ -62,63 +59,16 @@ const ESTADO_BADGE_CLASS = {
 };
 
 export default function OperatorTraining({ onTrainingComplete, onBack, onSelectTraining }) {
-    const { user } = useAuth();
     const { trainings: hookTrainings, loading, error } = useOperatorTrainings();
     const [activeTab, setActiveTab] = useState("Disponibles");
 
-    const [userResponses, setUserResponses] = useState({});
-
-    useEffect(() => {
-        const loadUserResponses = async () => {
-            try {
-                if (user?.uid) {
-                    const q = query(collection(db, "respuestasCapacitaciones"), where("userId", "==", user.uid));
-                    const snap = await getDocs(q);
-                    const responsesMap = {};
-                    snap.forEach(doc => {
-                        const d = doc.data();
-                        responsesMap[d.capacitacionId || d.idCapacitacion] = d;
-                    });
-                    setUserResponses(responsesMap);
-                }
-            } catch (error) {
-                console.error("Error loading user responses:", error);
-            }
-        };
-
-        if (user?.uid) loadUserResponses();
-    }, [user?.uid]);
-
-
-    const capacitacionesCorregidas = hookTrainings.map(training => {
-        const userResp = userResponses[training.id] || training.miRespuesta || null;
-        let estadoCorregido = training.estadoActual || "pendiente";
-
-        if (userResp) {
-            const enRevision = userResp.estadoActual === "pendiente_validacion" || userResp.tieneRespuestasAbiertas;
-
-            if (enRevision) {
-                estadoCorregido = "pendiente";
-                return {
-                    ...training,
-                    estadoActual: "pendiente",
-                    miPuntaje: userResp.calificacion || userResp.puntuacionObtenida,
-                    intentos: userResp.intentos || 0,
-                    enRevision: true
-                };
-            }
-
-            estadoCorregido = userResp.estadoActual || "completada";
-            return {
-                ...training,
-                estadoActual: estadoCorregido,
-                miPuntaje: userResp.calificacion || userResp.puntuacionObtenida,
-                intentos: userResp.intentos || 0,
-                enRevision: false
-            };
-        }
-        return { ...training, estadoActual: estadoCorregido, enRevision: Boolean(training.enRevision) };
-    });
+    const capacitacionesCorregidas = (hookTrainings || []).map((training) => ({
+        ...training,
+        estadoActual: training.estadoActual || "pendiente",
+        enRevision: Boolean(training.enRevision),
+        miPuntaje: training.miPuntaje ?? training.miRespuesta?.puntuacionObtenida ?? null,
+        intentos: Number(training.intentos || training.miRespuesta?.intentos || 0),
+    }));
 
     const contadores = {
         disponibles: capacitacionesCorregidas.filter(s => s.estadoActual === "pendiente").length,

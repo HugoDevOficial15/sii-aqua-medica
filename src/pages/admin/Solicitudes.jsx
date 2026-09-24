@@ -162,7 +162,7 @@ export default function Solicitudes() {
     };
 
     const handleAprobar = async (solicitud) => {
-
+        
         const confirm = await Swal.fire({
             icon: "question",
             title: "¿Aprobar esta solicitud?",
@@ -179,6 +179,14 @@ export default function Solicitudes() {
 
         try {
 
+            Swal.fire({
+                title: "Aprobando solicitud",
+                text: "Por favor espera...",
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
             const result = await approveRequest(solicitud.id, user?.nombre || "Administrador");
 
             if (!result.success) {
@@ -186,12 +194,13 @@ export default function Solicitudes() {
                 return;
             }
 
+            Swal.close();
             notifySuccess("Solicitud aprobada", "El perfil del usuario fue actualizado.");
             setVista("lista");
             cargar();
 
         } catch (error) {
-
+            Swal.close();
             notifyError("Error", "No se pudo aprobar la solicitud.");
 
         } finally {
@@ -222,19 +231,30 @@ export default function Solicitudes() {
 
         try {
 
+            Swal.fire({
+                title: "Rechazando solicitud",
+                text: "Por favor espera...",
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
             const result = await rejectRequest(solicitud.id, user?.nombre || "Administrador", motivo.trim());
 
             if (!result.success) {
+                Swal.close();
                 notifyError("Error", "No se pudo rechazar la solicitud.");
                 return;
             }
 
+            Swal.close();
             notifySuccess("Solicitud rechazada", "Se notificó al operador.");
             setVista("lista");
             cargar();
 
         } catch (error) {
 
+            Swal.close();
             notifyError("Error", "No se pudo rechazar la solicitud.");
 
         } finally {
@@ -263,6 +283,14 @@ export default function Solicitudes() {
 
         try {
 
+            Swal.fire({
+                title: "Eliminando solicitud",
+                text: "Por favor espera...",
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
             const result = await eliminarSolicitud(solicitud.id);
 
             if (!result.success) {
@@ -274,6 +302,7 @@ export default function Solicitudes() {
                 return;
             }
 
+            Swal.close();
             notifySuccess("Solicitud eliminada", "La solicitud fue removida de la base de datos.");
 
             // Si estamos viendo el detalle de la solicitud eliminada, volver a la lista
@@ -287,6 +316,7 @@ export default function Solicitudes() {
         } catch (error) {
 
             console.error(error);
+            Swal.close();
             notifyError("Error", "No se pudo eliminar la solicitud.");
 
         } finally {

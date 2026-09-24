@@ -32,6 +32,20 @@ export default function CreateSurvey() {
     const [openActionsId, setOpenActionsId] = useState(null);
     const today = new Date().toISOString().split("T")[0];
 
+    const showLoadingSwal = async (title, text = "Esperando respuesta del servidor") => {
+        const Swal = (await import("sweetalert2")).default;
+        Swal.fire({
+            title,
+            text,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            zIndex: 2147483647,
+            didOpen: () => Swal.showLoading(),
+        });
+
+        return Swal;
+    };
+
     const formatToAmPm = (timeValue) => {
         if (!timeValue) return "";
 
@@ -409,6 +423,10 @@ export default function CreateSurvey() {
     const hnadleSaveSurvey = async (data) => {
 
         try {
+            const Swal = await showLoadingSwal(
+                editing ? "Actualizando encuesta" : "Guardando encuesta",
+                "Esperando respuesta del servidor"
+            );
 
             const sanitizedData = sanitizeSurveyData(data);
 
@@ -417,6 +435,7 @@ export default function CreateSurvey() {
             const auth = getAuth();
 
             if (!auth.currentUser) {
+                Swal.close();
                 notifyError("Error", "No hay usuario autenticado");
                 return;
             }
@@ -499,12 +518,14 @@ export default function CreateSurvey() {
 
                 await updateSurvey(currentId, surveyData);
 
+                Swal.close();
                 notifySuccess("Encuesta Actualizada", "Se actualizó correctamente");
 
             } else {
 
                 await createSurvey(surveyData);
 
+                Swal.close();
                 notifySuccess(
                     "Encuesta Creada",
                     "La encuesta fue registrada"
@@ -522,7 +543,8 @@ export default function CreateSurvey() {
         } catch (error) {
 
             console.log("Error global:", error);
-
+            const Swal = (await import("sweetalert2")).default;
+            Swal.close();
             notifyError("Error", "No se pudo crear la encuesta");
 
         } finally {
@@ -557,32 +579,48 @@ export default function CreateSurvey() {
 
     }
 
+    const handleViewResults = (survey) => {
+        setViewingResults(survey);
+        setOpenActionsId(null);
+    };
+
 // Activar o desactivar
     const toggleSurvey = async (survey) => {
+        const Swal = await showLoadingSwal("Actualizando estado", "Cambiando el estado de la encuesta");
 
-        const update = {
-            ...survey,
-            activa: !survey.activa
+        try {
+            const update = {
+                ...survey,
+                activa: !survey.activa
+            }
+
+            await updateSurvey(survey.id, update);
+
+            const data = await getSurveys();
+
+            setSurveys(data);
+            Swal.close();
+            notifySuccess("Encuesta actualizada", "El estado de la encuesta se actualizó correctamente");
+        } catch (error) {
+            console.error("Error actualizando encuesta:", error);
+            Swal.close();
+            notifyError("Error", "No se pudo actualizar el estado de la encuesta");
         }
-
-        await updateSurvey(survey.id, update);
-
-        const data = await getSurveys();
-
-        setSurveys(data);
-
     };
 
     const handleDeleteSurvey = async (survey) => {
         const result = await confirmDelete("¿Eliminar encuesta?", "Esta acción no se puede deshacer.");
         if (result.isConfirmed) {
+            const Swal = await showLoadingSwal("Eliminando encuesta", "Se están removiendo los datos asociados");
             try {
                 await deleteSurvey(survey.id);
                 const data = await getSurveys();
                 setSurveys(data);
+                Swal.close();
                 notifySuccess("Encuesta eliminada", "La encuesta, respuestas y notificaciones fueron eliminadas correctamente");
             } catch (error) {
                 console.error("Error eliminando encuesta:", error);
+                Swal.close();
                 notifyError("Error", "No se pudo eliminar la encuesta");
             }
         }
@@ -716,10 +754,7 @@ export default function CreateSurvey() {
                                                             <button
                                                                 type="button"
                                                                 className="survey-action-item respuestas"
-                                                                onClick={() => {
-                                                                    setViewingResults(survey);
-                                                                    setOpenActionsId(null);
-                                                                }}
+                                                                onClick={() => handleViewResults(survey)}
                                                             >
                                                                 <FaChartBar className="me-2" />
                                                                 Ver respuestas

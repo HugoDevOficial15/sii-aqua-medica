@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { puestoSchema } from "../../schemas/puesto-schema";
 import { createPuesto, updatePuesto } from "../../services/puestos-service";
+import Swal from "sweetalert2";
 import { notifySuccess, notifyError } from "../../utils/notify";
 import { sanitizeTextTrim } from "../../utils/sanitize";
 import { FaPlus, FaEdit } from "react-icons/fa";
@@ -27,18 +28,41 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
             };
 
             if (puestoEdit) {
+                Swal.fire({
+                    title: "Actualizando puesto",
+                    text: "Esperando respuesta del servidor",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    },
+                });
+
                 await updatePuesto(puestoEdit.id, payload);
-                notifySuccess("Puesto actualizado", "El puesto se editó correctamente");
+                Swal.close();
+                await notifySuccess("Puesto actualizado", "El puesto se editó correctamente");
             } else {
+                Swal.fire({
+                    title: "Creando puesto",
+                    text: "Esperando respuesta del servidor",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    },
+                });
+
                 await createPuesto(payload);
-                notifySuccess("Puesto Creado", "El Puesto fue registrado correctamente");
+                Swal.close();
+                await notifySuccess("Puesto Creado", "El Puesto fue registrado correctamente");
             }
 
             onSuccess();
             onClose();
 
         } catch (error) {
-            notifyError("Error", "No se pudo guardar el puesto");
+            Swal.close();
+            await notifyError("Error", "No se pudo guardar el puesto");
         }
     }
 
