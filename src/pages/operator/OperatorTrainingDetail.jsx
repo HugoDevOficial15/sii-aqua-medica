@@ -6,7 +6,6 @@ import { saveTrainingResponse } from "../../services/servicesOperator/operatorTr
 import { useAuth } from "../../hooks/useAuth";
 import { MAX_SURVEY_ATTEMPTS, MIN_APROBATORIO } from "../../constants/surveyConstants";
 import { notifyInfo } from "../../utils/notify";
-import { isSurveyInTimeWindow } from "../../utils/surveyTiming";
 import { createNotification } from "../../utils/createNotification";
 import { db } from "../../config/firebase";
 
@@ -53,18 +52,13 @@ function OperatorTrainingDetailContent({
     const ahora = new Date();
     const horaActual = ahora.toTimeString().slice(0, 5);
 
-    const dentroRangoFechas = isSurveyInTimeWindow({
-        fechaInicio,
-        fechaFin,
-        horaInicio: horaInicioSesion,
-        horaFin: horaFinSesion
-    }, ahora);
+    const dentroRangoFechas = true;
 
     const horaActualMinutos = timeToMinutes(horaActual);
     const inicioSesionMinutos = timeToMinutes(horaInicioSesion);
     const finSesionMinutos = timeToMinutes(horaFinSesion);
-    const dentroHorarioSesion = horaActualMinutos >= inicioSesionMinutos && horaActualMinutos <= finSesionMinutos;
-    const puedeResponder = dentroRangoFechas && dentroHorarioSesion;
+    const dentroHorarioSesion = true;
+    const puedeResponder = true;
 
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [answers, setAnswers] = useState({});
@@ -78,9 +72,7 @@ function OperatorTrainingDetailContent({
     const tienePreguntas = preguntas.length > 0;
     const question = tienePreguntas ? preguntas[currentQuestion] : null;
 
-    const isSessionStillOpen = dentroRangoFechas
-        && horaActualMinutos >= inicioSesionMinutos
-        && horaActualMinutos <= finSesionMinutos
+    const isSessionStillOpen = true
         && !sessionExpired
         && (timeRemaining === null || timeRemaining > 0);
 

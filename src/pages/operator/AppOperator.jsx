@@ -127,7 +127,15 @@ export default function AppOperator() {
             }
         );
 
-        return () => unsubscribe();
+        // Polling cada 5 segundos como fallback
+        const interval = setInterval(() => {
+            onSnapshot(q, (snapshot) => setNotificacionesCount(snapshot.size));
+        }, 5000);
+
+        return () => {
+            unsubscribe();
+            clearInterval(interval);
+        };
     }, [user?.uid, user?.id, user?.userId, user?.nomina, user?.nominaUsuario, user?.numeroNomina]);
 
     // No sincronizamos el perfil del usuario en cada arranque: la sesión ya viene

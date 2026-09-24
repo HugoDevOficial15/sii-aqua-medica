@@ -111,7 +111,6 @@ exports.getUserRequests = onCall(async (request) => {
 
   const snapshot = await requestCollection
     .where("nominaActual", "==", normalizedNomina)
-    .orderBy("fechaSolicitud", "desc")
     .get();
 
   return snapshot.docs

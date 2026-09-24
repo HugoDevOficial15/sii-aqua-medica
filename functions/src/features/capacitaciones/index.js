@@ -5,7 +5,12 @@ const { db } = require("../../config/firebase");
 const getCapacitacionCollection = () => db.collection("capacitaciones");
 
 const isOperatorProfile = (profile) =>
-    String(profile?.rol || profile?.Rol || profile?.role || "").trim().toLowerCase() === "operador";
+    String(profile?.rol || profile?.Rol || profile?.role || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .includes("operador");
 
 const getOperatorProfile = async (request) =>{
     const authUid = request?.auth?.uid;
@@ -16,7 +21,17 @@ const getOperatorProfile = async (request) =>{
         const requestedSnapshot = await db.collection("users").doc(String(requestedUserId)).get();
         if (requestedSnapshot.exists) {
             const requestedProfile = { id: requestedSnapshot.id, ...requestedSnapshot.data(), firebaseUid: authUid };
-            if (requestedProfile.uid === authUid && isOperatorProfile(requestedProfile)) {
+            const tokenEmail = String(request?.token?.email || "").trim().toLowerCase();
+            const loginIdentifier = tokenEmail.split("@")[0];
+            const requestedNomina = String(request?.data?.nomina || "").trim();
+            const matchesSession = [requestedProfile.email, requestedProfile.username]
+                .map((value) => String(value ?? "").trim().toLowerCase())
+                .some((value) => value && (value === tokenEmail || value === loginIdentifier))
+                || [requestedProfile.nomina, requestedProfile.nominaUsuario, requestedProfile.numeroNomina]
+                    .map((value) => String(value ?? "").trim())
+                    .some((value) => value && (value === loginIdentifier || value === requestedNomina));
+
+            if ((requestedProfile.uid === authUid || matchesSession) && isOperatorProfile(requestedProfile)) {
                 return requestedProfile;
             }
         }
@@ -30,9 +45,36 @@ const getOperatorProfile = async (request) =>{
 
     const authEmail = request?.token?.email;
     if (authEmail) {
-        const byEmail = await db.collection("users").where("email", "==", authEmail).limit(1).get();
+        const usersRef = db.collection("users");
+        const loginIdentifier = String(authEmail).split("@")[0].trim();
+        const [byEmail, byNomina] = await Promise.all([
+            usersRef.where("email", "==", authEmail).limit(1).get(),
+            loginIdentifier
+                ? usersRef.where("nomina", "==", loginIdentifier).limit(1).get()
+                : Promise.resolve({ empty: true, docs: [] }),
+        ]);
+
         if (!byEmail.empty) {
             const profile = { id: byEmail.docs[0].id, ...byEmail.docs[0].data(), firebaseUid: authUid };
+            return isOperatorProfile(profile) ? profile : null;
+        }
+
+        if (!byNomina.empty) {
+            const profile = { id: byNomina.docs[0].id, ...byNomina.docs[0].data(), firebaseUid: authUid };
+            return isOperatorProfile(profile) ? profile : null;
+        }
+
+        const fallbackSnapshot = await usersRef.get();
+        const normalizedEmail = String(authEmail).trim().toLowerCase();
+        const fallbackDoc = fallbackSnapshot.docs.find((docSnap) => {
+            const data = docSnap.data();
+            return [data.email, data.username, data.nomina, data.nominaUsuario, data.numeroNomina]
+                .some((value) => String(value ?? "").trim().toLowerCase() === normalizedEmail
+                    || String(value ?? "").trim() === loginIdentifier);
+        });
+
+        if (fallbackDoc) {
+            const profile = { id: fallbackDoc.id, ...fallbackDoc.data(), firebaseUid: authUid };
             return isOperatorProfile(profile) ? profile : null;
         }
     }

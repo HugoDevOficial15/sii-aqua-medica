@@ -2,7 +2,6 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { functions } from "../config/firebase";
 import { httpsCallable } from "firebase/functions";
-import { isSurveyTimeExpired } from "../utils/surveyTiming";
 
 const getOperatorSurveysFunction = httpsCallable(functions, "getOperatorSurveys");
 
@@ -166,14 +165,9 @@ export const getEncuestasDisponibles = async (usuario, options = {}) => {
             const fechaFin = encuesta.fechaFin?.toDate?.()
                 || new Date(encuesta.fechaFin);
 
-            const vencida = isSurveyTimeExpired({
-                fechaInicio: encuesta.fechaInicio,
-                fechaFin: encuesta.fechaFin,
-                horaInicio: encuesta.horaInicio || "00:00",
-                horaFin: encuesta.horaFin || "23:59"
-            }, hoy);
+            const vencida = false;
 
-            const disponible = !respondida && !vencida && (!encuesta.horaInicio || hoy >= new Date(`${fechaInicio.toISOString().split("T")[0]}T${encuesta.horaInicio}:00`));
+            const disponible = !respondida;
 
             const miRespuesta = respuestasDeEncuesta.reduce((latest, response) => {
                 if (!latest) return response;
@@ -220,8 +214,8 @@ export const getEncuestasDisponibles = async (usuario, options = {}) => {
                 estado: estadoFinal,
                 estadoActual: estadoFinal,
                 respondida,
-                disponible: estadoFinal === "pendiente" && disponible,
-                vencida,
+                disponible: estadoFinal === "pendiente",
+                vencida: false,
                 miPuntaje
             };
         });

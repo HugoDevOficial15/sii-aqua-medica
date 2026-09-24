@@ -7,7 +7,6 @@ import { MAX_SURVEY_ATTEMPTS, MIN_APROBATORIO } from "../../constants/surveyCons
 import { createNotification } from "../../utils/createNotification";
 import { collection, getDocs, query, where, getDoc, doc } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { isSurveyInTimeWindow } from "../../utils/surveyTiming";
 
 export default function OperatorSurveyDetail(props) {
     if (!props.survey) return null;
@@ -48,7 +47,7 @@ function OperatorSurveyDetailContent({
         return hours * 60 + minutes;
     };
 
-    // 🔥 VALIDAR FECHAS: Solo permitir responder si está dentro del rango
+    // Sin restricciones de tiempo
     const hoy = new Date().toISOString().split("T")[0];
     const fechaInicio = survey.fechaInicio;
     const fechaFin = survey.fechaFin;
@@ -56,17 +55,12 @@ function OperatorSurveyDetailContent({
     const horaFinSesion = survey.horaFin || "23:59";
     const ahora = new Date();
     const horaActual = ahora.toTimeString().slice(0, 5);
-    const dentroRangoFechas = isSurveyInTimeWindow({
-        fechaInicio,
-        fechaFin,
-        horaInicio: horaInicioSesion,
-        horaFin: horaFinSesion
-    }, ahora);
+    const dentroRangoFechas = true;
     const horaActualMinutos = timeToMinutes(horaActual);
     const inicioSesionMinutos = timeToMinutes(horaInicioSesion);
     const finSesionMinutos = timeToMinutes(horaFinSesion);
-    const dentroHorarioSesion = horaActualMinutos >= inicioSesionMinutos && horaActualMinutos <= finSesionMinutos;
-    const puedeResponder = dentroRangoFechas && dentroHorarioSesion;
+    const dentroHorarioSesion = true;
+    const puedeResponder = true;
 
     const [currentQuestion, setCurrentQuestion] = useState(0);
     const [answers, setAnswers] = useState({});
@@ -75,9 +69,7 @@ function OperatorSurveyDetailContent({
     const [saving, setSaving] = useState(false);
     const [sessionExpired, setSessionExpired] = useState(false);
 
-    const isSessionStillOpen = dentroRangoFechas
-        && horaActualMinutos >= inicioSesionMinutos
-        && horaActualMinutos <= finSesionMinutos
+    const isSessionStillOpen = true
         && !sessionExpired
         && (timeRemaining === null || timeRemaining > 0);
 
@@ -177,17 +169,8 @@ function OperatorSurveyDetailContent({
 
     useEffect(() => {
         const checkSessionWindow = () => {
-            const now = new Date();
-            const currentDate = now.toISOString().split("T")[0];
-            const currentMinutes = timeToMinutes(now.toTimeString().slice(0, 5));
-            const isStillOpen = currentDate >= fechaInicio && currentDate <= fechaFin && currentMinutes >= inicioSesionMinutos && currentMinutes <= finSesionMinutos;
-
-            if ((!isStillOpen || timeRemaining === 0) && !sessionExpired) {
+            if (timeRemaining === 0 && !sessionExpired) {
                 setSessionExpired(true);
-                localStorage.setItem("survey_session_closed_notice", JSON.stringify({
-                    title: survey?.titulo || "Encuesta",
-                    message: "La encuesta se cerró porque llegó la hora límite. Inténtalo más tarde."
-                }));
                 localStorage.removeItem(storageTimerKey);
                 localStorage.removeItem(storageAnswersKey);
                 setAnswers({});
@@ -200,7 +183,7 @@ function OperatorSurveyDetailContent({
         const interval = setInterval(checkSessionWindow, 1000);
 
         return () => clearInterval(interval);
-    }, [fechaInicio, fechaFin, inicioSesionMinutos, finSesionMinutos, timeRemaining, storageTimerKey, storageAnswersKey, sessionExpired, survey?.titulo, onNavigate]);
+    }, [timeRemaining, storageTimerKey, storageAnswersKey, sessionExpired, onNavigate]);
 
     if (sessionExpired) {
         return null;

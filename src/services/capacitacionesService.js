@@ -1,6 +1,5 @@
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../config/firebase";
-import { isSurveyTimeExpired } from "../utils/surveyTiming";
 
 const getOperatorTrainingsFunction = httpsCallable(functions, "getOperatorTrainings");
 
@@ -17,7 +16,10 @@ export const getCapacitacionesDisponibles = async (usuario) => {
     if (!usuario) return [];
 
     try {
-        const result = await getOperatorTrainingsFunction();
+        const result = await getOperatorTrainingsFunction({
+            userId: usuario.id || usuario.uid || null,
+            nomina: usuario.nomina || usuario.nominaUsuario || usuario.numeroNomina || null,
+        });
         const capacitaciones = result.data?.trainings || [];
         const respuestasUsuario = result.data?.responses || [];
 
@@ -74,14 +76,9 @@ export const getCapacitacionesDisponibles = async (usuario) => {
             const fechaFin = capacitacion.fechaFin?.toDate?.()
                 || new Date(capacitacion.fechaFin);
 
-            const vencida = isSurveyTimeExpired({
-                fechaInicio: capacitacion.fechaInicio,
-                fechaFin: capacitacion.fechaFin,
-                horaInicio: capacitacion.horaInicio || "00:00",
-                horaFin: capacitacion.horaFin || "23:59"
-            }, hoy);
+            const vencida = false;
 
-            const disponible = !respondida && !vencida && (!capacitacion.horaInicio || hoy >= new Date(`${fechaInicio.toISOString().split("T")[0]}T${capacitacion.horaInicio}:00`));
+            const disponible = !respondida;
 
             // Buscar respuesta para extraer puntaje y estado
             const miRespuesta = respuestasDeCapacitacion.reduce((latest, response) => {
@@ -133,8 +130,8 @@ export const getCapacitacionesDisponibles = async (usuario) => {
                 estadoActual: estadoFinal,
                 enRevision,
                 respondida,
-                disponible: estadoFinal === "pendiente" && !vencida,
-                vencida,
+                disponible: estadoFinal === "pendiente",
+                vencida: false,
                 miPuntaje
             };
         });

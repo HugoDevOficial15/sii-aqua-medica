@@ -68,6 +68,42 @@ const dedupeById = (items = []) => {
   });
 };
 
+const normalizeIdentifier = (value) => {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (!normalized) return "";
+
+  const numericValue = Number(normalized);
+  return Number.isNaN(numericValue) ? normalized : String(numericValue);
+};
+
+const trainingMatchesUsers = (training, users = []) => {
+  const assignment = training?.asignacion || { tipo: "global", valores: [] };
+  const type = String(assignment.tipo || "global").trim().toLowerCase();
+  const values = new Set((assignment.valores || []).map(normalizeIdentifier).filter(Boolean));
+
+  return users.some((user) => {
+    if (type === "global") return true;
+
+    if (type === "area") {
+      return values.has(normalizeIdentifier(user?.area || user?.Area || user?.empleadoArea));
+    }
+
+    if (type === "usuarios") {
+      return [
+        user?.nomina,
+        user?.nominaUsuario,
+        user?.numeroNomina,
+        user?.uid,
+        user?.uidFirebase,
+        user?.userId,
+        user?.id,
+      ].map(normalizeIdentifier).some((identifier) => values.has(identifier));
+    }
+
+    return false;
+  });
+};
+
 const getProfileByAuth = async (request) => {
   const authUid = request?.auth?.uid;
   if (!authUid) return null;
@@ -304,12 +340,38 @@ const getPersonalRecordsByUsers = async (usuarios = []) => {
     };
   });
 
+  const capacitacionesConRespuesta = new Set(
+    capacitaciones.map((capacitacion) => String(capacitacion.capacitacionId || "").trim()).filter(Boolean),
+  );
+  const capacitacionesAsignadas = capacitacionesMeta.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .filter((training) => training.activa !== false)
+    .filter((training) => !capacitacionesConRespuesta.has(String(training.id)))
+    .filter((training) => trainingMatchesUsers(training, validUsers))
+    .map((training) => {
+      const assignedUser = validUsers.find((user) => trainingMatchesUsers(training, [user]));
+
+      return {
+        id: training.id,
+        capacitacionId: training.id,
+        type: "capacitacion",
+        estadoActual: "pendiente",
+        titulo: training.titulo || training.nombre || "",
+        descripcion: training.descripcion || "",
+        fecha: training.fechaInicio || training.createdAt || null,
+        createdAt: training.createdAt || null,
+        empleadoId: assignedUser?.id || assignedUser?.uid || "",
+        empleadoNomina: assignedUser?.nomina || "",
+        usuarioDocId: assignedUser?.id || "",
+      };
+    });
+
   return {
     reconocimientos: reconocimientos || [],
     incidencias: incidencias || [],
     incapacidades: incapacidades || [],
     historialesMedicos: mapMedicalHistoryRecords(ordenesMedicas || []),
-    capacitaciones: capacitaciones || [],
+    capacitaciones: [...capacitaciones, ...capacitacionesAsignadas],
   };
 };
 
