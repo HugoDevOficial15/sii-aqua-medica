@@ -34,7 +34,7 @@ export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
 
-if (import.meta.env.VITE_USE_FUNCTIONS_EMULATOR === "true") {
+if (import.meta.env.VITE_USE_FUNCTIONS_EMULATOR === "false") {
     connectFunctionsEmulator(functions, "127.0.0.1", 5001);
     connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
     connectFirestoreEmulator(db, "127.0.0.1", 8080);

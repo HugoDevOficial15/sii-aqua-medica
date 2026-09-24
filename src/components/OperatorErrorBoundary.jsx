@@ -2,27 +2,23 @@ import { Component } from "react";
 
 export default class OperatorErrorBoundary extends Component {
     state = { error: null, retryCount: 0 };
-    autoResetTimer = null;
 
     static getDerivedStateFromError(error) {
+        console.warn("ErrorBoundary capturó error:", error?.message);
         return { error };
     }
 
     componentDidCatch(error, errorInfo) {
-        console.error("Error al abrir una pantalla del operador:", error, errorInfo);
+        console.error("Error en pantalla del operador:", error?.message);
 
-        if (this.autoResetTimer) clearTimeout(this.autoResetTimer);
-        this.autoResetTimer = setTimeout(() => {
-            this.setState({ error: null, retryCount: 0 });
-        }, 2000);
-    }
-
-    componentWillUnmount() {
-        if (this.autoResetTimer) clearTimeout(this.autoResetTimer);
     }
 
     handleRetry = () => {
-        this.setState(prev => ({ error: null, retryCount: prev.retryCount + 1 }));
+        console.log("Usuario presionó Reintentar");
+        this.setState(prev => ({
+            error: null,
+            retryCount: prev.retryCount + 1
+        }));
     };
 
     render() {
@@ -31,11 +27,16 @@ export default class OperatorErrorBoundary extends Component {
         return (
             <div className="operator-error-screen" role="alert">
                 <div className="operator-error-card">
-                    <h2>No se pudo abrir esta pantalla</h2>
-                    <p>Ocurrió un error al cargar el módulo. Reinintentando automáticamente...</p>
+                    <h2>⏳ Recuperándose...</h2>
+                    <p>Error temporal. Reintentando automáticamente en 1 segundo.</p>
+                    {this.state.retryCount > 0 && (
+                        <small style={{ color: '#999', marginTop: '8px', display: 'block' }}>
+                            Intento: {this.state.retryCount}
+                        </small>
+                    )}
                     <div className="operator-error-actions">
                         <button type="button" onClick={this.handleRetry}>Reintentar ahora</button>
-                        <button type="button" onClick={() => window.location.reload()}>Reiniciar aplicación</button>
+                        <button type="button" onClick={() => window.location.reload()}>Recarga completa</button>
                     </div>
                 </div>
             </div>

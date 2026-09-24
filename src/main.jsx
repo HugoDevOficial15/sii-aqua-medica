@@ -13,7 +13,7 @@ import "./styles/operator/operator-theme.css";
 import App from './App.jsx';
 import { MAIN_BOOTSTRAP_CACHE_KEY, STARTUP_RESOURCES_CACHE_KEY, CRITICAL_MODULES_CACHE_KEY, writeMemoryCache, writeSessionCache } from './utils/cacheStore';
 
-const APP_SHELL_CACHE = 'sii-aqua-shell-v3';
+const APP_SHELL_CACHE = 'sii-aqua-shell-v5';
 
 const cacheStartupResources = async () => {
   if (!('caches' in window) || !('fetch' in window)) {
@@ -140,8 +140,20 @@ const registerServiceWorker = () => {
 
   window.setTimeout(() => {
     navigator.serviceWorker.register('/service-worker.js')
-      .then(() => console.log('✓ Service Worker registrado'))
+      .then((registration) => {
+        registration.update();
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+        console.log('✓ Service Worker registrado');
+      })
       .catch((error) => console.error('✗ Error registrando Service Worker:', error));
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (window.__siiAquaSwRefreshing) return;
+      window.__siiAquaSwRefreshing = true;
+      window.location.reload();
+    });
   }, 2000);
 };
 

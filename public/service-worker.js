@@ -3,7 +3,7 @@
 // Maneja caché del shell estático y notificaciones push
 // ============================================================
 
-const APP_SHELL_CACHE = "sii-aqua-shell-v4";
+const APP_SHELL_CACHE = "sii-aqua-shell-v5";
 const APP_SHELL_ASSETS = [
     "/",
     "/index.html",
@@ -19,6 +19,12 @@ self.addEventListener("install", (event) => {
             return cache.addAll(APP_SHELL_ASSETS).catch(() => undefined);
         }).then(() => self.skipWaiting())
     );
+});
+
+self.addEventListener("message", (event) => {
+    if (event.data?.type === "SKIP_WAITING") {
+        self.skipWaiting();
+    }
 });
 
 self.addEventListener("activate", (event) => {
@@ -42,36 +48,30 @@ self.addEventListener("fetch", (event) => {
 
     const url = new URL(request.url);
     const isSameOrigin = url.origin === self.location.origin;
-    const isStaticAsset = /\.(?:js|css|png|jpg|jpeg|svg|webp|ico|json|woff2?|ttf|map)$/i.test(url.pathname) || url.pathname.endsWith("/index.html") || url.pathname.includes("/src/") || url.pathname.includes("/styles/") || url.pathname.includes("/assets/");
+    const isDocument = request.mode === "navigate" || url.pathname === "/" || url.pathname.endsWith("/index.html");
+    const isStaticAsset = /\.(?:js|css|png|jpg|jpeg|svg|webp|ico|json|woff2?|ttf|map)$/i.test(url.pathname) || url.pathname.includes("/src/") || url.pathname.includes("/styles/") || url.pathname.includes("/assets/");
     const isAppShell = isSameOrigin && (url.pathname === "/" || url.pathname.startsWith("/assets/") || url.pathname.startsWith("/src/") || url.pathname.startsWith("/styles/") || isStaticAsset);
 
     if (!isAppShell) {
         return;
     }
 
-    event.respondWith(
-        caches.match(request).then((cached) => {
-            if (cached) {
-                return cached;
+    event.respondWith((async () => {
+        const cached = await caches.match(request);
+
+        try {
+            // Always validate the document so a new deployment is visible on the next launch.
+            const response = await fetch(request, { cache: isDocument ? "no-cache" : "default" });
+            if (response?.ok) {
+                const copy = response.clone();
+                event.waitUntil(caches.open(APP_SHELL_CACHE).then((cache) => cache.put(request, copy)));
             }
-
-            return fetch(request)
-                .then((response) => {
-                    if (response && response.status === 200) {
-                        const copy = response.clone();
-                        caches.open(APP_SHELL_CACHE).then((cache) => cache.put(request, copy));
-                    }
-                    return response;
-                })
-                .catch(() => {
-                    if (request.mode === "navigate") {
-                        return caches.match("/index.html");
-                    }
-
-                    return caches.match(request) || caches.match("/");
-                });
-        })
-    );
+            return response;
+        } catch {
+            if (cached) return cached;
+            return caches.match("/index.html") || caches.match("/");
+        }
+    })());
 });
 
 // Escuchar eventos push del navegador (fallback)

@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 
-const EMULADOR_URL = "http://127.0.0.1:5001/aquamedica2023/us-central1";
+const PRODUCCION_URL = "https://us-central1-aquamedica2023.cloudfunctions.net";
 
 export const useComedorMenuEmpleado = (uid) => {
   const [menuEmpleado, setMenuEmpleado] = useState(null);
@@ -32,7 +32,7 @@ export const useComedorMenuEmpleado = (uid) => {
       const nominaUsuario = userSnap.data().nomina;
 
       // 2. Consumir la API usando la nómina
-      const response = await fetch(`${EMULADOR_URL}/obtenerMenuEmpleado`, {
+      const response = await fetch(`${PRODUCCION_URL}/obtenerMenuEmpleado`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

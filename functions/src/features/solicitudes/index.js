@@ -104,22 +104,45 @@ exports.requestProfileChange = onCall(async (request) => {
 
 // MIS SOLICITUDES { OPERADOR }
 exports.getUserRequests = onCall(async (request) => {
-  const { nomina } = request.data || {};
-  const normalizedNomina = normalizeNomina(nomina);
+  const { nomina, id, uid } = request.data || {};
+  const authUid = request?.auth?.uid;
+
+  // Si no viene nomina, intentar obtenerla de Firestore por uid
+  let normalizedNomina = normalizeNomina(nomina);
+
+  if (!normalizedNomina && authUid) {
+    try {
+      const userDoc = await db.collection("users").doc(authUid).get();
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        normalizedNomina = normalizeNomina(
+          userData.nomina || userData.nominaUsuario || userData.numeroNomina
+        );
+      }
+    } catch (err) {
+      console.error("Error obteniendo nomina del usuario:", err);
+      return [];
+    }
+  }
 
   if (!normalizedNomina) return [];
 
-  const snapshot = await requestCollection
-    .where("nominaActual", "==", normalizedNomina)
-    .get();
+  try {
+    const snapshot = await requestCollection
+      .where("nominaActual", "==", normalizedNomina)
+      .get();
 
-  return snapshot.docs
-    .map((doc) => ({ id: doc.id, ...doc.data() }))
-    .sort((a, b) => {
-      const fechaA = a.fechaSolicitud?.toMillis?.() ?? 0;
-      const fechaB = b.fechaSolicitud?.toMillis?.() ?? 0;
-      return fechaB - fechaA;
-    });
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => {
+        const fechaA = a.fechaSolicitud?.toMillis?.() ?? 0;
+        const fechaB = b.fechaSolicitud?.toMillis?.() ?? 0;
+        return fechaB - fechaA;
+      });
+  } catch (err) {
+    console.error("Error en getUserRequests:", err);
+    return [];
+  }
 });
 
 // LISTAR SOLICITUDES { ADMINISTRADOR }
