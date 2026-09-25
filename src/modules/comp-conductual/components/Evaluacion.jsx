@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { db } from "../../../config/firebase";
 import { useAuth } from "../../../hooks/useAuth";
 import { useLoader } from "../../../hooks/useLoader";
+import { guardarEvaluacionConductual } from "../../../services/compConductual";
 import { sanitizeText } from "../../../utils/sanitize";
 import { FaClipboardList } from "react-icons/fa";
 import "./Evaluacion.css";
@@ -499,15 +498,6 @@ export default function EvaluacionModal({
       showLoader(0);
 
       const anio = String(new Date().getFullYear());
-      const resultadosCollectionRef = collection(
-        db,
-        "users",
-        userId,
-        anio,
-        "informacion",
-        "CompConductual",
-      );
-      const resultadoRef = doc(resultadosCollectionRef);
 
       const comentarioGeneral = sanitizeText(formData.comentarioGeneral);
       const comentarioAdicional = sanitizeText(formData.comentarioAdicional);
@@ -527,7 +517,6 @@ export default function EvaluacionModal({
       });
 
       const documento = {
-        id: resultadoRef.id,
         usuarioId: userId,
         nombre: sanitizeText(formatearNombre(usuario)),
         nomina: sanitizeText(usuario?.nomina || "Sin nómina"),
@@ -541,8 +530,6 @@ export default function EvaluacionModal({
         periodoEvaluacion,
         fechaElaboracion: formData.fechaElaboracion,
         fecha: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-        tipo: "CompConductual",
         anio,
         calificacionGeneral,
         totalPuntos,
@@ -551,9 +538,9 @@ export default function EvaluacionModal({
         respuestas: respuestasDetalle,
       };
 
-      await setDoc(resultadoRef, documento);
+      const resultadoGuardado = await guardarEvaluacionConductual({ usuarioId: userId, evaluacion: documento, anio });
 
-      if (onSaved) onSaved(documento);
+      if (onSaved) onSaved(resultadoGuardado || documento);
       cerrar();
     } catch (errorGuardado) {
       console.error("Error guardando evaluación conductual:", errorGuardado);

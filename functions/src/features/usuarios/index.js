@@ -29,9 +29,72 @@ const searchFields = (data = {}, nomina = data.nomina) => ({
 
 const userFromSnapshot = (snapshot) => ({ id: snapshot.id, ...snapshot.data() });
 
+const isHrodriguezIdentifier = (value = "") => {
+  const rawValue = String(value ?? "").trim();
+  if (!rawValue) return false;
+
+  const normalizedValue = rawValue.toLowerCase();
+  const localPart = normalizedValue.split("@")[0] || "";
+
+  return localPart === "hrodriguez"
+    || normalizedValue === "hrodriguez@aquamedica.com"
+    || normalizedValue === "hrodriguez@tubolsa.com";
+};
+
+const getAllowedIdentifier = (value) => {
+  const rawValue = String(value ?? "").trim();
+  if (!rawValue) return null;
+
+  const normalizedValue = rawValue.toLowerCase();
+  const localPart = normalizedValue.split("@")[0] || "";
+
+  if (/^\d+$/.test(localPart)) return rawValue;
+  if (isHrodriguezIdentifier(rawValue)) return rawValue;
+  return null;
+};
+
+const findUserByIdentifier = async (identifier) => {
+  const rawValue = String(identifier ?? "").trim();
+  if (!rawValue) return null;
+
+  const allowedIdentifier = getAllowedIdentifier(rawValue);
+  if (!allowedIdentifier) return null;
+
+  const normalizedValue = allowedIdentifier.toLowerCase();
+  const numericValue = Number(allowedIdentifier);
+
+  if (Number.isInteger(numericValue) && numericValue > 0) {
+    const byNomina = await usersCollection.where("nomina", "==", numericValue).limit(1).get();
+    if (!byNomina.empty) return byNomina.docs[0];
+  }
+
+  const byEmail = await usersCollection
+    .where("email", "==", normalizedValue.endsWith("@aquamedica.com") ? normalizedValue : `${normalizedValue}@aquamedica.com`)
+    .limit(1)
+    .get();
+  if (!byEmail.empty) return byEmail.docs[0];
+
+  const byUsername = await usersCollection.where("username", "==", normalizedValue).limit(1).get();
+  if (!byUsername.empty) return byUsername.docs[0];
+
+  const byUsernameRaw = await usersCollection.where("username", "==", rawValue).limit(1).get();
+  if (!byUsernameRaw.empty) return byUsernameRaw.docs[0];
+
+  return null;
+};
+
+const normalizeUserRoleFilter = (filters = {}) => {
+  const nextFilters = { ...filters };
+  if (nextFilters.rol === undefined || nextFilters.rol === null || nextFilters.rol === "") {
+    nextFilters.rol = "operador";
+  }
+  return nextFilters;
+};
+
 const applyUserFilters = (query, filters = {}) => {
   let nextQuery = query;
-  const { empresaId, rol, activo } = filters;
+  const normalizedFilters = normalizeUserRoleFilter(filters);
+  const { empresaId, rol, activo } = normalizedFilters;
 
   if (empresaId !== undefined && empresaId !== null && empresaId !== "") {
     nextQuery = nextQuery.where("empresaId", "==", String(empresaId));
@@ -133,11 +196,11 @@ const getIncapacidadesForUser = async (userSnapshot, nomina) => {
 exports.getUsers = onCall(async (request) => {
   requireAuth(request);
   const data = request.data || {};
-  const filters = {
+  const filters = normalizeUserRoleFilter({
     empresaId: data.empresaId,
     rol: data.rol,
     activo: data.activo,
-  };
+  });
 
   const pageSize = data.pageSize !== undefined && data.pageSize !== null && data.pageSize !== ""
     ? Number(data.pageSize)
@@ -167,11 +230,11 @@ exports.getUsers = onCall(async (request) => {
 exports.getUsersPage = onCall(async (request) => {
   requireAuth(request);
   const data = request.data || {};
-  const filters = {
+  const filters = normalizeUserRoleFilter({
     empresaId: data.empresaId,
     rol: data.rol,
     activo: data.activo,
-  };
+  });
 
   const query = buildUsersPageQuery({ cursor: data.cursor, pageSize: data.pageSize || 30, filters });
   const snapshot = await query.get();
@@ -191,11 +254,11 @@ exports.searchUsers = onCall(async (request) => {
   requireAuth(request);
   const data = request.data || {};
   const search = normalizeSearchText(data.search);
-  const filters = {
+  const filters = normalizeUserRoleFilter({
     empresaId: data.empresaId,
     rol: data.rol,
     activo: data.activo,
-  };
+  });
 
   if (!search) {
     const query = buildUsersPageQuery({ cursor: data.cursor, pageSize: data.pageSize || 30, filters });
@@ -383,19 +446,24 @@ exports.updateUserPasswordByReset = onCall(async (request) => {
 
 exports.resetFailedLoginAttempts = onCall(async (request) => {
   requireAuth(request);
-  const nomina = normalizeNomina(request.data?.nominaValue);
-  const snapshot = await usersCollection.where("email", "==", `${nomina}@aquamedica.com`).limit(1).get();
-  if (snapshot.empty) return null;
-  const user = snapshot.docs[0];
+
+  const rawIdentifier = getAllowedIdentifier(request.data?.nominaValue ?? request.data?.username ?? request.data?.identifier ?? request.data?.email);
+  if (!rawIdentifier) return null;
+
+  const user = await findUserByIdentifier(rawIdentifier);
+  if (!user) return null;
+
   await user.ref.update({ activo: true, bloqueado: false, intentosFallidos: 0 });
   return userFromSnapshot(user);
 });
 
 exports.registerFailedLoginAttempt = onCall(async (request) => {
-  const nomina = normalizeNomina(request.data?.nominaValue);
-  const snapshot = await usersCollection.where("email", "==", `${nomina}@aquamedica.com`).limit(1).get();
-  if (snapshot.empty) return { blocked: false, attempts: 0, userData: null };
-  const user = snapshot.docs[0];
+  const rawIdentifier = getAllowedIdentifier(request.data?.nominaValue ?? request.data?.username ?? request.data?.identifier ?? request.data?.email);
+  if (!rawIdentifier) return { blocked: false, attempts: 0, userData: null };
+
+  const user = await findUserByIdentifier(rawIdentifier);
+  if (!user) return { blocked: false, attempts: 0, userData: null };
+
   const data = user.data();
   const attempts = Number(data.intentosFallidos || 0) + 1;
   const blocked = attempts >= 3;

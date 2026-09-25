@@ -80,38 +80,48 @@ const getDashboardCacheKey = () => {
   }
 };
 
-export const getUsers = async ({ source = "cache", forceRefresh = false } = {}) => {
+const getCurrentAdminArea = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    return typeof user?.area === "string" ? user.area.trim() : user?.area || "";
+  } catch {
+    return "";
+  }
+};
+
+export const getUsers = async ({ source = "cache", forceRefresh = false, areaAdmin = getCurrentAdminArea() } = {}) => {
+  const cacheKey = `${USERS_CACHE_KEY}:${areaAdmin || "all"}`;
   if (!forceRefresh && source !== "server") {
-    const cached = readCacheItem(USERS_CACHE_KEY);
+    const cached = readCacheItem(cacheKey);
     if (cached) return cached;
   }
-  const users = (await getUsersFunction()).data || [];
-  writeCacheItem(USERS_CACHE_KEY, users);
+  const users = (await getUsersFunction({ areaAdmin })).data || [];
+  writeCacheItem(cacheKey, users);
   return users;
 };
 
-export const getUsersPage = async ({ cursor = null, pageSize = 30 } = {}) => {
-  const cacheKey = `sii-aqua-users-page:${cursor ?? "first"}:${pageSize}`;
+export const getUsersPage = async ({ cursor = null, pageSize = 30, areaAdmin = getCurrentAdminArea() } = {}) => {
+  const cacheKey = `sii-aqua-users-page:${areaAdmin || "all"}:${cursor ?? "first"}:${pageSize}`;
   const cached = readCachedData(cacheKey, USERS_PAGE_CACHE_TTL_MS);
   if (cached) return cached;
 
-  const result = await getUsersPageFunction({ cursor, pageSize });
+  const result = await getUsersPageFunction({ cursor, pageSize, areaAdmin });
   const page = result.data || { users: [], hasMore: false, nextCursor: null };
   writeCachedData(cacheKey, page, USERS_PAGE_CACHE_TTL_MS);
   return page;
 };
 
-export const searchUsers = async (search) => {
+export const searchUsers = async (search, areaAdmin = getCurrentAdminArea()) => {
   const normalizedSearch = String(search || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
-  const cacheKey = `sii-aqua-users-search:${normalizedSearch}`;
+  const cacheKey = `sii-aqua-users-search:${areaAdmin || "all"}:${normalizedSearch}`;
   const cached = readCachedData(cacheKey, USERS_SEARCH_CACHE_TTL_MS);
   if (cached) return cached;
 
-  const result = await searchUsersFunction({ search });
+  const result = await searchUsersFunction({ search, areaAdmin });
   const data = result.data || { users: [], hasMore: false, nextCursor: null };
   writeCachedData(cacheKey, data, USERS_SEARCH_CACHE_TTL_MS);
   return data;

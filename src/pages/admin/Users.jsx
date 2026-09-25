@@ -95,6 +95,12 @@ export default function Users({ onClose }) {
   const [pageCursors, setPageCursors] = useState([null]);
   const [hasNextPage, setHasNextPage] = useState(false);
   const usersLoadedRef = useRef(false);
+  const cachedUsersSnapshotRef = useRef({
+    users: [],
+    currentPage: 1,
+    hasNextPage: false,
+    pageCursors: [null],
+  });
 
   // Puestos
   const [puestos, setPuestos] = useState([]);
@@ -351,7 +357,7 @@ export default function Users({ onClose }) {
       // Loader S
       Swal.fire({
         title: "Guardando Usuario",
-        text: "Esperando respuesta del servidor",
+        text: "Por favor espera...",
         allowOutsideClick: false,
         allowEscapeKey: false,
         didOpen: () => {
@@ -476,13 +482,21 @@ export default function Users({ onClose }) {
       );
       const nextEstado = incapacidadVigente ? "incapacidad" : "activo";
 
+      Swal.fire({
+        title: "Actualizando estado...",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
       await updateUser(user.id, {
         activo: newStatus,
         bloqueado: !newStatus,
         intentosFallidos: newStatus ? 0 : user.intentosFallidos || 0,
         estado: nextEstado,
       });
-
+      Swal.close();
       notifySuccess(
         "Estado actualizado",
         newStatus ? "Usuario activado" : "Usuario dado de baja",
@@ -503,7 +517,7 @@ export default function Users({ onClose }) {
       );
     } catch (error) {
       console.log("Error:", error);
-
+      Swal.close();
       notifyError("Error", "No se pudo actualizar el estado");
     }
   };
@@ -689,12 +703,31 @@ export default function Users({ onClose }) {
     /* INCAPACIDADES */
   }
 
+  const cacheUsersSnapshot = (next = {}) => {
+    cachedUsersSnapshotRef.current = {
+      users: next.users ?? users,
+      currentPage: next.currentPage ?? currentPage,
+      hasNextPage: next.hasNextPage ?? hasNextPage,
+      pageCursors: next.pageCursors ?? pageCursors,
+    };
+  };
+
+  const restoreCachedUsers = () => {
+    const cached = cachedUsersSnapshotRef.current || { users: [], currentPage: 1, hasNextPage: false, pageCursors: [null] };
+    setUsers(cached.users || []);
+    setCurrentPage(cached.currentPage || 1);
+    setHasNextPage(Boolean(cached.hasNextPage));
+    setPageCursors(cached.pageCursors || [null]);
+    setExpandedUserId(null);
+  };
+
   const loadUsersPage = async (page = 1, cursor = null) => {
     setLoading(true);
 
     try {
       const pageData = await getUsersPage({ cursor, pageSize: 30 });
-      setUsers(pageData.users || []);
+      const nextUsers = pageData.users || [];
+      setUsers(nextUsers);
       usersLoadedRef.current = true;
       setHasNextPage(Boolean(pageData.hasMore));
       setCurrentPage(page);
@@ -703,6 +736,16 @@ export default function Users({ onClose }) {
         const next = [...previous];
         next[page] = pageData.nextCursor || null;
         return next;
+      });
+      cacheUsersSnapshot({
+        users: nextUsers,
+        currentPage: page,
+        hasNextPage: Boolean(pageData.hasMore),
+        pageCursors: (() => {
+          const next = [...pageCursors];
+          next[page] = pageData.nextCursor || null;
+          return next;
+        })(),
       });
     } catch (error) {
       console.error("Error cargando página de usuarios:", error);
@@ -990,10 +1033,17 @@ export default function Users({ onClose }) {
           a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
         );
 
-        setUsers(pageData.users || []);
+        const nextUsers = pageData.users || [];
+        setUsers(nextUsers);
         usersLoadedRef.current = true;
         setHasNextPage(Boolean(pageData.hasMore));
         setPageCursors([null, pageData.nextCursor || null]);
+        cacheUsersSnapshot({
+          users: nextUsers,
+          currentPage: 1,
+          hasNextPage: Boolean(pageData.hasMore),
+          pageCursors: [null, pageData.nextCursor || null],
+        });
         setPuestos(ordenados);
       } catch (error) {
         console.log("Error al cargar data:", error);
@@ -1009,9 +1059,11 @@ export default function Users({ onClose }) {
     const term = sanitizeText(search).trim();
 
     if (!term) {
-      await loadUsersPage(1, null);
+      restoreCachedUsers();
       return;
     }
+
+    cacheUsersSnapshot();
 
     try {
       const result = await searchUsers(term);
@@ -1099,7 +1151,14 @@ export default function Users({ onClose }) {
             className="form-control-page"
             placeholder="Nómina o nombre..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              const nextValue = e.target.value;
+              setSearch(nextValue);
+
+              if (!sanitizeText(nextValue).trim()) {
+                restoreCachedUsers();
+              }
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();

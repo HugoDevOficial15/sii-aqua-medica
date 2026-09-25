@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaFilePdf } from "react-icons/fa";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../../../config/firebase";
+import { getEvaluacionesConductuales } from "../../../services/compConductual";
 import { sanitizeText } from "../../../utils/sanitize";
 import { generateCompConductualReportPDF } from "./pdfGenerator";
 import "./reporteModal.css";
@@ -90,18 +89,12 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
       }
 
       try {
-        const anioActual = String(new Date().getFullYear());
-        const rutaEvaluaciones =
-          tipoReporte === "puntual"
-            ? collection(db, "users", userId, anioActual, "informacion", "CompConductual")
-            : collection(db, "users", userId, anioActual, "informacion", "resultados");
-
-        const snapshot = await getDocs(rutaEvaluaciones);
-        const registros = snapshot.docs
-          .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-          .filter((registro) => 
-            tipoReporte === "puntual" ? true : registro?.tipo === "CompConductual",
-          );
+        const registros = await getEvaluacionesConductuales({
+          usuarioId: userId,
+          tipoReporte,
+          fechaInicio,
+          fechaFin,
+        });
 
         const registrosFiltrados =
           tipoReporte === "puntual"

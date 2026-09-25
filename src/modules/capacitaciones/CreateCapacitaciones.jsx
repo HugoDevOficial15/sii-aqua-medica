@@ -30,7 +30,7 @@ export default function CreateCapacitaciones() {
     // Fecha actual para validación (min={today})
     const today = new Date().toISOString().split("T")[0];
 
-    const showLoadingSwal = async (title, text = "Esperando respuesta del servidor") => {
+    const showLoadingSwal = async (title, text = "Por favor espera...") => {
         const Swal = (await import("sweetalert2")).default;
         Swal.fire({
             title,
@@ -407,7 +407,7 @@ export default function CreateCapacitaciones() {
     const handleSaveTraining = async (data) => {
         const Swal = await showLoadingSwal(
             editing ? "Actualizando capacitación" : "Guardando capacitación",
-            "Esperando respuesta del servidor"
+            "Por favor espera..."
         );
 
         try {

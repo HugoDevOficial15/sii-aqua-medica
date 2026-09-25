@@ -92,7 +92,7 @@ export default function InventarioPage() {
     if (estado) {
       Swal.fire({
         title: "Dando de baja Equipo",
-        text: "Esperando respuesta del servidor",
+        text: "Por favor espera...",
         allowOutsideClick: false,
         allowEscapeKey: false,
         didOpen: () => {
@@ -105,7 +105,7 @@ export default function InventarioPage() {
     } else {
       Swal.fire({
         title: "Activando Equipo",
-        text: "Esperando respuesta del servidor",
+        text: "Por favor espera...",
         allowOutsideClick: false,
         allowEscapeKey: false,
         didOpen: () => {

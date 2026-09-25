@@ -383,7 +383,7 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
 
       Swal.fire({
         title: "Registrando incapacidad",
-        text: "Esperando respuesta del servidor",
+        text: "Por favor espera...",
         allowOutsideClick: false,
         allowEscapeKey: false,
         didOpen: () => {

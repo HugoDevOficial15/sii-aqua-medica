@@ -43,7 +43,7 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
 
       Swal.fire({
         title: "Registrando incidencia",
-        text: "Esperando respuesta del servidor",
+        text: "Por favor espera...",
         allowOutsideClick: false,
         allowEscapeKey: false,
         didOpen: () => {

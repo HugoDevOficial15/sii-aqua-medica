@@ -1,6 +1,11 @@
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
 import { clearCachedData, readCachedData, writeCachedData } from "../utils/cacheStore";
+
+const call = (name) => httpsCallable(functions, name);
+const getOperadoresConductualesCallable = call("getOperadoresConductuales");
+const getEvaluacionesConductualesCallable = call("getEvaluacionesConductuales");
+const guardarEvaluacionConductualCallable = call("guardarEvaluacionConductual");
 
 const COMP_CONDUCTUAL_CACHE_PREFIX = "sii-aqua-comp-conductual-operadores";
 const COMP_CONDUCTUAL_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -24,33 +29,38 @@ export const getOperadoresConductuales = async (areaAdmin = "", { forceRefresh =
     }
   }
 
-  let usuariosQuery = query(collection(db, "users"), where("rol", "==", "operador"));
+  const result = await getOperadoresConductualesCallable({ areaAdmin });
+  const operadores = result?.data ?? [];
+  writeCachedData(cacheKey, operadores, COMP_CONDUCTUAL_CACHE_TTL_MS);
 
-  if (areaAdmin) {
-    usuariosQuery = query(usuariosQuery, where("area", "==", areaAdmin));
-  }
+  return operadores;
+};
 
-  const snapshot = await getDocs(usuariosQuery);
+export const getEvaluacionesConductuales = async ({
+  usuarioId,
+  tipoReporte = "general",
+  fechaInicio = "",
+  fechaFin = "",
+} = {}) => {
+  if (!usuarioId) return [];
 
-  const operadores = snapshot.docs.map((docSnapshot) => ({
-    id: docSnapshot.id,
-    ...docSnapshot.data(),
-  }));
-
-  const operadoresOrdenados = operadores.sort((a, b) => {
-    const aNomina = Number(a?.nomina ?? 0);
-    const bNomina = Number(b?.nomina ?? 0);
-
-    if (Number.isNaN(aNomina) || Number.isNaN(bNomina)) {
-      return String(a?.nomina ?? "").localeCompare(String(b?.nomina ?? ""));
-    }
-
-    return aNomina - bNomina;
+  const result = await getEvaluacionesConductualesCallable({
+    usuarioId,
+    tipoReporte,
+    fechaInicio,
+    fechaFin,
   });
 
-  writeCachedData(cacheKey, operadoresOrdenados, COMP_CONDUCTUAL_CACHE_TTL_MS);
+  return Array.isArray(result?.data) ? result.data : [];
+};
 
-  return operadoresOrdenados;
+export const guardarEvaluacionConductual = async ({ usuarioId, evaluacion, anio } = {}) => {
+  if (!usuarioId) {
+    throw new Error("Falta el usuarioId para guardar la evaluación.");
+  }
+
+  const result = await guardarEvaluacionConductualCallable({ usuarioId, evaluacion, anio });
+  return result?.data ?? null;
 };
 
 export const filtrarOperadoresConductuales = (operadores = [], texto = "") => {

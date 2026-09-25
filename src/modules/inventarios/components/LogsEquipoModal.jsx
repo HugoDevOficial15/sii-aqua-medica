@@ -146,7 +146,7 @@ export default function LogsEquipoModal({
 
             Swal.fire({
                 title: "Guardando Observación",
-                text: "Esperando respuesta del servidor",
+                text: "Por favor espera...",
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 didOpen: () => {

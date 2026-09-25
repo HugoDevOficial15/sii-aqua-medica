@@ -1,5 +1,3 @@
-import { collection, doc, getDoc, getDocs } from "firebase/firestore";
-import { db } from "../../../config/firebase";
 import logo2Image from "../../../utils/img/logo2.jpg";
 
 const loadLogo = async () => {
@@ -159,51 +157,9 @@ const drawPdfHeader = async (doc, title, subtitle, fechaActual) => {
   doc.line(14, 47, 196, 47);
 };
 
-const obtenerRegistrosConductuales = async ({ operador, fechaInicio, fechaFin }) => {
-  if (!operador) return [];
-
-  const userId = operador.id || operador.uid;
-  if (!userId) return [];
-
-  const anioActual = String(new Date().getFullYear());
-  const resultadosRef = collection(
-    db,
-    "users",
-    userId,
-    anioActual,
-    "informacion",
-    "resultados",
-  );
-
-  const snapshot = await getDocs(resultadosRef);
-  let registros = snapshot.docs
-    .map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    }))
-    .filter((registro) => {
-      return (
-        registro?.tipo === "CompConductual" ||
-        registro?.anio === anioActual ||
-        registro?.id === "CompConductual"
-      );
-    });
-
-  if (!registros.length) {
-    const documentoRef = doc(
-      db,
-      "users",
-      userId,
-      anioActual,
-      "informacion",
-      "resultados",
-      "CompConductual",
-    );
-
-    const documentoSnap = await getDoc(documentoRef);
-    if (documentoSnap.exists()) {
-      registros = [{ id: documentoSnap.id, ...documentoSnap.data() }];
-    }
+const obtenerRegistrosConductuales = async ({ registros = [], fechaInicio, fechaFin }) => {
+  if (!Array.isArray(registros) || !registros.length) {
+    return [];
   }
 
   if (!fechaInicio && !fechaFin) {
@@ -251,9 +207,9 @@ export const generateCompConductualReportPDF = async ({
   const doc = new jsPDF();
 
   const registrosDesdeColeccion =
-    registros.length > 0
+    Array.isArray(registros) && registros.length > 0
       ? registros
-      : await obtenerRegistrosConductuales({ operador, fechaInicio, fechaFin });
+      : await obtenerRegistrosConductuales({ registros, fechaInicio, fechaFin });
 
   const titulo = "Reporte de comportamiento conductual";
   const subtitulo = `${formatearNombre(operador || { nombre: nombreOperador })} • ${operador?.nomina || "Sin nómina"}`;

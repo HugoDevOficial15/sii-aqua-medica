@@ -46,7 +46,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
 
       Swal.fire({
         title: "Registrando reconocimiento",
-        text: "Esperando respuesta del servidor",
+        text: "Por favor espera...",
         allowOutsideClick: false,
         allowEscapeKey: false,
         didOpen: () => {

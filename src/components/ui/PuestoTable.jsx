@@ -31,7 +31,7 @@ export default function PuestoTable({ puestos = [], loading, onEdit, onRefresh }
         try {
             Swal.fire({
                 title: "Actualizando estado",
-                text: "Esperando respuesta del servidor",
+                text: "Por favor espera...",
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 didOpen: () => {

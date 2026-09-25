@@ -32,7 +32,7 @@ export default function CreateSurvey() {
     const [openActionsId, setOpenActionsId] = useState(null);
     const today = new Date().toISOString().split("T")[0];
 
-    const showLoadingSwal = async (title, text = "Esperando respuesta del servidor") => {
+    const showLoadingSwal = async (title, text = "Por favor espera...") => {
         const Swal = (await import("sweetalert2")).default;
         Swal.fire({
             title,
@@ -425,7 +425,7 @@ export default function CreateSurvey() {
         try {
             const Swal = await showLoadingSwal(
                 editing ? "Actualizando encuesta" : "Guardando encuesta",
-                "Esperando respuesta del servidor"
+                "Por favor espera..."
             );
 
             const sanitizedData = sanitizeSurveyData(data);

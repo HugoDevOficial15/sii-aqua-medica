@@ -15,6 +15,7 @@ const agendaServicios = require("./features/agendaServicios");
 const aniversarios = require("./features/aniversarios");
 const ideas = require("./features/ideas");
 const soporte = require("./features/soporte");
+const compConductual = require("./features/CompConductual");
 
 const initPushNotifications = async () => {
   console.log("✓ Servicio local de push desactivado. Cloud Functions al mando.");
@@ -38,6 +39,7 @@ module.exports = {
   ...aniversarios,
   ...ideas,
   ...soporte,
+  ...compConductual,
   initPushNotifications,
   stopPushNotifications,
 };

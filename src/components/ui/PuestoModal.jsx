@@ -30,7 +30,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
             if (puestoEdit) {
                 Swal.fire({
                     title: "Actualizando puesto",
-                    text: "Esperando respuesta del servidor",
+                    text: "Por favor espera...",
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     didOpen: () => {
@@ -44,7 +44,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
             } else {
                 Swal.fire({
                     title: "Creando puesto",
-                    text: "Esperando respuesta del servidor",
+                    text: "Espere por favor",
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     didOpen: () => {

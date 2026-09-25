@@ -123,7 +123,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
 
             Swal.fire({
                 title: "Enviando solicitud",
-                text: "Esperando respuesta del servidor",
+                text: "Por favor espera...",
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 didOpen: () => {
@@ -160,7 +160,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
             if (error.code === "unavailable") {
                 notifyError(
                     "Error de conexión",
-                    "No se pudo conectar con el servidor. Intenta de nuevo."
+                    "No se pudo conectar con el servidor. \n Por favor intenta de nuevo..."
                 );
             } else {
                 notifyError("Error", "No se pudo enviar la solicitud.");
