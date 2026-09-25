@@ -83,18 +83,9 @@ const findUserByIdentifier = async (identifier) => {
   return null;
 };
 
-const normalizeUserRoleFilter = (filters = {}) => {
-  const nextFilters = { ...filters };
-  if (nextFilters.rol === undefined || nextFilters.rol === null || nextFilters.rol === "") {
-    nextFilters.rol = "operador";
-  }
-  return nextFilters;
-};
-
 const applyUserFilters = (query, filters = {}) => {
   let nextQuery = query;
-  const normalizedFilters = normalizeUserRoleFilter(filters);
-  const { empresaId, rol, activo } = normalizedFilters;
+  const { empresaId, rol, activo } = filters;
 
   if (empresaId !== undefined && empresaId !== null && empresaId !== "") {
     nextQuery = nextQuery.where("empresaId", "==", String(empresaId));
@@ -196,11 +187,11 @@ const getIncapacidadesForUser = async (userSnapshot, nomina) => {
 exports.getUsers = onCall(async (request) => {
   requireAuth(request);
   const data = request.data || {};
-  const filters = normalizeUserRoleFilter({
+  const filters = {
     empresaId: data.empresaId,
     rol: data.rol,
     activo: data.activo,
-  });
+  };
 
   const pageSize = data.pageSize !== undefined && data.pageSize !== null && data.pageSize !== ""
     ? Number(data.pageSize)
@@ -230,11 +221,11 @@ exports.getUsers = onCall(async (request) => {
 exports.getUsersPage = onCall(async (request) => {
   requireAuth(request);
   const data = request.data || {};
-  const filters = normalizeUserRoleFilter({
+  const filters = {
     empresaId: data.empresaId,
     rol: data.rol,
     activo: data.activo,
-  });
+  };
 
   const query = buildUsersPageQuery({ cursor: data.cursor, pageSize: data.pageSize || 30, filters });
   const snapshot = await query.get();
@@ -254,11 +245,11 @@ exports.searchUsers = onCall(async (request) => {
   requireAuth(request);
   const data = request.data || {};
   const search = normalizeSearchText(data.search);
-  const filters = normalizeUserRoleFilter({
+  const filters = {
     empresaId: data.empresaId,
     rol: data.rol,
     activo: data.activo,
-  });
+  };
 
   if (!search) {
     const query = buildUsersPageQuery({ cursor: data.cursor, pageSize: data.pageSize || 30, filters });
