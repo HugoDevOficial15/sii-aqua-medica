@@ -4,12 +4,22 @@
 
 Nuevas: 
 
-* CompConductual
+* getOperadoresConductuales
+* getEvaluacionesConductuales
+* guardarEvaluacionConductual
 
 ReFactorizadas:
 
-* Users
-* Personal
-
+* createPersonalReconocimiento
+* createPersonalIncidencia
+* createPersonalIncapacidad
+* getPersonalUsers
+* getPersonalPageData
+* getPersonalRecordsByUsers
+* getUsers
+* getUsersPage
+* searchUsers
+* resetFailedLoginAttempts
+* registerFailedLoginAttempt
 
 ==================================
