@@ -184,7 +184,16 @@ const getPersonalUsers = async (request) => {
     throw new HttpsError("unauthenticated", "No se encontró el perfil del usuario con sesión activa.");
   }
 
-  const snapshot = await usersCollection.get();
+  const rolActual = normalizeText(currentUser.rol);
+  const areaSolicitada = rolActual === "admin_sistemas"
+    ? "sistemas"
+    : normalizeArea(currentUser.area);
+
+  const snapshot = await usersCollection
+    .where("rol", "==", "operador")
+    .where("area", "==", areaSolicitada)
+    .get();
+
   const allUsers = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   return getAllowedUsersForPersonal(allUsers, currentUser);
 };
@@ -645,7 +654,16 @@ const getPersonalUsersInternal = async (request) => {
     throw new HttpsError("unauthenticated", "No se encontró el usuario autenticado.");
   }
 
-  const snapshot = await usersCollection.get();
+  const rolActual = normalizeText(currentUser.rol);
+  const areaSolicitada = rolActual === "admin_sistemas"
+    ? "sistemas"
+    : normalizeArea(currentUser.area);
+
+  const snapshot = await usersCollection
+    .where("rol", "==", "operador")
+    .where("area", "==", areaSolicitada)
+    .get();
+
   const allUsers = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   return getAllowedUsersForPersonal(allUsers, currentUser);
 };
@@ -656,11 +674,16 @@ exports.getPersonalPageData = onCall(async (request) => {
   requireAuth(request);
 
   const users = await getPersonalUsersInternal(request);
-  const records = await getPersonalRecordsByUsers(users);
 
   return {
     users,
-    records,
+    records: {
+      reconocimientos: [],
+      incidencias: [],
+      incapacidades: [],
+      historialesMedicos: [],
+      capacitaciones: [],
+    },
   };
 });
 

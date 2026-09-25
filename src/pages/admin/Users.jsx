@@ -775,9 +775,18 @@ export default function Users({ onClose }) {
     }));
 
     try {
+      Swal.fire({
+        title: "Cargando incapacidades",
+        text: "Por favor espera...",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
       const incapacidades = await getIncapacidadesByUser(user.id, user.nomina);
       const incapacidadesMap = { [user.id]: incapacidades };
-
+      Swal.close();
       setUserIncapacidades((prev) => ({
         ...prev,
         ...incapacidadesMap,
@@ -810,8 +819,10 @@ export default function Users({ onClose }) {
               }
             : item
         )));
+        
       }
     } catch (error) {
+      Swal.close();
       console.error("Error cargando incapacidades del usuario:", error);
       setUserIncapacidades((prev) => ({
         ...prev,
@@ -878,6 +889,13 @@ export default function Users({ onClose }) {
         .trim()
         .toUpperCase();
 
+      Swal.fire({
+        title: "Guardando incapacidad...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
       const createdIncapacidad = await createIncapacidad({
         userId: selectedIncapacidadUser.id,
         nomina: nominaSanitizada,
@@ -930,7 +948,7 @@ export default function Users({ onClose }) {
           ),
         };
       });
-
+      Swal.close();
       notifySuccess(
         "Incapacidad registrada",
         `Se guardó correctamente la ${tipo} para ${selectedIncapacidadUser.nombre}.`,
@@ -946,6 +964,7 @@ export default function Users({ onClose }) {
       });
     } catch (error) {
       console.error("Error guardando incapacidad:", error);
+      Swal.close();
       notifyError("Error", "No se pudo guardar la incapacidad.");
     }
   };

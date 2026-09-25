@@ -8,6 +8,7 @@ import {
   invalidateCacheGroup,
   readCachedData,
   writeCachedData,
+  clearCachedData,
 } from "../utils/cacheStore";
 import { AREAS } from "../catalogs/areas";
 import { getPuestos } from "./puestos-service";
@@ -42,10 +43,14 @@ export const invalidateUserAndPersonalCaches = () => {
     "sii-aqua-users-page-data",
     "sii-aqua-personal-records:",
     "sii-aqua-personal-users:",
-    DASHBOARD_CACHE_KEY,
     "sii-aqua-aniversarios-summary",
     "sii-aqua-aniversarios-by-month",
   );
+};
+
+export const clearDashboardStatsCache = () => {
+  const key = getDashboardCacheKey();
+  clearCachedData(key);
 };
 
 export const buildDashboardStats = (users = []) => {
@@ -142,11 +147,18 @@ export const getActiveIncapacidad = (incapacidades = [], date = new Date()) => {
   }) || null;
 };
 
-export const syncUsersWithIncapacidades = (users = [], incapacidadesByUser = {}) => users.map((user) => ({
-  ...user,
-  estado: getActiveIncapacidad(incapacidadesByUser[user.id] || []) ? "incapacidad" : "activo",
-  activo: user.activo === false ? false : true,
-}));
+export const syncUsersWithIncapacidades = (users = [], incapacidadesByUser = {}) => users.map((user) => {
+  const userIncapacidades = incapacidadesByUser[user.id] || [];
+  const currentState = String(user?.estado || "").trim().toLowerCase();
+  const activeIncapacidad = getActiveIncapacidad(userIncapacidades);
+  const isUserInactive = user.activo === false || currentState === "baja";
+
+  return {
+    ...user,
+    estado: activeIncapacidad ? "incapacidad" : (currentState === "incapacidad" ? (isUserInactive ? "baja" : "activo") : (isUserInactive ? "baja" : "activo")),
+    activo: activeIncapacidad ? true : !isUserInactive,
+  };
+});
 
 export const getIncapacidadesByUsers = async (userIds = [], usersData = []) => {
   if (!userIds.length) return {};
@@ -182,7 +194,10 @@ export const getDashboardStats = async ({ source = "cache" } = {}) => {
   return stats;
 };
 
-export const refreshDashboardStats = () => getDashboardStats({ source: "server" });
+export const refreshDashboardStats = () => {
+  clearDashboardStatsCache();
+  return getDashboardStats({ source: "server" });
+};
 export const testDashboardSource = async () => null;
 
 export const createUser = async (userData) => {

@@ -12,6 +12,7 @@ import {
   FaChalkboardTeacher
 } from "react-icons/fa";
 
+import Swal from "sweetalert2";
 import { useAuth } from "../../hooks/useAuth";
 import Loader from "../../components/Loader";
 import { readSessionCache, writeSessionCache, readMemoryCache, writeMemoryCache } from "../../utils/cacheStore";
@@ -25,7 +26,22 @@ import ReconocimientoModal from "./components/reconocimiento";
 import IncidenciaModal from "./components/incidencia";
 import RecordDetailModal from "./components/RecordDetailModal"; 
 import PdfGeneralModal from "./components/pdfGeneralModal";
-import IncapacidadModal, { getUserStatusBadge, hasActiveIncapacidad, } from "./components/incapacidad";
+import IncapacidadModal, { getUserStatusBadge, hasActiveIncapacidad, syncUsersWithIncapacidades, } from "./components/incapacidad";
+
+const parseLocalDateOnly = (value) => {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [year, month, day] = trimmed.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
 
 const getRecordTimestamp = (item) => {
   if (!item) return 0;
@@ -38,9 +54,10 @@ const getRecordTimestamp = (item) => {
     return item.createdAt.seconds * 1000;
   }
 
-  if (item.fecha) {
-    const fecha = new Date(item.fecha);
-    if (!Number.isNaN(fecha.getTime())) return fecha.getTime();
+  const candidateDate = item.type === "incapacidad" ? (item.fechaInicio || item.fecha) : item.fecha;
+  if (candidateDate) {
+    const fecha = parseLocalDateOnly(candidateDate);
+    if (fecha && !Number.isNaN(fecha.getTime())) return fecha.getTime();
   }
 
   return 0;
@@ -57,8 +74,8 @@ const formatRecordDate = (value) => {
     });
   }
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "Sin fecha";
+  const parsed = parseLocalDateOnly(value);
+  if (!parsed || Number.isNaN(parsed.getTime())) return "Sin fecha";
 
   return parsed.toLocaleDateString("es-MX", {
     day: "2-digit",
@@ -209,10 +226,11 @@ export default function Personal() {
     }
 
     const visibleUsers = await getPersonalUsers({ forceRefresh });
-    writeMemoryCache(cacheKey, visibleUsers);
-    writeSessionCache(cacheKey, visibleUsers);
-    setUsuarios(visibleUsers);
-    return visibleUsers;
+    const syncedUsers = await syncUsersWithIncapacidades(visibleUsers);
+    writeMemoryCache(cacheKey, syncedUsers);
+    writeSessionCache(cacheKey, syncedUsers);
+    setUsuarios(syncedUsers);
+    return syncedUsers;
   };
 
   useEffect(() => {
@@ -232,15 +250,12 @@ export default function Personal() {
 
     let cancelled = false;
 
-    const fetchUsersAndRecords = async () => {
+    const fetchUsersOnly = async () => {
       try {
         setLoading(true);
         const visibleUsers = await refreshVisibleUsers({ forceRefresh: false });
-        if (cancelled) return;
-
-        const records = await getPersonalRecordsByUsers(visibleUsers);
         if (!cancelled) {
-          setAllRecords(records);
+          setUsuarios(visibleUsers);
         }
       } catch (error) {
         console.error("Error cargando personal:", error);
@@ -255,12 +270,57 @@ export default function Personal() {
       }
     };
 
-    fetchUsersAndRecords();
+    fetchUsersOnly();
 
     return () => {
       cancelled = true;
     };
   }, [userKey, user]);
+
+  useEffect(() => {
+    if (!expandedUserId || !usuarios.length) {
+      return undefined;
+    }
+
+    const selectedUser = usuarios.find((usuario) => {
+      const userId = usuario?.id || usuario?.uid || usuario?.uidFirebase;
+      return userId === expandedUserId;
+    });
+
+    if (!selectedUser) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const fetchSelectedUserRecords = async () => {
+      try {
+
+        Swal.fire({
+          title: 'Cargando registros ',
+          text: 'Por favor espera...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+        const scopedRecords = await getPersonalRecordsByUsers([selectedUser]);
+        if (!cancelled) {
+          setAllRecords((current) => mergeRecordsState(current, scopedRecords));
+        }
+      } catch (error) {
+        console.error("Error cargando registros del usuario seleccionado:", error);
+      } finally {
+        Swal.close();
+      }
+    };
+
+    fetchSelectedUserRecords();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [expandedUserId, usuarios]);
 
   const accesoPermitido = canAccessPersonalSection(user);
   const allowedUsers = useMemo(() => {
@@ -563,7 +623,11 @@ export default function Personal() {
                               <button
                                 type="button"
                                 className="personal-action-menu-item incapacidad"
-                                disabled={activeIncapacidad || String(usuario?.estado || "").trim().toLowerCase() === "incapacidad"}
+                                disabled={
+                                  activeIncapacidad
+                                  || usuario?.activo === false
+                                  || String(usuario?.estado || "").trim().toLowerCase() === "baja"
+                                }
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   handleOpenIncapacidad(usuario);
@@ -661,7 +725,7 @@ export default function Personal() {
                                             item.comentarios ||
                                             "Sin descripción"}
                                       </td>
-                                      <td>{formatRecordDate(item.fecha || item.createdAt)}</td>
+                                      <td>{formatRecordDate(item.type === "incapacidad" ? (item.fechaInicio || item.fecha || item.createdAt) : (item.fecha || item.createdAt))}</td>
                                       <td className="personal-record-action-cell">
                                         <button
                                           type="button"

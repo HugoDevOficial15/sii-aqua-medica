@@ -100,6 +100,15 @@ export default function LogsEquipoModal({
 
             setLoading(true);
 
+            Swal.fire({
+                title: "Cargando historial",
+                text: "Por favor espera...",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                  Swal.showLoading();
+                },
+              });
             const data = await getLogsEquipo(equipo.id);
 
             setLogs(data);
@@ -113,6 +122,7 @@ export default function LogsEquipoModal({
             setLoading(false);
 
         }
+        Swal.close();
     };
 
 

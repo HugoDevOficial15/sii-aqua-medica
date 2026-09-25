@@ -10,6 +10,8 @@ import { createPersonalIncapacidad } from "../../../services/personalService";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { notifySuccess, notifyError } from "../../../utils/notify";
 import { FaHouseUser } from "react-icons/fa";
+import Swal from "sweetalert2";
+
 
 export const isWoman = (usuario) => {
   const genero = String(usuario?.Genero || usuario?.genero || "").trim().toUpperCase();
@@ -36,24 +38,50 @@ export const getTodayDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-export const hasActiveIncapacidad = (usuario, incapacidades = []) => {
-  if (!usuario || usuario.activo === false) return false;
+const getIncapacidadRangeActive = (incapacidad, date = new Date()) => {
+  if (!incapacidad) return false;
 
-  const estadoActual = String(usuario?.estado || "").trim().toLowerCase();
-  if (estadoActual === "incapacidad") {
-    return true;
-  }
-
-  const today = new Date();
+  const today = new Date(date);
   today.setHours(0, 0, 0, 0);
 
-  return incapacidades.some((incapacidad) => {
-    const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-    const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-    const startOk = !fechaInicio || fechaInicio <= today;
-    const endOk = !fechaFin || fechaFin >= today;
-    return startOk && endOk;
-  });
+  const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+  const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+  const startOk = !fechaInicio || fechaInicio <= today;
+  const endOk = !fechaFin || fechaFin >= today;
+  return startOk && endOk;
+};
+
+const getUserIncapacidadCandidates = (usuario, incapacidades = []) => {
+  const usuarioIncapacidad = (
+    usuario?.fechaInicioIncapacidad || usuario?.fechaFinIncapacidad
+      ? [{
+          fechaInicio: usuario?.fechaInicioIncapacidad || null,
+          fechaFin: usuario?.fechaFinIncapacidad || null,
+          tipo: usuario?.tipoIncapacidad || "incapacidad",
+          nota: usuario?.notaIncapacidad || "",
+        }]
+      : []
+  );
+
+  return [...usuarioIncapacidad, ...incapacidades];
+};
+
+const getEffectiveIncapacidadState = (usuario, incapacidades = []) => {
+  if (!usuario) return "activo";
+
+  const currentState = String(usuario?.estado || "").trim().toLowerCase();
+  const isUserInactive = usuario.activo === false || currentState === "baja";
+
+  if (isUserInactive) {
+    return "baja";
+  }
+
+  const hasActive = getUserIncapacidadCandidates(usuario, incapacidades).some((incapacidad) => getIncapacidadRangeActive(incapacidad));
+  return hasActive ? "incapacidad" : "activo";
+};
+
+export const hasActiveIncapacidad = (usuario, incapacidades = []) => {
+  return getEffectiveIncapacidadState(usuario, incapacidades) === "incapacidad";
 };
 
 export const getUserStatusBadge = (usuario, hasActive = false) => {
@@ -64,7 +92,7 @@ export const getUserStatusBadge = (usuario, hasActive = false) => {
     };
   }
 
-  if (usuario?.activo === false) {
+  if (usuario?.activo === false || String(usuario?.estado || "").trim().toLowerCase() === "baja") {
     return {
       label: "Baja",
       className: "personal-status-badge danger",
@@ -78,20 +106,13 @@ export const getUserStatusBadge = (usuario, hasActive = false) => {
 };
 
 export const syncUserIncapacidadStatus = async (usuario, incapacidades = []) => {
-  if (!usuario || usuario.activo === false) return false;
+  if (!usuario) return false;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const currentState = String(usuario?.estado || "").trim().toLowerCase();
+  const isUserInactive = usuario.activo === false || currentState === "baja";
+  const activeIncapacidad = getUserIncapacidadCandidates(usuario, incapacidades).find((incapacidad) => getIncapacidadRangeActive(incapacidad));
 
-  const activeIncapacidad = incapacidades.find((incapacidad) => {
-    const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-    const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-    const startOk = !fechaInicio || fechaInicio <= today;
-    const endOk = !fechaFin || fechaFin >= today;
-    return startOk && endOk;
-  });
-
-  if (activeIncapacidad && String(usuario?.estado || "").trim().toLowerCase() !== "incapacidad") {
+  if (activeIncapacidad && currentState !== "incapacidad") {
     await updateUser(usuario.id, {
       estado: "incapacidad",
       activo: true,
@@ -99,6 +120,19 @@ export const syncUserIncapacidadStatus = async (usuario, incapacidades = []) => 
       fechaInicioIncapacidad: activeIncapacidad.fechaInicio || null,
       fechaFinIncapacidad: activeIncapacidad.fechaFin || null,
       notaIncapacidad: activeIncapacidad.nota || "",
+    });
+    return true;
+  }
+
+  if (!activeIncapacidad && (currentState === "incapacidad" || (usuario.activo === true && !isUserInactive))) {
+    const nextState = isUserInactive ? "baja" : "activo";
+    await updateUser(usuario.id, {
+      estado: nextState,
+      activo: !isUserInactive,
+      tipoIncapacidad: "",
+      fechaInicioIncapacidad: null,
+      fechaFinIncapacidad: null,
+      notaIncapacidad: "",
     });
     return true;
   }
@@ -143,58 +177,27 @@ export const syncUsersWithIncapacidades = async (usersData = []) => {
             addItems(byNomina);
           }
 
-          const activeIncapacidad = incapacidades.some((incapacidad) => {
-            const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-            const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const startOk = !fechaInicio || fechaInicio <= today;
-            const endOk = !fechaFin || fechaFin >= today;
-            return startOk && endOk;
-          });
+          const activeIncapacidad = getUserIncapacidadCandidates(usuario, incapacidades).find((incapacidad) => getIncapacidadRangeActive(incapacidad));
 
           const currentState = String(usuario?.estado || "").trim().toLowerCase();
+          const isUserInactive = usuario.activo === false || currentState === "baja";
           const isExpiredIncapacidad = currentState === "incapacidad" && !activeIncapacidad;
 
           if (activeIncapacidad && currentState !== "incapacidad") {
             await updateUser(usuario.id, {
               estado: "incapacidad",
               activo: true,
-              tipoIncapacidad: incapacidades.find((incapacidad) => {
-                const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-                const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
-              })?.tipo || "incapacidad",
-              fechaInicioIncapacidad: incapacidades.find((incapacidad) => {
-                const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-                const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
-              })?.fechaInicio || null,
-              fechaFinIncapacidad: incapacidades.find((incapacidad) => {
-                const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-                const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
-              })?.fechaFin || null,
-              notaIncapacidad: incapacidades.find((incapacidad) => {
-                const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
-                const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                return (!fechaInicio || fechaInicio <= today) && (!fechaFin || fechaFin >= today);
-              })?.nota || "",
+              tipoIncapacidad: activeIncapacidad.tipo || "incapacidad",
+              fechaInicioIncapacidad: activeIncapacidad.fechaInicio || null,
+              fechaFinIncapacidad: activeIncapacidad.fechaFin || null,
+              notaIncapacidad: activeIncapacidad.nota || "",
             });
           }
 
           if (isExpiredIncapacidad) {
             await updateUser(usuario.id, {
-              estado: "activo",
-              activo: true,
+              estado: isUserInactive ? "baja" : "activo",
+              activo: !isUserInactive,
               tipoIncapacidad: "",
               fechaInicioIncapacidad: null,
               fechaFinIncapacidad: null,
@@ -202,9 +205,12 @@ export const syncUsersWithIncapacidades = async (usersData = []) => {
             });
           }
 
+          const nextState = getEffectiveIncapacidadState(usuario, incapacidades);
+
           return {
             ...usuario,
-            estado: activeIncapacidad ? "incapacidad" : isExpiredIncapacidad ? "activo" : usuario.estado,
+            estado: nextState,
+            activo: nextState === "baja" ? false : true,
           };
         } catch (error) {
           console.error("Error sincronizando incapacidad del usuario:", error);
