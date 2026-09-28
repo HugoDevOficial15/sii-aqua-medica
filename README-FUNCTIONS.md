@@ -97,4 +97,23 @@ Refactorizadas:
 * getUsersPage
 * searchUsers
 
+Nuevas sii:
+
+* getPracticantesPage
+* searchPracticantes
+* createPracticante
+* updatePracticante
+
+API Externa (aquamedica2023):
+
+* obtenerCostosComedor
+* calcularCostos
+* CancelarComida
+* getUserRequests
+* crearSugerencia
+* obtenerSugerencias
+* obtenerMenuEmpleado
+
+
+
 ==================================

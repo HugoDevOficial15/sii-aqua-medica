@@ -37,7 +37,7 @@ const useFunctionsEmulator = String(import.meta.env.VITE_USE_FUNCTIONS_EMULATOR 
 if (useFunctionsEmulator) {
     connectFunctionsEmulator(functions, "127.0.0.1", 5001);
     connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-    connectFirestoreEmulator(db, "127.0.0.1", 8080);
+    connectFirestoreEmulator(db, "127.0.0.1", 8081);
 }
 
 // Firebase Messaging solo está disponible en navegadores con soporte

@@ -20,6 +20,7 @@ const news = require("./features/news");
 const medicamentos = require("./features/medicamentos");
 const agendaMedica = require("./features/agendaMedica");
 const citasMedicas = require("./features/citasMedicas");
+const practicantes = require("./features/practicantes");
 const ordenesMedicas = require("./features/ordenesMedicas");
 
 const initPushNotifications = async () => {
@@ -41,6 +42,7 @@ module.exports = {
   ...puestos,
   ...inventarios,
   ...agendaServicios,
+   ...practicantes,
   ...aniversarios,
   ...ideas,
   ...soporte,

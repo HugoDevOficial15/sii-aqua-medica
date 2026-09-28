@@ -30,7 +30,8 @@ import {
     FaHandHoldingHeart,
     FaMedapps,
     FaUserFriends,
-    FaUserCheck
+    FaUserCheck,
+    FaBook
 
 } from "react-icons/fa";
 
@@ -58,6 +59,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
             { to: "/soporte", icon: <FaHeadset />, label: "Soporte" },
             { to: "/ideas", icon: <FaMedapps />, label: "Ideas" },
             { to: "/personal", icon: <FaUserFriends />, label: "Personal", permiso: "personal.ver" },
+            { to: "/practicantes", icon: <FaBook />, label: "Practicantes", permiso: "practicantes.ver" },
             { to: "/comportamiento-conductual", icon: <FaUserCheck />, label: "Comp. Conductual", permiso: "comportamiento.ver" },
             { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
             { to: "/capacitaciones", icon: <FaGraduationCap />, label: "Capacitaciones", permiso: "capacitaciones.ver" },
@@ -174,13 +176,12 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
 ========================= */
 
 .pro-sidebar {
-    position: sticky;
+    position: fixed;
     top: 0;
-    align-self: flex-start;
+    left: 0;
 
     width: 280px;
-    height: 130vh;
-    max-height: 110vh;
+    height: 100vh;
 
     overflow-y: auto;
     overflow-x: hidden;
