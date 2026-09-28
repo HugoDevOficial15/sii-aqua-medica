@@ -79,6 +79,9 @@ export default function Users({ onClose }) {
 
   // Busqueda
   const [search, setSearch] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const latestSearchRequestRef = useRef(0);
 
   // Users
   const [users, setUsers] = useState([]);
@@ -95,6 +98,12 @@ export default function Users({ onClose }) {
   const [pageCursors, setPageCursors] = useState([null]);
   const [hasNextPage, setHasNextPage] = useState(false);
   const usersLoadedRef = useRef(false);
+  const initialUsersSnapshotRef = useRef({
+    users: [],
+    currentPage: 1,
+    hasNextPage: false,
+    pageCursors: [null],
+  });
   const cachedUsersSnapshotRef = useRef({
     users: [],
     currentPage: 1,
@@ -713,11 +722,18 @@ export default function Users({ onClose }) {
   };
 
   const restoreCachedUsers = () => {
-    const cached = cachedUsersSnapshotRef.current || { users: [], currentPage: 1, hasNextPage: false, pageCursors: [null] };
-    setUsers(cached.users || []);
-    setCurrentPage(cached.currentPage || 1);
-    setHasNextPage(Boolean(cached.hasNextPage));
-    setPageCursors(cached.pageCursors || [null]);
+    const snapshot = initialUsersSnapshotRef.current || cachedUsersSnapshotRef.current || {
+      users: [],
+      currentPage: 1,
+      hasNextPage: false,
+      pageCursors: [null],
+    };
+
+    const nextUsers = Array.isArray(snapshot.users) ? snapshot.users : [];
+    setUsers(nextUsers);
+    setCurrentPage(snapshot.currentPage || 1);
+    setHasNextPage(Boolean(snapshot.hasNextPage));
+    setPageCursors(snapshot.pageCursors || [null]);
     setExpandedUserId(null);
   };
 
@@ -1057,12 +1073,14 @@ export default function Users({ onClose }) {
         usersLoadedRef.current = true;
         setHasNextPage(Boolean(pageData.hasMore));
         setPageCursors([null, pageData.nextCursor || null]);
-        cacheUsersSnapshot({
+        const initialSnapshot = {
           users: nextUsers,
           currentPage: 1,
           hasNextPage: Boolean(pageData.hasMore),
           pageCursors: [null, pageData.nextCursor || null],
-        });
+        };
+        initialUsersSnapshotRef.current = initialSnapshot;
+        cacheUsersSnapshot(initialSnapshot);
         setPuestos(ordenados);
       } catch (error) {
         console.log("Error al cargar data:", error);
@@ -1074,27 +1092,58 @@ export default function Users({ onClose }) {
     loadData();
   }, []);
 
-  const handleSearchSubmit = async () => {
-    const term = sanitizeText(search).trim();
+  const performUserSearch = async (term, options = {}) => {
+    const normalizedTerm = sanitizeText(term).trim();
+    const { showSuggestions = true } = options;
+    const requestId = ++latestSearchRequestRef.current;
 
-    if (!term) {
+    if (!normalizedTerm) {
+      setSearchSuggestions([]);
+      setIsSearching(false);
       restoreCachedUsers();
+      return;
+    }
+
+    if (normalizedTerm.length < 2) {
+      setSearchSuggestions([]);
+      setIsSearching(false);
       return;
     }
 
     cacheUsersSnapshot();
 
     try {
-      const result = await searchUsers(term);
-      setUsers(result.users || []);
+      setIsSearching(true);
+      const result = await searchUsers(normalizedTerm);
+
+      if (requestId !== latestSearchRequestRef.current) {
+        return;
+      }
+
+      const nextUsers = result.users || [];
+      setUsers(nextUsers);
       setCurrentPage(1);
       setPageCursors([null]);
       setHasNextPage(false);
       setExpandedUserId(null);
+
+      if (showSuggestions) {
+        setSearchSuggestions(nextUsers.slice(0, 8));
+      }
     } catch (error) {
       console.error("Error buscando usuarios:", error);
-      notifyError("Error", "No se pudo buscar usuarios.");
+      if (requestId === latestSearchRequestRef.current) {
+        notifyError("Error", "No se pudo buscar usuarios.");
+      }
+    } finally {
+      if (requestId === latestSearchRequestRef.current) {
+        setIsSearching(false);
+      }
     }
+  };
+
+  const handleSearchSubmit = async () => {
+    await performUserSearch(search, { showSuggestions: true });
   };
 
   useEffect(() => {
@@ -1105,6 +1154,31 @@ export default function Users({ onClose }) {
       setSearch(filtro);
     }
   }, [location.search]);
+
+  useEffect(() => {
+    const term = sanitizeText(search).trim();
+
+    if (!term) {
+      latestSearchRequestRef.current += 1;
+      setSearchSuggestions([]);
+      setIsSearching(false);
+      restoreCachedUsers();
+      return undefined;
+    }
+
+    if (term.length < 2) {
+      latestSearchRequestRef.current += 1;
+      setSearchSuggestions([]);
+      setIsSearching(false);
+      return undefined;
+    }
+
+    const timeout = setTimeout(() => {
+      performUserSearch(term, { showSuggestions: true });
+    }, 350);
+
+    return () => clearTimeout(timeout);
+  }, [search]);
 
   // Auto-refresh desactivado para evitar peticiones repetitivas al servidor.
   // La sincronización de incapacidades se realiza bajo demanda en lugar de
@@ -1165,26 +1239,31 @@ export default function Users({ onClose }) {
       </div>
 
       <div className="contenedor-header mb-4">
-          <input
-            type="text"
-            className="form-control-page"
-            placeholder="Nómina o nombre..."
-            value={search}
-            onChange={(e) => {
-              const nextValue = e.target.value;
-              setSearch(nextValue);
+          <div style={{ position: "relative", flex: 1 }}>
+            <input
+              type="text"
+              className="form-control-page"
+              placeholder="Nómina o nombre..."
+              value={search}
+              onChange={(e) => {
+                const nextValue = e.target.value;
+                setSearch(nextValue);
 
-              if (!sanitizeText(nextValue).trim()) {
-                restoreCachedUsers();
-              }
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                handleSearchSubmit();
-              }
-            }}
-          />
+                if (!sanitizeText(nextValue).trim()) {
+                  setSearchSuggestions([]);
+                  setIsSearching(false);
+                  restoreCachedUsers();
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  handleSearchSubmit();
+                }
+              }}
+            />
+
+          </div>
 
           {/* <button className="d-none" onClick={migrateNomina}>
                         Migrar Nóminas

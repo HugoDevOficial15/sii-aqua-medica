@@ -130,17 +130,67 @@ const createSurveyNotifications = async (survey, surveyId, previousAssignment = 
     return usersToNotify.length;
 };
 
+const normalizeUserIdSet = (userId, profile = {}) => {
+    const candidates = [
+        userId,
+        profile?.uid,
+        profile?.firebaseUid,
+        profile?.id,
+        profile?.userId,
+        profile?.nomina,
+        profile?.nominaUsuario,
+        profile?.numeroNomina,
+    ];
+
+    return [...new Set(
+        candidates
+            .filter((value) => value !== null && value !== undefined && String(value).trim() !== "")
+            .map((value) => String(value).trim())
+    )];
+};
+
+const matchesOperatorResponse = (response, userIds = []) => {
+    if (!response || !userIds.length) return false;
+
+    const responseUserIds = [
+        response.userId,
+        response.usuarioDocId,
+        response.uid,
+        response.firebaseUid,
+        response.nominaUsuario,
+        response.nomina,
+    ].filter((value) => value !== null && value !== undefined && String(value).trim() !== "");
+
+    return responseUserIds.some((value) => userIds.includes(String(value).trim()));
+};
+
 const getSurveyResponsesByUser = async (surveyId, userId) => {
     const surveyRef = db.collection("respuestasEncuestas").doc(String(surveyId));
     const buckets = ["pendientes", "aprobados", "reprobados"];
     const snapshots = await Promise.all(
-        buckets.map((bucket) => surveyRef.collection(bucket).where("userId", "==", userId).get())
+        buckets.map((bucket) => surveyRef.collection(bucket).get())
     );
 
-    return snapshots.flatMap((snapshot) => snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-    })));
+    const matchingIds = normalizeUserIdSet(userId);
+    return snapshots.flatMap((snapshot) => snapshot.docs
+        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+        .filter((response) => matchesOperatorResponse(response, matchingIds))
+    );
+};
+
+const MAX_SURVEY_ATTEMPTS = 3;
+
+const normalizeAttemptValue = (value) => {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return 0;
+    return Math.min(Math.max(Math.trunc(numericValue), 0), MAX_SURVEY_ATTEMPTS);
+};
+
+const getLatestAttemptValue = (responses = []) => {
+    const validResponses = responses.filter((response) => response && response.encuestaId !== undefined && response.userId !== undefined);
+    if (!validResponses.length) return 0;
+
+    return Math.min(Math.max(validResponses.length, 0), MAX_SURVEY_ATTEMPTS);
 };
 
 const normalizeResponseCollectionName = (value, fallback = "respuestasEncuestas") => {
@@ -216,11 +266,15 @@ exports.getOperatorSurveys = onCall(async (request) => {
     const responses = [];
     await Promise.all(surveys.map(async (survey) => {
         const buckets = await Promise.all(["pendientes", "aprobados", "reprobados"].map((bucket) =>
-            db.collection("respuestasEncuestas").doc(survey.id).collection(bucket)
-                .where("userId", "==", operator.id).get()
+            db.collection("respuestasEncuestas").doc(survey.id).collection(bucket).get()
         ));
+
+        const matchingIds = normalizeUserIdSet(operator.id, operator);
         buckets.forEach((bucketSnapshot) => bucketSnapshot.docs.forEach((docSnap) => {
-            responses.push({ id: docSnap.id, ...docSnap.data() });
+            const response = { id: docSnap.id, ...docSnap.data() };
+            if (matchesOperatorResponse(response, matchingIds)) {
+                responses.push(response);
+            }
         }));
     }));
 
@@ -257,9 +311,11 @@ exports.getSurveyAttempts = onCall(async (request) => {
     }
 
     const responses = await getSurveyResponsesByUser(surveyId, userId);
+    const attempts = getLatestAttemptValue(responses);
+
     return {
         ok: true,
-        attempts: responses.length,
+        attempts,
         responses,
     };
 });
@@ -410,16 +466,25 @@ exports.saveOperatorSurveyResponse = onCall(async (request) => {
     const bucket = pending ? "pendientes" : (approved ? "aprobados" : "reprobados");
     const estado = pending ? "pendiente_validacion" : (approved ? "aprobado" : "reprobado");
     const responseRef = db.collection("respuestasEncuestas").doc(String(surveyId)).collection(bucket).doc();
+    const normalizedUserId = operator.uid || operator.firebaseUid || operator.id;
+
+    const priorResponses = await getSurveyResponsesByUser(String(surveyId), normalizedUserId);
+    const priorAttempts = priorResponses.length;
+    const nextAttemptValue = Math.min(priorAttempts + 1, MAX_SURVEY_ATTEMPTS);
+
     const responseData = {
         ...data,
         encuestaId: String(surveyId),
         idEncuesta: String(surveyId),
-        userId: operator.id,
+        userId: normalizedUserId,
         usuarioDocId: operator.id,
+        uid: operator.uid || operator.firebaseUid || null,
+        firebaseUid: operator.firebaseUid || operator.uid || null,
         nominaUsuario: operator.nomina ?? data.nominaUsuario ?? null,
         username: operator.username ?? data.username ?? "",
         nombre: operator.nombre ?? data.nombre ?? "",
         area: operator.area ?? operator.Area ?? data.area ?? "",
+        intentos: nextAttemptValue,
         id: responseRef.id,
         estado,
         aprobada: approved,

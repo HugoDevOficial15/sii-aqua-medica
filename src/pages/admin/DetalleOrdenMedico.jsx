@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
-import { collection, query, where, getDocs, doc, updateDoc, arrayUnion, addDoc, deleteDoc, getDoc } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import React, { useState, useEffect } from "react";
 import { FaSearch, FaUserInjured, FaFingerprint, FaCheckCircle, FaClock, FaHeartbeat, FaCheckDouble, FaTrash, FaEllipsisV, FaHandHoldingMedical} from "react-icons/fa";
 import { FiTrash2 } from "react-icons/fi";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete, notifyInfo } from "../../utils/notify";
 import { useAuth } from "../../hooks/useAuth";
 import { dismissNotification } from "../../utils/notificationPersistence";
+import { getOrdenesMedicas, buscarOrdenesActivasPorPaciente, getUsuarioPorNomina, getUsuarioByDocId, crearOrdenAtencionRapida, guardarRevisionOrdenMedica, eliminarOrdenMedicaAdmin } from "../../services/ordenesMedicasService";
 
 export default function DetalleOrdenMedica() {
   const { user } = useAuth();
@@ -36,9 +35,7 @@ export default function DetalleOrdenMedica() {
   const cargarOrdenes = async () => {
     setCargandoOrdenes(true);
     try {
-      const ordenesRef = collection(db, "ordenes_medicas");
-      const snapshot = await getDocs(ordenesRef);
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const items = await getOrdenesMedicas();
       setOrdenes(items);
     } catch (error) {
       console.error("Error al cargar órdenes:", error);
@@ -105,11 +102,8 @@ export default function DetalleOrdenMedica() {
 
     if (!orden.tipoSangre && !orden.peso && docId) {
       try {
-        const userDocRef = doc(db, "users", docId);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
+        const userData = await getUsuarioByDocId(docId);
+        if (userData) {
           setTipoSangre(userData.tipoSangre || "");
           setPeso(userData.peso || "");
           setEstatura(userData.estatura || "");
@@ -133,19 +127,11 @@ export default function DetalleOrdenMedica() {
     if (!result.isConfirmed) return;
 
     try {
-      // Eliminar notificaciones asociadas
-      const qNotif = query(collection(db, "notificaciones"), where("extra.idOrden", "==", orden.id));
-      const snapshotNotif = await getDocs(qNotif);
-
-      const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
-        // 🍪 Persistir en cookies antes de borrar
-        dismissNotification(docNotif.id);
-        return deleteDoc(doc(db, "notificaciones", docNotif.id));
-      });
-      await Promise.all(deleteNotifPromises);
-
-      // Eliminar orden
-      await deleteDoc(doc(db, "ordenes_medicas", orden.id));
+      const notifSnapshot = await buscarOrdenesActivasPorPaciente(orden.nominaPaciente || "");
+      if (notifSnapshot && notifSnapshot.length) {
+        // no-op: la limpieza de notificaciones se hace en el backend
+      }
+      await eliminarOrdenMedicaAdmin(orden.id);
       setOrdenes(ordenes.filter(o => o.id !== orden.id));
       notifySuccess("Eliminado", "La orden médica y notificaciones asociadas han sido eliminadas exitosamente.");
     } catch (error) {
@@ -170,67 +156,17 @@ export default function DetalleOrdenMedica() {
 
     setProcesandoAtencionRapida(true);
     try {
-      // Buscar si ya existe orden activa
-      const ordenesRef = collection(db, "ordenes_medicas");
-      const q = query(
-        ordenesRef,
-        where("nominaPacienteNum", "==", nominaNum),
-        where("estado", "in", ["Pendiente", "En Tratamiento"])
-      );
-      const snapshot = await getDocs(q);
+      const result = await crearOrdenAtencionRapida(nominaStr);
+      const orden = result?.orden ?? null;
 
-      if (!snapshot.empty) {
-        // Cargar la orden existente
-        const ordenExistente = snapshot.docs[0];
-        cargarPacienteDesdeTabla({ id: ordenExistente.id, ...ordenExistente.data() });
-        setMostrarModalAtencionRapida(false);
-        setNominaAtencionRapida("");
-        notifyInfo("Orden encontrada", "Cargando la orden médica activa del paciente.");
-        return;
+      if (orden) {
+        cargarPacienteDesdeTabla(orden);
       }
 
-      // Si no existe, buscar en usuarios para obtener datos (por nómina como número)
-      const usersRef = collection(db, "users");
-      const qUsers = query(usersRef, where("nomina", "==", nominaNum));
-      const snapUsers = await getDocs(qUsers);
-
-      if (snapUsers.empty) {
-        notifyWarning("No encontrado", "No se encontró un usuario con esa nómina en el sistema.");
-        setProcesandoAtencionRapida(false);
-        return;
-      }
-
-      const usuario = snapUsers.docs[0].data();
-      const docId = snapUsers.docs[0].id;
-
-      // Crear nueva orden médica para atención rápida
-      const nuevaOrden = {
-        idPaciente: usuario.uid || usuario.id,
-        docIdPaciente: docId,
-        nominaPaciente: nominaStr,
-        nominaPacienteNum: nominaNum,
-        nombrePaciente: usuario.displayName || usuario.nombre || "Usuario",
-        areaPaciente: usuario.area || "",
-        fechaApertura: new Date().toISOString(),
-        estado: "Pendiente",
-        tipoSangre: usuario.tipoSangre || "",
-        peso: usuario.peso || "",
-        estatura: usuario.estatura || "",
-        alergias: usuario.alergias || "",
-        enfermedadesCrónicas: usuario.enfermedadesCrónicas || "",
-        telefonoEmergencia: usuario.telefonoEmergencia || "",
-        revisiones: [],
-        esAtencionRapida: true
-      };
-
-      const docRef = await addDoc(collection(db, "ordenes_medicas"), nuevaOrden);
-
-      // Cargar la orden recién creada
-      cargarPacienteDesdeTabla({ id: docRef.id, ...nuevaOrden });
       setMostrarModalAtencionRapida(false);
       setNominaAtencionRapida("");
-      cargarOrdenes();
-      notifySuccess("Orden creada", "Nueva orden médica para atención rápida creada exitosamente.");
+      await cargarOrdenes();
+      notifySuccess("Orden creada", result?.created ? "Nueva orden médica para atención rápida creada exitosamente." : "Se cargó la orden médica activa del paciente.");
 
     } catch (error) {
       console.error("Error al solicitar atención rápida:", error);
@@ -250,27 +186,8 @@ export default function DetalleOrdenMedica() {
     setOrdenCargada(null);
 
     try {
-      const ordenesRef = collection(db, "ordenes_medicas");
-      const estadosActivos = ["Pendiente", "En Tratamiento"];
-      const consultas = [
-        query(ordenesRef, where("nominaPaciente", "==", termino), where("estado", "in", estadosActivos)),
-        query(ordenesRef, where("nominaPaciente", "==", Number(termino)), where("estado", "in", estadosActivos)),
-        query(ordenesRef, where("nominaPAciente", "==", termino), where("estado", "in", estadosActivos)),
-        query(ordenesRef, where("nominaPAciente", "==", Number(termino)), where("estado", "in", estadosActivos))
-      ].filter(Boolean);
-
-      const snapshots = await Promise.all(consultas.map(getDocs));
-      const resultados = new Map();
-
-      snapshots.forEach((snapshot) => {
-        snapshot.docs.forEach((docSnap) => {
-          if (!resultados.has(docSnap.id)) {
-            resultados.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
-          }
-        });
-      });
-
-      const ordenEncontrada = resultados.values().next().value || null;
+      const resultados = await buscarOrdenesActivasPorPaciente(termino);
+      const ordenEncontrada = resultados[0] || null;
 
       if (ordenEncontrada) {
         cargarPacienteDesdeTabla(ordenEncontrada);
@@ -306,97 +223,19 @@ export default function DetalleOrdenMedica() {
         return;
       }
 
-      const nuevaRevision = {
-        fechaRevision: new Date().toISOString(),
-        comentarios: comentarios,
-        medicamentos: medicamentos || "Sin medicamentos recetados",
-        firmaBiometrica: true,
-        tipo: esAltaMedica ? "Alta" : "Revisión Rutina"
-      };
-
-      const ordenRef = doc(db, "ordenes_medicas", ordenCargada.id);
-
-      await updateDoc(ordenRef, {
-        revisiones: arrayUnion(nuevaRevision),
-        estado: esAltaMedica ? "Cerrada" : "En Tratamiento",
+      await guardarRevisionOrdenMedica({
+        ordenId: ordenCargada.id,
+        esAltaMedica,
+        comentarios,
+        medicamentos,
         tipoSangre,
         peso,
         estatura,
         alergias,
         enfermedadesCrónicas,
         telefonoEmergencia,
-        ...(esAltaMedica && { fechaCierre: new Date().toISOString() })
+        ordenCargada,
       });
-
-      const docIdUsuario = ordenCargada.docIdPaciente || ordenCargada.idPaciente;
-      if (docIdUsuario) {
-        try {
-          const usuarioRef = doc(db, "users", docIdUsuario);
-          await updateDoc(usuarioRef, {
-            tipoSangre,
-            peso,
-            estatura,
-            alergias,
-            enfermedadesCrónicas,
-            telefonoEmergencia
-          });
-        } catch (error) {
-          console.error("Error al actualizar datos del usuario:", error);
-        }
-      }
-
-      if (ordenCargada?.idPaciente) {
-        try {
-          await addDoc(collection(db, "notificaciones"), {
-            IdUsuario: ordenCargada.idPaciente,
-            Titulo: esAltaMedica ? "¡Alta Médica Aprobada! 🩺" : "Actualización en tu Consulta",
-            Mensaje: esAltaMedica
-            ? "El médico ha concluido tu orden médica y te ha dado de alta."
-            : `Nuevo diagnóstico o receta agregada: "${comentarios.substring(0, 40)}..."`,
-            Destino: "expediente-clinico",
-            leida: false,
-            fechaCreacion: new Date().toISOString(),
-            tipo: "medico"
-          });
-        } catch(notifError){
-          console.error("Error al enviar notificaciones push", notifError);
-        }
-      }
-
-      try {
-        const adminRoles = ["admin_area", "admin_medico", "admin_sistemas", "admin_sist"];
-        let adminsQuery = query(collection(db, "users"), where("rol", "in", adminRoles));
-
-        if (esAltaMedica && ordenCargada?.areaPaciente) {
-          adminsQuery = query(
-            collection(db, "users"),
-            where("rol", "in", adminRoles),
-            where("area", "==", ordenCargada.areaPaciente)
-          );
-        }
-
-        const usersSnapshot = await getDocs(adminsQuery);
-        const adminsANotificar = usersSnapshot.docs.map(doc => ({ uid: doc.data().uid, ...doc.data() }));
-
-        for (const admin of adminsANotificar) {
-          if (admin.uid) {
-            await addDoc(collection(db, "notificaciones"), {
-              IdUsuario: admin.uid,
-              Titulo: esAltaMedica ? "Paciente Dado de Alta" : "Orden Médica Actualizada",
-              Mensaje: esAltaMedica
-                ? `Paciente ${ordenCargada.nombrePaciente} ha sido dado de alta en el área ${ordenCargada.areaPaciente}.`
-                : `Se ha actualizado la orden médica del paciente ${ordenCargada.nombrePaciente}.`,
-              Destino: esAltaMedica ? "personal" : "detalle-orden-medico",
-              leida: false,
-              fechaCreacion: new Date().toISOString(),
-              tipo: "medico",
-              orderId: ordenCargada.id
-            });
-          }
-        }
-      } catch(error){
-        console.error("Error al enviar notificaciones a admins", error);
-      }
 
       notifySuccess(
         esAltaMedica ? "Paciente dado de alta" : "Revisión guardada",

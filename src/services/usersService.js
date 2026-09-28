@@ -100,7 +100,7 @@ export const getUsers = async ({ source = "cache", forceRefresh = false, areaAdm
     const cached = readCacheItem(cacheKey);
     if (cached) return cached;
   }
-  const users = (await getUsersFunction({ areaAdmin })).data || [];
+  const users = (await getUsersFunction({ areaAdmin, rol: "operador" })).data || [];
   writeCacheItem(cacheKey, users);
   return users;
 };
@@ -110,7 +110,7 @@ export const getUsersPage = async ({ cursor = null, pageSize = 30, areaAdmin = g
   const cached = readCachedData(cacheKey, USERS_PAGE_CACHE_TTL_MS);
   if (cached) return cached;
 
-  const result = await getUsersPageFunction({ cursor, pageSize, areaAdmin });
+  const result = await getUsersPageFunction({ cursor, pageSize, areaAdmin, rol: "operador" });
   const page = result.data || { users: [], hasMore: false, nextCursor: null };
   writeCachedData(cacheKey, page, USERS_PAGE_CACHE_TTL_MS);
   return page;
@@ -126,7 +126,7 @@ export const searchUsers = async (search, areaAdmin = getCurrentAdminArea()) => 
   const cached = readCachedData(cacheKey, USERS_SEARCH_CACHE_TTL_MS);
   if (cached) return cached;
 
-  const result = await searchUsersFunction({ search, areaAdmin });
+  const result = await searchUsersFunction({ search, areaAdmin, rol: "operador" });
   const data = result.data || { users: [], hasMore: false, nextCursor: null };
   writeCachedData(cacheKey, data, USERS_SEARCH_CACHE_TTL_MS);
   return data;

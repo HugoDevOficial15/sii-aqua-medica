@@ -5,8 +5,8 @@ export default function OperatorSurveyResult({ result, onBack, onRetry }) {
     result?.tieneRespuestasAbiertas ||
     result?.estadoActual === "pendiente_validacion",
   );
-  const approved = !pendingReview && result?.calificacion >= MIN_APROBATORIO;
-  const intentosUsados = result?.intentos || 0;
+  const approved = !pendingReview && Number(result?.calificacion ?? 0) >= MIN_APROBATORIO;
+  const intentosUsados = Math.max(0, Number(result?.intentos ?? 0));
   const reintentosRestantes = Math.max(0, MAX_SURVEY_ATTEMPTS - intentosUsados);
 
   return (
@@ -17,48 +17,53 @@ export default function OperatorSurveyResult({ result, onBack, onRetry }) {
         </div>
 
         <span className="op-result-label">
-          {pendingReview ? "Se enviaron las respuestas" : "Encuesta completada"}
+          {pendingReview ? "Se enviaron las respuestas" : approved ? "Encuesta aprobada" : "Encuesta completada"}
         </span>
 
         {pendingReview ? (
           <>
-            <h2 className="op-result-pending">PENDIENTE DE CALIFICACIÓN</h2>
-
+            <h2 className="op-result-pending">RESPUESTAS ENVIADAS</h2>
             <p>
-              Las respuestas con preguntas abiertas quedaron en revisión. No se
-              enviarán como aprobadas ni reprobadas hasta que el administrador
-              califique la respuesta abierta.
+              Sus respuestas se enviaron a calificar. Cuando el administrador termine
+              la revisión, podrá ver el resultado final en la encuesta.
+            </p>
+          </>
+        ) : approved ? (
+          <>
+            <h2 className="op-result-approved">¡FELICITACIONES!</h2>
+            <p>
+              Tu calificación fue <strong>{Number(result?.calificacion ?? 0)} / 100</strong>.
+            </p>
+            <p>
+              <strong>Último puntaje:</strong> {Number(result?.calificacion ?? 0)}/100
+            </p>
+            <p>
+              <strong>Intentos:</strong> {intentosUsados}/{MAX_SURVEY_ATTEMPTS}
             </p>
           </>
         ) : (
           <>
-            <h2
-              className={approved ? "op-result-approved" : "op-result-failed"}
-            >
-              {approved ? "APROBADA" : "REPROBADA"}
-            </h2>
-
+            <h2 className="op-result-failed">REPROBADA</h2>
             <p>
-              {result?.correctas} respuestas correctas de {result?.total}
+              Tu calificación fue <strong>{Number(result?.calificacion ?? 0)} / 100</strong>.
+            </p>
+            <p>
+              <strong>Último puntaje:</strong> {Number(result?.calificacion ?? 0)}/100
+            </p>
+            <p>
+              <strong>Intentos:</strong> {intentosUsados}/{MAX_SURVEY_ATTEMPTS}
             </p>
 
-            {!approved && (
-              <div className="op-result-attempts">
-                <p>
-                  <strong>Intentos utilizados:</strong> {intentosUsados} de {MAX_SURVEY_ATTEMPTS}
-                </p>
-                {reintentosRestantes > 0 && (
-                  <p style={{ color: "#f59e0b" }}>
-                    📌 Te quedan <strong>{reintentosRestantes}</strong> intento{reintentosRestantes !== 1 ? "s" : ""} más
-                  </p>
-                )}
-              </div>
+            {reintentosRestantes > 0 && (
+              <p style={{ color: "#f59e0b" }}>
+                Inténtalo de nuevo. Te quedan <strong>{reintentosRestantes}</strong> intento{reintentosRestantes !== 1 ? "s" : ""}.
+              </p>
             )}
           </>
         )}
 
         <div className="op-result-actions">
-          {!approved && result?.puedeReintentar && (
+          {!pendingReview && !approved && result?.puedeReintentar && (
             <button
               className="op-result-btn op-result-retry"
               onClick={onRetry}
@@ -67,7 +72,7 @@ export default function OperatorSurveyResult({ result, onBack, onRetry }) {
             </button>
           )}
 
-          {!approved && !result?.puedeReintentar && (
+          {!pendingReview && !approved && !result?.puedeReintentar && (
             <button
               className="op-result-btn"
               disabled
@@ -78,7 +83,7 @@ export default function OperatorSurveyResult({ result, onBack, onRetry }) {
           )}
 
           <button className="op-result-btn" onClick={onBack}>
-            Volver a Encuestas
+            {pendingReview ? "Volver a Encuestas" : "Regresar a Encuestas"}
           </button>
         </div>
       </div>

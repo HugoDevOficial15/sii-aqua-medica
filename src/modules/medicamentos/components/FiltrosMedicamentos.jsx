@@ -130,7 +130,7 @@ export const FiltrosMedicamentos = ({
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 0px 20px var(--operator-danger);
+                box-shadow: 0 0px 5px var(--operator-danger);
             }
 
             .btn-exportarPDF:hover {

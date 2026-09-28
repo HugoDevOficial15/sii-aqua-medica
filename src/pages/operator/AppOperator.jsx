@@ -77,6 +77,7 @@ export default function AppOperator() {
     const [selectedSurvey, setSelectedSurvey] = useState(null);
     const [selectedTraining, setSelectedTraining] = useState(null);
     const [surveyResult, setSurveyResult] = useState(null);
+    const [trainingResult, setTrainingResult] = useState(null);
     const [selectedNews, setSelectedNews] = useState(null);
     // Creamos un estado para guardar el número de notificaciones nuevas
     const [notificacionesCount, setNotificacionesCount] = useState(0);
@@ -195,6 +196,37 @@ export default function AppOperator() {
                         onBack={() => setScreen("training")}
                         onNavigate={setScreen}
                         onFinished={refetchTrainings}
+                        onTrainingResult={setTrainingResult}
+                    />
+                );
+            case "training-result":
+                return (
+                    <OperatorSurveyResult
+                        result={trainingResult}
+                        onBack={() => setScreen("training")}
+                        onRetry={() => {
+                            const latestIntentos = Number(
+                                trainingResult?.intentos ??
+                                selectedTraining?.miRespuesta?.intentos ??
+                                selectedTraining?.intentos ??
+                                0
+                            );
+
+                            setSelectedTraining(prev => ({
+                                ...(prev || selectedTraining || {}),
+                                intentos: latestIntentos,
+                                estadoActual: "reprobada",
+                                miRespuesta: {
+                                    ...(prev?.miRespuesta || selectedTraining?.miRespuesta || {}),
+                                    intentos: latestIntentos,
+                                    estadoActual: "reprobada",
+                                    calificacion: Number(trainingResult?.calificacion ?? prev?.miRespuesta?.calificacion ?? selectedTraining?.miRespuesta?.calificacion ?? 0),
+                                    puntuacionObtenida: Number(trainingResult?.calificacion ?? prev?.miRespuesta?.puntuacionObtenida ?? selectedTraining?.miRespuesta?.puntuacionObtenida ?? 0),
+                                }
+                            }));
+
+                            setScreen("training-detail");
+                        }}
                     />
                 );
             case "certificates":

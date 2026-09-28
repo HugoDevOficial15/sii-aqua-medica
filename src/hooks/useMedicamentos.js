@@ -5,7 +5,8 @@ import {
     getMedicamentos,
     createMedicamento,
     updateMedicamento,
-    toggleMedicamento
+    toggleMedicamento,
+    deleteMedicamento
 } from '../services/medicamentosService'
 import { getSemaforo } from '../utils/getSemaforo'
 
@@ -84,6 +85,7 @@ export const useMedicamentos = () => {
         createMedicamento,
         updateMedicamento,
         toggleMedicamento,
+        deleteMedicamento,
 
         filtroSemaforo,
         setFiltroSemaforo,

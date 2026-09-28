@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import Loader from "../../../components/Loader";
 import { notifySuccess, notifyError, notifyWarning } from "../../../utils/notify";
+import Swal from "sweetalert2"; 
 
 import { crearAgenda } from "../../../services/agendaMedicaService";
 import { generarSlots } from "../../../services/generarSlotsMedicos";
@@ -193,24 +194,35 @@ export default function AgendaMedicaModal({ onClose, onSuccess }) {
         }
 
         try {
-            setLoading(true);
 
+            Swal.fire({
+                title: "Creando agenda",
+                text: "Creando la agenda y generando citas...",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
             const agendaId = await crearAgenda(form);
 
             void generarSlots({
                 ...form,
-                id: agendaId
+                id: agendaId,
+                agendaId: agendaId,
             }).catch((error) => {
+                Swal.close();
                 console.error("Error generando citas de la agenda:", error);
                 notifyError("Agenda creada", "La agenda se guardó, pero no se pudieron generar todas las citas.");
             });
-
+            Swal.close();
             notifySuccess("Agenda creada", "La agenda se guardó. Las citas se están generando.");
 
             onSuccess();
             onClose();
 
         } catch (error) {
+            Swal.close();
             notifyError("Error al crear agenda");
         } finally {
             setLoading(false);

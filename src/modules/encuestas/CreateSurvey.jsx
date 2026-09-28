@@ -17,7 +17,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { surveySchema } from "../../schemas/surveySchema";
 import { sanitizeText, sanitizeTextTrim } from "../../utils/sanitize";
-
+import Swal from "sweetalert2";
 export default function CreateSurvey() {
 
 
@@ -33,13 +33,12 @@ export default function CreateSurvey() {
     const today = new Date().toISOString().split("T")[0];
 
     const showLoadingSwal = async (title, text = "Por favor espera...") => {
-        const Swal = (await import("sweetalert2")).default;
+
         Swal.fire({
             title,
             text,
             allowOutsideClick: false,
             allowEscapeKey: false,
-            zIndex: 2147483647,
             didOpen: () => Swal.showLoading(),
         });
 

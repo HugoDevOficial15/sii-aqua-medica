@@ -81,10 +81,16 @@ function OperatorSurveyDetailContent({
     const question = tienePreguntas ? preguntas[currentQuestion] : null;
     const isAnswered = question ? answers[question.id] !== undefined && answers[question.id] !== "" : false;
 
+    const normalizeAttemptCount = (value) => {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return 0;
+        return Math.min(Math.max(Math.trunc(parsed), 0), MAX_SURVEY_ATTEMPTS);
+    };
+
     const getIntentosPrevios = async () => {
         if (!survey?.id || !user?.uid) return 0;
         const result = await getSurveyAttempts(survey.id, user.uid);
-        return Number(result?.attempts || 0);
+        return normalizeAttemptCount(result?.attempts ?? 0);
     };
 
     const storageTimerKey = `survey_timer_${survey.id}_${user?.uid}`;
@@ -271,7 +277,7 @@ function OperatorSurveyDetailContent({
             const intentosPrevios = await getIntentosPrevios();
             const intentosActuales = result.tieneRespuestasAbiertas
                 ? intentosPrevios
-                : intentosPrevios + 1;
+                : Math.min(intentosPrevios + 1, MAX_SURVEY_ATTEMPTS);
             const puedeReintentar = !result.tieneRespuestasAbiertas && intentosActuales < MAX_SURVEY_ATTEMPTS;
 
             let nuevoEstado = "";
@@ -340,12 +346,23 @@ function OperatorSurveyDetailContent({
             localStorage.removeItem(storageTimerKey);
             localStorage.removeItem(storageAnswersKey);
 
+            const surveyResult = {
+                calificacion: result.calificacion,
+                correctas: result.correctas,
+                total: preguntas.length,
+                tieneRespuestasAbiertas: result.tieneRespuestasAbiertas,
+                intentos: intentosActuales,
+                puedeReintentar,
+                estadoActual: nuevoEstado,
+                aprobado: !result.tieneRespuestasAbiertas && result.calificacion >= MIN_APROBATORIO,
+            };
+
+            if (onSurveyResult) onSurveyResult(surveyResult);
+
             // Refresca la lista de encuestas desde Firebase para sincronizar el nuevo estado
             if (onFinished) onFinished();
 
-            // Vuelve a la lista de encuestas (como hace OperatorTraining)
-            // Las tarjetas mostrarán el nuevo estado y opción de reintentar si aplica
-            onNavigate("surveys");
+            onNavigate("survey-result");
         } catch (error) {
             console.error("Error al finalizar la encuesta:", error);
             setSaving(false);

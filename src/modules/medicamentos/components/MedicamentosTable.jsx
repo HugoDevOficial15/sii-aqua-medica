@@ -3,7 +3,46 @@ import { useState, useEffect } from "react";
 import { FaEdit, FaTrash, FaEllipsisV } from "react-icons/fa";
 import { SemaforoBadge } from "./SemaforoBadge";
 
-export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
+const parseFechaCaducidad = (value) => {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value?.toDate === "function") {
+    const fecha = value.toDate();
+    return Number.isNaN(fecha.getTime()) ? null : fecha;
+  }
+
+  if (typeof value === "string") {
+    const texto = value.trim();
+    if (!texto) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+      const [year, month, day] = texto.split("-").map(Number);
+      const fecha = new Date(year, month - 1, day);
+      return Number.isNaN(fecha.getTime()) ? null : fecha;
+    }
+
+    const fecha = new Date(texto);
+    return Number.isNaN(fecha.getTime()) ? null : fecha;
+  }
+
+  if (typeof value === "number") {
+    const fecha = new Date(value);
+    return Number.isNaN(fecha.getTime()) ? null : fecha;
+  }
+
+  if (value && typeof value === "object" && typeof value._seconds === "number") {
+    const fecha = new Date(value._seconds * 1000 + (value._nanoseconds ?? 0) / 1_000_000);
+    return Number.isNaN(fecha.getTime()) ? null : fecha;
+  }
+
+  return null;
+};
+
+export const MedicamentosTable = ({ data, onEdit, onToggle, onDelete }) => {
   //Cerrar el menu de acciones al hacer clic fuera de él
 
   const [openActionsId, setOpenActionsId] = useState(null);
@@ -45,9 +84,7 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
 
           <tbody>
             {medicamentosOrdenados.map((item) => {
-              // 🔥 NORMALIZACIÓN DE FECHA (CORRECTO)
-              const fecha =
-                item.fechaCaducidad?.toDate?.() || item.fechaCaducidad;
+              const fecha = parseFechaCaducidad(item.fechaCaducidad);
 
               return (
                 <tr
@@ -70,9 +107,14 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
                   </td>
                   <td>{item.lote}</td>
 
-                  {/* ✅ FECHA CORRECTA */}
                   <td>
-                    {fecha ? new Date(fecha).toLocaleDateString() : "Sin fecha"}
+                    {fecha
+                      ? fecha.toLocaleDateString("es-MX", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })
+                      : "Sin fecha"}
                   </td>
 
                   <td>{item.ubicacion}</td>
@@ -108,8 +150,9 @@ export const MedicamentosTable = ({ data, onEdit, onToggle }) => {
                           </button>
 
                           <button
+                            type="button"
                             className="medicamento-action-menu-item-eliminar"
-                            onClick={() => onToggle(item)}
+                            onClick={() => onDelete?.(item)}
                           >
                             <FaTrash /> Eliminar
                           </button>

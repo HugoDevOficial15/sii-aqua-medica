@@ -16,9 +16,6 @@ export const SemaforoBadge = ({ semaforo }) => {
                 {semaforo.label}
             </span>
 
-            <small className="text-muted">
-                {semaforo.dias} días
-            </small>
         </div>
     )
 }

@@ -16,7 +16,8 @@ function OperatorTrainingDetailContent({
     training,
     onBack,
     onNavigate,
-    onFinished
+    onFinished,
+    onTrainingResult
 }) {
     const { user } = useAuth();
     const [trainingLoaded, setTrainingLoaded] = useState(false);
@@ -190,10 +191,23 @@ function OperatorTrainingDetailContent({
 
     const isAnswered = question && answers[question.id] !== undefined && answers[question.id] !== "";
 
+    const normalizeAttemptCount = (value) => {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) return 0;
+        return Math.min(Math.max(Math.trunc(parsed), 0), MAX_SURVEY_ATTEMPTS);
+    };
+
     const getIntentosPrevios = () => {
         if (!training?.id || !user?.uid) return 0;
-        const intentos = Number(training.intentos || training.miRespuesta?.intentos || 0);
-        return Number.isFinite(intentos) ? intentos : 0;
+
+        const source = training.miRespuesta || training;
+        const intentosBase = Number(source?.intentos ?? training?.intentos ?? 0);
+        const intentosReprobado = Number(training?.miRespuesta?.intentos ?? training?.intentos ?? 0);
+        const intentosMostrados = training?.estadoActual === "reprobada"
+            ? Math.max(intentosBase, intentosReprobado)
+            : Math.max(intentosBase, intentosReprobado);
+
+        return normalizeAttemptCount(intentosMostrados);
     };
 
     const handleFinishTraining = async () => {
@@ -210,7 +224,7 @@ function OperatorTrainingDetailContent({
             const intentosPrevios = getIntentosPrevios();
             const intentosActuales = result.tieneRespuestasAbiertas
                 ? intentosPrevios
-                : intentosPrevios + 1;
+                : Math.min(intentosPrevios + 1, MAX_SURVEY_ATTEMPTS);
 
             let nuevoEstado = "";
             if (result.tieneRespuestasAbiertas) nuevoEstado = "pendiente_validacion";
@@ -258,10 +272,22 @@ function OperatorTrainingDetailContent({
             localStorage.removeItem(timerKey);
             localStorage.removeItem(answersKey);
 
+            const trainingResult = {
+                calificacion: result.calificacion,
+                correctas: result.correctas,
+                total: preguntas.length,
+                tieneRespuestasAbiertas: result.tieneRespuestasAbiertas,
+                intentos: intentosActuales,
+                puedeReintentar: !result.tieneRespuestasAbiertas && intentosActuales < MAX_SURVEY_ATTEMPTS,
+                estadoActual: nuevoEstado,
+                aprobado: !result.tieneRespuestasAbiertas && result.calificacion >= MIN_APROBATORIO,
+            };
+
+            if (onTrainingResult) onTrainingResult(trainingResult);
             if (onFinished) onFinished();
 
             if (onNavigate) {
-                onNavigate("training");
+                onNavigate("training-result");
             } else {
                 onBack();
             }

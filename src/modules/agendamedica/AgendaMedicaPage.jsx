@@ -1,15 +1,20 @@
 import { useState, useEffect } from "react";
-import { db } from "../../config/firebase";
 import {FaEllipsisV} from "react-icons/fa";
 import { FiEye, FiEdit, FiTrash2, FiArrowLeft, FiSave, FiPlus } from "react-icons/fi";
-import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
 import Loader from "../../components/Loader";
 
 import { useAuth } from "../../hooks/useAuth";
 import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
-import { updateAgendaWithBatch } from "../../services/agendaMedicaService";
+import {
+    getAgendasMedicas,
+    updateAgenda,
+    deleteAgenda,
+    toggleAgendaEstado,
+    updateAgendaWithBatch
+} from "../../services/agendaMedicaService";
 import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
 import { dismissNotification } from "../../utils/notificationPersistence";
+import Swal from "sweetalert2";
 
 import AgendaDetalle from "./AgendaDetalle";
 import AgendaForm from "./AgendaForm";
@@ -66,6 +71,24 @@ export default function AgendaMedicaPage() {
 
     const today = getTodayLocal();
 
+    const getAgendaId = (agenda) => {
+        const rawId = agenda?.id ?? agenda?.agendaId ?? agenda?.docId ?? agenda?._id ?? agenda?.uid ?? null;
+        if (rawId === null || rawId === undefined || rawId === "" || rawId === "null" || rawId === "undefined") {
+            return null;
+        }
+        return String(rawId);
+    };
+
+    const getAgendaKey = (agenda, index) => {
+        const agendaId = getAgendaId(agenda);
+        return agendaId ?? `agenda-${agenda?.nombre ?? "sin-nombre"}-${agenda?.fechaInicio ?? "sin-fecha-inicio"}-${agenda?.fechaFin ?? "sin-fecha-fin"}-${index}`;
+    };
+
+    const getAgendaMenuId = (agenda, index) => {
+        const agendaId = getAgendaId(agenda);
+        return agendaId ?? `menu-${agenda?.nombre ?? "sin-nombre"}-${agenda?.fechaInicio ?? "sin-fecha-inicio"}-${agenda?.fechaFin ?? "sin-fecha-fin"}-${index}`;
+    };
+
     // 🚫 Función para validar si una fecha es fin de semana (Sábado = 6, Domingo = 0)
     const esFinDeSemana = (fechaStr) => {
         if (!fechaStr) return false;
@@ -78,11 +101,7 @@ export default function AgendaMedicaPage() {
     const cargarAgendas = async () => {
         setLoading(true);
         try {
-            const querySnapshot = await getDocs(collection(db, "agendas_medicas"));
-            const lista = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const lista = await getAgendasMedicas();
             setAgendas(lista);
         } catch (error) {
             console.error("Error al cargar agendas:", error);
@@ -96,41 +115,41 @@ export default function AgendaMedicaPage() {
     }, []);
 
     // 🗑️ ELIMINAR AGENDA Y SUS CITAS + NOTIFICACIONES EN CASCADA
-    const handleEliminar = async (id, nombre) => {
+    const handleEliminar = async (agenda) => {
+        const id = getAgendaId(agenda);
+        const nombre = agenda?.nombre || "esta agenda";
+
+        if (!id) {
+            notifyError("Error", "No se puede eliminar esta agenda porque no tiene un identificador válido.");
+            return;
+        }
+
         const result = await confirmDelete("¿Eliminar campaña?", `La campaña "${nombre}" y TODAS sus citas se eliminarán permanentemente.`);
         if (!result.isConfirmed) return;
 
         try {
-            // 1️⃣ ELIMINAR TODAS LAS CITAS DE ESTA AGENDA
-            const qCitas = query(collection(db, "citas_medicas"), where("agendaId", "==", id));
-            const snapshotCitas = await getDocs(qCitas);
-            console.log(`🗑️ Eliminando ${snapshotCitas.docs.length} citas de la agenda "${nombre}"`);
-
-            const { writeBatch: batchImport } = await import("firebase/firestore");
-            const batch = batchImport(db);
-
-            snapshotCitas.docs.forEach(docCita => {
-                batch.delete(docCita.ref);
+            Swal.fire({
+                title: "Eliminando agenda",
+                text: `Eliminando la agenda "${nombre}" y todas sus citas...`,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                Swal.showLoading();
+                },
             });
+            const result = await deleteAgenda(id, nombre);
 
-            // 2️⃣ ELIMINAR LA AGENDA
-            batch.delete(doc(db, "agendas_medicas", id));
+            if (result?.citasEliminadas !== undefined) {
+                Swal.close();
+                notifySuccess("Eliminado", `Agenda, ${result.citasEliminadas} citas y notificaciones eliminadas.`);
+            } else {
+                Swal.close();
+                notifySuccess("Eliminado", "Agenda eliminada correctamente.");
+            }
 
-            // 3️⃣ ELIMINAR NOTIFICACIONES
-            const qNotif = query(collection(db, "notificaciones"), where("NomAgenda", "==", nombre));
-            const snapshotNotif = await getDocs(qNotif);
-
-            snapshotNotif.docs.forEach(docNotif => {
-                dismissNotification(docNotif.id);
-                batch.delete(docNotif.ref);
-            });
-
-            // Ejecutar batch
-            await batch.commit();
-
-            notifySuccess("Eliminado", `Agenda, ${snapshotCitas.docs.length} citas y notificaciones eliminadas.`);
             cargarAgendas();
         } catch (error) {
+            Swal.close();
             console.error("Error al eliminar:", error);
             notifyError("Error", "Hubo un error al eliminar.");
         }
@@ -140,7 +159,14 @@ export default function AgendaMedicaPage() {
     // Desactivar (activa -> inactiva) impacta las citas de la agenda, así
     // que requiere confirmación con motivo. Reactivar (inactiva -> activa)
     // no cancela nada, así que se mantiene instantáneo como antes.
-    const handleCambiarEstatus = async (id, estatusActual) => {
+    const handleCambiarEstatus = async (agenda) => {
+        const id = getAgendaId(agenda);
+        const estatusActual = agenda?.estado;
+
+        if (!id) {
+            notifyError("Error", "No se puede cambiar el estado porque esta agenda no tiene un identificador válido.");
+            return;
+        }
 
         if (estatusActual === "activa") {
             setConfirmAction({ type: "estado", id, nuevoEstado: "inactiva" });
@@ -148,12 +174,25 @@ export default function AgendaMedicaPage() {
         }
 
         try {
-            await updateDoc(doc(db, "agendas_medicas", id), {
-                estado: "activa"
+
+            Swal.fire({
+                title: "Cambiando estado",
+                text: `Cambiando el estado de la agenda "${agenda.nombre}"...`,
+                icon: "info",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
             });
+            await toggleAgendaEstado(id, estatusActual);
+            Swal.close();
             cargarAgendas();
         } catch (error) {
+            Swal.close();
             console.error("Error al cambiar estatus:", error);
+            notifyError("Error", "No se pudo cambiar el estado de la agenda.");
         }
     };
 
@@ -198,13 +237,24 @@ export default function AgendaMedicaPage() {
         }
 
         try {
-            await updateDoc(doc(db, "agendas_medicas", agendaSeleccionada.id), updates);
-            alert("¡Agenda actualizada con éxito!");
+            Swal.fire({
+                title: "Actualizando agenda",
+                text: "Actualizando la agenda...",
+                icon: "info",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
+            await updateAgenda(agendaSeleccionada.id, updates);
+            Swal.close();
             setVista("lista");
             cargarAgendas();
         } catch (error) {
+            Swal.close();
             console.error("Error al actualizar:", error);
-            alert("Hubo un error al guardar los cambios.");
         }
     };
 
@@ -422,10 +472,12 @@ export default function AgendaMedicaPage() {
 
 
 
-                                    agendas.map((agenda) => (
+                                    agendas.map((agenda, index) => {
+                                        const agendaMenuId = getAgendaMenuId(agenda, index);
 
-                                        <tr key={agenda.id}
-                                            className={openActivationId === agenda.id ? "agenda-activation-menu" : ""}
+                                        return (
+                                        <tr key={getAgendaKey(agenda, index)}
+                                            className={openActivationId === agendaMenuId ? "agenda-activation-menu" : ""}
                                         
                                         >
                                             <td >{agenda.nombre || "Sin nombre"}</td>
@@ -439,7 +491,7 @@ export default function AgendaMedicaPage() {
                                             <td>
                                                 <button 
                                                     className="btn btn-outline-secondary "
-                                                    onClick={() => handleCambiarEstatus(agenda.id, agenda.estado)}
+                                                    onClick={() => handleCambiarEstatus(agenda)}
                                                 >
                                                     {agenda.estado === 'activa' ? 'Desactivar' : 'Activar'}
                                                 </button>
@@ -454,12 +506,12 @@ export default function AgendaMedicaPage() {
                                                         className="agenda-action-btn"
                                                         onClick={(event) => {
                                                             event.stopPropagation();
-                                                            setOpenActivationId(openActivationId === agenda.id ? null : agenda.id);
+                                                            setOpenActivationId(openActivationId === agendaMenuId ? null : agendaMenuId);
                                                         }}>
                                                         <FaEllipsisV />
                                                     </button>
 
-                                                    {openActivationId === agenda.id && (
+                                                    {openActivationId === agendaMenuId && (
                                                         <div className="agenda-action-menu">
 
                                                             <button
@@ -497,7 +549,7 @@ export default function AgendaMedicaPage() {
                                                             className="agenda-action-menu-item-borrar"
                                                             onClick={() => { 
                                                                 setOpenActivationId(null);
-                                                                handleEliminar(agenda.id, agenda.nombre); }}
+                                                                handleEliminar(agenda); }}
                                                             >
                                                             <FiTrash2 /> Borrar
                                                             </button>
@@ -512,7 +564,8 @@ export default function AgendaMedicaPage() {
 
 
                                         </tr>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
