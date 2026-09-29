@@ -138,8 +138,16 @@ ReFactorizadas:
 * getPersonalHistorialesMedicos
 * getPersonalCapacitaciones
 * getPersonalPdfReportData
-* Se crearon funciones de notas y notificaciones 
 
+
+* saveNotification
+* createNotification
+* getAdminsByRoles
+* sendAdminNotificationToRoles
+* createNota
+* obtenerNotasPorUsuario
+* updateNota
+* deleteNota
 
 Nuevas (Practicantes):
 
