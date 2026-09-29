@@ -16,6 +16,9 @@ const aniversarios = require("./features/aniversarios");
 const ideas = require("./features/ideas");
 const soporte = require("./features/soporte");
 const compConductual = require("./features/CompConductual");
+const corregirEmailsAquaMedica = require("./features/usuarios/updateUserFieldsService");
+
+
 
 const initPushNotifications = async () => {
   console.log("✓ Servicio local de push desactivado. Cloud Functions al mando.");
@@ -25,6 +28,8 @@ const stopPushNotifications = () => {
   console.log("✓ No hay listeners locales que detener.");
 };
 
+
+
 module.exports = {
   ...locks,
   ...surveys,
@@ -32,6 +37,7 @@ module.exports = {
   ...solicitudes,
   ...notificationTriggers,
   ...usuarios,
+  ...corregirEmailsAquaMedica,
   ...personal,
   ...puestos,
   ...inventarios,
