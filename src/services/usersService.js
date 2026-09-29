@@ -132,6 +132,31 @@ export const searchUsers = async (search, areaAdmin = getCurrentAdminArea()) => 
   return data;
 };
 
+// APARTADO DE ADMINISTRADORES
+
+export const isAdminRole = (rol = "") => {
+  const normalizedRole = String(rol ?? "").trim().toLowerCase();
+  return normalizedRole === "administrador" || normalizedRole === "admin" || normalizedRole.startsWith("admin");
+};
+
+export const getAdministradores = async ({ source = "cache", forceRefresh = false } = {}) => {
+  const cacheKey = "sii-aqua-administradores-cache";
+
+  if (!forceRefresh && source !== "server") {
+    const cached = readCacheItem(cacheKey);
+    if (cached) return cached;
+  }
+
+  const result = await getUsersFunction({ rol: "" });
+  const data = Array.isArray(result?.data) ? result.data : [];
+  const administradores = data.filter((user) => isAdminRole(user?.rol));
+
+  writeCacheItem(cacheKey, administradores);
+  return administradores;
+};
+
+
+
 export const migrateUserSearchFields = async () => {
   const result = await migrateUserSearchFieldsFunction();
   return result.data;

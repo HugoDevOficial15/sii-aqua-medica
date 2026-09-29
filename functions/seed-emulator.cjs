@@ -78,6 +78,22 @@ const accounts = [
     puesto: "Administrador",
   },
   {
+    nomina: process.env.EMULATOR_ADMIN_NOMINA || "999003",
+    password: process.env.EMULATOR_ADMIN_PASSWORD || "AQUAmedica999003",
+    nombre: "Administrador Emulator",
+    rol: "admin_sistemas",
+    area: "Sistemas",
+    puesto: "Administrador",
+  },
+  {
+    nomina: process.env.EMULATOR_ADMIN_NOMINA || "999004",
+    password: process.env.EMULATOR_ADMIN_PASSWORD || "AQUAmedica999004",
+    nombre: "Administrador Emulator",
+    rol: "admin_sistemas",
+    area: "Sistemas",
+    puesto: "Administrador",
+  },
+  {
     nomina: process.env.EMULATOR_OPERATOR_NOMINA || "999002",
     password: process.env.EMULATOR_OPERATOR_PASSWORD || "AQUAmedica999002",
     nombre: "Operador Emulator",

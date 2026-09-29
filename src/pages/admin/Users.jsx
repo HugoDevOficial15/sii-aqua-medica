@@ -1268,7 +1268,7 @@ export default function Users({ onClose }) {
           <span className="badge-title">AQUA Médica</span>
         </div>
       </div>
-
+      {/* FILTRO */}
       <div className="contenedor-header mb-4">
         <input
           type="text"
@@ -1290,31 +1290,6 @@ export default function Users({ onClose }) {
             }
           }}
         />
-          <div style={{ position: "relative", flex: 1 }}>
-            <input
-              type="text"
-              className="form-control-page"
-              placeholder="Nómina o nombre..."
-              value={search}
-              onChange={(e) => {
-                const nextValue = e.target.value;
-                setSearch(nextValue);
-
-                if (!sanitizeText(nextValue).trim()) {
-                  setSearchSuggestions([]);
-                  setIsSearching(false);
-                  restoreCachedUsers();
-                }
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  handleSearchSubmit();
-                }
-              }}
-            />
-
-          </div>
 
         {/* <button className="d-none" onClick={migrateNomina}>
                         Migrar Nóminas
@@ -1939,7 +1914,6 @@ export default function Users({ onClose }) {
                   <div className="col-md-6">
                     <label>Rol</label>
                     <select className="form-select" {...register("rol")}>
-                      <option value="admin">Administrador</option>
                       <option value="operador">Operador</option>
                     </select>
                   </div>

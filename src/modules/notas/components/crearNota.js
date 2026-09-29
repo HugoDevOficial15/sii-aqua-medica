@@ -4,21 +4,27 @@ import {
     deleteNota
 } from "../../../services/notasService";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
+import Swal from "sweetalert2";
 
 // CREAR
 export const crearNota = async ({ usuario, data }) => {
-    const tituloSanitizado = sanitizeTextTrim(data.titulo || "");
+    const tituloSanitizado = sanitizeText(data.titulo || "");
     const contenidoSanitizado = sanitizeText(data.contenido || "").trim();
-    const prioridadSanitizada = sanitizeTextTrim(data.prioridad || "media");
+    const prioridadSanitizada = sanitizeText(data.prioridad || "media");
 
     if (!tituloSanitizado) {
         throw new Error("El título es obligatorio");
     }
 
     const now = new Date();
+    const userId = usuario?.id ?? usuario?.uid ?? null;
+
+    if (!userId) {
+        throw new Error("No se pudo identificar al usuario propietario de la nota.");
+    }
 
     const nuevaNota = {
-        id: usuario.id, // 🔥 TU SISTEMA
+        userId,
         titulo: tituloSanitizado,
         contenido: contenidoSanitizado,
         prioridad: prioridadSanitizada || "media",
@@ -31,19 +37,47 @@ export const crearNota = async ({ usuario, data }) => {
         updatedAt: now
     };
 
-    return await createNota(nuevaNota);
+    try {
+        Swal.fire({
+            title: "Creando nota",
+            icon: "info",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        return await createNota(nuevaNota);
+    } finally {
+        Swal.close();
+    }
 };
 
 // COMPLETAR
 export const completarNota = async (nota) => {
+    const nuevoEstado = nota.estado === "completada" ? "activa" : "completada";
 
-    const nuevoEstado =
-        nota.estado === "completada" ? "activa" : "completada";
+    try {
+        Swal.fire({
+            title: "Actualizando estado de la nota",
+            icon: "info",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
-    return await updateNota(nota.docId, { // 🔥 FIX
-        estado: nuevoEstado
-    });
+        return await updateNota(nota.id, {
+            estado: nuevoEstado
+        });
+    } finally {
+        Swal.close();
+    }
 };
+
+// EDITAR
 export const editarNota = async ({ nota, data }) => {
     const tituloSanitizado = sanitizeTextTrim(data.titulo || "");
     const contenidoSanitizado = sanitizeText(data.contenido || "").trim();
@@ -53,19 +87,47 @@ export const editarNota = async ({ nota, data }) => {
         throw new Error("El título es obligatorio");
     }
 
-    return await updateNota(nota.docId, {
-        titulo: tituloSanitizado,
-        contenido: contenidoSanitizado,
-        prioridad: prioridadSanitizada || "media",
-        fechaLimite: sanitizeTextTrim(data.fechaLimite || nota.fechaLimite || "") || null,
-        checklist: nota.checklist ?? [],
-        estado: nota.estado ?? "activa",
-        anio: nota.anio,
-        mes: nota.mes
-    });
+    try {
+        Swal.fire({
+            title: "Guardando nota",
+            icon: "info",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        return await updateNota(nota.id, {
+            titulo: tituloSanitizado,
+            contenido: contenidoSanitizado,
+            prioridad: prioridadSanitizada || "media",
+            fechaLimite: sanitizeTextTrim(data.fechaLimite || nota.fechaLimite || "") || null,
+            checklist: nota.checklist ?? [],
+            estado: nota.estado ?? "activa",
+            anio: nota.anio,
+            mes: nota.mes
+        });
+    } finally {
+        Swal.close();
+    }
 };
 
 // ELIMINAR
 export const eliminarNota = async (nota) => {
-    return await deleteNota(nota.docId); // 🔥 FIX
+    try {
+        Swal.fire({
+            title: "Eliminando nota",
+            icon: "info",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        return await deleteNota(nota.id);
+    } finally {
+        Swal.close();
+    }
 };

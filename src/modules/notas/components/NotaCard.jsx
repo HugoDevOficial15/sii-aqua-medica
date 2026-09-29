@@ -18,27 +18,32 @@ export default function NotaCard({
 }) {
     const total = nota.checklist?.length || 0;
     const completados = nota.checklist?.filter(i => i.completado).length || 0;
+    const cardBorderClass = nota.estado === "completada" ? "border-completado" : getColor(nota.prioridad);
 
     return (
-        <div className={`card shadow-sm mb-3 ${getColor(nota.prioridad)} border-2`}>
+        <div className={`card shadow-sm mb-3 ${cardBorderClass} border-2`}>
             <div className="card-body">
 
-                <div className="d-flex justify-content-between">
+                <div className="d-flex justify-content-between align-items-start">
                     <h6 className={nota.estado === "completada"
-                        ? "text-decoration-line-through text-muted"
+                        ? "text-muted"
                         : ""}
                     >
                         {nota.titulo}
                     </h6>
 
-                    <span className={`badge bg-${nota.prioridad === "alta"
-                        ? "danger"
-                        : nota.prioridad === "media"
-                            ? "warning"
-                            : "success"
-                        }`}>
-                        {nota.prioridad.toUpperCase()}
-                    </span>
+                    {nota.estado === "completada" ? (
+                        <span className="badge-completado">Completado</span>
+                    ) : (
+                        <span className={`badge-${nota.prioridad === "alta"
+                            ? "danger"
+                            : nota.prioridad === "media"
+                                ? "warning"
+                                : "success"
+                            }`}>
+                            {nota.prioridad.toUpperCase()}
+                        </span>
+                    )}
                 </div>
 
                 <p className="text-muted-small-mb-2">
@@ -58,15 +63,15 @@ export default function NotaCard({
                 )}
 
                 <div className="d-flex gap-2 mt-3">
-                    <button
-                        className={`btn btn-sm ${nota.estado === "completada"
-                            ? "btn-success"
-                            : "btn-outline-success"
-                            }`}
-                        onClick={() => onCompletar(nota)}
-                    >
-                        <FaCheck />
-                    </button>
+                    {nota.estado !== "completada" && (
+                        <button
+                            className="btn btn-sm btn-outline-success"
+                            onClick={() => onCompletar(nota)}
+                            title="Marcar como completada"
+                        >
+                            <FaCheck />
+                        </button>
+                    )}
 
                     <button
                         className="btn btn-sm btn-outline-primary"
@@ -96,6 +101,49 @@ export default function NotaCard({
 
                 .small-text-muted-mt-1 {
                     color: var(--operator-text-soft);
+                }
+
+                /* BADGES */
+
+                .badge-completado {
+                    background-color: var(--operator-materia-prima);
+                    color: var(--operator-materia-prima-text);
+                    padding: 5px;
+                    border-radius: 999px;
+                    font-size: 13px;
+                    font-weight: 700;
+                }
+
+                .badge-danger {
+                    background-color: var(--operator-producto-terminado);
+                    color: var(--operator-producto-terminado-text);
+                    padding: 2px 8px;
+                    border-radius: 999px;
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+
+                .badge-warning {
+                    background-color: var(--operator-cambio);
+                    color: var(--operator-cambio-text);
+                    padding: 3px 8px;
+                    border-radius: 999px;
+                    font-size: 13px;
+                    font-weight: 500;
+                }
+
+                .badge-success {
+                    background-color: var(--operator-activo);
+                    color: var(--operator-activo-text);
+                    padding: 3px 8px;
+                    border-radius: 999px;
+                    font-size: 13px; 
+                    font-weight: 500;
+                }
+
+                .border-completado {
+                    border-color: var(--operator-materia-prima-text) !important;
+                    box-shadow: 0 0 0 1px var(--operator-materia-prima);
                 }
 
 

@@ -31,7 +31,8 @@ import {
     FaMedapps,
     FaUserFriends,
     FaUserCheck,
-    FaBook
+    FaBook,
+    FaUserCog,
 
 } from "react-icons/fa";
 
@@ -50,6 +51,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
         const nextMenu = [
             { to: "/dashboard", icon: <FaHome />, label: "Dashboard", permiso: "dashboard.ver" },
             { to: "/usuarios", icon: <FaUsers />, label: "Usuarios", permiso: "usuarios.ver" },
+            { to: "/administradores", icon: <FaUserCog />, label: "Administradores", permiso: "administradores.ver" },
             { to: "/puestos", icon: <FaUserTie />, label: "Puestos", permiso: "puestos.ver" },
             { to: "/inventario", icon: <FaBoxes />, label: "Inventario", permiso: "inventario.ver" },
             { to: "/agenda", icon: <FaLaptopCode />, label: "Agenda Servicios", permiso: "servicios.agendar" },

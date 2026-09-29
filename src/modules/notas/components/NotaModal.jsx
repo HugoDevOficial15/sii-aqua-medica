@@ -41,7 +41,15 @@ export default function NotaModal({ show, onClose, onSave, data }) {
     if (!show) return null;
 
     const handleSubmit = () => {
-        onSave(form);
+        const formNormalizado = {
+            ...form,
+            titulo: sanitizeTextTrim(form.titulo || ""),
+            contenido: sanitizeText(form.contenido || "").trim(),
+            prioridad: sanitizeTextTrim(form.prioridad || "media") || "media",
+            fechaLimite: sanitizeTextTrim(form.fechaLimite || "") || ""
+        };
+
+        onSave(formNormalizado);
     };
 
     return (
@@ -60,7 +68,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                         placeholder="Título"
                         value={form.titulo}
                         onChange={(e) =>
-                            setForm({ ...form, titulo: sanitizeTextTrim(e.target.value) })
+                            setForm({ ...form, titulo: sanitizeText(e.target.value) })
                         }
                     />
 

@@ -2,7 +2,13 @@ import { z } from "zod";
 import { normalizeName } from "../utils/textFormat";
 
 const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/;
-const normalizeUpper = (value) => (value ?? "").trim().replace(/[\s\-_/\\]+/g, "").toUpperCase();
+const normalizeUpper = (value) => String(value ?? "").trim().replace(/[\s\-_\/\\]+/g, "").toUpperCase();
+
+const isValidCurp = (value) => {
+    const normalized = normalizeUpper(value);
+    if (!normalized) return true;
+    return normalized.length === 18 && CURP_REGEX.test(normalized);
+};
 
 export const practicanteSchema = z.object({
     nombre: z
@@ -31,7 +37,7 @@ export const practicanteSchema = z.object({
         .string()
         .optional()
         .transform((value) => normalizeUpper(value))
-        .refine((value) => !value || CURP_REGEX.test(value), { message: "CURP inválida" }),
+        .refine(isValidCurp, { message: "CURP inválida" }),
 
     nomina: z
         .union([z.string(), z.number()])

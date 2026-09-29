@@ -82,6 +82,9 @@ const isJefeArea = (usuario, areaEsperada) => {
 
 export const canAccessPersonalSection = (usuario) => {
   if (!usuario) return false;
+
+  const permisos = Array.isArray(usuario.permisos) ? usuario.permisos : [];
+  if (permisos.includes("personal.ver") || permisos.includes("*")) return true;
   if (usuario.rol === "admin_sistemas") return true;
 
   const nomina = String(usuario.nomina ?? "");

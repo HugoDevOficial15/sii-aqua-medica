@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaSave, FaTrash, FaChartBar, FaEllipsisV,FaGlobe,FaWarehouse,FaFlask,FaUtensils,FaUserTie,FaCalculator,FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaShieldAlt,FaHeartbeat,FaHandsHelping,FaStethoscope,FaLaptopCode,FaClipboardCheck,FaEye,FaShoppingCart } from "react-icons/fa";
 // Service
 import { createSurvey, getSurveys, updateSurvey, deleteSurvey } from "../../services/surveyService";
-// Firebase
 // Resultados/respuestas
 import EncuestaResultados from "./EncuestaResultados";
 // Notificaciones

@@ -1,6 +1,7 @@
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
-import { db } from "../config/firebase";
-import { createNotification } from "./createNotification";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
+
+const sendAdminNotificationFunction = httpsCallable(functions, "sendAdminNotificationToRoles");
 
 /**
  * Envía notificación a admins específicos
@@ -9,29 +10,14 @@ import { createNotification } from "./createNotification";
  */
 export const sendAdminNotification = async (notification, rolesPermitidos = ["admin_sistemas", "admin_super"]) => {
   try {
-    const usersQuery = query(
-      collection(db, "users"),
-      where("rol", "in", rolesPermitidos),
-      limit(100)
-    );
+    const result = await sendAdminNotificationFunction({
+      notification,
+      rolesPermitidos,
+    });
 
-    const usersSnapshot = await getDocs(usersQuery);
-    const admins = usersSnapshot.docs.map(doc => ({
-      docId: doc.id,
-      uid: doc.data().uid,
-      ...doc.data()
-    }));
-
-    for (const admin of admins) {
-      const adminId = admin.uid || admin.docId;
-      if (adminId) {
-        await createNotification({
-          IdUsuario: adminId,
-          ...notification
-        });
-      }
-    }
+    return result?.data || { success: true, count: 0 };
   } catch (error) {
     console.error("Error al notificar a admins:", error);
+    throw error;
   }
 };

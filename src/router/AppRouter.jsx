@@ -30,6 +30,7 @@ const MaterialesPage = lazy(() => import("../modules/almacen/pages/MaterialesPag
 const AlmacenMaterialesPage = lazy(() => import("../modules/almacen/pages/AlmacenMaterialesPage"));
 const RacksDashboard = lazy(() => import("../modules/almacen-peps/pages/RacksDashboard"));
 const Users = lazy(() => import("../pages/admin/Users"));
+const Administradores = lazy(() => import("../modules/administradores/administradores"));
 const Practicantes = lazy(() => import("../pages/admin/Practicantes"));
 const PuestosPage = lazy(() => import("../modules/puestos/page/PuestosPage"));
 const Configuracion = lazy(() => import("../pages/admin/Configuracion"));
@@ -139,6 +140,16 @@ export default function AppRouter() {
                             element={
                                 <ProtectedRoute permiso="usuarios.ver">
                                     <Users />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* ADMINISTRADORES */}
+                        <Route
+                            path="/administradores"
+                            element={
+                                <ProtectedRoute permiso="administradores.ver">
+                                    <Administradores />
                                 </ProtectedRoute>
                             }
                         />

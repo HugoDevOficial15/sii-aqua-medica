@@ -30,6 +30,18 @@ const readCachedSession = () => {
     }
 };
 
+const resolveEffectivePermissions = (userData, fallbackPermissions = []) => {
+    const explicitPermissions = Array.isArray(userData?.permisos)
+        ? userData.permisos.filter((permiso) => Boolean(permiso))
+        : null;
+
+    if (explicitPermissions !== null) {
+        return explicitPermissions;
+    }
+
+    return Array.isArray(fallbackPermissions) ? fallbackPermissions : [];
+};
+
 const alreadyCheckedToday = (uid) => {
     if (!uid || typeof window === "undefined") return false;
 
@@ -109,11 +121,14 @@ export function AuthProvider({ children }) {
 
                 try {
                     const permisosDB = await getPermissionsByRole(userData.rol);
-                    setPermisos(permisosDB);
-                    writeSessionCache(PERMISOS_CACHE_KEY, permisosDB);
+                    const permisosEfectivos = resolveEffectivePermissions(userData, permisosDB);
+                    setPermisos(permisosEfectivos);
+                    writeSessionCache(PERMISOS_CACHE_KEY, permisosEfectivos);
                 } catch (error) {
                     console.warn("No se pudieron cargar permisos al inicio:", error);
-                    setPermisos([]);
+                    const permisosEfectivos = resolveEffectivePermissions(userData, []);
+                    setPermisos(permisosEfectivos);
+                    writeSessionCache(PERMISOS_CACHE_KEY, permisosEfectivos);
                 }
 
             } catch (error) {
@@ -132,16 +147,18 @@ export function AuthProvider({ children }) {
     // LOGIN
     // ==========================================================
     const login = useCallback(async (userData, userPermisos) => {
-        let permisosActuales = Array.isArray(userPermisos) ? userPermisos : [];
+        let permisosBase = Array.isArray(userPermisos) ? userPermisos : [];
 
         if ((!Array.isArray(userPermisos) || userPermisos.length === 0) && userData?.rol) {
             try {
-                permisosActuales = await getPermissionsByRole(userData.rol);
+                permisosBase = await getPermissionsByRole(userData.rol);
             } catch (error) {
                 console.error("Error al cargar permisos del usuario:", error);
-                permisosActuales = [];
+                permisosBase = [];
             }
         }
+
+        const permisosActuales = resolveEffectivePermissions(userData, permisosBase);
 
         const usuarioCompleto = {
             ...userData,
@@ -244,13 +261,16 @@ export function AuthProvider({ children }) {
         const esAdminSistemas = user?.rol === "admin_sistemas";
         if (esAdminSistemas) return true;
 
-        // Regla especial para el módulo Personal: quien es jefe de departamento o zona puede entrar.
-        if (permiso === "personal.ver" && canAccessPersonalSection(user)) {
+        const permisosUsuario = Array.isArray(user?.permisos) ? user.permisos : [];
+        const tienePermisoExplicito = permisosUsuario.includes(permiso) || permisosUsuario.includes("*");
+
+        // Regla especial para el módulo Personal: quien tiene el permiso explícito o es jefe de área/zona puede entrar.
+        if (permiso === "personal.ver" && (tienePermisoExplicito || canAccessPersonalSection(user))) {
             return true;
         }
 
         if (!Array.isArray(permisos)) return false;
-        return permisos.includes("*") || permisos.includes(permiso);
+        return permisos.includes("*") || permisos.includes(permiso) || tienePermisoExplicito;
     }, [user, permisos]);
 
     const value = useMemo(() => ({

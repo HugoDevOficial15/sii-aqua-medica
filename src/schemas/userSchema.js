@@ -6,8 +6,26 @@ const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/;
 const RFC_REGEX = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/;
 const NSS_REGEX = /^\d{11}$/;
 
-const normalizeUpper = (value) => (value ?? "").trim().replace(/[\s\-_/\\]+/g, "").toUpperCase();
-const normalizeDigits = (value) => (value ?? "").trim().replace(/[^\d]/g, "");
+const normalizeUpper = (value) => String(value ?? "").trim().replace(/[\s\-_\/\\]+/g, "").toUpperCase();
+const normalizeDigits = (value) => String(value ?? "").trim().replace(/[^\d]/g, "");
+
+const isValidCurp = (value) => {
+    const normalized = normalizeUpper(value);
+    if (!normalized) return true;
+    return normalized.length === 18 && CURP_REGEX.test(normalized);
+};
+
+const isValidRfc = (value) => {
+    const normalized = normalizeUpper(value);
+    if (!normalized) return true;
+    return normalized.length >= 12 && normalized.length <= 13 && RFC_REGEX.test(normalized);
+};
+
+const isValidNss = (value) => {
+    const normalized = normalizeDigits(value);
+    if (!normalized) return true;
+    return normalized.length === 11 && NSS_REGEX.test(normalized);
+};
 
 export const userSchema = z.object({
 
@@ -50,18 +68,18 @@ export const userSchema = z.object({
         .string()
         .optional()
         .transform((value) => normalizeUpper(value))
-        .refine((value) => !value || CURP_REGEX.test(value), { message: "CURP inválida" }),
+        .refine(isValidCurp, { message: "CURP inválida" }),
 
     rfc: z
         .string()
         .optional()
         .transform((value) => normalizeUpper(value))
-        .refine((value) => !value || RFC_REGEX.test(value), { message: "RFC inválido" }),
+        .refine(isValidRfc, { message: "RFC inválido" }),
 
     nss: z
         .string()
         .optional()
         .transform((value) => normalizeDigits(value))
-        .refine((value) => !value || NSS_REGEX.test(value), { message: "NSS inválido, debe tener 11 dígitos" }),
+        .refine(isValidNss, { message: "NSS inválido, debe tener 11 dígitos" }),
 
 })

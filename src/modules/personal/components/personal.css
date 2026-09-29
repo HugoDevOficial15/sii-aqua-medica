@@ -90,16 +90,17 @@
   position: relative;
   z-index: 1;
   overflow: visible;
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  transition: none;
+  isolation: isolate;
 }
 
 .tabla-personal tbody tr.personal-row-open {
-  z-index: 5;
+  z-index: 30;
 }
 
 .tabla-personal tbody tr:hover {
-  transform: scale(1.02);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  transform: none;
+  box-shadow: none;
 }
 
 .tabla-personal tbody tr.personal-row-open:hover {
@@ -119,8 +120,9 @@
 .personal-actions-cell {
   position: relative;
   overflow: visible;
-  z-index: 10;
+  z-index: 20;
   text-align: center;
+  isolation: isolate;
 }
 
 .personal-actions-wrapper {
@@ -129,7 +131,7 @@
   align-items: center;
   justify-content: center;
   min-width: 36px;
-  z-index: 100;
+  z-index: 200;
 }
 
 .personal-action-menu-button {
@@ -152,6 +154,8 @@
 
 .personal-actions-menu {
   position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
   width: max-content;
   min-width: 170px;
   background: var(--operator-background);
@@ -161,7 +165,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .personal-action-menu-item {

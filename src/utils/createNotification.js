@@ -3,13 +3,14 @@
 // Ubicación: src/utils/createNotification.js
 // ============================================================
 
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { db } from "../config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
+
+const saveNotificationFunction = httpsCallable(functions, "saveNotification");
 
 /**
- * Crea una notificación en Firestore con enviado: false
- * para que el listener en tiempo real dispare la notificación push.
- * 
+ * Crea una notificación en Firestore desde Cloud Functions.
+ *
  * @param {Object} params - Parámetros de la notificación
  * @param {string} params.IdUsuario - UID de Firebase del usuario destinatario
  * @param {string} params.Titulo - Título de la notificación
@@ -35,30 +36,24 @@ export const createNotification = async ({
         throw new Error("Titulo y Mensaje son requeridos");
     }
 
-    // Estructura estándar obligatoria para el funcionamiento del push
-    const notificationData = {
+    const result = await saveNotificationFunction({
         IdUsuario,
         Titulo,
         Mensaje,
         Destino: Destino || null,
         Accion: Accion || null,
-
-        // 🔑 CLAVE: Indica que la notificación está pendiente de envío push
-        enviado: false,
-
-        // Auditoría y marcas de tiempo
-        fechaCreacion: serverTimestamp(),
-        fechaEnviado: null,
-
-        // Propiedades adicionales flexibles
-        ...extra
-    };
-
-    // Inserta el documento en la colección que escucha el listener
-    const docRef = await addDoc(collection(db, "notificaciones"), notificationData);
+        extra,
+    });
 
     return {
-        id: docRef.id,
-        ...notificationData
+        id: result?.data?.id || null,
+        IdUsuario,
+        Titulo,
+        Mensaje,
+        Destino: Destino || null,
+        Accion: Accion || null,
+        enviado: false,
+        fechaEnviado: null,
+        ...extra,
     };
 };

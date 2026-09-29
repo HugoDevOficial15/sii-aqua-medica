@@ -17,14 +17,14 @@ const ideas = require("./features/ideas");
 const soporte = require("./features/soporte");
 const compConductual = require("./features/CompConductual");
 const corregirEmailsAquaMedica = require("./features/usuarios/updateUserFieldsService");
-
-
 const news = require("./features/news");
 const medicamentos = require("./features/medicamentos");
 const agendaMedica = require("./features/agendaMedica");
 const citasMedicas = require("./features/citasMedicas");
 const practicantes = require("./features/practicantes");
 const ordenesMedicas = require("./features/ordenesMedicas");
+const notas = require("./features/notas");
+const notificaciones = require("./features/notificaciones");
 
 const initPushNotifications = async () => {
   console.log("✓ Servicio local de push desactivado. Cloud Functions al mando.");
@@ -58,6 +58,8 @@ module.exports = {
   ...agendaMedica,
   ...citasMedicas,
   ...ordenesMedicas,
+  ...notas,
+  ...notificaciones,
   initPushNotifications,
   stopPushNotifications,
 };
