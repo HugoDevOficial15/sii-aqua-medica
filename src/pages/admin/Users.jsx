@@ -175,9 +175,9 @@ export default function Users({ onClose }) {
       ? incapacidades
       : String(user?.estado || "").trim().toLowerCase() === "incapacidad"
         ? [{
-            fechaInicio: user.fechaInicioIncapacidad,
-            fechaFin: user.fechaFinIncapacidad,
-          }]
+          fechaInicio: user.fechaInicioIncapacidad,
+          fechaFin: user.fechaFinIncapacidad,
+        }]
         : [];
 
     return records.some((incapacidad) => {
@@ -515,12 +515,12 @@ export default function Users({ onClose }) {
         prev.map((item) =>
           item.id === user.id
             ? {
-                ...item,
-                activo: newStatus,
-                bloqueado: !newStatus,
-                intentosFallidos: newStatus ? 0 : item.intentosFallidos || 0,
-                estado: nextEstado,
-              }
+              ...item,
+              activo: newStatus,
+              bloqueado: !newStatus,
+              intentosFallidos: newStatus ? 0 : item.intentosFallidos || 0,
+              estado: nextEstado,
+            }
             : item,
         ),
       );
@@ -825,17 +825,17 @@ export default function Users({ onClose }) {
         setUsers((previous) => previous.map((item) => (
           item.id === user.id
             ? {
-                ...item,
-                estado: activeIncapacidad ? "incapacidad" : "activo",
-                activo: true,
-                tipoIncapacidad: activeIncapacidad?.tipo || null,
-                fechaInicioIncapacidad: activeIncapacidad?.fechaInicio || null,
-                fechaFinIncapacidad: activeIncapacidad?.fechaFin || null,
-                notaIncapacidad: activeIncapacidad?.nota || "",
-              }
+              ...item,
+              estado: activeIncapacidad ? "incapacidad" : "activo",
+              activo: true,
+              tipoIncapacidad: activeIncapacidad?.tipo || null,
+              fechaInicioIncapacidad: activeIncapacidad?.fechaInicio || null,
+              fechaFinIncapacidad: activeIncapacidad?.fechaFin || null,
+              notaIncapacidad: activeIncapacidad?.nota || "",
+            }
             : item
         )));
-        
+
       }
     } catch (error) {
       Swal.close();
@@ -938,14 +938,14 @@ export default function Users({ onClose }) {
         prev.map((item) =>
           item.id === selectedIncapacidadUser.id
             ? {
-                ...item,
-                estado: "incapacidad",
-                activo: true,
-                tipoIncapacidad: tipo,
-                fechaInicioIncapacidad: incapacidadForm.fechaInicio,
-                fechaFinIncapacidad: incapacidadForm.fechaFin,
-                notaIncapacidad: notaSanitizada,
-              }
+              ...item,
+              estado: "incapacidad",
+              activo: true,
+              tipoIncapacidad: tipo,
+              fechaInicioIncapacidad: incapacidadForm.fechaInicio,
+              fechaFinIncapacidad: incapacidadForm.fechaFin,
+              notaIncapacidad: notaSanitizada,
+            }
             : item,
         ),
       );
@@ -1088,6 +1088,37 @@ export default function Users({ onClose }) {
         setLoading(false);
       }
     };
+
+    const errorEmail = async () => {
+      const snapshot = await db.collection("users")
+        .get();
+
+      const usuariosMal = [];
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+
+        if (
+          data.email &&
+          data.email.toLowerCase().endsWith("@aquamediaca.com")
+        ) {
+          usuariosMal.push({
+            id: doc.id,
+            emailActual: data.email,
+            emailCorrecto: data.email.replace(
+              /@aquamediaca\.com$/i,
+              "@aquamedica.com"
+            ),
+            uid: data.uid || null,
+            nomina: data.nomina || null,
+            nombre: data.nombre || null
+          });
+        }
+      });
+
+      console.log("Usuarios encontrados:", usuariosMal.length);
+      console.table(usuariosMal);
+    }
 
     loadData();
   }, []);
@@ -1239,6 +1270,26 @@ export default function Users({ onClose }) {
       </div>
 
       <div className="contenedor-header mb-4">
+        <input
+          type="text"
+          className="form-control-page"
+          placeholder="Nómina o nombre..."
+          value={search}
+          onChange={(e) => {
+            const nextValue = e.target.value;
+            setSearch(nextValue);
+
+            if (!sanitizeText(nextValue).trim()) {
+              restoreCachedUsers();
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              handleSearchSubmit();
+            }
+          }}
+        />
           <div style={{ position: "relative", flex: 1 }}>
             <input
               type="text"
@@ -1265,72 +1316,72 @@ export default function Users({ onClose }) {
 
           </div>
 
-          {/* <button className="d-none" onClick={migrateNomina}>
+        {/* <button className="d-none" onClick={migrateNomina}>
                         Migrar Nóminas
                     </button> */}
 
-          <button className="btn btn-sm btn-success" onClick={exportToExcel}>
-            <FaFileExcel className="me-2" />
-            Exportar Excel
-          </button>
+        <button className="btn btn-sm btn-success" onClick={exportToExcel}>
+          <FaFileExcel className="me-2" />
+          Exportar Excel
+        </button>
 
-          <button
-            className="btn btn-sm btn-outline-secondary"
-            onClick={handleFindDuplicates}
-          >
-            <FaSearch className="me-2" />
-            Buscar nóminas duplicadas
-          </button>
+        <button
+          className="btn btn-sm btn-outline-secondary"
+          onClick={handleFindDuplicates}
+        >
+          <FaSearch className="me-2" />
+          Buscar nóminas duplicadas
+        </button>
 
-          <button
-            className="btn btn-sm btn-outline-warning"
-            onClick={handleCheckEmailNominaMismatch}
-            title="Verifica que el email coincida con la nómina guardada"
-          >
-            <FaCheckCircle className="me-2" />
-            Verificar Email/Nómina
-          </button>
+        <button
+          className="btn btn-sm btn-outline-warning"
+          onClick={handleCheckEmailNominaMismatch}
+          title="Verifica que el email coincida con la nómina guardada"
+        >
+          <FaCheckCircle className="me-2" />
+          Verificar Email/Nómina
+        </button>
 
-          <button
-            className="btn btn-sm btn-outline-primary"
-            onClick={handleImportCSVClick}
-            disabled={importing}
-          >
-            <FaFileImport className="me-2" />
-            {importing ? "Importando..." : "Importar CSV"}
-          </button>
+        <button
+          className="btn btn-sm btn-outline-primary"
+          onClick={handleImportCSVClick}
+          disabled={importing}
+        >
+          <FaFileImport className="me-2" />
+          {importing ? "Importando..." : "Importar CSV"}
+        </button>
 
-          <input
-            type="file"
-            accept=".csv"
-            ref={csvInputRef}
-            onChange={handleImportCSVChange}
-            style={{ display: "none" }}
-          />
+        <input
+          type="file"
+          accept=".csv"
+          ref={csvInputRef}
+          onChange={handleImportCSVChange}
+          style={{ display: "none" }}
+        />
 
-          <button
-            className="btn btn-sm btn-primary custom-btn"
-            onClick={() => {
-              reset({
-                nomina: "",
-                nombre: "",
-                area: "",
-                puesto: "",
-                fechaIngreso: "",
-                cumpleanos: "",
-                rol: "",
-                curp: "",
-                rfc: "",
-                nss: "",
-              });
-              setCurrentId(null);
-              setEditing(false);
-              setShowModal(true);
-            }}
-          >
-            <FaUserPlus className="me-2" />
-            Nuevo Usuario
-          </button>
+        <button
+          className="btn btn-sm btn-primary custom-btn"
+          onClick={() => {
+            reset({
+              nomina: "",
+              nombre: "",
+              area: "",
+              puesto: "",
+              fechaIngreso: "",
+              cumpleanos: "",
+              rol: "",
+              curp: "",
+              rfc: "",
+              nss: "",
+            });
+            setCurrentId(null);
+            setEditing(false);
+            setShowModal(true);
+          }}
+        >
+          <FaUserPlus className="me-2" />
+          Nuevo Usuario
+        </button>
       </div>
 
       {/* TABLE */}
@@ -1547,8 +1598,8 @@ export default function Users({ onClose }) {
                         <td colSpan="6" className="user-incapacidades-cell">
                           <div className="user-incapacidades-box">
                             {!isValidatingIncapacidades &&
-                            hasLoadedIncapacidades &&
-                            incapacidades.length === 0 ? (
+                              hasLoadedIncapacidades &&
+                              incapacidades.length === 0 ? (
                               <div className="user-incapacidad-empty">
                                 No hay ninguna incapacidad registrada.
                               </div>
@@ -1618,7 +1669,7 @@ export default function Users({ onClose }) {
           <div className="modal-card custom-modal incapacidad-modal-card">
             <div className="modal-header custom-modal-header">
               <h5 className="modal-title">
-                <FaHouseUser/>
+                <FaHouseUser />
                 Registrar incapacidad</h5>
               <button
                 type="button"
@@ -1743,7 +1794,7 @@ export default function Users({ onClose }) {
           <div className="modal-card-info custom-modal">
             <div className="modal-header custom-modal-header">
               <h5 className="modal-title">
-                <FaAddressCard/>
+                <FaAddressCard />
                 Información del Usuario</h5>
               <button
                 type="button"
@@ -1812,7 +1863,7 @@ export default function Users({ onClose }) {
           <div className="modal-card custom-modal">
             <div className="modal-header custom-modal-header">
               <h5>
-                {editing ? (<><FaEdit/> Editar Usuario</>) : (<><FaUserPlus/> Crear Usuario</>)}</h5>
+                {editing ? (<><FaEdit /> Editar Usuario</>) : (<><FaUserPlus /> Crear Usuario</>)}</h5>
 
               <button
                 type="button"

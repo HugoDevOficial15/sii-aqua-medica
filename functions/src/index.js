@@ -16,6 +16,9 @@ const aniversarios = require("./features/aniversarios");
 const ideas = require("./features/ideas");
 const soporte = require("./features/soporte");
 const compConductual = require("./features/CompConductual");
+const corregirEmailsAquaMedica = require("./features/usuarios/updateUserFieldsService");
+
+
 const news = require("./features/news");
 const medicamentos = require("./features/medicamentos");
 const agendaMedica = require("./features/agendaMedica");
@@ -31,6 +34,8 @@ const stopPushNotifications = () => {
   console.log("✓ No hay listeners locales que detener.");
 };
 
+
+
 module.exports = {
   ...locks,
   ...surveys,
@@ -38,6 +43,7 @@ module.exports = {
   ...solicitudes,
   ...notificationTriggers,
   ...usuarios,
+  ...corregirEmailsAquaMedica,
   ...personal,
   ...puestos,
   ...inventarios,

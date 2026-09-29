@@ -1,6 +1,8 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../../config/firebase");
 
+const { FieldValue } = require("firebase-admin/firestore");
+
 const serviciosCollections = db.collection("servicios_programados");
 const diasBloqueadosCollection = db.collection("dias_bloqueados");
 const bloqueosHorariosCollection = db.collection("bloqueosHorarios");
@@ -145,4 +147,78 @@ exports.eliminarBloqueosHorario = onCall(async (request) => {
     const ref = bloqueosHorariosCollection.doc(id);
     await ref.delete();
     return { id };
+});
+
+// ======================================================
+// CORREGIR EMAILS DE USUARIOS
+// Cambia @aquamediaca.com por @aquamedica.com
+// ======================================================
+
+exports.corregirEmailsAquaMedica = onCall(async (request) => {
+    const { dryRun = true } = getRequestData(request);
+
+    try {
+        const usersCollection = db.collection("users");
+
+        const snapshot = await usersCollection.get();
+
+        const encontrados = [];
+        const corregidos = [];
+
+        for (const doc of snapshot.docs) {
+            const data = doc.data();
+
+            const emailActual = String(data.email || "").trim();
+
+            // Solo procesa correos que tengan exactamente
+            // el dominio incorrecto.
+            if (!/@aquamediaca\.com$/i.test(emailActual)) {
+                continue;
+            }
+
+            const emailNuevo = emailActual.replace(
+                /@aquamediaca\.com$/i,
+                "@aquamedica.com"
+            );
+
+            const usuario = {
+                id: doc.id,
+                nomina: data.nomina ?? null,
+                nombre: data.nombre ?? null,
+                emailAnterior: emailActual,
+                emailNuevo,
+            };
+
+            encontrados.push(usuario);
+
+            // Si dryRun es true, NO modifica Firestore.
+            if (dryRun) {
+                continue;
+            }
+
+            await doc.ref.update({
+                email: emailNuevo,
+                updatedAt: FieldValue.serverTimestamp(),
+            });
+
+            corregidos.push(usuario);
+        }
+
+        return {
+            success: true,
+            dryRun,
+            encontrados: encontrados.length,
+            corregidos: corregidos.length,
+            data: dryRun ? encontrados : corregidos,
+        };
+
+    } catch (error) {
+        console.error("Error al corregir emails:", error);
+
+        throw new HttpsError(
+            "internal",
+            "Ocurrió un error al corregir los emails.",
+            error.message
+        );
+    }
 });
