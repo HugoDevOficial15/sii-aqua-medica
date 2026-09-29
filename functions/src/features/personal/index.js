@@ -191,10 +191,12 @@ const getPersonalUsers = async (request) => {
 
   const snapshot = await usersCollection
     .where("rol", "==", "operador")
-    .where("area", "==", areaSolicitada)
     .get();
 
-  const allUsers = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const allUsers = snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .filter((usuario) => normalizeArea(usuario.area) === areaSolicitada);
+
   return getAllowedUsersForPersonal(allUsers, currentUser);
 };
 
@@ -661,10 +663,12 @@ const getPersonalUsersInternal = async (request) => {
 
   const snapshot = await usersCollection
     .where("rol", "==", "operador")
-    .where("area", "==", areaSolicitada)
     .get();
 
-  const allUsers = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const allUsers = snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .filter((usuario) => normalizeArea(usuario.area) === areaSolicitada);
+
   return getAllowedUsersForPersonal(allUsers, currentUser);
 };
 

@@ -82,30 +82,39 @@ const findUserByIdentifier = async (identifier) => {
   return null;
 };
 
-const applyUserFilters = (query, filters = {}) => {
-  let nextQuery = query;
+const matchesUserFilters = (user = {}, filters = {}) => {
   const { empresaId, rol, activo } = filters;
 
   if (empresaId !== undefined && empresaId !== null && empresaId !== "") {
-    nextQuery = nextQuery.where("empresaId", "==", String(empresaId));
+    if (String(user.empresaId ?? "") !== String(empresaId)) return false;
   }
 
   if (rol !== undefined && rol !== null && rol !== "") {
-    nextQuery = nextQuery.where("rol", "==", String(rol));
+    if (String(user.rol ?? "") !== String(rol)) return false;
   }
 
   if (activo !== undefined && activo !== null && activo !== "") {
-    nextQuery = nextQuery.where("activo", "==", activo === true || activo === "true");
+    const expected = activo === true || activo === "true";
+    if (Boolean(user.activo) !== expected) return false;
   }
 
-  return nextQuery;
+  return true;
+};
+
+const filterUsersDocs = (docs = [], filters = {}) => docs.filter((doc) => {
+  const data = doc.data ? doc.data() : doc;
+  return matchesUserFilters(data, filters);
+});
+
+const applyUserFilters = (query, filters = {}) => {
+  void filters;
+  return query;
 };
 
 const buildUsersPageQuery = ({ cursor = null, pageSize = 30, filters = {} } = {}) => {
+  void filters;
   const limit = Math.min(Math.max(Number(pageSize || 30), 1), 60);
   let query = usersCollection.orderBy("nomina", "asc").limit(limit + 1);
-
-  query = applyUserFilters(query, filters);
 
   if (cursor !== undefined && cursor !== null && cursor !== "") {
     query = query.startAfter(Number(cursor));
@@ -199,9 +208,10 @@ exports.getUsers = onCall(async (request) => {
   if (pageSize !== null) {
     const query = buildUsersPageQuery({ cursor: data.cursor, pageSize, filters });
     const snapshot = await query.get();
+    const docs = filterUsersDocs(snapshot.docs, filters);
     const limit = Math.min(Math.max(pageSize, 1), 60);
-    const hasMore = snapshot.docs.length > limit;
-    const pageDocs = hasMore ? snapshot.docs.slice(0, limit) : snapshot.docs;
+    const hasMore = docs.length > limit;
+    const pageDocs = hasMore ? docs.slice(0, limit) : docs;
     const users = pageDocs.map(userFromSnapshot);
 
     return {
@@ -211,10 +221,8 @@ exports.getUsers = onCall(async (request) => {
     };
   }
 
-  let query = usersCollection.orderBy("nomina", "asc");
-  query = applyUserFilters(query, filters);
-  const snapshot = await query.get();
-  return snapshot.docs.map(userFromSnapshot);
+  const snapshot = await usersCollection.orderBy("nomina", "asc").get();
+  return filterUsersDocs(snapshot.docs, filters).map(userFromSnapshot);
 });
 
 exports.getUsersPage = onCall(async (request) => {
@@ -228,9 +236,10 @@ exports.getUsersPage = onCall(async (request) => {
 
   const query = buildUsersPageQuery({ cursor: data.cursor, pageSize: data.pageSize || 30, filters });
   const snapshot = await query.get();
+  const docs = filterUsersDocs(snapshot.docs, filters);
   const pageSize = Math.min(Math.max(Number(data.pageSize || 30), 1), 60);
-  const hasMore = snapshot.docs.length > pageSize;
-  const pageDocs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+  const hasMore = docs.length > pageSize;
+  const pageDocs = hasMore ? docs.slice(0, pageSize) : docs;
   const users = pageDocs.map(userFromSnapshot);
 
   return {
@@ -261,18 +270,21 @@ exports.searchUsers = onCall(async (request) => {
     return { users, hasMore, nextCursor: hasMore ? users[users.length - 1]?.nomina ?? null : null };
   }
 
-  const end = `${search}\uf8ff`;
-  const queryBuilders = [
-    usersCollection.where("nombreBusqueda", ">=", search).where("nombreBusqueda", "<=", end),
-    usersCollection.where("nominaBusqueda", ">=", search).where("nominaBusqueda", "<=", end),
-  ].map((query) => applyUserFilters(query, filters));
-
-  const [nameSnapshot, nominaSnapshot] = await Promise.all(
-    queryBuilders.map((query) => query.get()),
-  );
-
+  const snapshot = await usersCollection.orderBy("nomina", "asc").get();
   const records = new Map();
-  [...nameSnapshot.docs, ...nominaSnapshot.docs].forEach((doc) => records.set(doc.id, userFromSnapshot(doc)));
+
+  snapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    if (!matchesUserFilters(data, filters)) return;
+
+    const nombre = normalizeSearchText(data.nombre);
+    const nominaText = String(data.nomina ?? "");
+    const hayCoincidencia = nombre.includes(search) || nominaText.includes(search) || normalizeSearchText(data.email).includes(search) || normalizeSearchText(data.username).includes(search);
+
+    if (hayCoincidencia) {
+      records.set(doc.id, userFromSnapshot(doc));
+    }
+  });
 
   const users = [...records.values()]
     .sort((a, b) => Number(a.nomina) - Number(b.nomina));

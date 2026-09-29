@@ -117,3 +117,25 @@ API Externa (aquamedica2023):
 
 
 ==================================
+
+            ============
+            = 29/09/26 =
+            ============
+
+Nuevas: 
+
+
+ReFactorizadas:
+
+* getUsers
+* getUsersPage
+* searchUsers
+* getPersonalUsers
+* getPersonalPageData
+* getPersonalIncidencias
+* getPersonalReconocimientos
+* getPersonalIncapacidades
+* getPersonalHistorialesMedicos
+* getPersonalCapacitaciones
+* getPersonalPdfReportData
+==================================
