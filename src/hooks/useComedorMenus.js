@@ -6,12 +6,17 @@ export const useComedorMenus = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const obtenerMenus = useCallback(async () => {
+  const obtenerMenus = useCallback(async (semanaId = null) => {
     setLoading(true);
     setError(null);
 
     try {
-      const url = `${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.MENUS}`;
+      // Si se proporciona semanaId, agregar como parámetro
+      let url = `${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.MENUS}`;
+      if (semanaId) {
+        url += `?semana=${encodeURIComponent(semanaId)}`;
+      }
+
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -21,7 +26,12 @@ export const useComedorMenus = () => {
       const data = await response.json();
 
       if (data.status === "OK" && data.publicaciones.length > 0) {
-        const publicacion = data.publicaciones[0];
+        // Si se especificó una semana, buscar la coincidencia; si no, tomar la primera
+        let publicacion = data.publicaciones[0];
+
+        if (semanaId) {
+          publicacion = data.publicaciones.find(pub => pub.Fecha === semanaId) || data.publicaciones[0];
+        }
 
         // Transformar datos para estructura uniforme
         const menusTransformados = {
@@ -48,7 +58,7 @@ export const useComedorMenus = () => {
 
   useEffect(() => {
     obtenerMenus();
-  }, []);
+  }, [obtenerMenus]);
 
   // Obtener precio según tipo de comida
   const obtenerPrecio = (tipo) => {

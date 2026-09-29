@@ -1,10 +1,8 @@
 import { useState, useCallback } from "react";
 import { doc, getDoc } from "firebase/firestore";
-// ¡Ruta corregida exactamente igual que en useComedorMenuEmpleado!
-import { db } from "../config/firebase"; 
+import { db } from "../config/firebase";
 
-// Usando el emulador local para la prueba (cambiar por PRODUCCION_URL cuando despliegues)
-const URL_BASE = "http://127.0.0.1:5001/aquamedica2023/us-central1";
+const COMEDOR_API_URL = "https://us-central1-aquamedica2023.cloudfunctions.net";
 
 export const useComedorSugerencias = (uid) => {
   const [sugerencias, setSugerencias] = useState([]);
@@ -18,15 +16,19 @@ export const useComedorSugerencias = (uid) => {
       mensaje: sug.mensaje || sug.text || sug.Text || sug.texto || sug.Texto || sug.comentario || sug.Comentario || "",
       imagen: sug.imagen || sug.image || sug.foto || sug.Foto || sug.urlStorage || null,
       nombre: sug.nombre || sug.Nombre || "",
-      fecha: sug.fecha || sug.Fecha || sug.DatePost || new Date().toISOString(),
+      fecha:
+        sug.fecha ||
+        sug.Fecha ||
+        sug.DatePost ||
+        sug.fechaCreacion?.toDate?.() ||
+        (sug.fechaCreacion?.seconds ? new Date(sug.fechaCreacion.seconds * 1000) : null) ||
+        sug.createdAt?.toDate?.() ||
+        new Date().toISOString(),
       anonimo: sug.Anonima === true || sug.Anonima === "true" || sug.anonimo === true || sug.Anonimo === true,
       estado: sug.estado || "Pendiente",
-      
-      // NUEVO: Mapeo exacto basado en la base de datos de producción
       okRH: sug.OkRH === true || sug.okRH === true,
       comentarioRH: sug.CommentRH || sug.comentarioRH || "",
       fechaRH: sug.DateRevisionR || sug.fechaRH || null,
-      
       okComedor: sug.OkComedor === true || sug.okComedor === true,
       comentarioComedor: sug.CommentComedor || sug.comentarioComedor || "",
       fechaComedor: sug.DateRevisionC || sug.fechaComedor || null
@@ -39,35 +41,23 @@ export const useComedorSugerencias = (uid) => {
     setError(null);
 
     try {
-      // 1. Obtenemos la nómina del usuario
-      const userRef = doc(db, "users", uid);
-      const userSnap = await getDoc(userRef);
-      const nominaUsuario = userSnap.exists() ? userSnap.data().nomina : null;
-
-      // 2. Llamamos a la función correcta (getUserRequests) enviando la nómina
-      const response = await fetch(`${URL_BASE}/getUserRequests`, {
+      const response = await fetch(`${COMEDOR_API_URL}/obtenerSugerencias`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          uid: uid,
-          nomina: nominaUsuario ? parseInt(nominaUsuario) : null
-        }),
+        body: JSON.stringify({}),
       });
+      const result = await response.json();
 
-      const data = await response.json();
-
-      // Ajustamos la validación. Si tu API devuelve 'data.data', cámbialo aquí.
-      if (data.status === "OK" && data.sugerencias) {
-        const sugerenciasNormalizadas = data.sugerencias.map(normalizarSugerencia);
-        setSugerencias(sugerenciasNormalizadas);
-        return true;
-      } else {
-        setError("Sin sugerencias disponibles");
-        return false;
+      if (!response.ok || result?.status !== "OK" || !Array.isArray(result?.sugerencias)) {
+        throw new Error(result?.message || "No se pudieron cargar las sugerencias.");
       }
+
+      const sugerenciasNormalizadas = result.sugerencias.map(normalizarSugerencia);
+      setSugerencias(sugerenciasNormalizadas);
+      return true;
     } catch (err) {
-      console.error("Error en la petición:", err);
-      setError(`Error al obtener sugerencias`);
+      console.error("Error al obtener sugerencias:", err);
+      setError("Error al conectar con el servidor.");
       return false;
     } finally {
       setLoading(false);
@@ -102,7 +92,8 @@ export const useComedorSugerencias = (uid) => {
 
         const nominaUsuario = userSnap.data().nomina;
         const nombreUsuario = userSnap.data().nombre;
-        const response = await fetch(`${URL_BASE}/crearSugerencia`, {
+
+        const response = await fetch(`${COMEDOR_API_URL}/crearSugerencia`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -110,23 +101,22 @@ export const useComedorSugerencias = (uid) => {
             texto: texto.trim(),
             anonima,
             fotoUrl,
-            nomina: parseInt(nominaUsuario),
-            nombre: nombreUsuario
+            nomina: parseInt(nominaUsuario, 10),
+            nombre: nombreUsuario,
           }),
         });
+        const result = await response.json();
 
-        const data = await response.json();
-
-        if (data.status === "OK") {
-          setSuccess(true);
-          await obtenerSugerencias(); 
-          return true;
-        } else {
-          setError(data.message || "Error al guardar en la base de datos");
-          return false;
+        if (!response.ok || result?.status !== "OK") {
+          throw new Error(result?.message || "Error al guardar la sugerencia.");
         }
+
+        setSuccess(true);
+        await obtenerSugerencias();
+        return true;
       } catch (err) {
-        setError("Error de conexión al enviar la sugerencia");
+        console.error("Error al guardar sugerencia:", err);
+        setError("Error al guardar la sugerencia en la base de datos.");
         return false;
       } finally {
         setLoading(false);

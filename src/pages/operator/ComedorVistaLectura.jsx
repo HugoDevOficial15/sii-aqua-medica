@@ -1,15 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FaUtensils, FaCoffee, FaDrumstickBite, FaMoon } from "react-icons/fa";
 import { FiArrowLeft, FiTrash2, FiRefreshCw } from "react-icons/fi";
 import { useComedorMenuEmpleado } from "../../hooks/useComedorMenuEmpleado";
+import { getCurrentWeekRange } from "../../utils/weekCalculator";
 import "../../styles/operator/operator-comedor.css";
 
 export default function ComedorVistaLectura({ onBack, uid }) {
     const [activeMealTab, setActiveMealTab] = useState("desayuno");
     const { menuEmpleado, obtenerMenuEmpleado, loading, error } = useComedorMenuEmpleado(uid);
 
-    // Definimos la semana actual (puedes volverlo dinámico más adelante)
-    const idSemanaActual = "21.09.2026-27.09.2026";
+    // Obtener la semana actual dinámicamente (memoized)
+    const idSemanaActual = useMemo(() => {
+        return getCurrentWeekRange().formatted;
+    }, []); // Dependencias vacías - se calcula una sola vez al montar
 
     // Cargar menú del empleado
     useEffect(() => {

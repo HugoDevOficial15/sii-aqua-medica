@@ -15,6 +15,9 @@ import {
 } from "../../services/practicantesService";
 import { getPuestos } from "../../services/puestos-service";
 
+// Hook Comedor
+import { useComedorMenus } from "../../hooks/useComedorMenus";
+
 // Notify
 import { notifySuccess, notifyError } from "../../utils/notify";
 
@@ -41,6 +44,9 @@ import {
 // Areas
 import { AREAS } from "../../catalogs/areas";
 
+// Comedor Config
+import { DIAS_SEMANA } from "../../config/comedorConfig";
+
 export default function Practicantes({ onClose }) {
   const location = useLocation();
 
@@ -49,6 +55,13 @@ export default function Practicantes({ onClose }) {
 
   // Modal
   const [showModal, setShowModal] = useState(false);
+  const [infoModal, setInfoModal] = useState(false);
+  const [selectedPracticante, setSelectedPracticante] = useState(null);
+  const [solicitudComidaModal, setSolicitudComidaModal] = useState(false);
+  const [practicanteSolicitud, setPracticanteSolicitud] = useState(null);
+
+  // Hook Comedor
+  const { menus, loading: loadingMenus, error: errorMenus } = useComedorMenus();
 
   // Busqueda
   const [search, setSearch] = useState("");
@@ -87,6 +100,7 @@ export default function Practicantes({ onClose }) {
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
   } = useForm({
     resolver: zodResolver(practicanteSchema),
   });
@@ -299,28 +313,19 @@ export default function Practicantes({ onClose }) {
   };
 
   const handleSolicitudComida = (practicante) => {
-    notifySuccess(
-      "Solicitud registrada",
-      `Solicitud de comida para ${practicante.nombre} ha sido registrada`,
-    );
+    setPracticanteSolicitud(practicante);
+    setSolicitudComidaModal(true);
+  };
+
+  // La nómina se genera automáticamente en el servidor
+  // No se requiere generar en el cliente
+  const obtenerProximaNomina = () => {
+    return null;
   };
 
   const handleOpenInfo = (practicante) => {
-    Swal.fire({
-      title: practicante.nombre,
-      html: `
-        <div style="text-align: left; font-size: 14px;">
-          <p><strong>Escuela:</strong> ${practicante.escuela || "-"}</p>
-          <p><strong>Área:</strong> ${practicante.area || "-"}</p>
-          <p><strong>Nómina:</strong> ${practicante.nomina || "-"}</p>
-          <p><strong>Fecha Ingreso:</strong> ${practicante.fechaIngreso || "-"}</p>
-          <p><strong>Cumpleaños:</strong> ${practicante.cumpleanos || "-"}</p>
-          <p><strong>CURP:</strong> ${practicante.curp || "-"}</p>
-          <p><strong>Estado:</strong> ${practicante.activo ? "Activo" : "Inactivo"}</p>
-        </div>
-      `,
-      confirmButtonText: "Cerrar",
-    });
+    setSelectedPracticante(practicante);
+    setInfoModal(true);
   };
 
   const cachePracticantesSnapshot = (next = {}) => {
@@ -463,7 +468,7 @@ export default function Practicantes({ onClose }) {
     const data = practicantes.map((practicante) => ({
       Nombre: practicante.nombre,
       Area: practicante.area,
-      Puesto: practicante.puesto,
+      Escuela: practicante.escuela,
       "Fecha Ingreso": practicante.fechaIngreso,
       Cumpleaños: practicante.cumpleanos,
     }));
@@ -521,11 +526,12 @@ export default function Practicantes({ onClose }) {
             onClick={() => {
               reset({
                 nombre: "",
+                escuela: "",
                 area: "",
-                puesto: "",
                 fechaIngreso: "",
                 cumpleanos: "",
                 curp: "",
+                nomina: "",
               });
               setCurrentId(null);
               setEditing(false);
@@ -758,15 +764,15 @@ export default function Practicantes({ onClose }) {
                   </div>
 
                   <div className="col-md-12">
-                    <label>Nómina (desde 10000)</label>
+                    <label>Nómina (Se genera automáticamente al crear)</label>
                     <input
                       type="number"
                       className="form-control"
-                      {...register("nomina", {
-                        required: "Nómina es requerida",
-                        min: { value: 10000, message: "La nómina debe ser mayor a 10000" }
-                      })}
-                      min="10000"
+                      placeholder="Se asignará automáticamente"
+                      readOnly
+                      disabled
+                      {...register("nomina", {})}
+                      style={{backgroundColor: "var(--operator-form)", cursor: "not-allowed", opacity: 0.6}}
                     />
                   </div>
 
@@ -791,6 +797,205 @@ export default function Practicantes({ onClose }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {infoModal && selectedPracticante && (
+        <div className="modal-backdrop-custom custom-modal-backdrop">
+          <div className="modal-card-info custom-modal">
+            <div className="modal-header custom-modal-header">
+              <h5 className="modal-title">
+                <FaAddressCard/>
+                Información del Practicante</h5>
+              <button
+                type="button"
+                className="custom-close-btn"
+                onClick={() => {
+                  setInfoModal(false);
+                  setSelectedPracticante(null);
+                }}
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body-info">
+              <p>
+                <strong>Nombre:</strong> {sanitizeText(selectedPracticante.nombre || "")}
+              </p>
+              <p>
+                <strong>Escuela:</strong> {sanitizeText(selectedPracticante.escuela || "")}
+              </p>
+              <p>
+                <strong>Área:</strong> {sanitizeText(selectedPracticante.area || "")}
+              </p>
+              <p>
+                <strong>Nómina:</strong> {sanitizeText(selectedPracticante.nomina ?? "")}
+              </p>
+              <p>
+                <strong>Fecha Ingreso:</strong> {sanitizeText(selectedPracticante.fechaIngreso || "")}
+              </p>
+              <p>
+                <strong>Cumpleaños:</strong> {sanitizeText(selectedPracticante.cumpleanos || "")}
+              </p>
+              <p>
+                <strong>CURP:</strong> {sanitizeText(selectedPracticante.curp || "") || "-"}
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary custom-btn"
+                onClick={() => {
+                  setInfoModal(false);
+                  setSelectedPracticante(null);
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {solicitudComidaModal && practicanteSolicitud && menus && (
+        <div className="modal-backdrop-custom custom-modal-backdrop">
+          <div className="modal-card-comida custom-modal">
+            <div className="modal-header custom-modal-header">
+              <h5 className="modal-title">
+                <FaUtensils/>
+                Solicitar Comida - {practicanteSolicitud.nombre}</h5>
+              <button
+                type="button"
+                className="custom-close-btn"
+                onClick={() => {
+                  setSolicitudComidaModal(false);
+                  setPracticanteSolicitud(null);
+                }}
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body-comida">
+              {loadingMenus ? (
+                <p>Cargando menús...</p>
+              ) : errorMenus ? (
+                <p className="error-text">Error: {errorMenus}</p>
+              ) : (
+                <>
+                  <div className="comida-section">
+                    <h6>Desayunos por Día</h6>
+                    {menus.desayunos ? (
+                      Array.isArray(menus.desayunos) ? (
+                        menus.desayunos.length > 0 ? (
+                          menus.desayunos.slice(0, 5).map((desayunoDelDia, diaIdx) => {
+                            let items = [];
+                            if (Array.isArray(desayunoDelDia)) {
+                              items = desayunoDelDia;
+                            } else if (typeof desayunoDelDia === 'string') {
+                              items = [desayunoDelDia];
+                            } else if (typeof desayunoDelDia === 'object' && desayunoDelDia !== null) {
+                              items = Object.values(desayunoDelDia).flat();
+                            }
+                            return (
+                              <div key={`desayuno-${diaIdx}`} className="comida-dia">
+                                <strong>{DIAS_SEMANA[diaIdx] || `Día ${diaIdx}`}</strong>
+                                <div className="comida-list">
+                                  {items.length > 0 ? (
+                                    items.map((item, itemIdx) => (
+                                      <div key={`${diaIdx}-${itemIdx}`} className="comida-item">
+                                        <input type="checkbox" id={`desayuno-${diaIdx}-${itemIdx}`} />
+                                        <label htmlFor={`desayuno-${diaIdx}-${itemIdx}`}>{String(item)}</label>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <p style={{fontSize: '12px', color: 'var(--operator-text-soft)'}}>Sin opciones</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p>No hay desayunos disponibles</p>
+                        )
+                      ) : (
+                        <p>Estructura de desayunos no válida</p>
+                      )
+                    ) : (
+                      <p>Cargando desayunos...</p>
+                    )}
+                  </div>
+
+                  <div className="comida-section">
+                    <h6>Comidas por Día</h6>
+                    {menus.comidas ? (
+                      Array.isArray(menus.comidas) ? (
+                        menus.comidas.length > 0 ? (
+                          menus.comidas.slice(0, 5).map((comidaDelDia, diaIdx) => {
+                            let items = [];
+                            if (Array.isArray(comidaDelDia)) {
+                              items = comidaDelDia;
+                            } else if (typeof comidaDelDia === 'string') {
+                              items = [comidaDelDia];
+                            } else if (typeof comidaDelDia === 'object' && comidaDelDia !== null) {
+                              items = Object.values(comidaDelDia).flat();
+                            }
+                            return (
+                              <div key={`comida-${diaIdx}`} className="comida-dia">
+                                <strong>{DIAS_SEMANA[diaIdx] || `Día ${diaIdx}`}</strong>
+                                <div className="comida-list">
+                                  {items.length > 0 ? (
+                                    items.map((item, itemIdx) => (
+                                      <div key={`${diaIdx}-${itemIdx}`} className="comida-item">
+                                        <input type="checkbox" id={`comida-${diaIdx}-${itemIdx}`} />
+                                        <label htmlFor={`comida-${diaIdx}-${itemIdx}`}>{String(item)}</label>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <p style={{fontSize: '12px', color: 'var(--operator-text-soft)'}}>Sin opciones</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p>No hay comidas disponibles</p>
+                        )
+                      ) : (
+                        <p>Estructura de comidas no válida</p>
+                      )
+                    ) : (
+                      <p>Cargando comidas...</p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary custom-btn"
+                onClick={() => {
+                  setSolicitudComidaModal(false);
+                  setPracticanteSolicitud(null);
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  notifySuccess("Solicitud registrada", `Solicitud de comida para ${practicanteSolicitud.nombre} ha sido registrada`);
+                  setSolicitudComidaModal(false);
+                  setPracticanteSolicitud(null);
+                }}
+              >
+                Guardar Solicitud
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -961,6 +1166,119 @@ export default function Practicantes({ onClose }) {
         .modal-body {
           padding: 30px;
           background: var(--operator-card);
+        }
+
+        .modal-card-info {
+          overflow: hidden;
+          background: var(--operator-card);
+          backdrop-filter: blur(12px);
+          border-radius: 20px;
+          border: 1px solid var(--operator-border);
+          box-shadow: 0 24px 48px var(--operator-shadow);
+          max-width: 25%;
+          max-height: 60%;
+        }
+
+        .modal-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .modal-body-info {
+          padding: 10px 30px;
+          background: var(--operator-card);
+          font-size: 14px;
+          color: var(--operator-text);
+          gap: 12px;
+        }
+
+        .modal-body-info p {
+          justify-content: center;
+          background: var(--operator-form);
+          border-radius: 6px;
+          padding: 4px 30px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          color: var(--operator-text);
+          border: 1px solid var(--operator-border);
+        }
+
+        .modal-card-comida {
+          overflow: hidden;
+          background: var(--operator-card);
+          backdrop-filter: blur(12px);
+          border-radius: 20px;
+          border: 1px solid var(--operator-border);
+          box-shadow: 0 24px 48px var(--operator-shadow);
+          max-width: 40%;
+          max-height: 70%;
+        }
+
+        .modal-body-comida {
+          padding: 20px 30px;
+          background: var(--operator-card);
+          font-size: 14px;
+          color: var(--operator-text);
+          overflow-y: auto;
+          max-height: 400px;
+        }
+
+        .comida-section {
+          margin-bottom: 20px;
+        }
+
+        .comida-section h6 {
+          margin: 0 0 10px 0;
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--operator-primary);
+        }
+
+        .comida-dia {
+          margin-bottom: 15px;
+          padding: 10px;
+          background: var(--operator-form);
+          border-radius: 6px;
+          border: 1px solid var(--operator-border);
+        }
+
+        .comida-dia strong {
+          display: block;
+          margin-bottom: 8px;
+          font-size: 13px;
+          color: var(--operator-primary);
+          text-transform: uppercase;
+        }
+
+        .comida-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .comida-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          background: var(--operator-form);
+          border-radius: 6px;
+          border: 1px solid var(--operator-border);
+        }
+
+        .comida-item input[type="checkbox"] {
+          cursor: pointer;
+        }
+
+        .comida-item label {
+          flex: 1;
+          cursor: pointer;
+          margin: 0;
+          font-weight: 500;
+          color: var(--operator-text);
         }
 
         .modal-body label {

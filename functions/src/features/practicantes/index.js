@@ -100,20 +100,43 @@ exports.createPracticante = onCall(async (request) => {
       cumpleanos = "",
       fechaIngreso = "",
       curp = "",
-      nomina = 0,
+      nomina = null,
     } = data;
 
     if (!nombre || !escuela || !area) {
       throw new HttpsError("invalid-argument", "Nombre, escuela y área son obligatorios");
     }
 
-    if (nomina < 10000) {
-      throw new HttpsError("invalid-argument", "La nómina debe ser mayor o igual a 10000");
-    }
+    let finalNomina = nomina;
 
-    const existing = await practicantesCollection.where("nomina", "==", Number(nomina)).limit(1).get();
-    if (!existing.empty) {
-      throw new HttpsError("already-exists", "Ya existe un practicante con esa nómina");
+    // Si no se proporciona nómina, generar automáticamente
+    if (!nomina || Number(nomina) < 10000) {
+      const snapshot = await practicantesCollection
+        .orderBy("nomina", "desc")
+        .limit(1)
+        .get();
+
+      let nextNomina = 10000;
+      if (!snapshot.empty) {
+        const highestNomina = Number(snapshot.docs[0].data().nomina || 9999);
+        nextNomina = Math.max(10000, highestNomina + 1);
+      }
+
+      finalNomina = nextNomina;
+    } else {
+      // Si se proporciona nómina, validar que sea única
+      finalNomina = Number(nomina);
+      if (finalNomina < 10000) {
+        throw new HttpsError("invalid-argument", "La nómina debe ser mayor o igual a 10000");
+      }
+
+      const existing = await practicantesCollection
+        .where("nomina", "==", finalNomina)
+        .limit(1)
+        .get();
+      if (!existing.empty) {
+        throw new HttpsError("already-exists", "Ya existe un practicante con esa nómina");
+      }
     }
 
     const practicanteData = {
@@ -123,7 +146,7 @@ exports.createPracticante = onCall(async (request) => {
       cumpleanos: String(cumpleanos).trim(),
       fechaIngreso: String(fechaIngreso).trim(),
       curp: String(curp).trim().toUpperCase(),
-      nomina: Number(nomina),
+      nomina: finalNomina,
       activo: true,
       estado: "activo",
       rol: "practicante",

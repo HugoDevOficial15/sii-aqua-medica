@@ -16,6 +16,12 @@ export const COMEDOR_COSTOS = {
   CENA: 25,
 };
 
+export const EXTRAS_PRECIOS = {
+  "Pan": 10,
+  "Jugo Natural": 10,
+  "Licuado": 20,
+};
+
 export const COMEDOR_TIPOS = {
   DESAYUNO: "Desayuno",
   COMIDA: "Comida",

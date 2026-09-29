@@ -10,6 +10,11 @@ const minSdkVersion = minSdkMatch ? minSdkMatch[1] : null
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   define: {
     __MIN_SDK_VERSION__: JSON.stringify(minSdkVersion),
     __BUILD_DATE__: JSON.stringify(new Date().toISOString()),

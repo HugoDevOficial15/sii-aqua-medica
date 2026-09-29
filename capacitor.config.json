@@ -9,6 +9,12 @@
       "launchAutoHide": true,
       "backgroundColor": "#ffffff",
       "fadeOutDuration": 0
+    },
+    "Camera": {
+      "permissions": [
+        "camera",
+        "photos"
+      ]
     }
   }
 }

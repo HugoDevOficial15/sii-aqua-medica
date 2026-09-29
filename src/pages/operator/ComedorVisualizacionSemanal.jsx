@@ -1,6 +1,10 @@
 import { FiArrowLeft, FiMapPin, FiEye } from "react-icons/fi";
+import { getCurrentWeekRange, getNextWeekRange } from "../../utils/weekCalculator";
 
 export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavigateSuggestions }) {
+    const currentWeek = getCurrentWeekRange();
+    const nextWeek = getNextWeekRange();
+
     return (
         <div style={styles.container}>
             {/* Header */}
@@ -27,7 +31,7 @@ export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavi
                     </div>
                     <div style={styles.cardContent}>
                         <h3 style={styles.cardTitle}>Semana actual</h3>
-                        <p style={styles.cardDate}>21.09.2026-25.09.2026</p>
+                        <p style={styles.cardDate}>{currentWeek.formatted}</p>
                     </div>
                     <div style={styles.cardArrow}>→</div>
                 </button>
@@ -42,7 +46,7 @@ export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavi
                     </div>
                     <div style={styles.cardContent}>
                         <h3 style={styles.cardTitle}>Siguiente semana</h3>
-                        <p style={styles.cardDate}>28.09.2026-04.10.2026</p>
+                        <p style={styles.cardDate}>{nextWeek.formatted}</p>
                     </div>
                     <div style={styles.cardArrow}>→</div>
                 </button>

@@ -1,16 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { FaUtensils, FaCoffee, FaDrumstickBite, FaMoon } from "react-icons/fa";
 import { FiArrowLeft, FiChevronDown } from "react-icons/fi";
 import { useComedorMenus } from "../../hooks/useComedorMenus";
 import { useComedorOrdenes } from "../../hooks/useComedorOrdenes";
 import "../../styles/operator/operator-comedor.css";
 import { useAuth } from "../../hooks/useAuth";
-import { DIAS_SEMANA } from "../../config/comedorConfig";
+import { DIAS_SEMANA, EXTRAS_PRECIOS } from "../../config/comedorConfig";
+import { getNextWeekRange } from "../../utils/weekCalculator";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 export default function OperadorComedor({ onBack }) {
     const { user } = useAuth();
-    const { menus, loading: menusLoading, error: menusError } = useComedorMenus();
+    const { menus, loading: menusLoading, error: menusError, obtenerMenus } = useComedorMenus();
     const { guardarOrden, loading: ordenLoading, error: ordenError } = useComedorOrdenes(user?.uid);
 
     const [expandedDay, setExpandedDay] = useState(null);
@@ -19,16 +20,18 @@ export default function OperadorComedor({ onBack }) {
     const [confirmacion, setConfirmacion] = useState(null);
     const [ordenPendiente, setOrdenPendiente] = useState(null);
     const [ordenesAcumuladas, setOrdenesAcumuladas] = useState([]);
-    
+
     // Estado para datos históricos de la semana pasada
     const [semanaAnteriorData, setSemanaAnteriorData] = useState(null);
     const db = getFirestore();
 
-    const mealExtras = [
-        "Jugo Natural",
-        "Pan",
-        "Licuado"
-    ];
+    // Cargar menú de la siguiente semana al montar
+    useEffect(() => {
+        const siguienteSemana = getNextWeekRange().formatted;
+        obtenerMenus(siguienteSemana);
+    }, [obtenerMenus]);
+
+    const mealExtras = Object.keys(EXTRAS_PRECIOS);
 
     const ordenOptions = [
         { value: "Una orden", label: "Una orden", multiplier: 1 },
@@ -64,19 +67,26 @@ export default function OperadorComedor({ onBack }) {
     };
 
     // Construir menuData desde los datos reales de Firebase
+    // Los arrays de Firebase comienzan en Domingo (índice 0), pero DIAS_SEMANA comienza en Lunes
+    // Por eso sumamos 1 al índice para obtener el día correcto
     const menuData = menus
         ? DIAS_SEMANA.map((day, index) => {
             const desayunos = menus.desayunos || [];
             const comidas = menus.comidas || [];
             const cenas = menus.cenas || [];
 
+            // Firebase: [0=Domingo, 1=Lunes, 2=Martes, ..., 6=Sábado]
+            // DIAS_SEMANA: [0=Lunes, 1=Martes, ..., 5=Sábado, 6=Domingo]
+            // Entonces para Lunes (index 0), necesitamos Firebase[1]
+            const firebaseIndex = (index + 1) % 7;
+
             return {
                 day,
                 meals: {
-                    Desayuno: desayunos[index]?.G1 || "No disponible",
-                    Comida: comidas[index]?.G1 || "No disponible",
-                    ComidaSopa: comidas[index]?.SOPA || "NA",
-                    Cena: cenas[index]?.G1 || "No disponible",
+                    Desayuno: desayunos[firebaseIndex]?.G1 || "No disponible",
+                    Comida: comidas[firebaseIndex]?.G1 || "No disponible",
+                    ComidaSopa: comidas[firebaseIndex]?.SOPA || "NA",
+                    Cena: cenas[firebaseIndex]?.G1 || "No disponible",
                 }
             };
           })
@@ -202,7 +212,7 @@ export default function OperadorComedor({ onBack }) {
                                                                 onChange={(e) => setMealSelections({...mealSelections, [key]: e.target.value})}
                                                                 style={{marginRight: "6px"}}
                                                             />
-                                                            <strong>G2 - SECONDARIO: </strong>  ASADA
+                                                            <strong>G2 - SECUNDARIO: </strong>  ASADA
                                                         </label>
                                                     </div>
 
@@ -269,9 +279,16 @@ export default function OperadorComedor({ onBack }) {
                                                                         : [];
                                                                     const ordenSeleccionada = mealSelections[`${key}-orden`] || "Una orden";
                                                                     const ordenOption = ordenOptions.find(o => o.value === ordenSeleccionada);
-                                                                    
-                                                                    const costoBase = 25 * (ordenOption?.multiplier || 1);
-                                                                    const costoExtras = extrasSeleccionados.length * 10;
+
+                                                                    // Si se selecciona solo Asada, es un extra de $25 sin costo base
+                                                                    const esAsadaSola = mealSelections[key] === "Asada";
+                                                                    const costoBase = esAsadaSola ? 0 : 25 * (ordenOption?.multiplier || 1);
+                                                                    let costoExtras = extrasSeleccionados.reduce((total, extra) => total + (EXTRAS_PRECIOS[extra] || 10), 0);
+
+                                                                    if (esAsadaSola) {
+                                                                        costoExtras = 25;
+                                                                    }
+
                                                                     const costo = costoBase + costoExtras;
 
                                                                     const nuevaOrden = {
@@ -281,6 +298,9 @@ export default function OperadorComedor({ onBack }) {
                                                                         menu: mealSelections[key],
                                                                         orden: ordenSeleccionada,
                                                                         extras: extrasSeleccionados,
+                                                                        costoBase: esAsadaSola ? 0 : 25,
+                                                                        multiplicador: esAsadaSola ? 1 : (ordenOption?.multiplier || 1),
+                                                                        costoExtras: costoExtras,
                                                                         costo: costo,
                                                                     };
 
@@ -370,7 +390,15 @@ export default function OperadorComedor({ onBack }) {
                                         <span style={styles.ordenExtras}>+ {orden.extras.join(", ")}</span>
                                     )}
                                 </div>
-                                <div style={styles.ordenCosto}>${orden.costo.toFixed(2)}</div>
+                                <div style={styles.ordenDesglose}>
+                                    {orden.costoBase > 0 && (
+                                        <div style={styles.desgloseLine}>Base: ${(orden.costoBase * orden.multiplicador).toFixed(2)}</div>
+                                    )}
+                                    {orden.costoExtras > 0 && (
+                                        <div style={styles.desgloseLine}>Extras: ${orden.costoExtras.toFixed(2)}</div>
+                                    )}
+                                    <div style={styles.desglosetotal}>${orden.costo.toFixed(2)}</div>
+                                </div>
                                 <button
                                     style={styles.eliminarButton}
                                     onClick={() => {
@@ -734,8 +762,6 @@ const styles = {
     },
     carritoContent: {
         marginBottom: "12px",
-        maxHeight: "300px",
-        overflowY: "auto",
     },
     ordenItem: {
         padding: "10px 12px",
@@ -744,8 +770,9 @@ const styles = {
         marginBottom: "8px",
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center",
+        alignItems: "flex-start",
         fontSize: "12px",
+        gap: "8px",
     },
     ordenInfo: {
         flex: 1,
@@ -793,6 +820,26 @@ const styles = {
         fontWeight: "700",
         transition: "all 0.2s ease",
         fontFamily: "inherit",
+    },
+    ordenDesglose: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "2px",
+        textAlign: "right",
+        minWidth: "90px",
+        marginRight: "8px",
+    },
+    desgloseLine: {
+        fontSize: "11px",
+        color: "var(--operator-text-soft)",
+        fontWeight: "500",
+    },
+    desglosetotal: {
+        fontWeight: "700",
+        color: "#4CAF50",
+        fontSize: "12px",
+        paddingTop: "2px",
+        borderTop: "1px solid var(--operator-border)",
     },
     carritoTotal: {
         padding: "12px 16px",

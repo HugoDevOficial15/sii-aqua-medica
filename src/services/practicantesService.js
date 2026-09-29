@@ -70,6 +70,7 @@ export const createPracticante = async (data) => {
       fechaIngreso: data.fechaIngreso || "",
       curp: data.curp || "",
       escuela: data.escuela || "",
+      puesto: data.puesto || "",
       nomina: Number(data.nomina) || 0,
       activo: true,
       estado: "activo",
@@ -77,12 +78,48 @@ export const createPracticante = async (data) => {
       createdAt: new Date().toISOString(),
     };
 
+    // Crear en sii-aqua-medica
     const result = await createPracticanteFunction(practicanteData);
+
+    // También crear en AquamedicaSoftware (solo 7 campos permitidos, sin puesto, rfc, nss, email)
+    const datosAquaMedica = {
+      nombre: data.nombre,
+      nomina: Number(data.nomina),
+      escuela: data.escuela || "",
+      area: data.area || "",
+      fechaIngreso: data.fechaIngreso || "",
+      cumpleanos: data.cumpleanos || "",
+      curp: data.curp || "",
+    };
+    await createPracticanteInAquaMedica(datosAquaMedica);
+
     invalidatePracticantesCaches();
     return result.data || {};
   } catch (error) {
     console.error("Error creating practicante:", error);
     throw error;
+  }
+};
+
+const createPracticanteInAquaMedica = async (data) => {
+  try {
+    const AQUAMEDICA_URL = "https://us-central1-aquamedica2023.cloudfunctions.net";
+
+    const response = await fetch(`${AQUAMEDICA_URL}/createPracticanteAquaMedica`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log("✓ Practicante creado en AquaMedica:", result);
+    return result;
+  } catch (error) {
+    console.error("⚠ Error creating practicante in AquaMedica:", error);
   }
 };
 
@@ -95,16 +132,55 @@ export const updatePracticante = async (id, data) => {
       fechaIngreso: data.fechaIngreso || "",
       curp: data.curp || "",
       escuela: data.escuela || "",
+      puesto: data.puesto || "",
       nomina: data.nomina ? Number(data.nomina) : undefined,
       activo: data.activo !== undefined ? data.activo : true,
       estado: data.estado || "activo",
     };
 
+    // Actualizar en sii-aqua-medica
     const result = await updatePracticanteFunction({ id, data: practicanteData });
+
+    // También actualizar en AquamedicaSoftware (solo 6 campos permitidos, sin puesto, rfc, nss, email)
+    if (data.nomina) {
+      const datosAquaMedica = {};
+      if (data.nombre) datosAquaMedica.nombre = data.nombre;
+      if (data.escuela) datosAquaMedica.escuela = data.escuela;
+      if (data.area) datosAquaMedica.area = data.area;
+      if (data.fechaIngreso) datosAquaMedica.fechaIngreso = data.fechaIngreso;
+      if (data.cumpleanos) datosAquaMedica.cumpleanos = data.cumpleanos;
+      if (data.curp) datosAquaMedica.curp = data.curp;
+
+      await updatePracticanteInAquaMedica(data.nomina, datosAquaMedica);
+    }
+
     invalidatePracticantesCaches();
     return result.data || {};
   } catch (error) {
     console.error("Error updating practicante:", error);
     throw error;
+  }
+};
+
+const updatePracticanteInAquaMedica = async (nomina, data) => {
+  try {
+    const AQUAMEDICA_URL = "https://us-central1-aquamedica2023.cloudfunctions.net";
+
+    const response = await fetch(`${AQUAMEDICA_URL}/updatePracticanteAquaMedica`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nomina, ...data }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log("✓ Practicante actualizado en AquaMedica:", result);
+    return result;
+  } catch (error) {
+    console.error("⚠ Error updating practicante in AquaMedica:", error);
+    // No lanzar error para no interrumpir la actualización local
   }
 };

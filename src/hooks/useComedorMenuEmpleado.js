@@ -19,25 +19,45 @@ export const useComedorMenuEmpleado = (uid) => {
     setError(null);
 
     try {
-      // 1. Obtener la nómina del usuario en la nueva colección 'users'
-      const userRef = doc(db, "users", uid);
-      const userSnap = await getDoc(userRef);
+      let nominaUsuario = null;
 
-      if (!userSnap.exists() || !userSnap.data().nomina) {
-        setError("Perfil incompleto: No se encontró la nómina.");
-        setLoading(false);
-        return false;
+      // Intentar obtener usuario de múltiples ubicaciones
+      const possiblePaths = [
+        { path: ["AquaMedica-Morelos", "Usuarios", "Comedor", uid], name: "AquaMedica-Morelos/Usuarios/Comedor" },
+        { path: ["users", uid], name: "users" }
+      ];
+
+      for (const { path, name } of possiblePaths) {
+        try {
+          const userRef = doc(db, ...path);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            nominaUsuario = userData.Nomina || userData.nomina || userData.Numero || userData.numero;
+            console.log(`✓ Usuario encontrado en ${name}:`, { uid, nomina: nominaUsuario, campos: Object.keys(userData) });
+            break;
+          }
+        } catch (e) {
+          console.warn(`⚠ Error buscando en ${name}:`, e.message);
+        }
       }
 
-      const nominaUsuario = userSnap.data().nomina;
+      // Si no existe nómina, usar el UID como identificador (fallback)
+      if (!nominaUsuario) {
+        console.warn("⚠ Usuario sin nómina encontrada, usando UID como fallback:", uid);
+        nominaUsuario = uid;
+      }
+
+      console.log("📝 Llamando API con nómina:", nominaUsuario, "e idSemana:", idSemana);
 
       // 2. Consumir la API usando la nómina
       const response = await fetch(`${PRODUCCION_URL}/obtenerMenuEmpleado`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            nomina: parseInt(nominaUsuario), 
-            idSemana: idSemana 
+        body: JSON.stringify({
+            nomina: isNaN(parseInt(nominaUsuario)) ? nominaUsuario : parseInt(nominaUsuario),
+            idSemana: idSemana
         }),
       });
 

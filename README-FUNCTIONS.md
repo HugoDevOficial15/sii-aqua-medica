@@ -138,4 +138,17 @@ ReFactorizadas:
 * getPersonalHistorialesMedicos
 * getPersonalCapacitaciones
 * getPersonalPdfReportData
+* Se crearon funciones de notas y notificaciones 
+
+
+Nuevas (Practicantes):
+
+* getPracticantesPage
+* searchPracticantes
+* updatePracticante
+
+RefActorizadas (Practicantes):
+
+* createPracticante
+
 ==================================

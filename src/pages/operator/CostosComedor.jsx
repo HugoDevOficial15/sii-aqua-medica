@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FiArrowLeft, FiRefreshCw } from "react-icons/fi";
 import { useComedorCostos } from "../../hooks/useComedorCostos";
+import { getWeekOptions } from "../../utils/weekCalculator";
 
 export default function CostosComedor({ onBack }) {
     const { costos, loading, error, obtenerCostosSemana } = useComedorCostos();
@@ -12,13 +13,11 @@ export default function CostosComedor({ onBack }) {
         }
     };
 
-    // Opciones de semanas (últimas 4 semanas)
-    const opcionesSemanales = [
-        { id: "21.09.2026-27.09.2026", label: "21.09.2026 - 27.09.2026" },
-        { id: "28.09.2026-04.10.2026", label: "28.09.2026 - 04.10.2026" },
-        { id: "05.10.2026-11.10.2026", label: "05.10.2026 - 11.10.2026" },
-        { id: "12.10.2026-18.10.2026", label: "12.10.2026 - 18.10.2026" },
-    ];
+    // Generar opciones de semanas dinámicamente (últimas 2 semanas + próximas 4)
+    const opcionesSemanales = getWeekOptions(4, 2).map(week => ({
+        id: week.id,
+        label: week.label
+    }));
 
     return (
         <div style={styles.container}>

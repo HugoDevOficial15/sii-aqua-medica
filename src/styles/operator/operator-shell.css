@@ -1631,6 +1631,42 @@ POINTS
     margin-bottom: 24px;
 }
 
+.survey-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.survey-stat-card {
+    background: var(--operator-card);
+    border-radius: 22px;
+    padding: 18px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.survey-stat-card svg {
+    font-size: 24px;
+    color: #0A4D9D;
+}
+
+.survey-stat-card h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--operator-text);
+}
+
+.survey-stat-card span {
+    color: #64748B;
+    font-size: 12px;
+}
+
 .points-stats-grid {
 
     display: grid;
@@ -3633,4 +3669,52 @@ RANKING - ÁREA + GLOBAL
     color: var(--operator-primary) !important;
     font-weight: 600;
     margin-top: 2px;
+}
+
+/* ===========================
+   RESPONSIVIDAD ENCUESTAS Y CAPACITACIONES
+=========================== */
+
+@media (max-width: 768px) {
+    .survey-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .survey-stat-card {
+        padding: 14px;
+    }
+
+    .survey-stat-card h3 {
+        font-size: 20px;
+    }
+
+    .survey-stat-card span {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .survey-stats {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .survey-stat-card {
+        padding: 12px;
+    }
+
+    .survey-stat-card h3 {
+        font-size: 18px;
+    }
+
+    .survey-stat-card span {
+        font-size: 10px;
+    }
+
+    .survey-stat-card svg {
+        font-size: 18px;
+    }
 }
