@@ -1,22 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
-import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import { FiArrowLeft, FiCalendar, FiList, FiX } from "react-icons/fi";
 
 import Loader from "../../components/Loader";
 import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
 import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
-import { sendAdminNotification } from "../../utils/sendAdminNotification";
 
 import { CITA_ESTADOS } from "../../constants/citasMedicasStates";
 import {
     getUserAppointments,
     cancelAppointmentByUser,
     getAvailableSchedules,
-    bookAppointment
+    bookAppointment,
+    notifyAdminsForAppointmentEvent
 } from "../../services/citasMedicasService";
+import { getAgendasMedicas } from "../../services/agendaMedicaService";
 
 export default function OperadorCitasMedicas() {
     const { user } = useAuth();
@@ -49,11 +48,7 @@ export default function OperadorCitasMedicas() {
     useEffect(() => {
         const fetchAgendas = async () => {
             try {
-                const q = query(collection(db, "agendas_medicas"), where("estado", "==", "activa"));
-                const querySnapshot = await getDocs(q);
-                const agendasCargadas = querySnapshot.docs.map(doc => ({
-                    id: doc.id, ...doc.data()
-                }));
+                const agendasCargadas = await getAgendasMedicas({ estado: "activa" });
                 setAgendas(agendasCargadas);
 
                 if (agendaIdReagendamiento) {
@@ -212,23 +207,20 @@ export default function OperadorCitasMedicas() {
             });
 
             try {
-                //  Expandimos roles para notificar a admins sobre la nueva cita
-                await sendAdminNotification(
-                    {
-                        Titulo: "📅 Nueva Cita Médica Agendada",
-                        Mensaje: `${nombreFinal} agendó una cita en: "${agendaActiva.nombre}" para el ${formatearFecha(fechaElegida)} a las ${horaElegida}`,
-                        Destino: "citas-medicas",
-                        Accion: "cita_agendada",
-                        extra: {
-                            agendaId: agendaActiva.id,
-                            agendaNombre: agendaActiva.nombre,
-                            usuarioNombre: nombreFinal,
-                            fecha: fechaElegida,
-                            hora: horaElegida
-                        }
+                await notifyAdminsForAppointmentEvent({
+                    titulo: "📅 Nueva Cita Médica Agendada",
+                    mensaje: `${nombreFinal} agendó una cita en: "${agendaActiva.nombre}" para el ${formatearFecha(fechaElegida)} a las ${horaElegida}`,
+                    destino: "citas-medicas",
+                    accion: "cita_agendada",
+                    extra: {
+                        agendaId: agendaActiva.id,
+                        agendaNombre: agendaActiva.nombre,
+                        usuarioNombre: nombreFinal,
+                        fecha: fechaElegida,
+                        hora: horaElegida
                     },
-                    ["admin_medico", "admin_sistemas", "admin", "administrador", "admin_general"]
-                );
+                    rolesPermitidos: ["admin_medico", "admin_sistemas", "admin", "administrador", "admin_general"]
+                });
             } catch (error) {
                 console.error("Error al notificar a admins sobre la cita agendada:", error);
             }
@@ -260,23 +252,20 @@ export default function OperadorCitasMedicas() {
             await cancelAppointmentByUser(citaACancelar.id, user, motivo);
 
             try {
-                // 🔥 Expandimos roles para notificar cancelación
-                await sendAdminNotification(
-                    {
-                        Titulo: "❌ Cita Médica Cancelada",
-                        Mensaje: `${user?.nombre || "Un usuario"} canceló una cita para el ${formatearFecha(citaACancelar.fecha)}`,
-                        Destino: "medical-appointments",
-                        Accion: "cita_cancelada",
-                        extra: {
-                            citaId: citaACancelar.id,
-                            usuarioNombre: user?.nombre,
-                            fecha: citaACancelar.fecha,
-                            hora: citaACancelar.horaInicio || citaACancelar.hora,
-                            motivo: motivo
-                        }
+                await notifyAdminsForAppointmentEvent({
+                    titulo: "❌ Cita Médica Cancelada",
+                    mensaje: `${user?.nombre || "Un usuario"} canceló una cita para el ${formatearFecha(citaACancelar.fecha)}`,
+                    destino: "medical-appointments",
+                    accion: "cita_cancelada",
+                    extra: {
+                        citaId: citaACancelar.id,
+                        usuarioNombre: user?.nombre,
+                        fecha: citaACancelar.fecha,
+                        hora: citaACancelar.horaInicio || citaACancelar.hora,
+                        motivo: motivo
                     },
-                    ["admin_medico", "admin_sistemas", "admin", "administrador", "admin_general"]
-                );
+                    rolesPermitidos: ["admin_medico", "admin_sistemas", "admin", "administrador", "admin_general"]
+                });
             } catch (error) {
                 console.error("Error al notificar a admins sobre la cancelación:", error);
             }

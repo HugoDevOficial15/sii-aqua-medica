@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { collection, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, getDocs, query, orderBy, where, writeBatch } from "firebase/firestore";
-import { db } from "../../config/firebase";
 import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa";
-import { AREAS } from "../../catalogs/areas";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
-import { dismissNotification } from "../../utils/notificationPersistence";
-import { createNotification } from "../../utils/createNotification";
-import { uploadNewsFile, uploadNewsImage, deleteNewsFile } from "../../services/newsStorageService";
+import { uploadNewsFile, uploadNewsImage } from "../../services/newsStorageService";
+import { getNoticias, createNoticia, updateNoticia, deleteNoticia } from "../../services/newsService";
 import { sanitizeText, sanitizeTextTrim } from "../../utils/sanitize";
+import Swal from "sweetalert2";
 
 // 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
 const getHoy = () => {
@@ -57,9 +54,7 @@ export default function News() {
 
   const cargarNoticias = async () => {
     try {
-      const q = query(collection(db, "noticias"), orderBy("fechaCreacion", "desc"));
-      const snapshot = await getDocs(q);
-      const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const lista = await getNoticias();
       setNoticias(lista);
     } catch (error) {
       console.error("Error al cargar noticias:", error);
@@ -102,25 +97,24 @@ export default function News() {
 
   //  NUEVA FUNCIÓN: Eliminar Noticia
   const handleEliminar = async (id, tituloNoticia) => {
-    const result = await confirmDelete("¿Eliminar noticia?", "Esta acción no se puede deshacer.");
+    
+    const result = await confirmDelete("¿Eliminar noticia?", `${tituloNoticia}`, "Esta acción no se puede deshacer.");
     if (result.isConfirmed) {
       try {
-        // Eliminar notificaciones asociadas
-        const qNotif = query(collection(db, "notificaciones"), where("extra.noticiaId", "==", id));
-        const snapshotNotif = await getDocs(qNotif);
-
-        const deleteNotifPromises = snapshotNotif.docs.map(docNotif => {
-          // 🍪 Persistir en cookies antes de borrar
-          dismissNotification(docNotif.id);
-          return deleteDoc(doc(db, "notificaciones", docNotif.id));
+        Swal.fire({
+          title: "Eliminando noticia...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
         });
-        await Promise.all(deleteNotifPromises);
+        await deleteNoticia(id);
 
-        // Eliminar noticia
-        await deleteDoc(doc(db, "noticias", id));
+        Swal.close();
         notifySuccess("Noticia eliminada", "La noticia y notificaciones han sido eliminadas correctamente.");
-        cargarNoticias();
+        await cargarNoticias();
       } catch (error) {
+        Swal.close();
         console.error("Error al eliminar la noticia:", error);
         notifyError("Error", "Hubo un error al eliminar la noticia.");
       }
@@ -203,86 +197,38 @@ export default function News() {
         archivoRuta = resultado.ruta;
       }
 
+      const payload = {
+        titulo: tituloSanitizado,
+        contenido: contenidoSanitizado,
+        fechaLimite,
+        areaDestino: areaDestinoSanitizada || "Todas",
+        imagen: imagenUrl,
+        archivo: archivoUrl,
+        archivoNombre: archivoNombre,
+        archivoRuta: archivoRuta,
+        estado: "Activa"
+      };
+
       if (noticiaEditando) {
-        const idNoticia = noticiaEditando.id;
-        await updateDoc(doc(db, "noticias", idNoticia), {
-          titulo: tituloSanitizado,
-          contenido: contenidoSanitizado,
-          fechaLimite,
-          areaDestino: areaDestinoSanitizada || "Todas",
-          imagen: imagenUrl,
-          archivo: archivoUrl,
-          archivoNombre: archivoNombre,
-          archivoRuta: archivoRuta,
-          estado: "Activa"
-        });
-      } else {
-        const docRef = await addDoc(collection(db, "noticias"), {
-          titulo: tituloSanitizado,
-          contenido: contenidoSanitizado,
-          fechaLimite,
-          areaDestino: areaDestinoSanitizada || "Todas",
-          imagen: imagenUrl,
-          archivo: archivoUrl,
-          archivoNombre: archivoNombre,
-          archivoRuta: archivoRuta,
-          fechaCreacion: serverTimestamp(),
-          estado: "Activa"
-        });
-
-        // Obtener usuarios operadores del área destino o todos si la noticia es general
-        const isGeneralNews = areaDestinoSanitizada === "Todas";
-
-        const baseUsersQuery = isGeneralNews
-          ? query(collection(db, "users"), where("rol", "==", "operador"))
-          : query(
-              collection(db, "users"),
-              where("rol", "==", "operador"),
-              where("area", "==", areaDestinoSanitizada)
-            );
-
-        let usersSnapshot = await getDocs(baseUsersQuery);
-
-        if (usersSnapshot.docs.length === 0) {
-          const fallbackQuery = isGeneralNews
-            ? query(collection(db, "usuarios"), where("rol", "==", "operador"))
-            : query(
-                collection(db, "usuarios"),
-                where("rol", "==", "operador"),
-                where("area", "==", areaDestinoSanitizada)
-              );
-          usersSnapshot = await getDocs(fallbackQuery);
-        }
-
-        const usuariosDestino = usersSnapshot.docs.filter((userDoc) => {
-          const data = userDoc.data() || {};
-          return data.rol === "operador" || data.rol === "operator";
-        });
-
-        const notifications = usuariosDestino.map((userDoc) => ({
-          IdUsuario: userDoc.data()?.uid || userDoc.id,
-          Titulo: "📰 Nueva noticia",
-          Mensaje: `Nueva noticia: "${tituloSanitizado}"`,
-          Destino: "/news",
-          Accion: "nueva_noticia",
-          fechaCreacion: serverTimestamp(),
-          enviado: false,
-          fechaEnviado: null,
-          tipo: "news",
-          noticiaId: docRef.id,
-          extra: {
-            tipo: "news",
-            noticiaId: docRef.id,
-            areaDestino: areaDestinoSanitizada || "Todas",
-            titulo: tituloSanitizado
+        Swal.fire({
+          title: "Actualizando noticia...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
           }
-        }));
-
-        for (const notification of notifications) {
-          await createNotification(notification);
-        }
+        });
+        await updateNoticia(noticiaEditando.id, payload);
+      } else {
+        Swal.fire({
+          title: "Publicando noticia...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+        await createNoticia(payload);
       }
-
+      Swal.close();
       notifySuccess(
         noticiaEditando ? "Noticia actualizada" : "Noticia publicada",
         noticiaEditando ? "Los cambios han sido guardados correctamente." : "La noticia ha sido publicada con éxito."
@@ -290,6 +236,7 @@ export default function News() {
       setVistaActual("lista");
       cargarNoticias();
     } catch (error) {
+      Swal.close();
       console.error("Error en Firebase:", error);
       notifyError("Error", "Hubo un error al procesar la noticia.");
     } finally {

@@ -37,7 +37,6 @@ export default function CreateCapacitaciones() {
             text,
             allowOutsideClick: false,
             allowEscapeKey: false,
-            zIndex: 2147483647,
             didOpen: () => Swal.showLoading(),
         });
 
@@ -908,7 +907,7 @@ export default function CreateCapacitaciones() {
                                                 </label>
                                                 <input
                                                     {...register("instructor", {
-                                                        onChange: (event) => sanitizeField("instructor", event.target.value),
+                                                        onChange: (event) => sanitizeText("instructor", event.target.value),
                                                     })}
                                                     className={`form-control ${errors.instructor ? "is-invalid" : ""}`}
                                                 />
@@ -1043,7 +1042,7 @@ export default function CreateCapacitaciones() {
                                                 </label>
                                                 <textarea
                                                     {...register("objetivo", {
-                                                        onChange: (event) => sanitizeField("objetivo", event.target.value),
+                                                        onChange: (event) => sanitizeText("objetivo", event.target.value),
                                                     })}
                                                     className={`form-control ${errors.objetivo ? "is-invalid" : ""}`}
                                                 />
@@ -1062,7 +1061,7 @@ export default function CreateCapacitaciones() {
                                                 <div key={item.id} className="d-flex mt-2">
                                                     <input
                                                         {...register(`temario.${i}`, {
-                                                            onChange: (event) => sanitizeField(`temario.${i}`, event.target.value),
+                                                            onChange: (event) => sanitizeText(`temario.${i}`, event.target.value),
                                                         })}
                                                         className="form-control me-2"
                                                         placeholder={`Tema ${i + 1}`}
@@ -1207,7 +1206,7 @@ export default function CreateCapacitaciones() {
 
                                                     <input
                                                         {...register(`preguntas.${index}.pregunta`, {
-                                                            onChange: (event) => sanitizeField(`preguntas.${index}.pregunta`, event.target.value),
+                                                            onChange: (event) => sanitizeText(`preguntas.${index}.pregunta`, event.target.value),
                                                         })}
                                                         className="form-control mt-3"
                                                         placeholder="Escribe la pregunta"
@@ -2223,7 +2222,7 @@ function OpcionesMultiple({ control, register, index, watch, setValue }) {
                         className="form-control me-2"
                         placeholder={`Opción ${i + 1}`}
                         {...register(`preguntas.${index}.opciones.${i}.texto`, {
-                            onChange: (event) => sanitizeField(`preguntas.${index}.opciones.${i}.texto`, event.target.value),
+                            onChange: (event) => sanitizeText(`preguntas.${index}.opciones.${i}.texto`, event.target.value),
                         })}
                     />
                     <button

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
-import { db } from "../../config/firebase";
 import NewsCard from "./news/NewsCard";
 import { getCurrentUser } from "../../utils/session";
+import { getOperatorNews } from "../../services/newsService";
 import MobileBackButton from "./components/MobileBackButton";
 
 export default function OperatorNews({ onNavigate, onBack }) {
@@ -14,48 +13,19 @@ export default function OperatorNews({ onNavigate, onBack }) {
         setLoading(true);
 
         try {
-            const q = query(
-                collection(db, "noticias"),
-                orderBy("fechaCreacion", "desc"),
-                limit(30)
-            );
-            const snapshot = await getDocs(q);
-
-            const getHoy = () => {
-                const d = new Date();
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
-
-            const fechaHoy = getHoy();
             const usuarioActual = getCurrentUser();
+            const fetchedNews = await getOperatorNews(usuarioActual?.area || "");
 
-            const fetchedNews = snapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    id: doc.id,
-                    title: data.titulo || "Sin título",
-                    summary: data.contenido || "",
-                    date: data.fechaLimite ? `Vigente hasta: ${data.fechaLimite}` : "Reciente",
-                    image: data.imagen ? data.imagen : "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800",
-                    ...data
-                };
-            });
+            const normalizedNews = fetchedNews.map((noticia) => ({
+                id: noticia.id,
+                title: noticia.titulo || "Sin título",
+                summary: noticia.contenido || "",
+                date: noticia.fechaLimite ? `Vigente hasta: ${noticia.fechaLimite}` : "Reciente",
+                image: noticia.imagen || "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800",
+                ...noticia,
+            }));
 
-            let noticiasVigentes = fetchedNews.filter((noticia) => {
-                if (!noticia.fechaLimite) return true;
-                return noticia.fechaLimite >= fechaHoy;
-            });
-
-            if (usuarioActual?.area) {
-                noticiasVigentes = noticiasVigentes.filter((noticia) => {
-                    return noticia.areaDestino === "Todas" || noticia.areaDestino === usuarioActual.area;
-                });
-            }
-
-            setNews(noticiasVigentes);
+            setNews(normalizedNews);
         } catch (error) {
             console.error("Error al cargar noticias:", error);
             setNews([]);
@@ -65,73 +35,7 @@ export default function OperatorNews({ onNavigate, onBack }) {
     };
 
     useEffect(() => {
-        let isMounted = true;
-
-        const refreshNews = async () => {
-            setLoading(true);
-
-            try {
-                const q = query(
-                    collection(db, "noticias"),
-                    orderBy("fechaCreacion", "desc"),
-                    limit(30)
-                );
-                const snapshot = await getDocs(q);
-
-                const getHoy = () => {
-                    const d = new Date();
-                    const year = d.getFullYear();
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const day = String(d.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                };
-
-                const fechaHoy = getHoy();
-                const usuarioActual = getCurrentUser();
-
-                const fetchedNews = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                        id: doc.id,
-                        title: data.titulo || "Sin título",
-                        summary: data.contenido || "",
-                        date: data.fechaLimite ? `Vigente hasta: ${data.fechaLimite}` : "Reciente",
-                        image: data.imagen ? data.imagen : "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800",
-                        ...data
-                    };
-                });
-
-                let noticiasVigentes = fetchedNews.filter((noticia) => {
-                    if (!noticia.fechaLimite) return true;
-                    return noticia.fechaLimite >= fechaHoy;
-                });
-
-                if (usuarioActual?.area) {
-                    noticiasVigentes = noticiasVigentes.filter((noticia) => {
-                        return noticia.areaDestino === "Todas" || noticia.areaDestino === usuarioActual.area;
-                    });
-                }
-
-                if (isMounted) {
-                    setNews(noticiasVigentes);
-                }
-            } catch (error) {
-                console.error("Error al cargar noticias:", error);
-                if (isMounted) {
-                    setNews([]);
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        };
-
-        refreshNews();
-
-        return () => {
-            isMounted = false;
-        };
+        loadNews();
     }, []);
 
     // Filtrar por buscador

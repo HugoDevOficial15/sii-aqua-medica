@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { FiX } from "react-icons/fi";
 import { crearAgenda } from "../../services/agendaMedicaService";
 import { generarSlots } from "../../services/generarSlotsMedicos";
+import Swal from "sweetalert2";
 
 import { notifyWarning, notifySuccess, notifyError } from "../../utils/notify";
 
@@ -217,20 +218,34 @@ export default function AgendaForm({ onSaved }) {
                 duracionMin: form.duracionMin,
                 horarios: form.horarios,
                 diasBloqueados: form.diasBloqueados
-            };
+            };          
 
+            Swal.fire({
+                title: "Creando agenda...",
+                text: "Por favor espera mientras se crea la agenda.",
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
             const agendaId = await crearAgenda(datosAgenda);
 
             // La agenda no debe quedar bloqueada mientras se generan cientos
             // de citas. La disponibilidad continúa en segundo plano.
-            void generarSlots({ id: agendaId, ...datosAgenda }).catch((error) => {
+            void generarSlots({
+                ...datosAgenda,
+                id: agendaId,
+                agendaId: agendaId,
+            }).catch((error) => {
+                Swal.close();
                 console.error("Error generando citas de la agenda:", error);
                 notifyError("Agenda creada", "La agenda se guardó, pero no se pudieron generar todas las citas.");
             });
-
+            Swal.close();
             notifySuccess("Agenda creada", "La agenda médica se guardó. Las citas se están generando.");
             onSaved?.();
         } catch (err) {
+            Swal.close();
             console.error("Error al guardar la agenda:", err);
             notifyError("Error al guardar", "No se pudo guardar la agenda médica. Intenta nuevamente.");
         } finally {

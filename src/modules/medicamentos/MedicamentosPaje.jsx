@@ -9,6 +9,7 @@ import { FaPlus } from "react-icons/fa";
 
 import Loader from "../../components/Loader";
 import { exportMedicamentosPDF } from "../../utils/exportMedicamentosPDF";
+import { notifySuccess, notifyError, notifyLoading, closeLoadingAlert, confirmDelete } from "../../utils/notify";
 
 
 export default function MedicamentosPage() {
@@ -17,6 +18,7 @@ export default function MedicamentosPage() {
         loading,
         fetchData,
         toggleMedicamento,
+        deleteMedicamento,
         filtroSemaforo,
         setFiltroSemaforo,
         filtroEstado,
@@ -42,6 +44,28 @@ export default function MedicamentosPage() {
             item.estado === 'activo' ? 'inactivo' : 'activo'
         )
         fetchData()
+    }
+
+    const handleDelete = async (item) => {
+        const confirmed = await confirmDelete(
+            "Eliminar medicamento",
+            `¿Deseas eliminar "${item.nombreMedicamento || "este medicamento"}"?`
+        )
+
+        if (!confirmed.isConfirmed) {
+            return
+        }
+
+        try {
+            notifyLoading("Eliminando medicamento", "Por favor espera...")
+            await deleteMedicamento(item.id)
+            await closeLoadingAlert()
+            await notifySuccess("Medicamento eliminado", "Se eliminó correctamente.")
+            fetchData()
+        } catch (error) {
+            await closeLoadingAlert()
+            await notifyError("Error al eliminar", "No se pudo eliminar el medicamento.")
+        }
     }
 
     const handleExportPdf = async () => {
@@ -98,6 +122,7 @@ export default function MedicamentosPage() {
                         data={data}
                         onEdit={handleEdit}
                         onToggle={handleToggle}
+                        onDelete={handleDelete}
                     />
                 )}
 

@@ -97,7 +97,8 @@ export default function OperatorProfile({ usuarioActual, onBack, onNavigate }) {
     }, [datosUsuario?.nomina]);
 
     let nameFull =
-        datosUsuario?.nombre?.split(" ")[0] + " " + datosUsuario?.nombre?.split(" ")[2];
+        (datosUsuario?.nombre?.split(" ")[0] || "") + " " + (datosUsuario?.nombre?.split(" ")[1] || "");
+    nameFull = nameFull.trim();
 
     return (
         <div className="profile-v2">
@@ -126,8 +127,12 @@ export default function OperatorProfile({ usuarioActual, onBack, onNavigate }) {
 
                 <h1>
                     {datosUsuario?.nombre?.split(" ")[0]}
-                    <br />
-                    {datosUsuario?.nombre?.split(" ")[2]}
+                    {datosUsuario?.nombre?.split(" ")[1] && (
+                        <>
+                            <br />
+                            {datosUsuario?.nombre?.split(" ")[1]}
+                        </>
+                    )}
                 </h1>
 
                 <p>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FaUtensils, FaCoffee, FaDrumstickBite, FaMoon } from "react-icons/fa";
 import { FiArrowLeft, FiChevronDown } from "react-icons/fi";
 import { useComedorMenus } from "../../hooks/useComedorMenus";
@@ -6,11 +6,12 @@ import { useComedorOrdenes } from "../../hooks/useComedorOrdenes";
 import "../../styles/operator/operator-comedor.css";
 import { useAuth } from "../../hooks/useAuth";
 import { DIAS_SEMANA } from "../../config/comedorConfig";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 export default function OperadorComedor({ onBack }) {
     const { user } = useAuth();
     const { menus, loading: menusLoading, error: menusError } = useComedorMenus();
-    const { guardarOrden, loading: ordenLoading, error: ordenError, success: ordenSuccess, verificarOrdenEnFirestore } = useComedorOrdenes(user?.uid);
+    const { guardarOrden, loading: ordenLoading, error: ordenError } = useComedorOrdenes(user?.uid);
 
     const [expandedDay, setExpandedDay] = useState(null);
     const [activeMealTab, setActiveMealTab] = useState("Desayuno");
@@ -18,6 +19,10 @@ export default function OperadorComedor({ onBack }) {
     const [confirmacion, setConfirmacion] = useState(null);
     const [ordenPendiente, setOrdenPendiente] = useState(null);
     const [ordenesAcumuladas, setOrdenesAcumuladas] = useState([]);
+    
+    // Estado para datos históricos de la semana pasada
+    const [semanaAnteriorData, setSemanaAnteriorData] = useState(null);
+    const db = getFirestore();
 
     const mealExtras = [
         "Jugo Natural",
@@ -25,11 +30,38 @@ export default function OperadorComedor({ onBack }) {
         "Licuado"
     ];
 
+    const ordenOptions = [
+        { value: "Una orden", label: "Una orden", multiplier: 1 },
+        { value: "Media orden", label: "Media orden", multiplier: 0.5 },
+        { value: "Orden y media", label: "Orden y media", multiplier: 1.5 },
+        { value: "Dos órdenes", label: "Dos órdenes", multiplier: 2 }
+    ];
+
     const mealTypes = [
         { type: "Desayuno", label: "Desayuno", color: "#FF9800", icon: <FaCoffee /> },
         { type: "Comida", label: "Comida", color: "#2196F3", icon: <FaDrumstickBite /> },
         { type: "Cena", label: "Cena", color: "#9C27B0", icon: <FaMoon /> }
     ];
+
+    // Función para traer los datos de la semana desde Firestore (ej. 28.09.2026-04.10.2026)
+    const cargarDatosSemanaPasada = async (idSemanaNom) => {
+        try {
+            if (!user?.uid && !user?.nomina) return;
+            const nominaUser = user.nomina || "502"; // Valor de respaldo basado en tus pruebas
+            const docRef = doc(db, "AquaMedica-Morelos", "Usuarios", "Comedor", String(nominaUser), "Comida", idSemanaNom);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setSemanaAnteriorData(data);
+                setConfirmacion(`Datos cargados correctamente para la semana ${idSemanaNom}`);
+            } else {
+                setConfirmacion("No se encontraron registros para esa semana.");
+            }
+        } catch (err) {
+            console.error("Error al cargar la semana anterior:", err);
+        }
+    };
 
     // Construir menuData desde los datos reales de Firebase
     const menuData = menus
@@ -50,7 +82,6 @@ export default function OperadorComedor({ onBack }) {
           })
         : [];
 
-
     return (
         <div style={styles.container}>
             {/* Header */}
@@ -69,12 +100,18 @@ export default function OperadorComedor({ onBack }) {
                 <p style={styles.dateRange}>
                     {menus?.semana || "Cargando..."}
                 </p>
-                {menusError && (
-                    <p style={{ color: "#c62828", fontSize: "12px", margin: "8px 0 0 0" }}>
-                        Error: {menusError}
-                    </p>
-                )}
+            
             </div>
+
+            {/* Mostrar resumen si se cargaron los datos */}
+            {semanaAnteriorData && (
+                <div style={{ ...styles.carritoSection, borderColor: "#0A4D9D" }}>
+                    <h3 style={{ ...styles.carritoTitle, color: "#0A4D9D" }}>📋 Resumen Semana Anterior Cargada</h3>
+                    <p style={{ fontSize: "13px", margin: "4px 0" }}><strong>Total Desayuno:</strong> ${semanaAnteriorData.TotalDesayuno}</p>
+                    <p style={{ fontSize: "13px", margin: "4px 0" }}><strong>Total Comida:</strong> ${semanaAnteriorData.TotalComida}</p>
+                    <p style={{ fontSize: "13px", margin: "4px 0" }}><strong>Total Semana:</strong> ${semanaAnteriorData.TotalSemana}</p>
+                </div>
+            )}
 
             {/* Meal Type Cards */}
             <div style={styles.mealCardsContainer}>
@@ -127,6 +164,7 @@ export default function OperadorComedor({ onBack }) {
                                         const key = `${day.day}-${meal.type}`;
                                         const menuText = day.meals[meal.type];
                                         const soupText = day.meals[`${meal.type}Sopa`];
+                                        const isDisabled = ordenesAcumuladas.some(o => o.dia === day.day && o.tipo === meal.type);
 
                                         return (
                                             <div key={meal.type} style={styles.mealSection}>
@@ -138,7 +176,7 @@ export default function OperadorComedor({ onBack }) {
                                                 >
                                                     MENÚ {meal.label.toUpperCase()}
                                                 </div>
-                                                <div style={styles.mealItem}>
+                                                <div style={{...styles.mealItem, opacity: isDisabled ? 0.5 : 1, pointerEvents: isDisabled ? 'none' : 'auto'}}>
                                                     {/* Plato Principal */}
                                                     <div style={styles.menuSelectionContainer}>
                                                         <label style={styles.menuRadio}>
@@ -172,6 +210,24 @@ export default function OperadorComedor({ onBack }) {
                                                     {soupText && soupText !== "NA" && (
                                                         <div style={styles.soupContainer}>
                                                             <span style={styles.soupLabel}>SOPA: {soupText}</span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Selector de Orden (solo Desayuno y Cena) */}
+                                                    {(meal.type === "Desayuno" || meal.type === "Cena") && (
+                                                        <div style={styles.ordenSelectContainer}>
+                                                            <label style={styles.ordenSelectLabel}>Orden</label>
+                                                            <select
+                                                                value={mealSelections[`${key}-orden`] || "Una orden"}
+                                                                onChange={(e) => setMealSelections({...mealSelections, [`${key}-orden`]: e.target.value})}
+                                                                style={styles.ordenSelect}
+                                                            >
+                                                                {ordenOptions.map((option) => (
+                                                                    <option key={option.value} value={option.value}>
+                                                                        {option.label}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
                                                         </div>
                                                     )}
 
@@ -211,22 +267,28 @@ export default function OperadorComedor({ onBack }) {
                                                                     const extrasSeleccionados = meal.type === "Desayuno"
                                                                         ? mealExtras.filter(extra => mealSelections[`${key}-${extra}`])
                                                                         : [];
+                                                                    const ordenSeleccionada = mealSelections[`${key}-orden`] || "Una orden";
+                                                                    const ordenOption = ordenOptions.find(o => o.value === ordenSeleccionada);
+                                                                    
+                                                                    const costoBase = 25 * (ordenOption?.multiplier || 1);
+                                                                    const costoExtras = extrasSeleccionados.length * 10;
+                                                                    const costo = costoBase + costoExtras;
 
-                                                                    // Agregar directamente al carrito
                                                                     const nuevaOrden = {
                                                                         id: `${day.day}-${meal.type}-${Date.now()}`,
                                                                         dia: day.day,
                                                                         tipo: meal.type,
                                                                         menu: mealSelections[key],
+                                                                        orden: ordenSeleccionada,
                                                                         extras: extrasSeleccionados,
-                                                                        costo: 25,
+                                                                        costo: costo,
                                                                     };
 
                                                                     setOrdenesAcumuladas([...ordenesAcumuladas, nuevaOrden]);
 
-                                                                    // Limpiar selección de este día
                                                                     const newSelections = {...mealSelections};
                                                                     delete newSelections[key];
+                                                                    delete newSelections[`${key}-orden`];
                                                                     if (meal.type === "Desayuno") {
                                                                         mealExtras.forEach(extra => {
                                                                             delete newSelections[`${key}-${extra}`];
@@ -245,6 +307,7 @@ export default function OperadorComedor({ onBack }) {
                                                             onClick={() => {
                                                                 const newSelections = {...mealSelections};
                                                                 delete newSelections[key];
+                                                                delete newSelections[`${key}-orden`];
                                                                 if (meal.type === "Desayuno") {
                                                                     mealExtras.forEach(extra => {
                                                                         delete newSelections[`${key}-${extra}`];
@@ -284,10 +347,10 @@ export default function OperadorComedor({ onBack }) {
                 )}
 
                 <p style={styles.totalNote}>
-                    <strong>NOTA:</strong> Selecciona el tipo de comida y el día para ver las opciones disponibles. Marca tu selección y haz clic en "Guardar Orden" para confirmar.
+                    <strong>NOTA:</strong> Selecciona el tipo de comida y el día para ver las opciones disponibles. Marca tu selección y haz clic en "Agregar" para acumular tus órdenes.
                 </p>
-
             </div>
+
             {/* Resumen de órdenes acumuladas */}
             {ordenesAcumuladas.length > 0 && (
                 <div style={styles.carritoSection}>
@@ -300,11 +363,14 @@ export default function OperadorComedor({ onBack }) {
                                     <span style={styles.ordenDia}>{orden.dia}</span>
                                     <span style={styles.ordenTipo}>{orden.tipo}</span>
                                     <span style={styles.ordenMenu}>{orden.menu}</span>
+                                    {orden.orden && (
+                                        <span style={styles.ordenQuantity}>{orden.orden}</span>
+                                    )}
                                     {orden.extras.length > 0 && (
                                         <span style={styles.ordenExtras}>+ {orden.extras.join(", ")}</span>
                                     )}
                                 </div>
-                                <div style={styles.ordenCosto}>${orden.costo}</div>
+                                <div style={styles.ordenCosto}>${orden.costo.toFixed(2)}</div>
                                 <button
                                     style={styles.eliminarButton}
                                     onClick={() => {
@@ -318,96 +384,44 @@ export default function OperadorComedor({ onBack }) {
                     </div>
 
                     <div style={styles.carritoTotal}>
-                        <strong>TOTAL: ${ordenesAcumuladas.reduce((sum, o) => sum + o.costo, 0)}</strong>
+                        <strong>TOTAL: ${ordenesAcumuladas.reduce((sum, o) => sum + o.costo, 0).toFixed(2)}</strong>
                     </div>
 
-                    <button
-                        style={styles.confirmarCarritoButton}
-                        onClick={async () => {
-                            // Guardar todas las órdenes
-                            for (const orden of ordenesAcumuladas) {
-                                await guardarOrden(
-                                    orden.tipo,
-                                    orden.menu,
-                                    menus.semana,
-                                    orden.dia,
-                                    orden.extras
-                                );
-                            }
-                            // Limpiar carrito después de guardar todas
-                            setOrdenesAcumuladas([]);
-                            setMealSelections({});
-                        }}
-                        disabled={ordenLoading}
-                    >
-                        {ordenLoading ? "Guardando todas..." : "✓ Confirmar Todas las Órdenes"}
-                    </button>
-                </div>
-            )}
-
-            {/* Panel de confirmación de orden (debajo de la selección) */}
-            {ordenPendiente && (
-                <div style={{...styles.confirmationPanel, marginBottom: "40px"}}>
-                    <h3 style={styles.panelTitle}>
-                        {ordenPendiente.tipo} seleccionada
-                    </h3>
-
-                    <div style={styles.panelContent}>
-                        <div style={styles.summaryRow}>
-                            <span style={styles.summaryLabel}>Día:</span>
-                            <span style={styles.summaryValue}>{ordenPendiente.dia.toUpperCase()}</span>
-                        </div>
-
-                        <div style={styles.summaryRow}>
-                            <span style={styles.summaryLabel}>Menú:</span>
-                            <span style={styles.summaryValue}>{ordenPendiente.menu.toUpperCase()}</span>
-                        </div>
-
-                        {ordenPendiente.extras.length > 0 && (
-                            <div style={styles.summaryRow}>
-                                <span style={styles.summaryLabel}>Extras:</span>
-                                <span style={styles.summaryValue}>{ordenPendiente.extras.join(", ")}</span>
-                            </div>
-                        )}
-
-                        <div style={styles.summaryTotal}>
-                            <strong>TOTAL: $25</strong>
-                        </div>
-                    </div>
-
-                    <div style={styles.panelButtons}>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                        {/* Botón de Cancelar / Vaciar Carrito */}
                         <button
-                            style={styles.cancelButton}
-                            onClick={() => setOrdenPendiente(null)}
+                            style={{ ...styles.confirmarCarritoButton, backgroundColor: "#ef4444", flex: 1 }}
+                            onClick={() => {
+                                setOrdenesAcumuladas([]);
+                                setConfirmacion("Se cancelaron las órdenes acumuladas.");
+                            }}
                         >
-                            Cancelar
+                            ✕ Cancelar
                         </button>
+
+                        {/* Botón de Confirmar todas */}
                         <button
-                            style={styles.submitButton}
+                            style={{ ...styles.confirmarCarritoButton, flex: 2 }}
                             onClick={async () => {
-                                // Agregar a la lista acumulada
-                                const nuevaOrden = {
-                                    id: `${ordenPendiente.dia}-${ordenPendiente.tipo}-${Date.now()}`,
-                                    dia: ordenPendiente.dia,
-                                    tipo: ordenPendiente.tipo,
-                                    menu: ordenPendiente.menu,
-                                    extras: ordenPendiente.extras,
-                                    costo: 25,
-                                };
-
-                                setOrdenesAcumuladas([...ordenesAcumuladas, nuevaOrden]);
-
-                                // Limpiar panel actual pero mantener el estado
-                                setOrdenPendiente(null);
+                                for (const orden of ordenesAcumuladas) {
+                                    await guardarOrden(
+                                        orden.tipo,
+                                        orden.menu,
+                                        menus.semana,
+                                        orden.dia,
+                                        orden.extras
+                                    );
+                                }
+                                setOrdenesAcumuladas([]);
+                                setConfirmacion("¡Todas las órdenes fueron guardadas con éxito!");
                             }}
                             disabled={ordenLoading}
                         >
-                            ✓ Agregar
+                            {ordenLoading ? "Guardando..." : "✓ Confirmar Todas"}
                         </button>
                     </div>
                 </div>
             )}
-
         </div>
     );
 }
@@ -480,10 +494,6 @@ const styles = {
         fontFamily: "inherit",
         minWidth: 0,
     },
-    mealCardHover: {
-        transform: "translateY(-2px)",
-        boxShadow: "0 8px 20px rgba(0, 0, 0, 0.1)",
-    },
     mealCardActive: {
         backgroundColor: "rgba(10, 77, 157, 0.08)",
     },
@@ -530,45 +540,12 @@ const styles = {
         textAlign: "center",
         margin: "0 0 24px 0",
     },
-    totalStats: {
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "24px",
-        marginBottom: "24px",
-    },
-    totalStat: {
-        textAlign: "center",
-    },
-    totalLabel: {
-        fontSize: "12px",
-        color: "var(--operator-text-soft)",
-        marginBottom: "8px",
-        fontWeight: "600",
-    },
-    totalValue: {
-        fontSize: "24px",
-        fontWeight: "800",
-        color: "var(--operator-text)",
-    },
     totalNote: {
         fontSize: "12px",
         color: "var(--operator-text-soft)",
         textAlign: "center",
         margin: "0 0 16px 0",
         lineHeight: "1.5",
-    },
-    suggestButton: {
-        width: "100%",
-        padding: "10px 16px",
-        backgroundColor: "#0A4D9D",
-        color: "white",
-        border: "none",
-        borderRadius: "12px",
-        fontSize: "13px",
-        fontWeight: "600",
-        cursor: "pointer",
-        transition: "all 0.2s ease",
-        fontFamily: "inherit",
     },
     dayCard: {
         backgroundColor: "var(--operator-card)",
@@ -633,38 +610,10 @@ const styles = {
         color: "var(--operator-text)",
         cursor: "pointer",
     },
-    ordenContainer: {
-        display: "flex",
-        gap: "12px",
-        alignItems: "center",
-    },
     buttonGroup: {
         display: "flex",
         gap: "12px",
         alignItems: "center",
-    },
-    ordenButton: {
-        padding: "10px 16px",
-        backgroundColor: "#79a8d4",
-        color: "white",
-        border: "none",
-        borderRadius: "8px",
-        fontWeight: "600",
-        fontSize: "14px",
-        cursor: "pointer",
-        flexShrink: 0,
-        fontFamily: "inherit",
-    },
-    mealSelect: {
-        flex: 1,
-        padding: "10px 12px",
-        backgroundColor: "var(--operator-card)",
-        borderRadius: "8px",
-        border: "1px solid var(--operator-border)",
-        color: "var(--operator-text)",
-        fontSize: "13px",
-        fontFamily: "inherit",
-        cursor: "pointer",
     },
     extrasSection: {
         marginTop: "12px",
@@ -688,6 +637,28 @@ const styles = {
         alignItems: "center",
         fontSize: "13px",
         color: "var(--operator-text)",
+        cursor: "pointer",
+    },
+    ordenSelectContainer: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "6px",
+        marginTop: "8px",
+    },
+    ordenSelectLabel: {
+        fontSize: "12px",
+        fontWeight: "700",
+        color: "var(--operator-text-soft)",
+        textTransform: "uppercase",
+    },
+    ordenSelect: {
+        padding: "8px 12px",
+        backgroundColor: "var(--operator-background)",
+        borderRadius: "8px",
+        border: "1px solid var(--operator-border)",
+        color: "var(--operator-text)",
+        fontSize: "13px",
+        fontFamily: "inherit",
         cursor: "pointer",
     },
     clearButton: {
@@ -747,81 +718,6 @@ const styles = {
         marginBottom: "16px",
         textAlign: "center",
     },
-    confirmationPanel: {
-        backgroundColor: "var(--operator-card)",
-        borderRadius: "12px",
-        padding: "16px",
-        marginBottom: "24px",
-        border: "2px solid #2196F3",
-        boxShadow: "0 4px 12px rgba(33, 150, 243, 0.2)",
-    },
-    panelTitle: {
-        fontSize: "16px",
-        fontWeight: "700",
-        color: "#2196F3",
-        margin: "0 0 12px 0",
-    },
-    panelContent: {
-        backgroundColor: "var(--operator-background)",
-        borderRadius: "8px",
-        padding: "12px",
-        marginBottom: "12px",
-    },
-    summaryRow: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingBottom: "8px",
-        marginBottom: "8px",
-        borderBottom: "1px solid var(--operator-border)",
-    },
-    summaryLabel: {
-        fontSize: "13px",
-        fontWeight: "600",
-        color: "var(--operator-text-soft)",
-    },
-    summaryValue: {
-        fontSize: "13px",
-        fontWeight: "600",
-        color: "var(--operator-text)",
-    },
-    summaryTotal: {
-        paddingTop: "8px",
-        textAlign: "center",
-        color: "#2196F3",
-        fontSize: "14px",
-        fontWeight: "700",
-    },
-    panelButtons: {
-        display: "flex",
-        gap: "12px",
-    },
-    cancelButton: {
-        flex: 1,
-        padding: "10px 16px",
-        backgroundColor: "#757575",
-        color: "white",
-        border: "none",
-        borderRadius: "8px",
-        fontWeight: "600",
-        fontSize: "13px",
-        cursor: "pointer",
-        transition: "all 0.2s ease",
-        fontFamily: "inherit",
-    },
-    submitButton: {
-        flex: 1,
-        padding: "10px 16px",
-        backgroundColor: "#2196F3",
-        color: "white",
-        border: "none",
-        borderRadius: "8px",
-        fontWeight: "600",
-        fontSize: "13px",
-        cursor: "pointer",
-        transition: "all 0.2s ease",
-        fontFamily: "inherit",
-    },
     carritoSection: {
         backgroundColor: "var(--operator-card)",
         borderRadius: "12px",
@@ -870,6 +766,11 @@ const styles = {
         color: "var(--operator-text)",
         fontWeight: "500",
     },
+    ordenQuantity: {
+        fontSize: "11px",
+        color: "#2196F3",
+        fontWeight: "600",
+    },
     ordenExtras: {
         fontSize: "11px",
         color: "#FF9800",
@@ -915,5 +816,18 @@ const styles = {
         cursor: "pointer",
         transition: "all 0.2s ease",
         fontFamily: "inherit",
+    },
+    submitButton: {
+        padding: "10px 16px",
+        backgroundColor: "#2196F3",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        fontWeight: "600",
+        fontSize: "13px",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "inherit",
+        width: "100%",
     },
 };

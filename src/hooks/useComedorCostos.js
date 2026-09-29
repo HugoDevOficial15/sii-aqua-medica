@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 
-// URL del emulador local
-const EMULADOR_URL = "http://127.0.0.1:5001/aquamedica2023/us-central1";
+// URL de producción
+const EMULADOR_URL = "https://us-central1-aquamedica2023.cloudfunctions.net";
 
 export const useComedorCostos = () => {
   const [costos, setCostos] = useState([]);
@@ -50,34 +50,44 @@ export const useComedorCostos = () => {
     }
   }, []);
 
-  // Calcular costos de una nómina en una semana
-  const calcularCostos = useCallback(async (nomina, semana) => {
-    setLoading(true);
-    setError(null);
-
+  // Calcular costo 
+  const calcularCosto = useCallback(async (nomina, idSemana) => {
     try {
-      const response = await fetch(
-        `${EMULADOR_URL}/calcularCostos`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nomina, semana })
+        const response = await fetch(`${EMULADOR_URL}/calcularCostos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nomina, semana: idSemana })
+        });
+
+        const data = await response.json();
+
+        if (data.status === "OK") {
+            const nuevosCostos = data.costos;
+
+            // ESTILO REACT: Actualizamos el array de "costos" en el estado 
+            // buscando al empleado específico por su nómina para agregarle los cálculos.
+            setCostos(prevCostos => prevCostos.map(empleado => 
+                empleado.nomina === nomina 
+                ? { 
+                    ...empleado, 
+                    calculoDesayuno: nuevosCostos.desayuno, 
+                    calculoComida: nuevosCostos.comida, 
+                    calculoCena: nuevosCostos.cena,
+                    calculoExtras: nuevosCostos.extras,
+                    calculoTotal: nuevosCostos.total
+                  } 
+                : empleado
+            ));
+            
+            return true;
+        } else {
+            console.error("Error desde el servidor:", data.mensaje);
+            return false;
         }
-      );
 
-      const data = await response.json();
-
-      if (data.status === "OK") {
-        setCostos(data.costos);
-        return data.costos;
-      } else {
-        throw new Error(data.mensaje || "Error desconocido");
-      }
-    } catch (err) {
-      setError(err.message);
-      console.error("Error en calcularCostos:", err);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+        console.error("Error de conexión:", error);
+        return false;
     }
   }, []);
 
@@ -115,13 +125,37 @@ export const useComedorCostos = () => {
     }
   }, []);
 
+  // Cancelar o eliminar una orden registrada
+  const cancelarOrden = useCallback(async (nomina, semana) => {
+    try {
+      setLoading(true);
+      // Aquí puedes implementar la llamada a tu función backend de cancelación (ej. CancelarComida)
+      const response = await fetch(`${EMULADOR_URL}/CancelarComida`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nomina, semana })
+      });
+
+      const data = await response.json();
+      if (data.status === "OK" || response.ok) {
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Error al cancelar orden:", err);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     costos,
     cancelaciones,
     loading,
     error,
     obtenerCostosSemana,
-    calcularCostos,
+    calcularCosto, // Corregido: sin la "s" final
     getCancelacionesSemana,
   };
 };

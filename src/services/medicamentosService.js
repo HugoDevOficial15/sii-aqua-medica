@@ -1,75 +1,53 @@
-// src/services/medicamentosService.js
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
+import { readCachedData, writeCachedData } from "../utils/cacheStore";
 
-import { db } from '../config/firebase'
-import {
-    collection,
-    addDoc,
-    getDocs,
-    updateDoc,
-    doc,
-    query,
-    orderBy,
-    Timestamp
-} from 'firebase/firestore'
-import { readCachedData, writeCachedData } from '../utils/cacheStore';
+const CACHE_KEY = "sii-aqua-medicamentos-cache";
+const call = (name) => httpsCallable(functions, name);
 
-const COLLECTION = 'inventario_medicamentos'
-const CACHE_KEY = 'sii-aqua-medicamentos-cache';
+const getMedicamentosFunction = call("getMedicamentos");
+const createMedicamentoFunction = call("createMedicamento");
+const updateMedicamentoFunction = call("updateMedicamento");
+const toggleMedicamentoFunction = call("toggleMedicamento");
+const deleteMedicamentoFunction = call("deleteMedicamento");
 
-//  GET
+const invalidateMedicamentosCache = () => {
+    writeCachedData(CACHE_KEY, null);
+};
+
 export const getMedicamentos = async () => {
     const cached = readCachedData(CACHE_KEY);
     if (cached) {
         return cached;
     }
 
-    const q = query(collection(db, COLLECTION), orderBy('fechaCaducidad'))
-
-    const snapshot = await getDocs(q)
-    const medicamentos = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }))
+    const result = await getMedicamentosFunction();
+    const medicamentos = Array.isArray(result?.data) ? result.data : [];
 
     writeCachedData(CACHE_KEY, medicamentos);
     return medicamentos;
-}
+};
 
 export const createMedicamento = async (data) => {
-    return await addDoc(collection(db, COLLECTION), {
-        ...data,
+    const result = await createMedicamentoFunction(data || {});
+    invalidateMedicamentosCache();
+    return result?.data ?? null;
+};
 
-        // 🔥 normalización de fechas
-        fechaCaducidad: Timestamp.fromDate(new Date(data.fechaCaducidad)),
-        fechaIngreso: Timestamp.fromDate(new Date(data.fechaIngreso)),
-
-        estado: 'activo',
-
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-    })
-}
-
-// UPDATE
 export const updateMedicamento = async (id, data) => {
-    const ref = doc(db, COLLECTION, id)
+    const result = await updateMedicamentoFunction({ id, ...(data || {}) });
+    invalidateMedicamentosCache();
+    return result?.data ?? null;
+};
 
-    return await updateDoc(ref, {
-        ...data,
-
-        fechaCaducidad: Timestamp.fromDate(new Date(data.fechaCaducidad)),
-        fechaIngreso: Timestamp.fromDate(new Date(data.fechaIngreso)),
-
-        updatedAt: Timestamp.now()
-    })
-}
-
-//  TOGGLE (soft delete)
 export const toggleMedicamento = async (id, estado) => {
-    const ref = doc(db, COLLECTION, id)
+    const result = await toggleMedicamentoFunction({ id, estado });
+    invalidateMedicamentosCache();
+    return result?.data ?? null;
+};
 
-    return await updateDoc(ref, {
-        estado,
-        updatedAt: Timestamp.now()
-    })
-}
+export const deleteMedicamento = async (id) => {
+    const result = await deleteMedicamentoFunction({ id });
+    invalidateMedicamentosCache();
+    return result?.data ?? null;
+};

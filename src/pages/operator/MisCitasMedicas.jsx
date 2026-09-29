@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
-// 👇 Agregamos deleteDoc y doc para poder borrar
-import { collection, addDoc, query, where, getDocs, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
-// 👇 Agregamos FaTrash para el ícono de eliminar
 import { FaPlus, FaStethoscope, FaCalendarAlt, FaSpinner, FaNotesMedical, FaTrash } from "react-icons/fa";
 import { notifyInfo, notifyError, confirmDelete } from "../../utils/notify";
-import { sendAdminNotification } from "../../utils/sendAdminNotification";
+import { getMisOrdenesMedicas, createOrdenMedica, deleteOrdenMedica } from "../../services/ordenesMedicasService";
+import Swal from "sweetalert2";
 
 export default function MisCitasMedicas() {
     const { user } = useAuth(); 
@@ -19,16 +16,11 @@ export default function MisCitasMedicas() {
         if (!user?.uid) return;
         setLoading(true);
         try {
-            const ordenesRef = collection(db, "ordenes_medicas");
-            const q = query(ordenesRef, where("idPaciente", "==", user.uid));
-            const snapshot = await getDocs(q);
-            
-            const citas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            citas.sort((a, b) => new Date(b.fechaApertura) - new Date(a.fechaApertura));
-            
+            const citas = await getMisOrdenesMedicas(user.uid);
             setMisCitas(citas);
         } catch (error) {
             console.error("Error al cargar citas:", error);
+            notifyError("Error", "No se pudieron cargar tus citas médicas.");
         } finally {
             setLoading(false);
         }
@@ -46,6 +38,7 @@ export default function MisCitasMedicas() {
             return;
         }
 
+
         const result = await confirmDelete("¿Solicitar cita?", "Se creará una nueva consulta médica.");
         if (!result.isConfirmed) return;
 
@@ -53,22 +46,10 @@ export default function MisCitasMedicas() {
         try {
             const nominaPaciente = String(user?.nomina ?? user?.id ?? user?.uid ?? "").trim();
 
-            // Obtener el docId del usuario de Firestore
-            let docId = user?.id; // Intentar usar el id del contexto primero
-            if (!docId) {
-                const usersRef = collection(db, "users");
-                const q = query(usersRef, where("uid", "==", user.uid));
-                const snap = await getDocs(q);
-                if (!snap.empty) {
-                    docId = snap.docs[0].id;
-                }
-            }
-
             const nuevaOrden = {
                 idPaciente: user.uid,
-                docIdPaciente: docId || user.uid,
+                docIdPaciente: user?.id || user?.uid,
                 nominaPaciente,
-                nominaPacienteNum: nominaPaciente && /^\d+$/.test(nominaPaciente) ? Number(nominaPaciente) : null,
                 nombrePaciente: user.displayName || user.nombre || "Usuario AQUA",
                 fechaApertura: new Date().toISOString(),
                 estado: "Pendiente",
@@ -81,25 +62,8 @@ export default function MisCitasMedicas() {
                 revisiones: []
             };
 
-            await addDoc(collection(db, "ordenes_medicas"), nuevaOrden);
-
-            // Enviar notificación a admin_medico y admin_sistemas
-            try {
-                await sendAdminNotification(
-                    {
-                        Titulo: "Nueva Orden Médica",
-                        Mensaje: `${nuevaOrden.nombrePaciente} (Nómina: ${nominaPaciente}) solicita consulta médica.`,
-                        Destino: "detalle-orden-medico",
-                        Accion: "nueva_orden_medica",
-                        extra: { tipo: "medico" }
-                    },
-                    ["admin_medico", "admin_sistemas"]
-                );
-            } catch(error){
-                console.error("Error al enviar notificaciones:", error);
-            }
-
-            fetchMisCitas(); 
+            await createOrdenMedica(nuevaOrden);
+            await fetchMisCitas();
 
         } catch (error) {
             console.error("Error al agendar:", error);
@@ -115,10 +79,8 @@ export default function MisCitasMedicas() {
         if (!result.isConfirmed) return;
 
         try {
-            // Borramos el documento de Firebase
-            await deleteDoc(doc(db, "ordenes_medicas", idCita));
-            // Recargamos la lista para que desaparezca visualmente
-            fetchMisCitas();
+            await deleteOrdenMedica(idCita);
+            await fetchMisCitas();
         } catch (error) {
             console.error("Error al cancelar la cita:", error);
             notifyError("Error", "No se pudo cancelar la cita. Intenta nuevamente.");

@@ -59,6 +59,46 @@ const getBaseConfig = () => {
   };
 };
 
+let loadingSwalInstance = null;
+
+export const notifyLoading = async (title, text) => {
+  const Swal = await loadSwal();
+
+  if (loadingSwalInstance && typeof loadingSwalInstance.close === "function") {
+    loadingSwalInstance.close();
+  }
+
+  loadingSwalInstance = Swal.fire({
+    ...getBaseConfig(),
+    title,
+    text,
+    icon: "info",
+    allowOutsideClick: false,
+    showConfirmButton: false,
+    timerProgressBar: false,
+    didOpen: (modal) => {
+      const popup = modal.querySelector(".swal2-popup");
+      if (popup) {
+        popup.style.borderRadius = "16px";
+        popup.style.border = getDarkMode() ? "none" : "1px solid #e2e8f0";
+      }
+    }
+  });
+
+  return loadingSwalInstance;
+};
+
+export const closeLoadingAlert = async () => {
+  if (loadingSwalInstance && typeof loadingSwalInstance.close === "function") {
+    loadingSwalInstance.close();
+    loadingSwalInstance = null;
+    return;
+  }
+
+  const Swal = await loadSwal();
+  Swal.close();
+};
+
 export const notifySuccess = async (title, text) => {
   const Swal = await loadSwal();
   return Swal.fire({

@@ -1,108 +1,40 @@
-import { collection, getDocs, Timestamp, updateDoc, doc, addDoc, writeBatch, serverTimestamp, query, where } from "firebase/firestore";
-import { db } from "../config/firebase";
-import { queueCancelacionCitasPorAgenda } from "./citasMedicasService";
-import { createNotification } from "../utils/createNotification";
-import { readSessionCache, writeSessionCache, clearCachedData } from "../utils/cacheStore";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
 
-const CACHE_KEY = "sii-aqua-agendas-medicas-cache";
+const callAgendaFunction = (name) => httpsCallable(functions, name);
 
 export const getAgendasMedicas = async ({ estado = null } = {}) => {
-    const cacheKey = estado === null ? CACHE_KEY : `${CACHE_KEY}:${String(estado)}`;
-    const cached = readSessionCache(cacheKey);
-    if (cached) {
-        return cached;
-    }
-
-    const constraints = [];
-    if (estado !== null && estado !== undefined) {
-        constraints.push(where("estado", "==", estado));
-    }
-
-    const q = query(collection(db, "agendas_medicas"), ...constraints);
-    const snap = await getDocs(q);
-    const agendas = snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
-
-    writeSessionCache(cacheKey, agendas);
-    return agendas;
+    const result = await callAgendaFunction("getAgendasMedicas")({ estado });
+    return result?.data?.agendas ?? [];
 };
 
-export const crearAgenda = async (data) => {
-    const docRef = await addDoc(collection(db, "agendas_medicas"), {
-        ...data,
-        estado: "activa",
-        createdAt: Timestamp.now()
-    });
-    clearCachedData(CACHE_KEY);
-
-    // Crear notificación para operadores activos.
-    try {
-        const activeUsersQuery = query(
-            collection(db, "users"),
-            where("rol", "==", "operador")
-        );
-        const usersSnapshot = await getDocs(activeUsersQuery);
-
-        const notificacionesPromises = usersSnapshot.docs
-            .filter(userDoc => userDoc.data()?.activo === true)
-            .map(userDoc => {
-            // El identificador de la notificación debe ser el ID del documento:
-            // es el mismo que usa AuthProvider para consultar notificaciones.
-            const userId = userDoc.id;
-            return createNotification({
-                IdUsuario: userId,
-                Titulo: "📅 Nueva agenda médica",
-                Mensaje: `Se creó la campaña: "${data.nombre}". Revisa los horarios disponibles.`,
-                Destino: "citas-medicas",
-                extra: {
-                    NomAgenda: data.nombre,
-                    agendaId: docRef.id
-                }
-            }).catch(error => {
-                console.error(`Error creando notificación para usuario ${userId}:`, error);
-            });
-        });
-
-        await Promise.all(notificacionesPromises);
-    } catch (err) {
-        console.error("No se pudo crear las notificaciones de nueva agenda:", err);
-        // No impedimos que la agenda se cree si las notificaciones fallan
-    }
-
-    return docRef.id;
+export const crearAgenda = async (data = {}) => {
+    const result = await callAgendaFunction("crearAgenda")(data || {});
+    return result?.data?.id ?? null;
 };
 
-
-// cambiar estado
 export const toggleAgendaEstado = async (id, estadoActual) => {
-    await updateDoc(doc(db, "agendas_medicas", id), {
-        estado: estadoActual === "activa" ? "inactiva" : "activa"
-    });
-    clearCachedData(CACHE_KEY);
+    const result = await callAgendaFunction("toggleAgendaEstado")({ id, estadoActual });
+    return result?.data ?? { ok: true };
 };
 
-// ======================================================
-// EDICIÓN/CANCELACIÓN CON IMPACTO EN CITAS (Administrador)
-// ======================================================
-// Se usa cuando el admin modifica fechaInicio/fechaFin o desactiva la
-// agenda: actualiza la agenda y cancela en cascada sus citas activas +
-// notifica a los usuarios afectados, todo en una sola operación atómica
-// (writeBatch), nunca updateDoc's independientes. Reutiliza
-// queueCancelacionCitasPorAgenda() de citasMedicasService.js para no
-// duplicar la lógica de cancelación con cancelAppointmentsByAgenda().
+export const updateAgenda = async (id, agendaUpdates = {}) => {
+    const result = await callAgendaFunction("updateAgenda")({ id, agendaUpdates });
+    return result?.data ?? { ok: true };
+};
+
+export const deleteAgenda = async (id, nombre = "") => {
+    const result = await callAgendaFunction("deleteAgenda")({ id, nombre });
+    return result?.data ?? { ok: true };
+};
+
 export const updateAgendaWithBatch = async (agendaId, agendaUpdates, motivo, adminUid) => {
+    const result = await callAgendaFunction("updateAgendaWithBatch")({
+        agendaId,
+        agendaUpdates: agendaUpdates || {},
+        motivo: motivo || "",
+        adminUid: adminUid || null,
+    });
 
-    const batch = writeBatch(db);
-
-    batch.update(doc(db, "agendas_medicas", agendaId), agendaUpdates);
-
-    const citasCanceladas = await queueCancelacionCitasPorAgenda(batch, agendaId, motivo, adminUid);
-
-    await batch.commit();
-    clearCachedData(CACHE_KEY);
-
-    return { success: true, citasCanceladas };
-
+    return result?.data ?? { success: true, citasCanceladas: 0 };
 };

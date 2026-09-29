@@ -7,6 +7,7 @@ import { CITA_ESTADOS } from "../../constants/citasMedicasStates";
 import ConfirmMotivoModal from "../../components/ui/ConfirmMotivoModal";
 import { useAuth } from "../../hooks/useAuth";
 import { createNotification } from "../../utils/createNotification";
+import Swal from "sweetalert2";
 
 import {
     getCitasPorAgenda,
@@ -32,9 +33,23 @@ export default function AgendaDetalle({ agenda, onBack }) {
     const fetchData = async () => {
         setLoading(true);
         try {
+            Swal.fire({
+                title: "Cargando citas",
+                text: "Cargando las citas de la agenda...",
+                icon: "info",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
             const data = await getCitasPorAgenda(agenda.id);
+
+            Swal.close();
             setCitas(data);
         } catch {
+            Swal.close();
             notifyError("Error al cargar citas");
         } finally {
             setLoading(false);
@@ -49,6 +64,15 @@ export default function AgendaDetalle({ agenda, onBack }) {
     const handleAtender = async (id) => {
         try {
             const citaAtendida = citas.find(c => c.id === id);
+                Swal.fire({
+                    title: "Creando agenda",
+                    text: "Creando la agenda y generando citas...",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                    Swal.showLoading();
+                    },
+                });
             await atenderCita(id, "Atendido");
 
             // 🔥 NOTIFICAR AL ADMIN QUE ATENDIÓ LA CITA
@@ -93,8 +117,10 @@ export default function AgendaDetalle({ agenda, onBack }) {
                 }
             }
 
+            Swal.close();
             notifySuccess("Cita atendida");
         } catch (error) {
+            Swal.close();
             console.error("Error al atender cita:", error);
             notifyError("Error", "No se pudo marcar la cita como atendida");
         }
@@ -117,6 +143,17 @@ export default function AgendaDetalle({ agenda, onBack }) {
             const adminUid = user?.uid || user?.id || null;
             const adminNombre = user?.nombre || "Administrador";
 
+            Swal.fire({
+                title: "Cancelando cita",
+                text: "Cancelando la cita...",
+                icon: "info",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
             await cancelarCitaPorAdmin(
                 citaACancelar.id,
                 motivo,
@@ -126,11 +163,13 @@ export default function AgendaDetalle({ agenda, onBack }) {
 
             // Mensaje diferenciado según si tiene usuario o no
             if (tieneUsuario) {
+                Swal.close();
                 notifySuccess(
                     "Cita cancelada",
                     "La cita ha sido cancelada y el usuario ha sido notificado."
                 );
             } else {
+                Swal.close();
                 notifySuccess(
                     "Cita cancelada",
                     "El horario ha sido marcado como cancelado."
@@ -140,6 +179,7 @@ export default function AgendaDetalle({ agenda, onBack }) {
             setCitaACancelar(null);
             fetchData();
         } catch (error) {
+            Swal.close();
             console.error("Error al cancelar cita:", error);
             notifyError(
                 "Error",

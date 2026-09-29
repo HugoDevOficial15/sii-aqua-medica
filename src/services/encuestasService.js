@@ -1,5 +1,6 @@
 import { functions } from "../config/firebase";
 import { httpsCallable } from "firebase/functions";
+import { MAX_SURVEY_ATTEMPTS } from "../constants/surveyConstants";
 
 const getOperatorSurveysFunction = httpsCallable(functions, "getOperatorSurveys");
 
@@ -206,7 +207,7 @@ export const getEncuestasDisponibles = async (usuario, options = {}) => {
                 preguntas: encuesta.preguntas || [],
                 duracionHoras: encuesta.duracionHoras || "0",
                 duracionMinutos: encuesta.duracionMinutos || "0",
-                intentos: miRespuesta?.intentos || 0,
+                intentos: Math.min(Math.max(Number(miRespuesta?.intentos ?? 0) || 0, 0), MAX_SURVEY_ATTEMPTS),
                 miRespuesta: miRespuesta || null,
 
                 estado: estadoFinal,

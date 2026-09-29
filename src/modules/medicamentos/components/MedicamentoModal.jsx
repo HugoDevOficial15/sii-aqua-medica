@@ -7,12 +7,45 @@ import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize"
 import Loader from "../../../components/Loader"
 import { FaPlus, FaEdit } from "react-icons/fa"
 import { useEffect, useState } from "react"
+import Swal from "sweetalert2";
 
 const parseDateInput = (value) => {
     if (!value) return null
 
-    const parsed = new Date(`${value}T00:00:00`)
-    return Number.isNaN(parsed.getTime()) ? null : parsed
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value
+    }
+
+    if (typeof value?.toDate === "function") {
+        const date = value.toDate()
+        return Number.isNaN(date.getTime()) ? null : date
+    }
+
+    if (typeof value === "string") {
+        const text = value.trim()
+        if (!text) return null
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+            const [year, month, day] = text.split("-").map(Number)
+            const date = new Date(year, month - 1, day)
+            return Number.isNaN(date.getTime()) ? null : date
+        }
+
+        const date = new Date(`${text}T00:00:00`)
+        return Number.isNaN(date.getTime()) ? null : date
+    }
+
+    if (typeof value === "number") {
+        const date = new Date(value)
+        return Number.isNaN(date.getTime()) ? null : date
+    }
+
+    if (value && typeof value === "object" && typeof value._seconds === "number") {
+        const date = new Date(value._seconds * 1000 + (value._nanoseconds ?? 0) / 1_000_000)
+        return Number.isNaN(date.getTime()) ? null : date
+    }
+
+    return null
 }
 
 const schema = z.object({
@@ -78,22 +111,25 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
     })
 
     useEffect(() => {
-        if (data) {
-            Object.keys(data).forEach(k => {
-                if (k === "fechaCaducidad" || k === "fechaIngreso") {
-                    const val = data[k]?.toDate?.()
+        if (!data) return
 
-                    if (val) {
-                        const formatted = val.toISOString().split("T")[0]
-                        setValue(k, formatted)
-                    }
+        Object.keys(data).forEach((k) => {
+            if (k === "fechaCaducidad" || k === "fechaIngreso") {
+                const date = parseDateInput(data[k])
 
-                } else {
-                    setValue(k, data[k])
+                if (date) {
+                    const formatted = date.toISOString().split("T")[0]
+                    setValue(k, formatted)
+                    return
                 }
-            })
-        }
-    }, [])
+
+                setValue(k, "")
+                return
+            }
+
+            setValue(k, data[k])
+        })
+    }, [data, setValue])
 
     const handleFieldEnter = (fieldName) => setHoveredField(fieldName)
     const handleFieldLeave = () => setHoveredField(null)
@@ -134,8 +170,18 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
             if (data) {
 
+                Swal.fire({
+                    title: '¿Estás seguro?',
+                    text: "Se actualizará el medicamento",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Sí, actualizar'
+                })
                 await updateMedicamento(data.id, sanitizedForm)
 
+                await Swal.close();
                 notifySuccess(
                     "Medicamento actualizado",
                     "Actualizado correctamente"
@@ -143,8 +189,18 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
             } else {
 
+                Swal.fire({
+                    title: '¿Estás seguro?',
+                    text: "Se creará el medicamento",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Sí, crear'
+                })
                 await createMedicamento(sanitizedForm)
-
+                
+                await Swal.close();
                 notifySuccess(
                     "Medicamento creado",
                     "Creado correctamente"
@@ -155,7 +211,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
             onClose()
 
         } catch {
-
+            Swal.close();
             notifyError(
                 "Error",
                 "Error al guardar"

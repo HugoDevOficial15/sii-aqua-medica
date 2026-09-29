@@ -21,6 +21,59 @@ const isAnswerCorrect = (userAnswer, correctAnswer, type) => {
   return String(userAnswer) === String(correctAnswer);
 };
 
+const normalizeBooleanValue = (value) => {
+  if (value === true || value === "true" || value === 1 || value === "1") return "Verdadero";
+  if (value === false || value === "false" || value === 0 || value === "0") return "Falso";
+  return "Sin respuesta";
+};
+
+const normalizeMultipleIndex = (value) => {
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed)) return parsed;
+  }
+  return null;
+};
+
+const getMultipleOptionText = (question, value) => {
+  const optionIndex = normalizeMultipleIndex(value);
+  const option = question?.opciones?.[optionIndex];
+
+  if (option && option.texto !== undefined && option.texto !== null && option.texto !== "") {
+    return `Opción ${optionIndex + 1}: "${option.texto}"`;
+  }
+
+  return "Sin respuesta";
+};
+
+const getCorrectMultipleOptionText = (question) => {
+  if (!question?.opciones) return "Sin respuesta";
+
+  const rawCorrectValue = question.respuestaCorrecta;
+  const optionIndex = normalizeMultipleIndex(rawCorrectValue);
+
+  if (optionIndex !== null && question.opciones[optionIndex]) {
+    const option = question.opciones[optionIndex];
+    return `Opción ${optionIndex + 1}: "${option.texto}"`;
+  }
+
+  if (typeof rawCorrectValue === "string" && rawCorrectValue.trim() !== "") {
+    return rawCorrectValue;
+  }
+
+  return "Sin respuesta";
+};
+
+const writeWrappedText = (doc, text, x, y, { color = [75, 85, 99], fontSize = 9, fontStyle = "normal" } = {}) => {
+  doc.setFont("helvetica", fontStyle);
+  doc.setFontSize(fontSize);
+  doc.setTextColor(color[0], color[1], color[2]);
+  const splitText = doc.splitTextToSize(text, 170);
+  doc.text(splitText, x, y);
+  return y + splitText.length * (fontSize / 2.5 + 1.2);
+};
+
 export const generateSurveyResponsePDF = async ({
   survey,
   responses = {},
@@ -111,35 +164,58 @@ export const generateSurveyResponsePDF = async ({
     yPosition += splitQuestion.length * 4 + 3;
 
     // Respuesta del usuario
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(75, 85, 99);
-
     let answerText = "Sin respuesta";
 
     if (pregunta.tipo === "multiple" && pregunta.opciones) {
-      const optionIndex = parseInt(respuestaUsuario);
-      const selectedOption = pregunta.opciones[optionIndex];
-      answerText = selectedOption
-        ? `Opción ${optionIndex + 1}: ${selectedOption.texto}`
-        : "Sin respuesta";
+      answerText = getMultipleOptionText(pregunta, respuestaUsuario);
     } else if (pregunta.tipo === "boolean") {
-      answerText =
-        respuestaUsuario === "true"
-          ? "Verdadero"
-          : respuestaUsuario === "false"
-            ? "Falso"
-            : "Sin respuesta";
+      answerText = normalizeBooleanValue(respuestaUsuario);
     } else if (pregunta.tipo === "abierta") {
       answerText = respuestaUsuario || "Sin respuesta";
     }
 
-    const splitAnswer = doc.splitTextToSize(`Respuesta: ${answerText}`, 170);
-    doc.text(splitAnswer, 14, yPosition);
-    yPosition += splitAnswer.length * 2 + 1;
+    if (pregunta.tipo === "multiple" && pregunta.opciones) {
+      if (esCorrecta) {
+        yPosition = writeWrappedText(doc, answerText, 14, yPosition, {
+          color: [75, 85, 99],
+          fontSize: 10,
+        });
+      } else {
+        yPosition = writeWrappedText(doc, answerText, 14, yPosition, {
+          color: [220, 53, 69],
+          fontSize: 10,
+        });
+        yPosition += 2;
+        yPosition = writeWrappedText(doc, `Opción correcta: ${getCorrectMultipleOptionText(pregunta)}`, 14, yPosition, {
+          color: [34, 197, 94],
+          fontSize: 10,
+          fontWeight: "bold",
+        });
+      }
+    } else if (pregunta.tipo === "boolean") {
+      if (esCorrecta) {
+        yPosition = writeWrappedText(doc, `Respuesta: ${answerText}`, 14, yPosition, {
+          color: [75, 85, 99],
+          fontSize: 10,
+        });
+      } else {
+        yPosition = writeWrappedText(doc, `Respuesta: ${answerText}`, 14, yPosition, {
+          color: [220, 53, 69],
+          fontSize: 10,
+        });
+        yPosition += 2;
+        yPosition = writeWrappedText(doc, `Respuesta correcta: ${normalizeBooleanValue(pregunta.respuestaCorrecta)}`, 14, yPosition, {
+          color: [34, 197, 94],
+          fontSize: 10,
+        });
+      }
+    } else {
+      const splitAnswer = doc.splitTextToSize(`Respuesta: ${answerText}`, 170);
+      doc.text(splitAnswer, 14, yPosition);
+      yPosition += splitAnswer.length * 2 + 1;
+    }
 
-    // Mostrar respuesta correcta SOLO si fue incorrecta
-    if (!esCorrecta && pregunta.respuestaCorrecta !== null && pregunta.respuestaCorrecta !== undefined && pregunta.respuestaCorrecta !== "") {
+    if (!esCorrecta && pregunta.tipo !== "multiple" && pregunta.tipo !== "boolean" && pregunta.respuestaCorrecta !== null && pregunta.respuestaCorrecta !== undefined && pregunta.respuestaCorrecta !== "") {
       doc.setFont("helvetica", "italic");
       doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);

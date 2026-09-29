@@ -259,6 +259,11 @@ exports.getOperatorTrainings = onCall(async (request) => {
             && tienePreguntasAbiertas
         );
 
+        const reprobadas = trainingResponses.filter((response) => {
+            const calificacion = Number(response?.calificacion ?? response?.puntuacionObtenida ?? 0);
+            return !response?.tieneRespuestasAbiertas && calificacion < 80;
+        });
+
         const estadoActual = userResponse
             ? (enRevision ? "pendiente" : userResponse.estadoActual || "completada")
             : "pendiente";
@@ -296,7 +301,11 @@ exports.getOperatorTrainings = onCall(async (request) => {
             enRevision,
             miRespuesta: userResponse || null,
             miPuntaje: userResponse?.puntuacionObtenida ?? userResponse?.puntajeFinal ?? null,
-            intentos: Math.max(trainingResponses.length, Number(userResponse?.intentos || 0)),
+            intentos: Math.max(
+                trainingResponses.length,
+                reprobadas.length,
+                Number(userResponse?.intentos || 0)
+            ),
             estado: estadoActual,
             estadoActual: estadoActual,
             aprobada: Boolean(userResponse?.aprobada) || (userResponse && Number(userResponse?.calificacion ?? userResponse?.puntuacionObtenida ?? 0) >= 80),
@@ -413,6 +422,11 @@ exports.saveOperatorTrainingResponse = onCall(async (request) => {
     const bucket = pending ? "pendientes" : (approved ? "aprobados" : "reprobados");
     const estado = pending ? "pendiente_validacion" : (approved ? "aprobado" : "reprobado");
     const responseRef = db.collection("respuestasCapacitaciones").doc(String(trainingId)).collection(bucket).doc();
+
+    const priorResponses = await getOperatorResponsesForTraining(operator, String(trainingId));
+    const priorAttempts = priorResponses.length;
+    const nextAttemptValue = pending ? priorAttempts : Math.min(priorAttempts + 1, 3);
+
     const responseData = {
         ...data,
         capacitacionId: String(trainingId),
@@ -423,6 +437,7 @@ exports.saveOperatorTrainingResponse = onCall(async (request) => {
         username: operator.username ?? data.username ?? "",
         nombre: operator.nombre ?? data.nombre ?? "",
         area: operator.area ?? operator.Area ?? data.area ?? "",
+        intentos: nextAttemptValue,
         id: responseRef.id,
         estado,
         aprobada: approved,

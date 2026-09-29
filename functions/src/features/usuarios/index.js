@@ -37,8 +37,7 @@ const isHrodriguezIdentifier = (value = "") => {
   const localPart = normalizedValue.split("@")[0] || "";
 
   return localPart === "hrodriguez"
-    || normalizedValue === "hrodriguez@aquamedica.com"
-    || normalizedValue === "hrodriguez@tubolsa.com";
+    || normalizedValue === "hrodriguez@aquamedica.com";
 };
 
 const getAllowedIdentifier = (value) => {
@@ -189,7 +188,7 @@ exports.getUsers = onCall(async (request) => {
   const data = request.data || {};
   const filters = {
     empresaId: data.empresaId,
-    rol: data.rol,
+    rol: data.rol ?? "operador",
     activo: data.activo,
   };
 
@@ -223,7 +222,7 @@ exports.getUsersPage = onCall(async (request) => {
   const data = request.data || {};
   const filters = {
     empresaId: data.empresaId,
-    rol: data.rol,
+    rol: data.rol ?? "operador",
     activo: data.activo,
   };
 
@@ -247,7 +246,7 @@ exports.searchUsers = onCall(async (request) => {
   const search = normalizeSearchText(data.search);
   const filters = {
     empresaId: data.empresaId,
-    rol: data.rol,
+    rol: data.rol ?? "operador",
     activo: data.activo,
   };
 
