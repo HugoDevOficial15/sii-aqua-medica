@@ -13,6 +13,60 @@ Nuevas:
 * editarAgendaSala
 
 
+Nuevas (Operador - Vistas Faltantes):
+
+Notificaciones:
+* getOperatorNotifications - Obtener notificaciones del operador
+* deleteNotification - Eliminar una notificación
+* clearAllNotifications - Limpiar todas las notificaciones
+
+Preferencias:
+* getOperatorPreferences - Obtener preferencias del usuario
+* updateOperatorPreferences - Actualizar tema, fuente, idioma, etc.
+* updateProfilePhoto - Actualizar foto de perfil
+
+Certificados:
+* getOperatorCertificates - Obtener certificados y cursos aprobados
+* getCertificatesByYear - Obtener certificados de un año específico
+
+Reconocimientos:
+* getOperatorRecognitions - Obtener reconocimientos del operador
+* getRecognitionsByArea - Obtener reconocimientos agrupados por área
+
+Incidencias:
+* getOperatorIncidences - Obtener incidencias del operador
+* getIncidenceDetails - Obtener detalles de una incidencia específica
+
+Expediente Clínico:
+* getOperatorExpediente - Obtener expediente clínico y órdenes médicas
+* getOrdenMedica - Obtener detalles de una orden médica
+* getOrdenesMedicasByEstado - Obtener órdenes por estado
+
+Comedor (Vistas):
+* getComedorVisualizacionSemanal - Obtener visualización semanal de comidas
+* getComedorCostos - Calcular costos de comedor para un período
+
+Notificaciones (Menús Publicados):
+* subscribirANotificacionesMenus - Escuchar notificaciones en tiempo real
+* marcarNotificacionComoLeida - Marcar notificación como leída
+* obtenerNotificacionesNoLeidas - Filtrar notificaciones sin leer
+* NotificacionesMenus (Componente) - Panel visual de notificaciones
+
+Operador Info (Pantallas Estáticas):
+* getAppInfo - Obtener información general de la aplicación
+* getLegalInfo - Obtener políticas de privacidad y términos
+* getSupportInfo - Obtener información de soporte
+* getMoreMenuItems - Obtener items del menú adicional
+
+Reportar Problema:
+* reportProblem - Crear nuevo reporte de problema
+* getMyProblems - Obtener problemas reportados por el usuario
+* getProblemDetails - Obtener detalles de un problema específico
+
+Operador Home:
+* getOperatorHomeDashboard - Obtener dashboard de inicio con notificaciones, noticias, encuestas
+* getOperatorStats - Obtener estadísticas rápidas del operador
+
 ReFactorizadas:
 
 

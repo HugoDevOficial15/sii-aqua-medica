@@ -1,5 +1,6 @@
-import { FiArrowLeft, FiMapPin, FiEye } from "react-icons/fi";
+import { FiArrowLeft, FiMapPin, FiEye, FiClock } from "react-icons/fi";
 import { getCurrentWeekRange, getNextWeekRange } from "../../utils/weekCalculator";
+import { COMEDOR_HORARIOS } from "../../config/comedorHorarios";
 
 export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavigateSuggestions }) {
     const currentWeek = getCurrentWeekRange();
@@ -50,6 +51,56 @@ export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavi
                     </div>
                     <div style={styles.cardArrow}>→</div>
                 </button>
+
+                {/* Horario Comedor */}
+                <div style={styles.horarioCard}>
+                    <div style={styles.horarioHeader}>
+                        <div style={{ ...styles.cardIcon, marginRight: 0 }}>
+                            <FiClock />
+                        </div>
+                        <h3 style={{ ...styles.cardTitle, margin: 0 }}>Horario comedor</h3>
+                    </div>
+                    <div style={styles.horariosContainer}>
+                        {Object.values(COMEDOR_HORARIOS).map((comida, index) => (
+                            <div key={index} style={styles.mealSection}>
+                                <div style={styles.mealHeader}>
+                                    <span style={styles.mealIcon}>{comida.icon}</span>
+                                    <span style={styles.mealName}>{comida.nombre}</span>
+                                </div>
+                                <div
+                                    style={{
+                                        ...styles.turnosGrid,
+                                        ...(comida.turnos.length > 2 && {
+                                            display: "grid",
+                                            gridTemplateColumns: `repeat(${comida.turnos.length}, minmax(0, 1fr))`,
+                                            width: "100%",
+                                        }),
+                                    }}
+                                >
+                                    {comida.turnos.map((turno, turnoIndex) => (
+                                        <div
+                                            key={turnoIndex}
+                                            style={{
+                                                ...styles.turnoItem,
+                                                ...(comida.turnos.length > 2 && { padding: "8px 4px" }),
+                                            }}
+                                        >
+                                            <div style={styles.turnoNumero}>{turno.numero}</div>
+                                            <div
+                                                style={{
+                                                    ...styles.turnoHoras,
+                                                    ...(comida.turnos.length > 2 && { fontSize: "12px" }),
+                                                }}
+                                            >
+                                                {turno.horaInicio} - {turno.horaFin}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             {/* Suggestion Button */}
@@ -144,6 +195,80 @@ const styles = {
         color: "var(--operator-text-soft)",
         marginLeft: "16px",
         fontWeight: "600",
+    },
+    horarioCard: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        padding: "20px",
+        backgroundColor: "var(--operator-card)",
+        border: "1px solid var(--operator-border)",
+        borderRadius: "16px",
+        fontFamily: "inherit",
+        gap: "16px",
+    },
+    horarioHeader: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        gap: "16px",
+        width: "100%",
+    },
+    horariosContainer: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px",
+        width: "100%",
+        alignItems: "center",
+    },
+    mealSection: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        width: "100%",
+        alignItems: "center",
+    },
+    mealHeader: {
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        justifyContent: "center",
+        width: "100%",
+    },
+    mealIcon: {
+        fontSize: "24px",
+    },
+    mealName: {
+        fontSize: "14px",
+        fontWeight: "600",
+        color: "var(--operator-text)",
+    },
+    turnosGrid: {
+        display: "flex",
+        gap: "10px",
+        justifyContent: "center",
+        flexWrap: "nowrap",
+    },
+    turnoItem: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+        padding: "10px",
+        backgroundColor: "var(--operator-background)",
+        borderRadius: "8px",
+        textAlign: "center",
+        border: "1px solid var(--operator-border)",
+    },
+    turnoNumero: {
+        fontSize: "11px",
+        fontWeight: "600",
+        color: "var(--operator-text-soft)",
+        textTransform: "uppercase",
+    },
+    turnoHoras: {
+        fontSize: "13px",
+        fontWeight: "600",
+        color: "var(--operator-text)",
     },
     suggestButton: {
         width: "100%",

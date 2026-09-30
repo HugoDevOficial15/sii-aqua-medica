@@ -6,6 +6,9 @@ import { sanitizeText } from "../../utils/sanitize";
 // Loader
 import Loader from "../../components/Loader";
 
+// Auth Hook
+import { useAuth } from "../../hooks/useAuth";
+
 // Servicio Practicantes
 import {
   getPracticantesPage,
@@ -49,6 +52,7 @@ import { DIAS_SEMANA } from "../../config/comedorConfig";
 
 export default function Practicantes({ onClose }) {
   const location = useLocation();
+  const { user } = useAuth();
 
   // Loading
   const [loading, setLoading] = useState(true);
@@ -135,8 +139,14 @@ export default function Practicantes({ onClose }) {
     const termino = sanitizeText(search).trim().toLowerCase();
     const nomina = sanitizeText(practicante?.nomina ?? "").toLowerCase();
     const nombre = sanitizeText(practicante?.nombre ?? "").toLowerCase();
+    const practicanteArea = sanitizeText(practicante?.area ?? "").toLowerCase();
+    const userArea = sanitizeText(user?.area ?? "").toLowerCase();
 
-    return nomina.includes(termino) || nombre.includes(termino);
+    // Buscar por nombre/nómina Y filtrar por área del usuario actual
+    const matchesSearch = nomina.includes(termino) || nombre.includes(termino);
+    const matchesArea = !userArea || practicanteArea === userArea;
+
+    return matchesSearch && matchesArea;
   });
 
   // Ordenar Practicantes
@@ -527,7 +537,7 @@ export default function Practicantes({ onClose }) {
               reset({
                 nombre: "",
                 escuela: "",
-                area: "",
+                area: user?.area || "",
                 fechaIngreso: "",
                 cumpleanos: "",
                 curp: "",
