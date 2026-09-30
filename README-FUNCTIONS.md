@@ -1,26 +1,63 @@
+==================================
+
             ============
-            = 25/09/26 =
+            = 30/09/26 =
+            ============
+
+Nuevas:
+
+* getAgendaSalas
+* getAgendaSalasPorMes
+* crearAgendaSala
+* eliminarAgendaSala
+* editarAgendaSala
+
+
+ReFactorizadas:
+
+
+==================================
+
+            ============
+            = 29/09/26 =
             ============
 
 Nuevas: 
 
-* getOperadoresConductuales
-* getEvaluacionesConductuales
-* guardarEvaluacionConductual
 
 ReFactorizadas:
 
-* createPersonalReconocimiento
-* createPersonalIncidencia
-* createPersonalIncapacidad
-* getPersonalUsers
-* getPersonalPageData
-* getPersonalRecordsByUsers
 * getUsers
 * getUsersPage
 * searchUsers
-* resetFailedLoginAttempts
-* registerFailedLoginAttempt
+* getPersonalUsers
+* getPersonalPageData
+* getPersonalIncidencias
+* getPersonalReconocimientos
+* getPersonalIncapacidades
+* getPersonalHistorialesMedicos
+* getPersonalCapacitaciones
+* getPersonalPdfReportData
+
+
+* saveNotification
+* createNotification
+* getAdminsByRoles
+* sendAdminNotificationToRoles
+* createNota
+* obtenerNotasPorUsuario
+* updateNota
+* deleteNota
+
+Nuevas (Practicantes):
+
+* getPracticantesPage
+* searchPracticantes
+* updatePracticante
+
+RefActorizadas (Practicantes):
+
+* createPracticante
 
 ==================================
 
@@ -113,50 +150,31 @@ API Externa (aquamedica2023):
 * crearSugerencia
 * obtenerSugerencias
 * obtenerMenuEmpleado
-
-
-
 ==================================
 
             ============
-            = 29/09/26 =
+            = 25/09/26 =
             ============
 
 Nuevas: 
 
+* getOperadoresConductuales
+* getEvaluacionesConductuales
+* guardarEvaluacionConductual
 
 ReFactorizadas:
 
+* createPersonalReconocimiento
+* createPersonalIncidencia
+* createPersonalIncapacidad
+* getPersonalUsers
+* getPersonalPageData
+* getPersonalRecordsByUsers
 * getUsers
 * getUsersPage
 * searchUsers
-* getPersonalUsers
-* getPersonalPageData
-* getPersonalIncidencias
-* getPersonalReconocimientos
-* getPersonalIncapacidades
-* getPersonalHistorialesMedicos
-* getPersonalCapacitaciones
-* getPersonalPdfReportData
+* resetFailedLoginAttempts
+* registerFailedLoginAttempt
 
 
-* saveNotification
-* createNotification
-* getAdminsByRoles
-* sendAdminNotificationToRoles
-* createNota
-* obtenerNotasPorUsuario
-* updateNota
-* deleteNota
 
-Nuevas (Practicantes):
-
-* getPracticantesPage
-* searchPracticantes
-* updatePracticante
-
-RefActorizadas (Practicantes):
-
-* createPracticante
-
-==================================

@@ -33,6 +33,7 @@ import {
     FaUserCheck,
     FaBook,
     FaUserCog,
+    FaCalendarDay,
 
 } from "react-icons/fa";
 
@@ -58,6 +59,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
             { to: "/servicioshoy", icon: <FaListAlt />, label: "Lista Servicios", permiso: "servicios.ver_global" },
             { to: "/aniversarios", icon: <FaBirthdayCake />, label: "Aniversarios", permiso: "aniversarios.ver" },
             { to: "/solicitudes", icon: <FaClipboardCheck />, label: "Solicitudes", permiso: "solicitudes.ver" },
+            { to: "/agenda-sala", icon: <FaCalendarDay />, label: "Agendar sala", permiso: "salas.ver" },
             { to: "/soporte", icon: <FaHeadset />, label: "Soporte" },
             { to: "/ideas", icon: <FaMedapps />, label: "Ideas" },
             { to: "/personal", icon: <FaUserFriends />, label: "Personal", permiso: "personal.ver" },

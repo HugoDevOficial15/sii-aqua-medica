@@ -663,13 +663,7 @@ export default function Dashboard() {
                     min-height:100vh;
 
                     padding:24px;
-
-                    background:
-                    linear-gradient(
-                        180deg,
-                        #f8fafc 0%,
-                        #eef4ff 100%
-                    );
+                    background: none !important;
                 }
 
                 .dashboard-toolbar{
@@ -684,7 +678,7 @@ export default function Dashboard() {
                     display:flex;
                     align-items:center;
                     gap:10px;
-                    color:#0f172a;
+                    color: var(--operator-text);
                     font-size:22px;
                     font-weight:700;
                 }
