@@ -17,7 +17,7 @@ import {
 } from "../../services/citasMedicasService";
 import { getAgendasMedicas } from "../../services/agendaMedicaService";
 
-export default function OperadorCitasMedicas() {
+export default function OperadorCitasMedicas({ onBack }) {
     const { user } = useAuth();
     const [searchParams] = useSearchParams();
     const agendaIdReagendamiento = searchParams.get("reagendar"); 
@@ -294,6 +294,11 @@ export default function OperadorCitasMedicas() {
 
             <div className="mb-3 d-flex justify-content-between align-items-start flex-wrap gap-2">
                 <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <button onClick={onBack} style={{ border: 'none', background: 'var(--operator-card)', color: 'var(--operator-text)', padding: '10px 16px', borderRadius: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', transition: 'all 0.2s ease', fontFamily: 'inherit' }}>
+                        <FiArrowLeft />
+                    </button>
+                    </div>
                     <h2 className="fw-bold mb-0" style={{ fontSize: '1.5rem' }}>Servicio Médico</h2>
                     <p className="citas-op-muted mb-0" style={{ fontSize: '0.9rem' }}>
                         {vista === "lista" && "Campañas médicas activas disponibles para ti."}

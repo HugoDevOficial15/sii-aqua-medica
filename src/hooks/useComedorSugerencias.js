@@ -52,7 +52,9 @@ export const useComedorSugerencias = (uid) => {
         throw new Error(result?.message || "No se pudieron cargar las sugerencias.");
       }
 
-      const sugerenciasNormalizadas = result.sugerencias.map(normalizarSugerencia);
+      const sugerenciasNormalizadas = result.sugerencias
+        .map(normalizarSugerencia)
+        .slice(0, 20);
       setSugerencias(sugerenciasNormalizadas);
       return true;
     } catch (err) {

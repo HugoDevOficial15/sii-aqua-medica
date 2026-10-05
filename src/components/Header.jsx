@@ -361,6 +361,7 @@ export default function Header({ toggleSidebar }) {
 .pro-header {
     position: sticky;
     top: 0;
+    z-index: 1000;
 
     width: 100%;
 

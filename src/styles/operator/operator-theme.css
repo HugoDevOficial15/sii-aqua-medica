@@ -352,9 +352,19 @@ html[data-theme="dark"] .feed-recognition-card,
 html[data-theme="dark"] .hero-card-v2,
 html[data-theme="dark"] .notification-card,
 html[data-theme="dark"] .op-result-card,
-html[data-theme="dark"] .op-survey-header-card,
+html[data-theme="dark"] .op-survey-header-card {
+    background: var(--operator-card);
+    color: var(--operator-text);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+
 html[data-theme="dark"] .op-survey-option-btn,
-html[data-theme="dark"] .op-survey-question-card,
+html[data-theme="dark"] .op-survey-question-card {
+    background: var(--operator-card);
+    color: var(--operator-text);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+
 html[data-theme="dark"] .operator-loader-card,
 html[data-theme="dark"] .points-card,
 html[data-theme="dark"] .points-progress-card,

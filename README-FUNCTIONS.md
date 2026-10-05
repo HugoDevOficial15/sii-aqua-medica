@@ -4,6 +4,14 @@
             = 05/10/26 =
             ============
 
+Nuevas Comedor:
+
+* useComedorOrdenes.js
+* OperadorComedor.jsx 
+
+Notificaciones:
+  - saveMenuNotification
+
 Nuevas: 
  * getSalas
  * agregarSala

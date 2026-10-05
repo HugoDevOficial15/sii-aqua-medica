@@ -20,6 +20,7 @@ import { getPuestos } from "../../services/puestos-service";
 
 // Hook Comedor
 import { useComedorMenus } from "../../hooks/useComedorMenus";
+import { usePracticanteMealRequest } from "../../hooks/usePracticanteMealRequest";
 
 // Notify
 import { notifySuccess, notifyError } from "../../utils/notify";
@@ -64,8 +65,17 @@ export default function Practicantes({ onClose }) {
   const [solicitudComidaModal, setSolicitudComidaModal] = useState(false);
   const [practicanteSolicitud, setPracticanteSolicitud] = useState(null);
 
+  // Modal Solicitud Comida Practicante
+  const [showMealRequestModal, setShowMealRequestModal] = useState(false);
+  const [mealRequestData, setMealRequestData] = useState({
+    tipoComida: "Desayuno", // Desayuno o Comida
+    menuSeleccionado: "",
+    extras: [],
+  });
+
   // Hook Comedor
   const { menus, loading: loadingMenus, error: errorMenus } = useComedorMenus();
+  const { guardarSolicitudComida, loading: loadingSolicitud } = usePracticanteMealRequest();
 
   // Busqueda
   const [search, setSearch] = useState("");
@@ -323,8 +333,7 @@ export default function Practicantes({ onClose }) {
   };
 
   const handleSolicitudComida = (practicante) => {
-    setPracticanteSolicitud(practicante);
-    setSolicitudComidaModal(true);
+    handleAbrirSolicitudComida(practicante);
   };
 
   // La nómina se genera automáticamente en el servidor
@@ -489,6 +498,146 @@ export default function Practicantes({ onClose }) {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Practicantes");
 
     XLSX.writeFile(workbook, "practicantes_aqua_medica.xlsx");
+  };
+
+  // Manejo Modal Solicitud Comida
+  const handleAbrirSolicitudComida = (practicante) => {
+    setPracticanteSolicitud(practicante);
+    setMealRequestData({
+      tipoComida: "Desayuno",
+      menuSeleccionado: "",
+      extras: [],
+    });
+    setShowMealRequestModal(true);
+  };
+
+  const handleGuardarSolicitudComida = async () => {
+    if (!mealRequestData.menuSeleccionado) {
+      notifyError("Error", "Selecciona un menú");
+      return;
+    }
+
+    const success = await guardarSolicitudComida(
+      practicanteSolicitud,
+      mealRequestData.tipoComida,
+      mealRequestData.menuSeleccionado,
+      mealRequestData.extras,
+      menus.semana
+    );
+
+    if (success) {
+      notifySuccess("Éxito", "Solicitud guardada correctamente");
+      setShowMealRequestModal(false);
+    } else {
+      notifyError("Error", "No se pudo guardar la solicitud");
+    }
+  };
+
+  const toggleExtra = (extra) => {
+    setMealRequestData((prev) => ({
+      ...prev,
+      extras: prev.extras.includes(extra)
+        ? prev.extras.filter((e) => e !== extra)
+        : [...prev.extras, extra],
+    }));
+  };
+
+  // Calcular total
+  const calcularTotal = () => {
+    const costoComida = 25;
+    const costoExtras = mealRequestData.extras.reduce((total, extra) => {
+      return total + (EXTRAS_PRECIOS[extra] || 0);
+    }, 0);
+    return costoComida + costoExtras;
+  };
+
+  // Estilos Modal
+  const styles = {
+    modal: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 9999,
+    },
+    modalContent: {
+      backgroundColor: "white",
+      borderRadius: "12px",
+      padding: "24px",
+      maxWidth: "500px",
+      width: "90%",
+      boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+    },
+    formGroup: {
+      marginBottom: "20px",
+    },
+    radioGroup: {
+      display: "flex",
+      gap: "20px",
+      marginTop: "10px",
+    },
+    radioLabel: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      cursor: "pointer",
+    },
+    select: {
+      width: "100%",
+      padding: "10px",
+      border: "1px solid #ddd",
+      borderRadius: "8px",
+      fontSize: "14px",
+      marginTop: "8px",
+    },
+    extrasContainer: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+      marginTop: "10px",
+    },
+    checkboxLabel: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      cursor: "pointer",
+    },
+    totalContainer: {
+      backgroundColor: "#f0f0f0",
+      padding: "15px",
+      borderRadius: "8px",
+      marginBottom: "20px",
+      textAlign: "center",
+      fontSize: "18px",
+      color: "#333",
+    },
+    buttonGroup: {
+      display: "flex",
+      gap: "10px",
+      justifyContent: "flex-end",
+    },
+    btnCancel: {
+      padding: "10px 20px",
+      backgroundColor: "#ddd",
+      border: "none",
+      borderRadius: "8px",
+      cursor: "pointer",
+      fontSize: "14px",
+    },
+    btnSave: {
+      padding: "10px 20px",
+      backgroundColor: "#4CAF50",
+      color: "white",
+      border: "none",
+      borderRadius: "8px",
+      cursor: "pointer",
+      fontSize: "14px",
+    },
   };
 
   return (
@@ -1532,6 +1681,102 @@ export default function Practicantes({ onClose }) {
           }
         }
       `}</style>
+
+      {/* Modal Solicitud Comida Practicante */}
+      {showMealRequestModal && practicanteSolicitud && (
+        <div style={styles.modal}>
+          <div style={styles.modalContent}>
+            <h4>Solicitud de Comida - {practicanteSolicitud.nombre}</h4>
+
+            {/* Tipo de Comida */}
+            <div style={styles.formGroup}>
+              <label>Tipo de Comida (selecciona UNO):</label>
+              <div style={styles.radioGroup}>
+                <label style={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    value="Desayuno"
+                    checked={mealRequestData.tipoComida === "Desayuno"}
+                    onChange={(e) =>
+                      setMealRequestData({ ...mealRequestData, tipoComida: e.target.value })
+                    }
+                  />
+                  Desayuno
+                </label>
+                <label style={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    value="Comida"
+                    checked={mealRequestData.tipoComida === "Comida"}
+                    onChange={(e) =>
+                      setMealRequestData({ ...mealRequestData, tipoComida: e.target.value })
+                    }
+                  />
+                  Comida
+                </label>
+              </div>
+            </div>
+
+            {/* Seleccionar Menú */}
+            <div style={styles.formGroup}>
+              <label>Selecciona el menú:</label>
+              <select
+                style={styles.select}
+                value={mealRequestData.menuSeleccionado}
+                onChange={(e) =>
+                  setMealRequestData({ ...mealRequestData, menuSeleccionado: e.target.value })
+                }
+              >
+                <option value="">-- Selecciona un menú --</option>
+                {menus[mealRequestData.tipoComida]?.map((menu, idx) => (
+                  <option key={idx} value={menu}>
+                    {menu}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Extras */}
+            <div style={styles.formGroup}>
+              <label>Extras (opcionales):</label>
+              <div style={styles.extrasContainer}>
+                {Object.entries(EXTRAS_PRECIOS).map(([extra, precio]) => (
+                  <label key={extra} style={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={mealRequestData.extras.includes(extra)}
+                      onChange={() => toggleExtra(extra)}
+                    />
+                    {extra} (+${precio})
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Total */}
+            <div style={styles.totalContainer}>
+              <strong>Total: ${calcularTotal()}</strong>
+            </div>
+
+            {/* Botones */}
+            <div style={styles.buttonGroup}>
+              <button
+                style={styles.btnCancel}
+                onClick={() => setShowMealRequestModal(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                style={styles.btnSave}
+                onClick={handleGuardarSolicitudComida}
+                disabled={loadingSolicitud}
+              >
+                {loadingSolicitud ? "Guardando..." : "Guardar Solicitud"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,15 +2,17 @@ import { useState, useCallback } from "react";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { COMEDOR_API } from "../config/comedorConfig";
+import { useAuth } from "./useAuth";
 
 export const useComedorOrdenes = (uid) => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
   const guardarOrden = useCallback(
     async (tipoComida, menuSeleccionado, semana, dia, extras = []) => {
-      if (!uid) {
+      if (!uid || !user) {
         setError("Usuario no autenticado");
         return false;
       }
@@ -22,19 +24,40 @@ export const useComedorOrdenes = (uid) => {
       try {
         const url = `${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.GUARDAR_ORDEN}`;
 
-        // Estructura esperada por InDataMeal
+        // Construir arrays de menús por día (7 días)
+        // Si es el día actual, poner el menú; sino, "NA"
+        const diasDeSemana = 7;
+        const desayunos = Array(diasDeSemana).fill("NA");
+        const comidas = Array(diasDeSemana).fill("NA");
+        const cenas = Array(diasDeSemana).fill("NA");
+
+        // Asignar menú al índice correspondiente
+        const indiceActual = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].indexOf(dia);
+
+        if (tipoComida === "Desayuno") {
+          desayunos[indiceActual] = menuSeleccionado;
+          if (extras.length > 0) {
+            desayunos[indiceActual] = `${menuSeleccionado}|${extras.join(",")}`;
+          }
+        } else if (tipoComida === "Comida") {
+          comidas[indiceActual] = menuSeleccionado;
+        } else if (tipoComida === "Cena") {
+          cenas[indiceActual] = menuSeleccionado;
+        }
+
+        // Estructura esperada por InDataMeal en aquamedica2023
         const payload = {
-          uid,
-          tipoComida, // "Desayuno", "Comida", "Cena"
-          menu: menuSeleccionado, // El texto del menú
-          semana,
-          dia,
+          IDoperador: user.nomina || user.id,
+          IDdocF: semana, // Formato: "01.06.2026-07.06.2026"
+          Nombre: user.nombre,
+          Nomina: user.nomina,
+          Area: user.area,
+          Desayuno: JSON.stringify(desayunos),
+          Comida: JSON.stringify(comidas),
+          Cena: JSON.stringify(cenas),
         };
 
-        // Agregar extras solo si existen y es Desayuno
-        if (extras.length > 0 && tipoComida === "Desayuno") {
-          payload.extras = extras;
-        }
+        console.log("📤 Payload enviando a InDataMeal:", payload);
 
         const response = await fetch(url, {
           method: "POST",
@@ -57,12 +80,12 @@ export const useComedorOrdenes = (uid) => {
         setLoading(false);
       }
     },
-    [uid]
+    [uid, user]
   );
 
   const cancelarOrden = useCallback(
     async (semana, dia, tipoComida) => {
-      if (!uid) {
+      if (!uid || !user) {
         setError("Usuario no autenticado");
         return false;
       }
@@ -74,12 +97,35 @@ export const useComedorOrdenes = (uid) => {
       try {
         const url = `${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.CANCELAR_ORDEN}`;
 
+        // Construir arrays vacíos para cancelación (todos "NA")
+        const diasDeSemana = 7;
+        const desayunos = Array(diasDeSemana).fill("NA");
+        const comidas = Array(diasDeSemana).fill("NA");
+        const cenas = Array(diasDeSemana).fill("NA");
+
+        // Asignar "NA" al índice del día a cancelar
+        const indiceActual = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].indexOf(dia);
+
+        if (tipoComida === "Desayuno") {
+          desayunos[indiceActual] = "NA";
+        } else if (tipoComida === "Comida") {
+          comidas[indiceActual] = "NA";
+        } else if (tipoComida === "Cena") {
+          cenas[indiceActual] = "NA";
+        }
+
         const payload = {
-          uid,
-          semana,
-          dia,
-          tipoComida,
+          IDoperador: user.nomina || user.id,
+          IDdocF: semana,
+          Nombre: user.nombre,
+          Nomina: user.nomina,
+          Area: user.area,
+          Desayuno: JSON.stringify(desayunos),
+          Comida: JSON.stringify(comidas),
+          Cena: JSON.stringify(cenas),
         };
+
+        console.log("📤 Payload cancelación enviando a CancelarComida:", payload);
 
         const response = await fetch(url, {
           method: "POST",
@@ -101,7 +147,7 @@ export const useComedorOrdenes = (uid) => {
         setLoading(false);
       }
     },
-    [uid]
+    [uid, user]
   );
 
   const obtenerHistorial = useCallback(

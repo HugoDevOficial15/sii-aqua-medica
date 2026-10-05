@@ -119,6 +119,164 @@ body {
   animation-delay: 0.4s;
 }
 
+
+.content {
+    flex: 1;
+    padding: 25px;
+    overflow: auto;
+    position: relative;
+    isolation: isolate;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(125, 211, 252, 0.18), transparent 18%),
+        radial-gradient(circle at 75% 30%, rgba(59, 130, 246, 0.12), transparent 22%),
+        linear-gradient(180deg, rgba(237, 249, 255, 0.65) 0%, rgba(245, 247, 250, 0.9) 100%);
+}
+
+html[data-theme="dark"] .content {
+    background:
+        radial-gradient(circle at 20% 16%, rgba(34, 211, 238, 0.22), transparent 18%),
+        radial-gradient(circle at 70% 28%, rgba(59, 130, 246, 0.18), transparent 22%),
+        radial-gradient(circle at 40% 78%, rgba(14, 165, 233, 0.12), transparent 26%),
+        linear-gradient(180deg, rgba(8, 16, 31, 0.92) 0%, rgba(15, 23, 42, 0.96) 100%);
+}
+
+.content::before,
+.content::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: lighten;
+}
+
+.content::before {
+    background:
+        radial-gradient(14px 22px at 50% 48%, rgba(125, 211, 252, 0.9), transparent 80%),
+        radial-gradient(18px 28px at 50% 50%, rgba(59, 130, 246, 0.45), transparent 70%),
+        radial-gradient(26px 18px at 50% 52%, rgba(103, 232, 249, 0.25), transparent 80%),
+        radial-gradient(14px 20px at 45% 40%, rgba(147, 197, 253, 0.25), transparent 70%),
+        radial-gradient(14px 20px at 56% 60%, rgba(96, 165, 250, 0.25), transparent 80%);
+    background-size: 320px 260px;
+    background-repeat: repeat;
+    opacity: 0.15;
+    animation: contentDroplets 15s ease-in-out infinite;
+    filter: blur(0.2px);
+}
+
+html:not([data-theme="dark"]) .content::before {
+    background:
+        radial-gradient(14px 22px at 50% 48%, rgba(103, 232, 249, 0.7), transparent 46%),
+        radial-gradient(20px 30px at 50% 50%, rgba(59, 130, 246, 0.28), transparent 56%),
+        radial-gradient(24px 18px at 50% 52%, rgba(147, 197, 253, 0.22), transparent 62%),
+        radial-gradient(12px 20px at 45% 39%, rgba(125, 211, 252, 0.3), transparent 58%),
+        radial-gradient(12px 20px at 57% 61%, rgba(96, 165, 250, 0.26), transparent 58%);
+    opacity: 0.15;
+}
+
+/* GOTAS */
+
+html[data-theme="dark"] .content::before {
+    background:
+        radial-gradient(18px 26px at 50% 49%, rgba(125, 211, 252, 0.95), transparent 60%),
+        radial-gradient(26px 28px at 50% 50%, rgba(59, 130, 246, 0.7), transparent 70%),
+        radial-gradient(28px 22px at 50% 51%, rgba(103, 232, 249, 0.42), transparent 80%),
+        radial-gradient(16px 24px at 46% 38%, rgba(147, 197, 253, 0.4), transparent 70%),
+        radial-gradient(16px 24px at 54% 62%, rgba(96, 165, 250, 0.38), transparent 70%);
+    opacity: 0.2;
+}
+
+/* ONDAS */
+
+.content::after {
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.14), transparent 18%),
+        radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.14), transparent 26%),
+        radial-gradient(circle at 50% 50%, rgba(125, 211, 252, 0.08), transparent 34%),
+        radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.06), transparent 44%);
+    filter: blur(2px);
+    animation: contentRipples 18s ease-in-out infinite alternate;
+    transform-origin: center center;
+}
+
+html:not([data-theme="dark"]) .content::after {
+    background:
+        radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.12), transparent 18%),
+        radial-gradient(circle at 50% 50%, rgba(96, 165, 250, 0.09), transparent 26%),
+        radial-gradient(circle at 50% 50%, rgba(125, 211, 252, 0.06), transparent 34%),
+        radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.04), transparent 44%);
+    filter: blur(4px);
+}
+
+html[data-theme="dark"] .content::after {
+    background:
+        radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.22), transparent 18%),
+        radial-gradient(circle at 50% 50%, rgba(96, 165, 250, 0.18), transparent 26%),
+        radial-gradient(circle at 50% 50%, rgba(125, 211, 252, 0.12), transparent 34%),
+        radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.1), transparent 44%);
+    filter: blur(8px);
+}
+
+.content > * {
+    position: relative;
+    z-index: 10;
+}
+
+@keyframes contentDroplets {
+    0% {
+        transform: translate3d(0, -30px, 0) scale(0.8);
+        opacity: 0.0;
+    }
+    10% {
+        transform: translate3d(0, -25px, 0) scale(0.85);
+        opacity: 0.2;
+    }
+    20% {
+        transform: translate3d(0, -15px, 0) scale(0.9);
+        opacity: 0.5; 
+    }
+    30% {
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 0.3;
+    }
+    50% {
+        transform: translate3d(0, 10px, 0) scale(1.06);
+        opacity: 0;
+    }
+    100% {
+        transform: translate3d(0, 72px, 0) scale(1.2);
+        opacity: 0;
+    }
+}
+
+@keyframes contentRipples {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    10% {
+        transform: scale(0.9);
+        opacity: 0.4;
+    }
+    20% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+    30% {
+        transform: scale(1.06);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.14);
+        opacity: 0.6;
+    }
+    100% {
+        transform: scale(1.4);
+        opacity: 0;
+    }
+}
+
 @keyframes fadeInSaver {
   from {
     opacity: 0;

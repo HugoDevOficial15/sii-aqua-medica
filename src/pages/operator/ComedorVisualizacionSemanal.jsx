@@ -1,10 +1,12 @@
-import { FiArrowLeft, FiMapPin, FiEye, FiClock } from "react-icons/fi";
+import { useState } from "react";
+import { FiArrowLeft, FiMapPin, FiEye, FiClock, FiChevronDown } from "react-icons/fi";
 import { getCurrentWeekRange, getNextWeekRange } from "../../utils/weekCalculator";
 import { COMEDOR_HORARIOS } from "../../config/comedorHorarios";
 
 export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavigateSuggestions }) {
     const currentWeek = getCurrentWeekRange();
     const nextWeek = getNextWeekRange();
+    const [horarioExpanded, setHorarioExpanded] = useState(false);
 
     return (
         <div style={styles.container}>
@@ -54,12 +56,25 @@ export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavi
 
                 {/* Horario Comedor */}
                 <div style={styles.horarioCard}>
-                    <div style={styles.horarioHeader}>
-                        <div style={{ ...styles.cardIcon, marginRight: 0 }}>
-                            <FiClock />
+                    <button
+                        style={styles.horarioHeaderButton}
+                        onClick={() => setHorarioExpanded(!horarioExpanded)}
+                    >
+                        <div style={styles.horarioHeaderContent}>
+                            <div style={{ ...styles.cardIcon, marginRight: 0 }}>
+                                <FiClock />
+                            </div>
+                            <h3 style={{ ...styles.cardTitle, margin: 0 }}>Horario comedor</h3>
                         </div>
-                        <h3 style={{ ...styles.cardTitle, margin: 0 }}>Horario comedor</h3>
-                    </div>
+                        <FiChevronDown
+                            style={{
+                                fontSize: "20px",
+                                transition: "transform 0.3s ease",
+                                transform: horarioExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                            }}
+                        />
+                    </button>
+                    {horarioExpanded && (
                     <div style={styles.horariosContainer}>
                         {Object.values(COMEDOR_HORARIOS).map((comida, index) => (
                             <div key={index} style={styles.mealSection}>
@@ -100,6 +115,7 @@ export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavi
                             </div>
                         ))}
                     </div>
+                    )}
                 </div>
             </div>
 
@@ -206,6 +222,26 @@ const styles = {
         borderRadius: "16px",
         fontFamily: "inherit",
         gap: "16px",
+    },
+    horarioHeaderButton: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0",
+        backgroundColor: "transparent",
+        border: "none",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "inherit",
+        color: "inherit",
+        width: "100%",
+    },
+    horarioHeaderContent: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        gap: "16px",
+        width: "100%",
     },
     horarioHeader: {
         display: "flex",

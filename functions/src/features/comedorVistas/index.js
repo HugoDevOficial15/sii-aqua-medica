@@ -16,6 +16,10 @@ exports.getComedorVisualizacionSemanal = onCall(async (request) => {
   const { semana } = request.data || {};
 
   try {
+    if (!semana) {
+      throw new HttpsError("invalid-argument", "El parámetro 'semana' es requerido");
+    }
+
     const userDoc = await usersCollection.doc(uid).get();
     if (!userDoc.exists) {
       throw new HttpsError("not-found", "Usuario no encontrado");

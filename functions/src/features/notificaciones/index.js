@@ -113,3 +113,48 @@ exports.sendAdminNotificationToRoles = onCall(async (request) => {
 
     return { success: true, count: createdCount };
 });
+
+exports.saveMenuNotification = onCall(async (request) => {
+    try {
+        const { tipo, titulo, mensaje, semana, semanaId, datos = {} } = request?.data || {};
+
+        if (!tipo || !titulo || !mensaje) {
+            throw new HttpsError("invalid-argument", "tipo, titulo y mensaje son requeridos");
+        }
+
+        const notificacion = {
+            IdUsuario: "GLOBAL", // Notificación global para todos los operadores
+            tipo,
+            titulo,
+            mensaje,
+            semana,
+            semanaId,
+            Destino: "comedor",
+            Accion: "menu_publicado",
+            enviado: true,
+            fechaCreacion: FieldValue.serverTimestamp(),
+            fechaEnviado: FieldValue.serverTimestamp(),
+            leido: false,
+            datos,
+        };
+
+        const docRef = await notificacionCollection.add(notificacion);
+
+        console.log("✓ Notificación de menú guardada en colección notificaciones:", docRef.id);
+
+        return {
+            success: true,
+            id: docRef.id,
+            message: "Notificación guardada correctamente",
+        };
+    } catch (error) {
+        if (error instanceof HttpsError) {
+            throw error;
+        }
+
+        console.error("Error al guardar notificación de menú:", error);
+        throw new HttpsError("internal", "Error saving menu notification", {
+            original: error?.message || error,
+        });
+    }
+});

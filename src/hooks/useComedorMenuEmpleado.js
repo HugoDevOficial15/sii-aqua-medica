@@ -35,7 +35,6 @@ export const useComedorMenuEmpleado = (uid) => {
           if (userSnap.exists()) {
             const userData = userSnap.data();
             nominaUsuario = userData.Nomina || userData.nomina || userData.Numero || userData.numero;
-            console.log(`✓ Usuario encontrado en ${name}:`, { uid, nomina: nominaUsuario, campos: Object.keys(userData) });
             break;
           }
         } catch (e) {
@@ -43,13 +42,11 @@ export const useComedorMenuEmpleado = (uid) => {
         }
       }
 
-      // Si no existe nómina, usar el UID como identificador (fallback)
+      // Si no existe nómina, usar una nómina por defecto (fallback)
       if (!nominaUsuario) {
-        console.warn("⚠ Usuario sin nómina encontrada, usando UID como fallback:", uid);
-        nominaUsuario = uid;
+        console.warn("⚠ Usuario sin nómina encontrada, usando número por defecto 502");
+        nominaUsuario = 502;
       }
-
-      console.log("📝 Llamando API con nómina:", nominaUsuario, "e idSemana:", idSemana);
 
       // 2. Consumir la API usando la nómina
       const response = await fetch(`${PRODUCCION_URL}/obtenerMenuEmpleado`, {

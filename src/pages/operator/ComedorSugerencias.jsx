@@ -1,12 +1,19 @@
 import { useState, useEffect } from "react";
-import { FiArrowLeft, FiCamera, FiToggleLeft, FiToggleRight, FiRefreshCw } from "react-icons/fi";
+import { FiArrowLeft, FiCamera, FiRefreshCw } from "react-icons/fi";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "../../config/firebase";
 import { useComedorSugerencias } from "../../hooks/useComedorSugerencias";
+import { capturePhoto } from "../../services/cameraService";
+import { validatePhotoFile } from "../../services/photoSuggestionService";
 
 export default function ComedorSugerencias({ onBack, uid }) {
     const [suggestion, setSuggestion] = useState("");
     const [isAnonymous, setIsAnonymous] = useState(false);
-    const [photoAdded, setPhotoAdded] = useState(false);
+    const [photoFile, setPhotoFile] = useState(null);
+    const [photoPreview, setPhotoPreview] = useState(null);
     const [paginaActual, setPaginaActual] = useState(1);
+    const [capturingPhoto, setCapturingPhoto] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const itemsPorPagina = 10;
     const { guardarSugerencia, obtenerSugerencias, sugerencias, loading, error, success } = useComedorSugerencias(uid);
 
@@ -21,15 +28,70 @@ export default function ComedorSugerencias({ onBack, uid }) {
     const sugerenciasActuales = sugerencias.slice(indiceInicio, indiceFin);
     const totalPaginas = Math.ceil(sugerencias.length / itemsPorPagina);
 
+    const uploadPhotoToStorage = async (file) => {
+        if (!file) return null;
+
+        try {
+            const fileName = `suggestions/${Date.now()}_${file.name}`;
+            const fileRef = ref(storage, fileName);
+            await uploadBytes(fileRef, file);
+            const downloadURL = await getDownloadURL(fileRef);
+            return downloadURL;
+        } catch (error) {
+            console.error("Error subiendo foto:", error);
+            throw new Error("Error al subir la foto");
+        }
+    };
+
     const handleSubmit = async () => {
-        if (!suggestion.trim()) return;
+        if (!suggestion.trim() || isSubmitting || loading) return;
 
-        const guardada = await guardarSugerencia(suggestion, isAnonymous, null);
+        setIsSubmitting(true);
+        try {
+            let photoUrl = null;
+            if (photoFile) {
+                photoUrl = await uploadPhotoToStorage(photoFile);
+            }
 
-        if (guardada) {
-            setSuggestion("");
-            setIsAnonymous(false);
-            setPhotoAdded(false);
+            const guardada = await guardarSugerencia(suggestion, isAnonymous, photoUrl);
+
+            if (guardada) {
+                setSuggestion("");
+                setIsAnonymous(false);
+                setPhotoFile(null);
+                setPhotoPreview(null);
+            }
+        } catch (error) {
+            console.error("Error en handleSubmit:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleCapturePhoto = async () => {
+        setCapturingPhoto(true);
+        try {
+            const file = await capturePhoto({
+                quality: 90,
+                allowEditing: false
+            });
+
+            const { valid } = validatePhotoFile(file);
+            if (!valid) {
+                setCapturingPhoto(false);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setPhotoPreview(e.target.result);
+                setPhotoFile(file);
+                setCapturingPhoto(false);
+            };
+            reader.readAsDataURL(file);
+        } catch (error) {
+            console.error("Error capturando foto:", error);
+            setCapturingPhoto(false);
         }
     };
 
@@ -76,14 +138,30 @@ export default function ComedorSugerencias({ onBack, uid }) {
 
                         <div
                             style={{...styles.optionItem, cursor: "pointer"}}
-                            onClick={() => setPhotoAdded(!photoAdded)}
+                            onClick={handleCapturePhoto}
                         >
                             <div style={styles.cameraIcon}>
                                 <FiCamera />
                             </div>
-                            <span style={styles.optionLabel}>Tomar foto</span>
+                            <span style={styles.optionLabel}>{capturingPhoto ? "Abriendo..." : "Tomar foto"}</span>
                         </div>
                     </div>
+
+                    {/* Photo Preview */}
+                    {photoPreview && (
+                        <div style={styles.photoPreview}>
+                            <img src={photoPreview} alt="Foto capturada" style={styles.previewImage} />
+                            <button
+                                style={styles.removePhotoButton}
+                                onClick={() => {
+                                    setPhotoFile(null);
+                                    setPhotoPreview(null);
+                                }}
+                            >
+                                ✕ Remover foto
+                            </button>
+                        </div>
+                    )}
 
                     {/* Suggestion Input */}
                     <textarea
@@ -102,27 +180,28 @@ export default function ComedorSugerencias({ onBack, uid }) {
 
                     {/* Submit Button */}
                     <button
-                        style={styles.submitButton}
+                        style={{
+                            ...styles.submitButton,
+                            opacity: (!suggestion.trim() || isSubmitting || loading) ? 0.6 : 1,
+                            cursor: (!suggestion.trim() || isSubmitting || loading) ? "not-allowed" : "pointer"
+                        }}
                         onClick={handleSubmit}
-                        disabled={!suggestion.trim() || loading}
+                        disabled={!suggestion.trim() || isSubmitting || loading}
                     >
-                        {loading ? "Enviando..." : "Enviar sugerencia"}
+                        {isSubmitting ? "Subiendo foto..." : (loading ? "Guardando..." : "Enviar sugerencia")}
                     </button>
                 </div>
             </div>
 
-            {/* Submitted Suggestions Section */}
+            {/* Success Message */}
             {success && (
                 <div style={styles.section}>
-                    <div style={styles.submittedCard}>
-                        <h3 style={styles.submittedTitle}>✓ Sugerencia enviada</h3>
-                        <div style={styles.suggestionItem}>
-                            <p style={styles.suggestionText}>Tu sugerencia ha sido registrada exitosamente</p>
-                            <p style={styles.suggestionDate}>{new Date().toLocaleDateString('es-ES')}</p>
-                        </div>
+                    <div style={styles.successAlert}>
+                        <p style={styles.successAlertText}>✓ Sugerencia enviada correctamente</p>
                     </div>
                 </div>
             )}
+
 
             {/* Respuesta a sugerencias de otros usuarios */}
             {sugerencias.length > 0 && (
@@ -574,7 +653,49 @@ const styles = {
     },
     pendingContent: {
         fontSize: "13px",
-        color: "#6c757d", // Subtítulo en gris claro
+        color: "#6c757d",
         margin: "0",
+    },
+    photoPreview: {
+        marginBottom: "16px",
+        borderRadius: "8px",
+        overflow: "hidden",
+        backgroundColor: "var(--operator-background)",
+        border: "1px solid var(--operator-border)",
+        position: "relative",
+    },
+    previewImage: {
+        width: "100%",
+        height: "auto",
+        display: "block",
+        maxHeight: "300px",
+        objectFit: "contain",
+    },
+    removePhotoButton: {
+        position: "absolute",
+        top: "8px",
+        right: "8px",
+        backgroundColor: "rgba(220, 53, 69, 0.9)",
+        color: "white",
+        border: "none",
+        borderRadius: "6px",
+        padding: "6px 12px",
+        fontSize: "12px",
+        fontWeight: "600",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        fontFamily: "inherit",
+    },
+    successAlert: {
+        backgroundColor: "#e8f5e9",
+        border: "1px solid #4caf50",
+        borderRadius: "8px",
+        padding: "12px",
+    },
+    successAlertText: {
+        fontSize: "13px",
+        color: "#2e7d32",
+        margin: 0,
+        fontWeight: "600",
     },
 };

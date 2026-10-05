@@ -22,7 +22,7 @@ exports.getPracticantesPage = onCall(async (request) => {
   const limit = Math.min(Math.max(Number(pageSize || 30), 1), 60);
 
   try {
-    let query = practicantesCollection.where("activo", "==", true).orderBy("nombre", "asc").limit(limit + 1);
+    let query = practicantesCollection.where("activo", "==", true).orderBy("nombre", "asc");
 
     if (cursor !== undefined && cursor !== null && cursor !== "") {
       const cursorDoc = await practicantesCollection.doc(cursor).get();
@@ -31,7 +31,7 @@ exports.getPracticantesPage = onCall(async (request) => {
       }
     }
 
-    const snapshot = await query.get();
+    const snapshot = await query.limit(limit + 1).get();
     const docs = snapshot.docs.map(practicanteFromSnapshot);
     const hasMore = docs.length > limit;
     const practicantes = hasMore ? docs.slice(0, limit) : docs;

@@ -15,27 +15,28 @@ try {
 }
 
 /**
- * Capturar foto usando HTML5 File Input
+ * Capturar foto usando HTML5 File Input con capture directo
  * Fallback para web cuando Capacitor no está disponible
+ * Abre la cámara directamente, no la galería
  *
  * @returns {Promise<File>}
  */
 export const capturePhotoWithFileInput = () => {
   return new Promise((resolve, reject) => {
-    console.log('🌐 Abriendo File Input para capturar foto');
+    console.log('🌐 Abriendo cámara con File Input');
 
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'environment'; // Preferir cámara trasera en mobile
+    input.capture = 'environment'; // Fuerza cámara trasera en mobile
 
     input.onchange = (e) => {
       const file = e.target.files?.[0];
       if (file) {
-        console.log('✓ Archivo seleccionado:', file.name);
+        console.log('✓ Foto capturada:', file.name);
         resolve(file);
       } else {
-        reject(new Error('No se seleccionó archivo'));
+        reject(new Error('No se capturó foto'));
       }
     };
 
@@ -50,6 +51,7 @@ export const capturePhotoWithFileInput = () => {
 /**
  * Capturar foto usando Capacitor Camera (mobile)
  * Solo se usa si Capacitor está disponible
+ * Abre directamente la cámara
  *
  * @param {Object} options - Opciones de captura
  * @returns {Promise<File>}
@@ -64,17 +66,14 @@ export const capturePhotoWithCapacitor = async (options = {}) => {
 
     const {
       quality = 90,
-      source = CameraSource.Prompt
+      source = CameraSource.Camera // Usa Camera directamente, no Prompt
     } = options;
 
     const photo = await Camera.getPhoto({
       quality,
       allowEditing: false,
       resultType: CameraResultType.Uri,
-      source,
-      promptLabelPicture: 'Seleccionar foto',
-      promptLabelCamera: 'Tomar foto',
-      promptLabelCancelable: true
+      source
     });
 
     console.log('✓ Foto capturada con Capacitor');

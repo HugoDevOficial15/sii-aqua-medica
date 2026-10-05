@@ -49,9 +49,12 @@ export default function OperadorComedor({ onBack }) {
     // Función para traer los datos de la semana desde Firestore (ej. 28.09.2026-04.10.2026)
     const cargarDatosSemanaPasada = async (idSemanaNom) => {
         try {
-            if (!user?.uid && !user?.nomina) return;
-            const nominaUser = user.nomina || "502"; // Valor de respaldo basado en tus pruebas
-            const docRef = doc(db, "AquaMedica-Morelos", "Usuarios", "Comedor", String(nominaUser), "Comida", idSemanaNom);
+            if (!user?.nomina) {
+                console.error("❌ Usuario sin nómina");
+                return;
+            }
+            const nominaUser = String(user.nomina).trim();
+            const docRef = doc(db, "AquaMedica-Morelos", "Usuarios", "Comedor", nominaUser, "Comida", idSemanaNom);
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
