@@ -2,7 +2,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { FieldValue } = require("firebase-admin/firestore");
 const { db } = require("../../config/firebase");
 
-const reportesCollection = db.collection("Problemas reportados");
+const reportesCollection = db.collection("problemasReportados");
 
 // CREAR TICKETS { OPERADOR }
 

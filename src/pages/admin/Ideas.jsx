@@ -5,6 +5,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { createNotification } from "../../utils/createNotification";
 import { notifyError, notifySuccess, confirmDelete } from "../../utils/notify";
 import { getAllIdeas, updateIdeaStatus, deleteIdea } from "../../services/ideasService";
+import Loader from "../../components/Loader";
+
 import Swal from "sweetalert2";
 
 export default function IdeasAdmin() {
@@ -220,6 +222,8 @@ export default function IdeasAdmin() {
       Rechazada: ideas.filter((i) => i.estado === "Rechazada").length,
     };
   }, [ideas]);
+
+  if (loading) return <Loader text={"Cargando ideas..."} />;
 
   return (
     <>

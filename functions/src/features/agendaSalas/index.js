@@ -2,6 +2,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require("../../config/firebase");
 
 const agendaSalasCollection = db.collection("agendaSalas");
+const coleccionSalas = db.collection("salas");
 
 const getRequestData = (request) => request?.data ?? {};
 
@@ -37,6 +38,56 @@ const normalizarReserva = (doc) => {
   };
 };
 
+/*  AGREGAR SALAS  */
+
+exports.getSalas = onCall(async () => {
+  const snapshot = await coleccionSalas.get();
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+});
+
+exports.agregarSala = onCall(async (request) => {
+  const { nombre, activo } = getRequestData(request);
+  if (!nombre) {
+    throw new HttpsError("invalid-argument", "Debe proporcionar un nombre para la sala.");
+  }
+
+  const nombreNormalizado = String(nombre).trim();
+  const activoNormalizado = activo === undefined ? true : Boolean(activo);
+
+  const docRef = await coleccionSalas.add({
+    nombre: nombreNormalizado,
+    activo: activoNormalizado,
+  });
+
+  return {
+    id: docRef.id,
+    nombre: nombreNormalizado,
+    activo: activoNormalizado,
+  };
+});
+
+exports.eliminarSala = onCall(async (request) => {
+  const { id } = getRequestData(request);
+  if (!id) {
+    throw new HttpsError("invalid-argument", "Debe proporcionar el ID de la sala a eliminar.");
+  }
+  await coleccionSalas.doc(id).delete();
+  return { id };
+});
+
+exports.editarSala = onCall(async (request) => {
+  const { id, nombre, activo } = getRequestData(request);
+  if (!id) {
+    throw new HttpsError("invalid-argument", "Debe proporcionar el ID de la sala a editar.");
+  }
+  const updateData = {};
+  if (nombre !== undefined) updateData.nombre = String(nombre).trim();
+  if (activo !== undefined) updateData.activo = Boolean(activo);
+  await coleccionSalas.doc(id).update(updateData);
+  return { id, ...updateData };
+});
+
+
 exports.getAgendaSalas = onCall(async () => {
   const snapshot = await agendaSalasCollection.orderBy("fecha", "asc").get();
   return snapshot.docs.map(normalizarReserva);
@@ -55,10 +106,14 @@ exports.getAgendaSalasPorMes = onCall(async (request) => {
   const snapshot = await agendaSalasCollection
     .where("anio", "==", Number(anio))
     .where("mes", "==", Number(mes))
-    .orderBy("fecha", "asc")
     .get();
 
-  return snapshot.docs.map(normalizarReserva);
+  return snapshot.docs
+    .map(normalizarReserva)
+    .sort((a, b) =>
+      String(a.fecha ?? "").localeCompare(String(b.fecha ?? "")) ||
+      toMinutes(a.horaInicio) - toMinutes(b.horaInicio)
+    );
 });
 
 exports.crearAgendaSala = onCall(async (request) => {

@@ -26,6 +26,7 @@ const ordenesMedicas = require("./features/ordenesMedicas");
 const notas = require("./features/notas");
 const notificaciones = require("./features/notificaciones");
 const agendaSalas = require("./features/agendaSalas");
+const verificacionLogs = require("./features/verificacionLogs");
 
 const initPushNotifications = async () => {
   console.log("✓ Servicio local de push desactivado. Cloud Functions al mando.");
@@ -62,6 +63,7 @@ module.exports = {
   ...notas,
   ...notificaciones,
   ...agendaSalas,
+  ...verificacionLogs,
   initPushNotifications,
   stopPushNotifications,
 };

@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 
 import { crearServicio } from "../../../services/serviciosService";
 
-import Loader from "../../../components/Loader";
 import { notifyError, notifySuccess } from "../../../utils/notify";
 import { useAuth } from "../../../hooks/useAuth";
 import Swal from "sweetalert2";
@@ -16,31 +15,40 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
 
 
 
-    const anio = new Date().getFullYear();
-    const mesFormateado = String(mes).padStart(2, "0");
+    const formatearFechaLocalISO = (fecha = new Date()) => {
+        const anio = fecha.getFullYear();
+        const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+        const dia = String(fecha.getDate()).padStart(2, "0");
+        return `${anio}-${mes}-${dia}`;
+    };
 
-    const minDate = `${anio}-${mesFormateado}-01`;
-    const maxDate = new Date(anio, mes, 0).toISOString().split("T")[0];
+    const hoy = new Date();
+    const anioActual = hoy.getFullYear();
+    const mesActual = hoy.getMonth() + 1;
+    const fechaActual = formatearFechaLocalISO(hoy);
+
+    const mesFormateado = String(mes).padStart(2, "0");
+    const minDate = `${anioActual}-${mesFormateado}-01`;
+    const maxDate = `${anioActual}-${mesFormateado}-${String(new Date(anioActual, Number(mes), 0).getDate()).padStart(2, "0")}`;
+
+    const tipoMesActual = Number(mes) === mesActual && anioActual === Number(new Date().getFullYear());
+    const minDateSelector = tipoMesActual ? fechaActual : minDate;
+    const fechaInicial = tipoMesActual ? fechaActual : minDate;
 
     const { register, handleSubmit, reset } = useForm({
         defaultValues: {
-            fecha: minDate
+            fecha: fechaInicial
         }
     });
 
     // const { register, handleSubmit } = useForm();
 
     useEffect(() => {
-        const anio = new Date().getFullYear();
-        const mesFormateado = String(mes).padStart(2, "0");
-
-        const minDate = `${anio}-${mesFormateado}-01`;
-
         reset({
-            fecha: minDate
+            fecha: fechaInicial
         });
 
-    }, [mes, reset]);
+    }, [fechaInicial, reset]);
 
     const duracionMap = {
         radio: 30,
@@ -208,8 +216,6 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
                 {/* BODY */}
                 <div className="custom-modal-body">
 
-                    {loading && <Loader text="Preparando agenda..." />}
-
                     <form onSubmit={handleSubmit(onSubmit)} className="d-flex flex-column gap-2">
 
                         <div className="info-box">
@@ -226,7 +232,7 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
                         <input
                             type="date"
                             className="form-control custom-input"
-                            min={minDate}
+                            min={minDateSelector}
                             max={maxDate}
                             {...register("fecha", { required: true })}
                         />

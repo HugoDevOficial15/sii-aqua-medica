@@ -1,13 +1,9 @@
 import { useMemo, useState } from "react";
 import {
-    FaArrowLeft,
-    FaCalendarAlt,
     FaClock,
-    FaMapMarkerAlt,
-    FaPlus,
     FaUserTie,
-    FaRegCalendarCheck,
-    FaDoorOpen
+    FaDoorOpen,
+    FaRegCalendarCheck
     
 } from "react-icons/fa";
 
@@ -124,7 +120,7 @@ export default function AgendaSalaDisponibilidad({
             <div className="calendar-modal">
                 <div className="calendar-header">
                     <div>
-                        <p className="calendar-eyebrow">Disponibilidad</p>
+                        <p className="calendar-eyebrow"> <FaRegCalendarCheck className="calendar-icon" />Disponibilidad</p>
                         <h5>Mes {mes}</h5>
                     </div>
 
@@ -298,6 +294,15 @@ export default function AgendaSalaDisponibilidad({
                     text-transform: uppercase;
                     letter-spacing: 0.08em;
                     font-weight: 800;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .calendar-icon {
+                    height: 22px;
+                    width: 22px;
+                    margin-right: 10px;
                 }
 
                 .calendar-header h5 {

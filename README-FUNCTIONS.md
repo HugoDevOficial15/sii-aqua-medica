@@ -1,6 +1,30 @@
 ==================================
 
             ============
+            = 05/10/26 =
+            ============
+
+Nuevas: 
+ * getSalas
+ * agregarSala
+ * eliminarSala
+ * editarSala
+ * verificarUsuariosLogueados
+ * verificarUsuariosLogueadosHttp
+ * verificacionLogs
+
+ReFactorizadas:
+
+* getAgendaSalasPorMes
+* createSupportTicket
+* cargarProblemas
+* cambiarEstado
+* handleEliminarProblema
+* crearServicio
+
+==================================
+
+            ============
             = 30/09/26 =
             ============
 

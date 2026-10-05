@@ -21,6 +21,7 @@ import {
     eliminarAgendaSala,
     getAgendaSalasPorMes,
 } from "../../../services/agendarSalaService";
+import { fetchSalas } from "../../../services/agregarSalasService";
 import Swal from "sweetalert2";
 
 const meses = [
@@ -29,7 +30,6 @@ const meses = [
 ];
 
 const tiposEvento = ["Conferencia", "Capacitación", "Reunión", "Taller", "Presentación"];
-const salasDisponibles = ["Sala de juntas 1", "Sala de juntas 2"];
 
 const toMinutes = (hora) => {
     if (!hora) return 0;
@@ -74,8 +74,16 @@ export default function AgendarSalaMes() {
     const mesNumber = Number(mes) || new Date().getMonth() + 1;
     const nombreMes = meses[mesNumber - 1] || "Mes";
 
+    const getFechaPorDefecto = () => {
+        const hoy = new Date();
+        const anio = hoy.getFullYear();
+        const dia = hoy.getMonth() + 1 === mesNumber ? hoy.getDate() : 1;
+        return `${anio}-${String(mesNumber).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+    };
+
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [salasDisponibles, setSalasDisponibles] = useState([]);
     const [showDisponibilidad, setShowDisponibilidad] = useState(false);
     const [buscarNombre, setBuscarNombre] = useState("");
     const [buscarFecha, setBuscarFecha] = useState("");
@@ -84,8 +92,8 @@ export default function AgendarSalaMes() {
     const [form, setForm] = useState({
         titulo: "",
         tipo: "Conferencia",
-        sala: salasDisponibles[0],
-        fecha: `${new Date().getFullYear()}-${String(mesNumber).padStart(2, "0")}-01`,
+        sala: "",
+        fecha: getFechaPorDefecto(),
         horaInicio: "09:00",
         horaFin: "10:30",
         asistente: "",
@@ -97,8 +105,8 @@ export default function AgendarSalaMes() {
         setForm({
             titulo: "",
             tipo: "Conferencia",
-            sala: salasDisponibles[0],
-            fecha: `${new Date().getFullYear()}-${String(mesNumber).padStart(2, "0")}-01`,
+            sala: salasDisponibles[0]?.nombre ?? "",
+            fecha: getFechaPorDefecto(),
             horaInicio: "09:00",
             horaFin: "10:30",
             asistente: "",
@@ -107,6 +115,37 @@ export default function AgendarSalaMes() {
         });
         setEditingReservaId(null);
     };
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const cargarSalas = async () => {
+            try {
+                const datos = await fetchSalas();
+                const salasActivas = (Array.isArray(datos) ? datos : []).filter((sala) => sala?.activo !== false);
+
+                if (isMounted) {
+                    setSalasDisponibles(salasActivas);
+                    setForm((prev) => ({
+                        ...prev,
+                        sala: prev.sala || salasActivas[0]?.nombre || "",
+                    }));
+                }
+            } catch (error) {
+                console.error("Error al cargar salas:", error);
+                if (isMounted) {
+                    setSalasDisponibles([]);
+                    setForm((prev) => ({ ...prev, sala: "" }));
+                }
+            }
+        };
+
+        cargarSalas();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -310,8 +349,8 @@ export default function AgendarSalaMes() {
         setForm({
             titulo: reserva.titulo || "",
             tipo: reserva.tipo || "Conferencia",
-            sala: reserva.sala || salasDisponibles[0],
-            fecha: reserva.fecha || `${new Date().getFullYear()}-${String(mesNumber).padStart(2, "0")}-01`,
+            sala: reserva.sala || salasDisponibles[0]?.nombre || "",
+            fecha: reserva.fecha || getFechaPorDefecto(),
             horaInicio: reserva.horaInicio || "09:00",
             horaFin: reserva.horaFin || "10:30",
             asistente: String(reserva.asistentes ?? reserva.asistente ?? ""),
@@ -337,13 +376,22 @@ export default function AgendarSalaMes() {
         }
 
         try {
+            Swal.fire({
+                title: "Eliminando...",
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
             await eliminarAgendaSala(reserva.id);
             setReservas((prev) => prev.filter((item) => item.id !== reserva.id));
             if (editingReservaId === reserva.id) {
                 resetearFormulario();
             }
+            Swal.close();
             notifySuccess("Reserva eliminada correctamente.");
         } catch (error) {
+            Swal.close();
             console.error("Error al eliminar agendaSala:", error);
             notifyError(error?.message || "No se pudo eliminar la reserva.");
         }
@@ -442,9 +490,13 @@ export default function AgendarSalaMes() {
                         <label>
                             <span>Sala</span>
                             <select name="sala" value={form.sala} onChange={handleChange}>
-                                {salasDisponibles.map((sala) => (
-                                    <option key={sala} value={sala}>{sala}</option>
-                                ))}
+                                {!salasDisponibles.length ? (
+                                    <option value="">No hay salas disponibles</option>
+                                ) : (
+                                    salasDisponibles.map((sala) => (
+                                        <option key={sala.id ?? sala.nombre} value={sala.nombre}>{sala.nombre}</option>
+                                    ))
+                                )}
                             </select>
                         </label>
 

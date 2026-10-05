@@ -17,6 +17,8 @@ const ADMIN_PERMISSION_OPTIONS = [
   { key: "servicios.ver_global", label: "Lista Servicios" },
   { key: "aniversarios.ver", label: "Aniversarios" },
   { key: "solicitudes.ver", label: "Solicitudes" },
+  { key: "salas_agregar.ver", label: "Agregar Sala" },
+  { key: "salas.ver", label: "Agendar Sala" },
   { key: "personal.ver", label: "Personal" },
   { key: "practicantes.ver", label: "Practicantes" },
   { key: "comportamiento.ver", label: "Comp. Conductual" },
@@ -38,11 +40,13 @@ const PRESET_ADMIN_ROLES = {
   },
   admin_almacen: {
     label: "admin_almacen - PEPS",
-    permisos: ["dashboard.ver", "personal.ver", "practicantes.ver", "peps.ver", "config.ver", "notas.ver"],
+    permisos: ["dashboard.ver", "personal.ver", "practicantes.ver","encuestas.ver","salas.ver","capacitaciones.ver", "noticias.ver",
+              "peps.ver", "config.ver", "notas.ver", "servicios.agendar", "inventario.ver", "comportamiento.ver"],
   },
   admin_medico: {
     label: "admin_medico - Medicamentos y Citas",
-    permisos: ["dashboard.ver", "personal.ver", "practicantes.ver", "medicamentos.ver", "citas.ver", "ordenes.ver", "config.ver", "notas.ver"],
+    permisos: ["dashboard.ver", "personal.ver", "practicantes.ver","encuestas.ver","salas.ver","capacitaciones.ver", "medicamentos.ver", "citas.ver", "ordenes.ver", "config.ver", "notas.ver",
+              "servicios.agendar", "inventario.ver", "comportamiento.ver"],
   },
   admin: {
     label: "admin - Permisos manuales",
@@ -781,7 +785,6 @@ export default function AdministradoresModal({
           justify-content: flex-end;
           gap: 10px;
           padding: 16px 22px 22px;
-          border-top: 1px solid var(--operator-border);
         }
 
         .admin-info-grid {
@@ -877,7 +880,7 @@ export default function AdministradoresModal({
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          background: rgba(14, 165, 233, 0.1);
+          background: rgba(14, 153, 233, 0.1);
           color: var(--operator-text);
           border: 1px solid var(--operator-border);
           border-radius: 999px;

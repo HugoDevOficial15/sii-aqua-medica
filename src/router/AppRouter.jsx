@@ -48,6 +48,8 @@ const ExpedienteClinico = lazy(() => import("../pages/operator/ExpedienteClinico
 const OperadorComedor = lazy(() => import("../pages/operator/OperadorComedor"));
 const AgendaSala = lazy(() => import("../modules/agendasala/agendasala"));
 const AgendarSalaMes = lazy(() => import("../modules/agendasala/components/agendaSalaMes"));
+const AgregarSala = lazy(() => import("../modules/agregarSala/agregarSala"));
+
 
 const RouteFallback = () => <Loader text="Preparando la página..." />;
 
@@ -212,6 +214,15 @@ export default function AppRouter() {
                             element={
                                 <ProtectedRoute permiso="solicitudes.ver">
                                     <Solicitudes />
+                                </ProtectedRoute>
+                            }
+                        />
+                        {/* AGREGAR SALA */}
+                        <Route
+                            path="/agregarSala"
+                            element={
+                                <ProtectedRoute permiso="salas.agregar">
+                                    <AgregarSala />
                                 </ProtectedRoute>
                             }
                         />

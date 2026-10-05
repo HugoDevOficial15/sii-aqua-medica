@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { FiEye, FiX, FiCheckCircle, FiClock, FiAlertCircle, FiTrash } from "react-icons/fi";
 import { FaEllipsisV } from "react-icons/fa";
+import Loader from "../../components/Loader";
 
 import { useAuth } from "../../hooks/useAuth";
 import { notifySuccess, notifyError, confirmDelete } from "../../utils/notify";
@@ -239,6 +240,8 @@ export default function SoporteAdmin() {
     }
     return { icon: "🟢", label: "Usuario", bg: "rgba(16, 185, 129, 0.15)", color: "#10b981" };
   };
+
+  if (loading) return <Loader text={"Cargando reportes de soporte..."} />;
 
   return (
     <>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaEye, FaPlus, FaSearch, FaEllipsisV, FaEdit, FaTrash, FaUserPlus, FaAddressCard, FaKey, FaUser} from "react-icons/fa";
+import Loader from "../../components/Loader";
 
 import AdministradoresModal from "./components/administradoresModal";
 import { getAdministradores } from "../../services/usersService";
@@ -105,6 +106,8 @@ export default function Administradores() {
       return normalizeText(searchable).includes(normalizedSearch);
     });
   }, [administradores, search]);
+
+  if (loading) return <Loader text={"Cargando administradores..."} />;
 
   return (
     <div className="container-fluid page-transition">

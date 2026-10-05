@@ -9,6 +9,22 @@ const bloqueosHorariosCollection = db.collection("bloqueosHorarios");
 
 const getRequestData = (request) => request?.data ?? {};
 
+const timeToMinutes = (time) => {
+    if (!time || typeof time !== "string") return null;
+
+    const [hora, minutos] = time.split(":").map(Number);
+
+    if (Number.isNaN(hora) || Number.isNaN(minutos)) {
+        return null;
+    }
+
+    return (hora * 60) + minutos;
+};
+
+const hayOverlap = (inicioA, finA, inicioB, finB) => {
+    return inicioA < finB && finA > inicioB;
+};
+
 exports.getServicios = onCall(async (request) => {
     const { areaId, anio, mes } = getRequestData(request);
 
@@ -44,10 +60,121 @@ exports.getServiciosGlobal = onCall(async (request) => {
 
 exports.crearServicio = onCall(async (request) => {
     const payload = getRequestData(request);
+    const {
+        fecha,
+        horaInicio,
+        horaFin,
+        duracionMin,
+        areaId,
+    } = payload;
+
+    if (!fecha || !horaInicio || !horaFin) {
+        throw new HttpsError(
+            "invalid-argument",
+            "Faltan datos para crear el servicio: fecha, horaInicio y horaFin son requeridos."
+        );
+    }
+
+    const inicioMinutos = timeToMinutes(horaInicio);
+    const finMinutos = timeToMinutes(horaFin);
+
+    if (inicioMinutos === null || finMinutos === null) {
+        throw new HttpsError(
+            "invalid-argument",
+            "La hora de inicio y la hora de fin deben tener formato HH:mm."
+        );
+    }
+
+    if (finMinutos <= inicioMinutos) {
+        throw new HttpsError(
+            "invalid-argument",
+            "La hora fin debe ser mayor a la hora de inicio."
+        );
+    }
+
+    const duracionSolicitada = Number(duracionMin);
+
+    if (Number.isFinite(duracionSolicitada) && duracionSolicitada > 0) {
+        const diferencia = finMinutos - inicioMinutos;
+
+        if (Math.abs(diferencia - duracionSolicitada) > 5) {
+            throw new HttpsError(
+                "invalid-argument",
+                "La duración del servicio no coincide con el rango horario indicado."
+            );
+        }
+    }
+
+    const [anio, mes, dia] = fecha.split("-").map(Number);
+
+    if (!anio || !mes || !dia || String(fecha).length !== 10) {
+        throw new HttpsError(
+            "invalid-argument",
+            "La fecha del servicio es inválida."
+        );
+    }
+
+    const snapshotServicios = await serviciosCollections
+        .where("fecha", "==", fecha)
+        .get();
+
+    const conflictoServicio = snapshotServicios.docs.some((doc) => {
+        const data = doc.data();
+        if (!data?.horaInicio || !data?.horaFin) return false;
+
+        const inicioExistente = timeToMinutes(data.horaInicio);
+        const finExistente = timeToMinutes(data.horaFin);
+
+        if (inicioExistente === null || finExistente === null) return false;
+
+        return hayOverlap(
+            inicioMinutos,
+            finMinutos,
+            inicioExistente,
+            finExistente
+        );
+    });
+
+    if (conflictoServicio) {
+        throw new HttpsError(
+            "already-exists",
+            "Ya existe otro servicio agendado en esa fecha y horario."
+        );
+    }
+
+    const snapshotBloqueos = await bloqueosHorariosCollection
+        .where("fecha", "==", fecha)
+        .get();
+
+    const conflictoBloqueo = snapshotBloqueos.docs.some((doc) => {
+        const data = doc.data();
+        if (!data?.horaInicio || !data?.horaFin) return false;
+
+        const inicioBloqueado = timeToMinutes(data.horaInicio);
+        const finBloqueado = timeToMinutes(data.horaFin);
+
+        if (inicioBloqueado === null || finBloqueado === null) return false;
+
+        return hayOverlap(
+            inicioMinutos,
+            finMinutos,
+            inicioBloqueado,
+            finBloqueado
+        );
+    });
+
+    if (conflictoBloqueo) {
+        throw new HttpsError(
+            "failed-precondition",
+            "El horario solicitado está bloqueado por una restricción de disponibilidad."
+        );
+    }
+
     const servicio = {
         ...payload,
+        areaId: areaId ? String(areaId).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : areaId,
         estado: "pendiente",
-        createdAt: new Date()
+        createdAt: new Date(),
     };
 
     const docRef = await serviciosCollections.add(servicio);
