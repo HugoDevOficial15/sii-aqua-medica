@@ -415,6 +415,25 @@ export default function SoporteAdmin() {
             transition: transform 0.2s;
             transform: scale(1.01);
         }
+
+        .btn-cancelar {
+            background-color: var(--operator-form);
+            color: var(--operator-text);
+            border: none;
+            border-radius: 10px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 800;
+            transition: background 0.2s ease;
+            display: flex;
+        }
+
+        .btn-cancelar:hover {
+            transform: scale(1.05);
+            transition: transform 0.2s ease-in-out;        
+            background-color: var(--operator-form);
+            color: var(--operator-danger);
+        }
       `}</style>
 
       <div className="page-transition">
@@ -787,7 +806,7 @@ export default function SoporteAdmin() {
 
             {/* PIE DEL MODAL */}
             <div style={styles.footer}>
-              <button className="btn btn-secondary px-4" onClick={() => setModalOpen(false)}>
+              <button className="btn-cancelar" onClick={() => setModalOpen(false)}>
                 Cerrar
               </button>
             </div>
@@ -831,7 +850,7 @@ const styles = {
     borderRadius: "20px",
     width: "600px",
     maxWidth: "95%",
-    maxHeight: "85vh",
+    maxHeight: "70vh",
     boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
     overflow: "auto",
     WebkitOverflowScrolling: "touch",
@@ -872,7 +891,6 @@ const styles = {
   },
   footer: {
     padding: "16px 24px",
-    borderTop: "1px solid var(--operator-border)",
     display: "flex",
     justifyContent: "flex-end",
   },

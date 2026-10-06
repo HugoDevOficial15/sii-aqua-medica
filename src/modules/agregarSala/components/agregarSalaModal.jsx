@@ -51,7 +51,7 @@ export default function AgregarSalaModal({ onClose, onSuccess, salaEdit }) {
         <div className="modal-backdrop">
             <div className="salas-modal">
                 <div className="salas-header">
-                    <h5 className="salas-title">{salaEdit ? <><FaEdit /> "Editar Sala"</> : <><FaPlus /> "Agregar Sala"</>}</h5>
+                    <h5 className="salas-title">{salaEdit ? <><FaEdit /> Editar Sala</> : <><FaPlus /> Agregar Sala</>}</h5>
 
                     <button className="btn-cerrar" onClick={onClose}>
                         ×

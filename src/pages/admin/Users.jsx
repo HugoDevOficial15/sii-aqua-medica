@@ -2427,7 +2427,7 @@ export default function Users({ onClose }) {
           border-radius: 20px;
           border: 1px solid var(--operator-border);
           box-shadow: 0 24px 48px var(--operator-shadow);
-          max-width: 25%;
+          max-width: 30%;
           max-height: 60%;
         }
 

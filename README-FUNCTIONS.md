@@ -9,6 +9,11 @@
 * searchPracticantes 
 
 
+**Verificar-Logins**
+* verificarUsuariosLogueados
+* verificarUsuariosLogueadosHttp
+* verificacionLogs
+
 ==================================
 
             ============

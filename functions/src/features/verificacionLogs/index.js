@@ -11,16 +11,33 @@ const normalizeText = (value) => String(value ?? "")
   .replace(/[\u0300-\u036f]/g, "")
   .toLowerCase();
 
-const safeDate = (value) => {
-  if (!value) return null;
+const parseDateValue = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+
+  if (typeof value === "object") {
+    if (typeof value.toDate === "function") {
+      const date = value.toDate();
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    if (typeof value.seconds === "number") {
+      const date = new Date(value.seconds * 1000);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+  }
+
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const safeDate = (value) => {
+  const date = parseDateValue(value);
+  return date ? date.toISOString() : null;
 };
 
 const isValidLoginDate = (value) => {
-  if (!value) return false;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
+  const date = parseDateValue(value);
+  if (!date) return false;
   return date.getTime() >= VALID_LOGIN_CUTOFF.getTime();
 };
 
@@ -37,10 +54,13 @@ const getUserLoginTimestamp = (userData = {}, authUser = null) => {
     userData.last_access,
   ];
 
-  for (const candidate of candidateFields) {
-    if (isValidLoginDate(candidate)) {
-      return safeDate(candidate);
-    }
+  const validLoginDates = candidateFields
+    .map((candidate) => parseDateValue(candidate))
+    .filter((date) => date && isValidLoginDate(date));
+
+  if (validLoginDates.length > 0) {
+    const latestTimestamp = Math.max(...validLoginDates.map((date) => date.getTime()));
+    return new Date(latestTimestamp).toISOString();
   }
 
   const authMetadata = authUser?.metadata || {};
@@ -53,8 +73,7 @@ const getUserLoginTimestamp = (userData = {}, authUser = null) => {
   const createdTime = new Date(created).getTime();
 
   if (signInTime < VALID_LOGIN_CUTOFF.getTime()) return null;
-
-  return signInTime > createdTime ? signIn : null;
+  return signInTime >= createdTime ? signIn : null;
 };
 
 const getAreaCandidates = (userData = {}) => [

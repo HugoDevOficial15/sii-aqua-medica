@@ -642,7 +642,7 @@ export default function AdministradoresModal({
 
         .admin-modal-header h5 {
           margin: 0;
-          font-weight: 800;
+          font-weight: 700;
           color: var(--operator-text);
         }
 
@@ -653,7 +653,7 @@ export default function AdministradoresModal({
           cursor: pointer;
           padding: 8px 8px;
           gap: 8px;
-          font-size: 20px;
+          font-size: 18px;
           border-radius: 12px;
         }
 
