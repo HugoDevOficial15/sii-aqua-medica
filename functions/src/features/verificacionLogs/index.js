@@ -2,8 +2,8 @@ const { onCall, onRequest } = require("firebase-functions/v2/https");
 const { admin, db } = require("../../config/firebase");
 
 const usersCollection = db.collection("users");
-const VALID_LOGIN_CUTOFF = new Date("2026-09-26T00:00:00.000Z");
-const LOCAL_TIMEZONE_OFFSET_MS = 6 * 60 * 60 * 1000;
+const VALID_LOGIN_CUTOFF = new Date("2026-09-26T06:00:00.000Z");
+const LOCAL_TIMEZONE_OFFSET_MS = -6 * 60 * 60 * 1000;
 
 const normalizeToLocalDate = (date) => {
   if (!date || Number.isNaN(date.getTime())) return null;
@@ -63,29 +63,10 @@ const getUserLoginTimestamp = (userData = {}, authUser = null) => {
 };
 
 const resolveAuthUser = (userData = {}, authUsersMap = new Map()) => {
-  const possibleIds = [
-    userData.uid,
-    userData.authUid,
-    userData.userId,
-    userData.uidAuth,
-    userData.id,
-  ].filter((value) => value !== undefined && value !== null && value !== "");
+  const userEmail = String(userData.email || userData.correo || "").trim().toLowerCase();
+  if (!userEmail) return null;
 
-  for (const id of possibleIds) {
-    const authUser = authUsersMap.get(String(id));
-    if (authUser) return authUser;
-  }
-
-  const userEmail = String(userData.email || "").trim().toLowerCase();
-  if (userEmail) {
-    for (const authUser of authUsersMap.values()) {
-      if (String(authUser.email || "").trim().toLowerCase() === userEmail) {
-        return authUser;
-      }
-    }
-  }
-
-  return null;
+  return authUsersMap.get(userEmail) || null;
 };
 
 const getAreaCandidates = (userData = {}) => [
@@ -113,10 +94,16 @@ const buildUserReportItem = (userData = {}, authUser = null) => {
     email: userData.email || authUser?.email || null,
     nomina: userData.nomina ?? null,
     area: getAreaCandidates(userData)[0] || userData.area || null,
+    rol: normalizeText(userData.rol || userData.Rol || userData.role || null),
     activo: Boolean(userData.activo),
     ultimaSesion: lastSignInTime,
     seLogueo: Boolean(lastSignInTime),
   };
+};
+
+const isOperatorRole = (userData = {}) => {
+  const role = normalizeText(userData.rol || userData.Rol || userData.role || "");
+  return role === "operador" || role.includes("operador") || role === "operator" || role.includes("operator");
 };
 
 const getAuthUsersMap = async () => {
@@ -126,7 +113,10 @@ const getAuthUsersMap = async () => {
   do {
     const result = await admin.auth().listUsers(1000, pageToken);
     for (const authUser of result.users) {
-      usersMap.set(authUser.uid, authUser);
+      const email = String(authUser.email || "").trim().toLowerCase();
+      if (email) {
+        usersMap.set(email, authUser);
+      }
     }
     pageToken = result.pageToken;
   } while (pageToken);
@@ -141,9 +131,7 @@ const buildLoginReport = async (areaFilter = "") => {
   const matchingUsers = snapshot.docs
     .map((doc) => ({ id: doc.id, ...doc.data() }))
     .filter((userData) => {
-      const role = String(userData.rol || "").trim().toLowerCase();
-      if (role === "administrador" || role === "admin" || role === "admin_sistemas" ||
-      role === "admin_general" || role === "admin_medico" || role === "admin_almacen" || role === "admin_super") return false;
+      if (!isOperatorRole(userData)) return false;
       return matchesArea(userData, areaFilter);
     });
 

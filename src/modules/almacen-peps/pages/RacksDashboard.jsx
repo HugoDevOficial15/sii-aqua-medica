@@ -132,7 +132,6 @@ export default function RacksDashboard() {
             style={{
                 height: "100vh",
                 overflow: "hidden",
-                background: "var(--operator-background)",
                 color: "var(--operator-text)"
             }}
         >
