@@ -146,7 +146,7 @@ export default function OperadorComedor({ onBack }) {
                             {meal.icon}
                         </div>
                         <div style={styles.mealLabel}>{meal.label}</div>
-                        <div style={styles.mealCount}>5</div>
+                        <div style={styles.mealCount}></div>
                     </button>
                 ))}
             </div>
@@ -434,15 +434,48 @@ export default function OperadorComedor({ onBack }) {
                         <button
                             style={{ ...styles.confirmarCarritoButton, flex: 2 }}
                             onClick={async () => {
+                                // Construir arrays de 7 días con TODAS las órdenes acumuladas
+                                const desayunos = Array(7).fill("NA");
+                                const comidas = Array(7).fill("NA");
+                                const cenas = Array(7).fill("NA");
+
+                                // Mapeo de día a índice
+                                const diaMap = {
+                                    "Lunes": 0, "Martes": 1, "Miércoles": 2, "Jueves": 3,
+                                    "Viernes": 4, "Sábado": 5, "Domingo": 6
+                                };
+
+                                // Llenar arrays con todas las órdenes
                                 for (const orden of ordenesAcumuladas) {
-                                    await guardarOrden(
-                                        orden.tipo,
-                                        orden.menu,
-                                        menus.semana,
-                                        orden.dia,
-                                        orden.extras
-                                    );
+                                    const indice = diaMap[orden.dia];
+                                    const arrayMap = {
+                                        "Desayuno": desayunos,
+                                        "Comida": comidas,
+                                        "Cena": cenas
+                                    };
+
+                                    const array = arrayMap[orden.tipo];
+                                    if (array && indice >= 0) {
+                                        // Si hay extras, agregar con pipe separator
+                                        if (orden.extras.length > 0) {
+                                            array[indice] = `${orden.menu}|${orden.extras.join(",")}`;
+                                        } else {
+                                            array[indice] = orden.menu;
+                                        }
+                                    }
                                 }
+
+                                console.log("📦 Arrays finales compilados:", { desayunos, comidas, cenas });
+
+                                // Llamar UNA SOLA VEZ con todos los datos
+                                await guardarOrden(
+                                    "Desayuno", // Dummy - la función ahora espera arrays
+                                    { desayunos, comidas, cenas },
+                                    menus.semana,
+                                    "Lunes", // Dummy
+                                    []
+                                );
+
                                 setOrdenesAcumuladas([]);
                                 setConfirmacion("¡Todas las órdenes fueron guardadas con éxito!");
                             }}

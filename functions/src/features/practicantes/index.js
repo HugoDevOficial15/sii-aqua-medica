@@ -22,7 +22,7 @@ exports.getPracticantesPage = onCall(async (request) => {
   const limit = Math.min(Math.max(Number(pageSize || 30), 1), 60);
 
   try {
-    let query = practicantesCollection.where("activo", "==", true).orderBy("nombre", "asc");
+    let query = practicantesCollection.orderBy("nombre", "asc");
 
     if (cursor !== undefined && cursor !== null && cursor !== "") {
       const cursorDoc = await practicantesCollection.doc(cursor).get();
@@ -32,9 +32,13 @@ exports.getPracticantesPage = onCall(async (request) => {
     }
 
     const snapshot = await query.limit(limit + 1).get();
-    const docs = snapshot.docs.map(practicanteFromSnapshot);
-    const hasMore = docs.length > limit;
-    const practicantes = hasMore ? docs.slice(0, limit) : docs;
+
+    // Filtrar activos después de obtener datos
+    const allDocs = snapshot.docs.map(practicanteFromSnapshot);
+    const activeDocs = allDocs.filter(doc => doc.activo === true);
+
+    const hasMore = activeDocs.length > limit;
+    const practicantes = hasMore ? activeDocs.slice(0, limit) : activeDocs;
     const nextCursor = hasMore ? practicantes[practicantes.length - 1]?.id : null;
 
     return {
@@ -57,15 +61,17 @@ exports.searchPracticantes = onCall(async (request) => {
     const normalizedSearch = normalizeSearchText(search);
 
     if (!normalizedSearch) {
-      const snapshot = await practicantesCollection.where("activo", "==", true).limit(30).get();
+      const snapshot = await practicantesCollection.orderBy("nombre", "asc").limit(30).get();
+      const practicantes = snapshot.docs
+        .map(practicanteFromSnapshot)
+        .filter(doc => doc.activo === true);
       return {
-        practicantes: snapshot.docs.map(practicanteFromSnapshot),
+        practicantes,
         hasMore: false,
       };
     }
 
     const snapshot = await practicantesCollection
-      .where("activo", "==", true)
       .orderBy("nombre", "asc")
       .limit(30)
       .get();
@@ -73,6 +79,7 @@ exports.searchPracticantes = onCall(async (request) => {
     const practicantes = snapshot.docs
       .map(practicanteFromSnapshot)
       .filter((p) => {
+        if (p.activo !== true) return false;
         const nombre = normalizeSearchText(p.nombre || "");
         return nombre.includes(normalizedSearch);
       });

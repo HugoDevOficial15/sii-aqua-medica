@@ -24,25 +24,38 @@ export const useComedorOrdenes = (uid) => {
       try {
         const url = `${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.GUARDAR_ORDEN}`;
 
-        // Construir arrays de menús por día (7 días)
-        // Si es el día actual, poner el menú; sino, "NA"
-        const diasDeSemana = 7;
-        const desayunos = Array(diasDeSemana).fill("NA");
-        const comidas = Array(diasDeSemana).fill("NA");
-        const cenas = Array(diasDeSemana).fill("NA");
+        // Si menuSeleccionado es un objeto con arrays (nuevo formato)
+        let desayunos, comidas, cenas;
 
-        // Asignar menú al índice correspondiente
-        const indiceActual = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].indexOf(dia);
+        if (typeof menuSeleccionado === 'object' && menuSeleccionado.desayunos) {
+          // Usar arrays ya compilados
+          desayunos = menuSeleccionado.desayunos;
+          comidas = menuSeleccionado.comidas;
+          cenas = menuSeleccionado.cenas;
+          console.log(`📦 Usando arrays compilados:`, { desayunos, comidas, cenas });
+        } else {
+          // Formato antiguo: construir arrays para una sola orden
+          const diasDeSemana = 7;
+          desayunos = Array(diasDeSemana).fill("NA");
+          comidas = Array(diasDeSemana).fill("NA");
+          cenas = Array(diasDeSemana).fill("NA");
 
-        if (tipoComida === "Desayuno") {
-          desayunos[indiceActual] = menuSeleccionado;
-          if (extras.length > 0) {
-            desayunos[indiceActual] = `${menuSeleccionado}|${extras.join(",")}`;
+          const indiceActual = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].indexOf(dia);
+
+          console.log(`📝 Asignando ${tipoComida} a ${dia} (índice ${indiceActual}): ${menuSeleccionado}`);
+
+          if (tipoComida === "Desayuno") {
+            desayunos[indiceActual] = menuSeleccionado;
+            if (extras.length > 0) {
+              desayunos[indiceActual] = `${menuSeleccionado}|${extras.join(",")}`;
+            }
+          } else if (tipoComida === "Comida") {
+            comidas[indiceActual] = menuSeleccionado;
+          } else if (tipoComida === "Cena") {
+            cenas[indiceActual] = menuSeleccionado;
           }
-        } else if (tipoComida === "Comida") {
-          comidas[indiceActual] = menuSeleccionado;
-        } else if (tipoComida === "Cena") {
-          cenas[indiceActual] = menuSeleccionado;
+
+          console.log(`✅ Arrays actuales:`, { desayunos, comidas, cenas });
         }
 
         // Estructura esperada por InDataMeal en aquamedica2023
@@ -57,7 +70,6 @@ export const useComedorOrdenes = (uid) => {
           Cena: JSON.stringify(cenas),
         };
 
-        console.log("📤 Payload enviando a InDataMeal:", payload);
 
         const response = await fetch(url, {
           method: "POST",

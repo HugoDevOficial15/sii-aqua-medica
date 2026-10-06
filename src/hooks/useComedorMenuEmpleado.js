@@ -42,12 +42,6 @@ export const useComedorMenuEmpleado = (uid) => {
         }
       }
 
-      // Si no existe nómina, usar una nómina por defecto (fallback)
-      if (!nominaUsuario) {
-        console.warn("⚠ Usuario sin nómina encontrada, usando número por defecto 502");
-        nominaUsuario = 502;
-      }
-
       // 2. Consumir la API usando la nómina
       const response = await fetch(`${PRODUCCION_URL}/obtenerMenuEmpleado`, {
         method: "POST",

@@ -85,6 +85,16 @@ export default function ComedorVistaLectura({ onBack, uid }) {
                 ))}
             </div>
 
+            {/* Total de la Semana */}
+            {menuEmpleado && (
+                <div style={styles.totalSemanaCard}>
+                    <div style={styles.totalSemanaLabel}>Total de la semana:</div>
+                    <div style={styles.totalSemanaAmount}>
+                        ${(parseInt(menuEmpleado.totales.desayuno) + parseInt(menuEmpleado.totales.comida) + parseInt(menuEmpleado.totales.cena)) || 0}
+                    </div>
+                </div>
+            )}
+
             {/* Loading State */}
             {loading && (
                 <div style={styles.loadingContainer}>
@@ -313,16 +323,115 @@ const styles = {
         backgroundColor: "var(--operator-background)", 
         borderRadius: "12px", 
         border: "1px solid var(--operator-border)", 
-        display: "flex", flexDirection: "column", gap: "12px" },
-    noOrderMessage: { fontSize: "14px", color: "var(--operator-text-soft)", fontWeight: "500", textAlign: "center", padding: "8px" },
-    orderSummary: { display: "flex", flexDirection: "column", gap: "8px" },
-    orderLine: { display: "flex", gap: "8px", fontSize: "13px" },
-    orderLabel: { fontWeight: "600", color: "var(--operator-text-soft)", minWidth: "60px" },
-    extrasDisplay: { display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "8px" },
-    extraTag: { display: "inline-block", padding: "4px 8px", backgroundColor: "rgba(10, 77, 157, 0.1)", borderRadius: "6px", fontSize: "12px", color: "#0A4D9D", fontWeight: "bold", border: "1px solid rgba(10, 77, 157, 0.2)" },
-    cancelButton: { display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", padding: "10px 16px", backgroundColor: "#ef4444", color: "white", border: "none", borderRadius: "8px", fontWeight: "600", fontSize: "13px", cursor: "pointer", transition: "all 0.2s ease" },
-    suggestButton: { width: "100%", padding: "10px 16px", backgroundColor: "#0A4D9D", color: "white", border: "none", borderRadius: "12px", fontSize: "13px", fontWeight: "600", cursor: "pointer", transition: "all 0.2s ease" },
-    loadingContainer: { textAlign: "center", padding: "40px 20px", color: "var(--operator-text-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "12px" },
-    errorBox: { backgroundColor: "#ffebee", border: "1px solid #ef5350", borderRadius: "8px", padding: "12px 16px", marginBottom: "24px" },
-    errorText: { fontSize: "13px", color: "#c62828", margin: 0, fontWeight: "600" },
+        display: "flex", flexDirection: "column", gap: "12px" 
+    },
+    noOrderMessage: { 
+        fontSize: "14px", 
+        color: "var(--operator-text-soft)", 
+        fontWeight: "500", 
+        textAlign: "center", 
+        padding: "8px" 
+    },
+    orderSummary: {
+        display: "flex", 
+        flexDirection: "column", 
+        gap: "8px" 
+    },
+    orderLine: { 
+        display: "flex", 
+        gap: "8px", 
+        fontSize: "13px" 
+    },
+    orderLabel: { 
+        fontWeight: "600", 
+        color: "var(--operator-text-soft)", 
+        minWidth: "60px" 
+    },
+    extrasDisplay: { 
+        display: "flex", 
+        flexWrap: "wrap", 
+        gap: "8px", 
+        marginTop: "8px" 
+    },
+    extraTag: { 
+        display: "inline-block",
+        padding: "4px 8px", 
+        backgroundColor: "rgba(10, 77, 157, 0.1)", 
+        borderRadius: "6px", 
+        fontSize: "12px", 
+        color: "#0A4D9D", 
+        fontWeight: "bold", 
+        border: "1px solid rgba(10, 77, 157, 0.2)" 
+    },
+    cancelButton: { 
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "center", 
+        gap: "8px", 
+        padding: "10px 16px", 
+        backgroundColor: "#ef4444", 
+        color: "white", 
+        border: "none", 
+        borderRadius: "8px", 
+        fontWeight: "600", 
+        fontSize: "13px", 
+        cursor: "pointer", 
+        transition: "all 0.2s ease" 
+    },
+    suggestButton: { 
+        width: "100%", 
+        padding: "10px 16px", 
+        backgroundColor: "#0A4D9D", 
+        color: "white", 
+        border: "none", 
+        borderRadius: "12px", 
+        fontSize: "13px", 
+        fontWeight: "600", 
+        cursor: "pointer", 
+        transition: "all 0.2s ease" 
+    },
+    loadingContainer: { 
+        textAlign: "center", 
+        padding: "40px 20px", 
+        color: "var(--operator-text-soft)", 
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "center", 
+        flexDirection: "column", 
+        gap: "12px" 
+    },
+    errorBox: { 
+        backgroundColor: "#ffebee", 
+        border: "1px solid #ef5350", 
+        borderRadius: "8px", 
+        padding: "12px 16px", 
+        marginBottom: "24px" 
+    },
+    errorText: {
+        fontSize: "13px",
+        color: "#c62828",
+        margin: 0,
+        fontWeight: "600"
+    },
+    totalSemanaCard: {
+        backgroundColor: "var(--operator-card)",
+        border: "2px solid #4CAF50",
+        borderRadius: "16px",
+        padding: "24px",
+        marginBottom: "32px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        boxShadow: "0 4px 12px rgba(76, 175, 80, 0.2)"
+    },
+    totalSemanaLabel: {
+        fontSize: "16px",
+        fontWeight: "600",
+        color: "var(--operator-text)"
+    },
+    totalSemanaAmount: {
+        fontSize: "28px",
+        fontWeight: "700",
+        color: "#4CAF50"
+    },
 };

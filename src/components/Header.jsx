@@ -359,9 +359,7 @@ export default function Header({ toggleSidebar }) {
 ========================= */
 
 .pro-header {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+    position: relative;
 
     width: 100%;
 
@@ -370,10 +368,8 @@ export default function Header({ toggleSidebar }) {
     padding-left: calc(24px + var(--safe-left));
     padding-right: calc(24px + var(--safe-right));
 
-    backdrop-filter: blur(18px);
-
     background:
-        rgba(255,255,255,0.78);
+        rgba(255,255,255,1);
 
     border-bottom:
         1px solid rgba(37,99,235,0.08);
@@ -574,7 +570,7 @@ export default function Header({ toggleSidebar }) {
 .notification-dropdown-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 998;
+    z-index: 39;
 }
 
 .notification-dropdown {
@@ -594,7 +590,7 @@ export default function Header({ toggleSidebar }) {
 
     box-shadow: 0 20px 40px rgba(0,0,0,0.18);
 
-    z-index: 999;
+    z-index: 41;
 
     animation: notifDropdownFade .15s ease;
 }

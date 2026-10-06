@@ -2,8 +2,8 @@
 
 export const COMEDOR_API = {
   // LOCAL (emulador): http://localhost:5001/aquamedica2023/us-central1
-  // PRODUCCIÓN: https://us-central1-aquamedica2023.cloudfunctions.net
-  BASE_URL: "http://localhost:5001/aquamedica2023/us-central1",
+  PRODUCCIÓN: "https://us-central1-aquamedica2023.cloudfunctions.net",
+  BASE_URL: "https://us-central1-aquamedica2023.cloudfunctions.net",
   ENDPOINTS: {
     MENUS: "/getPublicaciones",
     GUARDAR_ORDEN: "/InDataMeal",
