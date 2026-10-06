@@ -2,8 +2,13 @@ const { onCall, onRequest } = require("firebase-functions/v2/https");
 const { admin, db } = require("../../config/firebase");
 
 const usersCollection = db.collection("users");
-
 const VALID_LOGIN_CUTOFF = new Date("2026-09-26T00:00:00.000Z");
+const LOCAL_TIMEZONE_OFFSET_MS = 6 * 60 * 60 * 1000;
+
+const normalizeToLocalDate = (date) => {
+  if (!date || Number.isNaN(date.getTime())) return null;
+  return new Date(date.getTime() + LOCAL_TIMEZONE_OFFSET_MS);
+};
 
 const normalizeText = (value) => String(value ?? "")
   .trim()
@@ -30,17 +35,6 @@ const parseDateValue = (value) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const safeDate = (value) => {
-  const date = parseDateValue(value);
-  return date ? date.toISOString() : null;
-};
-
-const isValidLoginDate = (value) => {
-  const date = parseDateValue(value);
-  if (!date) return false;
-  return date.getTime() >= VALID_LOGIN_CUTOFF.getTime();
-};
-
 const getUserLoginTimestamp = (userData = {}, authUser = null) => {
   const candidateFields = [
     userData.lastLoginAt,
@@ -52,28 +46,46 @@ const getUserLoginTimestamp = (userData = {}, authUser = null) => {
     userData.lastSignInTime,
     userData.authLastLogin,
     userData.last_access,
+    authUser?.metadata?.lastSignInTime,
+    authUser?.metadata?.lastRefreshTime,
   ];
 
-  const validLoginDates = candidateFields
+  const validDates = candidateFields
     .map((candidate) => parseDateValue(candidate))
-    .filter((date) => date && isValidLoginDate(date));
+    .filter((date) => date && Number.isFinite(date.getTime()) && date.getTime() >= VALID_LOGIN_CUTOFF.getTime());
 
-  if (validLoginDates.length > 0) {
-    const latestTimestamp = Math.max(...validLoginDates.map((date) => date.getTime()));
-    return new Date(latestTimestamp).toISOString();
+  if (validDates.length > 0) {
+    const latestTimestamp = Math.max(...validDates.map((date) => date.getTime()));
+    return normalizeToLocalDate(new Date(latestTimestamp))?.toISOString() ?? null;
   }
 
-  const authMetadata = authUser?.metadata || {};
-  const signIn = safeDate(authMetadata.lastSignInTime || authMetadata.lastRefreshTime);
-  const created = safeDate(authMetadata.creationTime);
+  return null;
+};
 
-  if (!signIn || !created) return null;
+const resolveAuthUser = (userData = {}, authUsersMap = new Map()) => {
+  const possibleIds = [
+    userData.uid,
+    userData.authUid,
+    userData.userId,
+    userData.uidAuth,
+    userData.id,
+  ].filter((value) => value !== undefined && value !== null && value !== "");
 
-  const signInTime = new Date(signIn).getTime();
-  const createdTime = new Date(created).getTime();
+  for (const id of possibleIds) {
+    const authUser = authUsersMap.get(String(id));
+    if (authUser) return authUser;
+  }
 
-  if (signInTime < VALID_LOGIN_CUTOFF.getTime()) return null;
-  return signInTime >= createdTime ? signIn : null;
+  const userEmail = String(userData.email || "").trim().toLowerCase();
+  if (userEmail) {
+    for (const authUser of authUsersMap.values()) {
+      if (String(authUser.email || "").trim().toLowerCase() === userEmail) {
+        return authUser;
+      }
+    }
+  }
+
+  return null;
 };
 
 const getAreaCandidates = (userData = {}) => [
@@ -128,15 +140,18 @@ const buildLoginReport = async (areaFilter = "") => {
 
   const matchingUsers = snapshot.docs
     .map((doc) => ({ id: doc.id, ...doc.data() }))
-    .filter((userData) => matchesArea(userData, areaFilter));
+    .filter((userData) => {
+      const role = String(userData.rol || "").trim().toLowerCase();
+      if (role === "administrador" || role === "admin" || role === "admin_sistemas" ||
+      role === "admin_general" || role === "admin_medico" || role === "admin_almacen" || role === "admin_super") return false;
+      return matchesArea(userData, areaFilter);
+    });
 
   const logueados = [];
   const sinLoguear = [];
 
   matchingUsers.forEach((userData) => {
-    const authUser = authUsersMap.get(
-      userData.uid || userData.authUid || userData.userId || userData.uidAuth || userData.id,
-    ) || null;
+    const authUser = resolveAuthUser(userData, authUsersMap);
     const reportItem = buildUserReportItem(userData, authUser);
 
     if (reportItem.seLogueo) {
@@ -151,7 +166,7 @@ const buildLoginReport = async (areaFilter = "") => {
 
   return {
     area: areaFilter || "TODAS",
-    fechaConsulta: new Date().toISOString(),
+    fechaConsulta: normalizeToLocalDate(new Date())?.toISOString() ?? new Date().toISOString(),
     totalUsuarios: matchingUsers.length,
     usuariosLogueados: logueados.length,
     usuariosSinLoguear: sinLoguear.length,
