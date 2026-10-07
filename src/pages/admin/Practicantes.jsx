@@ -63,6 +63,13 @@ export default function Practicantes({ onClose }) {
     window.matchMedia("(prefers-color-scheme: dark)").matches
   );
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e) => setIsDarkMode(e.matches);
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, []);
+
   // Modal
   const [showModal, setShowModal] = useState(false);
   const [infoModal, setInfoModal] = useState(false);
@@ -1775,20 +1782,20 @@ export default function Practicantes({ onClose }) {
       {/* Modal Solicitud Comida Practicante */}
       {showMealRequestModal && practicanteSolicitud && menus && (
         <div style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: "20px"}}>
-          <div style={{backgroundColor: "#1a1a2e", borderRadius: "8px", width: "100%", maxWidth: "1200px", maxHeight: "90vh", overflowY: "auto", padding: "30px", border: "1px solid rgba(255,255,255,0.1)"}}>
+          <div style={{backgroundColor: isDarkMode ? "#1a1a2e" : "#f5f5f5", borderRadius: "8px", width: "100%", maxWidth: "1200px", maxHeight: "90vh", overflowY: "auto", padding: "30px", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, color: isDarkMode ? "#fff" : "#000"}}>
             {/* Header */}
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px"}}>
-              <h2 style={{margin: 0, color: "#fff"}}>Solicitud de Comida - {practicanteSolicitud.nombre}</h2>
-              <button onClick={() => {setShowMealRequestModal(false); setDesayunosAcumulados([]); setComidasAcumuladas([]);}} style={{background: "none", border: "none", fontSize: "28px", color: "#fff", cursor: "pointer"}}>×</button>
+              <h2 style={{margin: 0, color: isDarkMode ? "#fff" : "#000"}}>Solicitud de Comida - {practicanteSolicitud.nombre}</h2>
+              <button onClick={() => {setShowMealRequestModal(false); setDesayunosAcumulados([]); setComidasAcumuladas([]);}} style={{background: "none", border: "none", fontSize: "28px", color: isDarkMode ? "#fff" : "#000", cursor: "pointer"}}>×</button>
             </div>
 
             {/* 3 Cuadros */}
-            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px"}}>
+            <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px"}}>
               {/* CUADRO 1: DESAYUNO */}
-              <div style={{backgroundColor: "#2d2d44", padding: "20px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)"}}>
-                <h3 style={{color: "#fff", marginTop: 0}}>🥪 Desayuno</h3>
+              <div style={{backgroundColor: isDarkMode ? "#2d2d44" : "#fff", padding: "20px", borderRadius: "8px", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, boxShadow: isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.1)"}}>
+                <h3 style={{color: isDarkMode ? "#fff" : "#000", marginTop: 0}}>🥪 Desayuno</h3>
 
-                <select value={desayunoData.dia} onChange={(e) => setDesayunoData({...desayunoData, dia: e.target.value})} style={{width: "100%", padding: "8px", marginBottom: "10px", background: "#3a3a52", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "4px"}}>
+                <select value={desayunoData.dia} onChange={(e) => setDesayunoData({...desayunoData, dia: e.target.value})} style={{width: "100%", padding: "8px", marginBottom: "10px", background: isDarkMode ? "#3a3a52" : "#e8e8e8", color: isDarkMode ? "#fff" : "#000", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`, borderRadius: "4px"}}>
                   {DIAS_SEMANA.filter(d => d !== "Sábado" && d !== "Domingo").map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
 
@@ -1798,9 +1805,9 @@ export default function Practicantes({ onClose }) {
                   const menu = menus?.desayunos?.[fbIdx];
                   return (
                     <div>
-                      <div style={{fontSize: "12px", color: "#999", marginBottom: "8px"}}>Menús disponibles:</div>
+                      <div style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", marginBottom: "8px"}}>Menús disponibles:</div>
                       {[{v: menu?.G1 || "No disponible", l: "G1"}, {v: "Asada", l: "G2"}].map(p => (
-                        <label key={p.l} style={{display: "flex", gap: "8px", marginBottom: "6px", cursor: "pointer", color: "#ccc", fontSize: "13px"}}>
+                        <label key={p.l} style={{display: "flex", gap: "8px", marginBottom: "6px", cursor: "pointer", color: isDarkMode ? "#ccc" : "#333", fontSize: "13px"}}>
                           <input type="radio" name="desayuno" value={p.v} checked={desayunoData.plato === p.v} onChange={(e) => setDesayunoData({...desayunoData, plato: e.target.value})} />
                           {p.l}: {p.v}
                         </label>
@@ -1810,8 +1817,8 @@ export default function Practicantes({ onClose }) {
                 })()}
 
                 <div style={{marginTop: "10px"}}>
-                  <label style={{fontSize: "12px", color: "#999", display: "block", marginBottom: "4px"}}>Orden:</label>
-                  <select value={desayunoData.cantidad} onChange={(e) => setDesayunoData({...desayunoData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: "#3a3a52", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "4px", fontSize: "12px"}}>
+                  <label style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", display: "block", marginBottom: "4px"}}>Orden:</label>
+                  <select value={desayunoData.cantidad} onChange={(e) => setDesayunoData({...desayunoData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: isDarkMode ? "#3a3a52" : "#e8e8e8", color: isDarkMode ? "#fff" : "#000", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`, borderRadius: "4px", fontSize: "12px"}}>
                     <option value="1">Una orden</option>
                     <option value="2">Dos órdenes</option>
                     <option value="3">Tres órdenes</option>
@@ -1819,9 +1826,9 @@ export default function Practicantes({ onClose }) {
                 </div>
 
                 <div style={{marginTop: "10px"}}>
-                  <div style={{fontSize: "12px", color: "#999", marginBottom: "4px"}}>Extras:</div>
+                  <div style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", marginBottom: "4px"}}>Extras:</div>
                   {Object.entries(EXTRAS_PRECIOS).map(([e, p]) => (
-                    <label key={e} style={{display: "flex", gap: "6px", cursor: "pointer", color: "#ccc", fontSize: "12px", marginBottom: "4px"}}>
+                    <label key={e} style={{display: "flex", gap: "6px", cursor: "pointer", color: isDarkMode ? "#ccc" : "#333", fontSize: "12px", marginBottom: "4px"}}>
                       <input type="checkbox" checked={desayunoData.extras.includes(e)} onChange={() => {
                         if (desayunoData.extras.includes(e)) {
                           setDesayunoData({...desayunoData, extras: desayunoData.extras.filter(x => x !== e)});
@@ -1838,14 +1845,14 @@ export default function Practicantes({ onClose }) {
 
                 {/* Lista de desayunos acumulados */}
                 {desayunosAcumulados.length > 0 && (
-                  <div style={{marginTop: "15px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "15px"}}>
+                  <div style={{marginTop: "15px", borderTop: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, paddingTop: "15px"}}>
                     {desayunosAcumulados.map((orden, idx) => (
-                      <div key={orden.id} style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "6px", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: "4px", fontSize: "12px", color: "#ccc"}}>
+                      <div key={orden.id} style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "6px", backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "4px", fontSize: "12px", color: isDarkMode ? "#ccc" : "#666"}}>
                         <div><strong>{orden.dia}:</strong> {orden.plato} x{orden.cantidad}</div>
                         <button onClick={() => setDesayunosAcumulados(desayunosAcumulados.filter((_, i) => i !== idx))} style={{background: "none", border: "none", color: "#f44", cursor: "pointer", fontSize: "16px"}}>×</button>
                       </div>
                     ))}
-                    <div style={{marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)", textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
+                    <div style={{marginTop: "8px", paddingTop: "8px", borderTop: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
                       Total: ${desayunosAcumulados.reduce((s, o) => s + o.costo, 0).toFixed(2)}
                     </div>
                   </div>
@@ -1853,10 +1860,10 @@ export default function Practicantes({ onClose }) {
               </div>
 
               {/* CUADRO 2: COMIDA */}
-              <div style={{backgroundColor: "#2d2d44", padding: "20px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)"}}>
-                <h3 style={{color: "#fff", marginTop: 0}}>🍽️ Comida</h3>
+              <div style={{backgroundColor: isDarkMode ? "#2d2d44" : "#fff", padding: "20px", borderRadius: "8px", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, boxShadow: isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.1)"}}>
+                <h3 style={{color: isDarkMode ? "#fff" : "#000", marginTop: 0}}>🍽️ Comida</h3>
 
-                <select value={comidaData.dia} onChange={(e) => setComidaData({...comidaData, dia: e.target.value})} style={{width: "100%", padding: "8px", marginBottom: "10px", background: "#3a3a52", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "4px"}}>
+                <select value={comidaData.dia} onChange={(e) => setComidaData({...comidaData, dia: e.target.value})} style={{width: "100%", padding: "8px", marginBottom: "10px", background: isDarkMode ? "#3a3a52" : "#e8e8e8", color: isDarkMode ? "#fff" : "#000", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`, borderRadius: "4px"}}>
                   {DIAS_SEMANA.filter(d => d !== "Sábado" && d !== "Domingo").map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
 
@@ -1866,9 +1873,9 @@ export default function Practicantes({ onClose }) {
                   const menu = menus?.comidas?.[fbIdx];
                   return (
                     <div>
-                      <div style={{fontSize: "12px", color: "#999", marginBottom: "8px"}}>Menús disponibles:</div>
+                      <div style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", marginBottom: "8px"}}>Menús disponibles:</div>
                       {[{v: menu?.G1 || "No disponible", l: "G1"}, {v: "Asada", l: "G2"}].map(p => (
-                        <label key={p.l} style={{display: "flex", gap: "8px", marginBottom: "6px", cursor: "pointer", color: "#ccc", fontSize: "13px"}}>
+                        <label key={p.l} style={{display: "flex", gap: "8px", marginBottom: "6px", cursor: "pointer", color: isDarkMode ? "#ccc" : "#333", fontSize: "13px"}}>
                           <input type="radio" name="comida" value={p.v} checked={comidaData.plato === p.v} onChange={(e) => setComidaData({...comidaData, plato: e.target.value})} />
                           {p.l}: {p.v}
                         </label>
@@ -1878,8 +1885,8 @@ export default function Practicantes({ onClose }) {
                 })()}
 
                 <div style={{marginTop: "10px"}}>
-                  <label style={{fontSize: "12px", color: "#999", display: "block", marginBottom: "4px"}}>Orden:</label>
-                  <select value={comidaData.cantidad} onChange={(e) => setComidaData({...comidaData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: "#3a3a52", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "4px", fontSize: "12px"}}>
+                  <label style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", display: "block", marginBottom: "4px"}}>Orden:</label>
+                  <select value={comidaData.cantidad} onChange={(e) => setComidaData({...comidaData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: isDarkMode ? "#3a3a52" : "#e8e8e8", color: isDarkMode ? "#fff" : "#000", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`, borderRadius: "4px", fontSize: "12px"}}>
                     <option value="1">Una orden</option>
                     <option value="2">Dos órdenes</option>
                     <option value="3">Tres órdenes</option>
@@ -1887,9 +1894,9 @@ export default function Practicantes({ onClose }) {
                 </div>
 
                 <div style={{marginTop: "10px"}}>
-                  <div style={{fontSize: "12px", color: "#999", marginBottom: "4px"}}>Extras:</div>
+                  <div style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", marginBottom: "4px"}}>Extras:</div>
                   {Object.entries(EXTRAS_PRECIOS).map(([e, p]) => (
-                    <label key={e} style={{display: "flex", gap: "6px", cursor: "pointer", color: "#ccc", fontSize: "12px", marginBottom: "4px"}}>
+                    <label key={e} style={{display: "flex", gap: "6px", cursor: "pointer", color: isDarkMode ? "#ccc" : "#333", fontSize: "12px", marginBottom: "4px"}}>
                       <input type="checkbox" checked={comidaData.extras.includes(e)} onChange={() => {
                         if (comidaData.extras.includes(e)) {
                           setComidaData({...comidaData, extras: comidaData.extras.filter(x => x !== e)});
@@ -1906,14 +1913,14 @@ export default function Practicantes({ onClose }) {
 
                 {/* Lista de comidas acumuladas */}
                 {comidasAcumuladas.length > 0 && (
-                  <div style={{marginTop: "15px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "15px"}}>
+                  <div style={{marginTop: "15px", borderTop: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, paddingTop: "15px"}}>
                     {comidasAcumuladas.map((orden, idx) => (
-                      <div key={orden.id} style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "6px", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: "4px", fontSize: "12px", color: "#ccc"}}>
+                      <div key={orden.id} style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "6px", backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "4px", fontSize: "12px", color: isDarkMode ? "#ccc" : "#666"}}>
                         <div><strong>{orden.dia}:</strong> {orden.plato} x{orden.cantidad}</div>
                         <button onClick={() => setComidasAcumuladas(comidasAcumuladas.filter((_, i) => i !== idx))} style={{background: "none", border: "none", color: "#f44", cursor: "pointer", fontSize: "16px"}}>×</button>
                       </div>
                     ))}
-                    <div style={{marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)", textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
+                    <div style={{marginTop: "8px", paddingTop: "8px", borderTop: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
                       Total: ${comidasAcumuladas.reduce((s, o) => s + o.costo, 0).toFixed(2)}
                     </div>
                   </div>
@@ -1921,24 +1928,24 @@ export default function Practicantes({ onClose }) {
               </div>
 
               {/* CUADRO 3: TOTAL DE LA SEMANA */}
-              <div style={{backgroundColor: "#2d2d44", padding: "20px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", display: "flex", flexDirection: "column", justifyContent: "space-between"}}>
+              <div style={{backgroundColor: isDarkMode ? "#2d2d44" : "#fff", padding: "20px", borderRadius: "8px", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, boxShadow: isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", justifyContent: "space-between"}}>
                 <div>
-                  <h3 style={{color: "#fff", marginTop: 0, marginBottom: "20px", textAlign: "center"}}>📊 Total Semana</h3>
+                  <h3 style={{color: isDarkMode ? "#fff" : "#000", marginTop: 0, marginBottom: "20px", textAlign: "center"}}>📊 Total Semana</h3>
 
                   <div style={{textAlign: "center", marginBottom: "15px"}}>
-                    <div style={{fontSize: "14px", color: "#999", marginBottom: "8px"}}>Desayunos</div>
+                    <div style={{fontSize: "14px", color: isDarkMode ? "#999" : "#666", marginBottom: "8px"}}>Desayunos</div>
                     <div style={{fontSize: "28px", color: "#4CAF50", fontWeight: "bold"}}>{desayunosAcumulados.length}</div>
-                    <div style={{fontSize: "12px", color: "#666"}}>Total: ${desayunosAcumulados.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
+                    <div style={{fontSize: "12px", color: isDarkMode ? "#666" : "#999"}}>Total: ${desayunosAcumulados.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
                   </div>
 
                   <div style={{textAlign: "center", marginBottom: "15px"}}>
-                    <div style={{fontSize: "14px", color: "#999", marginBottom: "8px"}}>Comidas</div>
+                    <div style={{fontSize: "14px", color: isDarkMode ? "#999" : "#666", marginBottom: "8px"}}>Comidas</div>
                     <div style={{fontSize: "28px", color: "#2196F3", fontWeight: "bold"}}>{comidasAcumuladas.length}</div>
-                    <div style={{fontSize: "12px", color: "#666"}}>Total: ${comidasAcumuladas.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
+                    <div style={{fontSize: "12px", color: isDarkMode ? "#666" : "#999"}}>Total: ${comidasAcumuladas.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
                   </div>
 
-                  <div style={{borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "15px", textAlign: "center"}}>
-                    <div style={{fontSize: "14px", color: "#999", marginBottom: "8px"}}>Total General</div>
+                  <div style={{borderTop: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, paddingTop: "15px", textAlign: "center"}}>
+                    <div style={{fontSize: "14px", color: isDarkMode ? "#999" : "#666", marginBottom: "8px"}}>Total General</div>
                     <div style={{fontSize: "32px", color: "#FFD700", fontWeight: "bold"}}>
                       ${(desayunosAcumulados.reduce((s, o) => s + o.costo, 0) + comidasAcumuladas.reduce((s, o) => s + o.costo, 0)).toFixed(2)}
                     </div>

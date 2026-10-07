@@ -9,7 +9,7 @@ const deleteIdeaFunction = httpsCallable(functions, 'deleteIdea');
 
 export const createIdea = async (payload = {}) => {
     const result = await createIdeaFunction(payload);
-    return result?.data || { success: true };
+    return result?.data || { success: false };
 };
 
 export const getAllIdeas = async () => {

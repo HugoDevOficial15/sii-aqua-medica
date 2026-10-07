@@ -360,7 +360,7 @@ export default function OperatorSurveys({
 
                                         <span> • </span>
 
-                                        <span>{survey.tipoCurso}</span>
+                                        <span style={{ textTransform: 'capitalize' }}>{survey.tipoCurso}</span>
 
                                     </div>
 
@@ -388,7 +388,7 @@ export default function OperatorSurveys({
 
                                 <div className="detail-card">
                                     <small>Tipo: </small>
-                                    <strong>{survey.tipoCurso}</strong>
+                                    <strong style={{ textTransform: 'capitalize' }}>{survey.tipoCurso}</strong>
                                 </div>
 
                                 <div className="detail-card">

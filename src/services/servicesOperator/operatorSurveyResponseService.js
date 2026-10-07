@@ -1,5 +1,6 @@
 import { functions } from "../../config/firebase";
 import { httpsCallable } from "firebase/functions";
+import { registrarPuntos } from "../puntosService";
 
 const saveOperatorSurveyResponseFunction = httpsCallable(functions, "saveOperatorSurveyResponse");
 const getSurveyDetailFunction = httpsCallable(functions, "getSurveyDetail");
@@ -24,6 +25,12 @@ export const getSurveyAttempts = async (surveyId, userId) => {
 
 export const saveSurveyResponse = async (data) => {
     const result = await saveOperatorSurveyResponseFunction(data);
+
+    // Registrar puntos si la respuesta se guardó exitosamente
+    if (result.data?.ok && data.userId) {
+        await registrarPuntos(data.userId, "encuesta_completada", result.data?.id || data.surveyId);
+    }
+
     return result.data;
 };
 

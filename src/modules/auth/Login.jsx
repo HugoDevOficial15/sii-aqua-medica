@@ -214,7 +214,7 @@ export default function Login() {
                                     type="text"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    placeholder="Ingresa tu usuario"
+                                    placeholder="Ingresa tu nomina"
                                 />
                             </div>
                         </div>

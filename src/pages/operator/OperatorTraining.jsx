@@ -203,18 +203,15 @@ export default function OperatorTraining({ onTrainingComplete, onBack, onSelectT
 
                                         <span>&nbsp; • &nbsp;</span>
 
-                                        <span> {survey.tipoCurso}</span>
+                                        <span style={{ textTransform: 'capitalize' }}>{survey.tipoCurso}</span>
 
                                     </div>
 
                                 </div>
-                                <br />
 
                                 <span className={ESTADO_BADGE_CLASS[survey.estadoActual]}>
                                     {ESTADO_LABEL[survey.estadoActual]}
                                 </span>
-
-                                <br />
 
                             </div>
 
@@ -231,7 +228,7 @@ export default function OperatorTraining({ onTrainingComplete, onBack, onSelectT
 
                                 <div className="detail-card">
                                     <small>Tipo: </small>
-                                    <strong>{survey.tipoCurso}</strong>
+                                    <strong style={{ textTransform: 'capitalize' }}>{survey.tipoCurso}</strong>
                                 </div>
 
                                 <div className="detail-card">
@@ -360,9 +357,9 @@ export default function OperatorTraining({ onTrainingComplete, onBack, onSelectT
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 12px;
 
-    padding: 24px;
+    padding: 20px;
 
     background: var(--operator-card);
     color: var(--operator-text);
@@ -472,9 +469,9 @@ export default function OperatorTraining({ onTrainingComplete, onBack, onSelectT
 
     display:grid;
 
-    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
 
-    gap:14px;
+    gap:10px;
 
 }
 

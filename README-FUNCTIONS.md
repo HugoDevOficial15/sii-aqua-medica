@@ -40,6 +40,14 @@
 * obtenerStockPorRack
 
 
+Aplicacion 
+* createIdea
+* cargarIdeas
+* getIdeasByUser
+* cambiarEstadoIdea
+* deleteIdea
+
+
 **-Functions-refactorizadas-**
 
 * saveOperatorSurveyResponse

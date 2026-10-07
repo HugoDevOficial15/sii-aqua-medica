@@ -1,5 +1,6 @@
 import { functions } from "../../config/firebase";
 import { httpsCallable } from "firebase/functions";
+import { registrarPuntos } from "../puntosService";
 
 const saveOperatorTrainingResponseFunction = httpsCallable(functions, "saveOperatorTrainingResponse");
 const getOperatorTrainingResponsesFunction = httpsCallable(functions, "getOperatorTrainingResponses");
@@ -16,6 +17,12 @@ const callFunction = async (functionName, payload = {}) => {
 // ======================
 export const saveTrainingResponse = async (data) => {
     const result = await saveOperatorTrainingResponseFunction(data);
+
+    // Registrar puntos si la capacitación se completó exitosamente y fue aprobada
+    if (result.data?.ok && data.userId && result.data?.aprobada) {
+        await registrarPuntos(data.userId, "capacitacion_completada", result.data?.id || data.capacitacionId);
+    }
+
     return result.data;
 };
 

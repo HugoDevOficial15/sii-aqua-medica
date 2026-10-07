@@ -191,7 +191,7 @@ export default function CreateSurvey() {
         temario: [""],
         instructor: "",
         modalidad: "digital",
-        tipoCurso: "programado",
+        tipoCurso: "Programado",
         formaEvaluacion: "digital",
         areas: [],
         duracionHoras: "0",

@@ -95,27 +95,29 @@ export const registrarPuntos = async (userId, tipo, referencia) => {
     const puntos = PUNTO_RULES[tipo]?.puntos || 0;
 
     if (puntos === 0) {
+      console.warn("registrarPuntos: tipo no definido en PUNTO_RULES:", tipo);
       return false;
     }
 
     const año = obtenerAñoActual();
-    // userId ya es el documentId de Firestore (viene de user.id en AuthProvider)
     const userDocId = userId;
 
-    // 1. Agregar a historial de puntos
-    await addDoc(obtenerHistorialRef(userDocId, año), {
+      // 1. Agregar a historial de puntos
+    const historialRef = obtenerHistorialRef(userDocId, año);
+    
+    const docRef = await addDoc(historialRef, {
       tipo,
       puntos,
       referencia,
       fechaCreacion: serverTimestamp()
     });
-
+    
     // 2. Recalcular total de puntos
     await recalcularPuntos(userDocId, año);
-
+    
     // 3. Actualizar ranking
     await actualizarRankingConArea(userDocId, año);
-
+    
     // 4. Limpiar caches locales para forzar refetch inmediato
     clearCachePuntos(`puntos-${userDocId}-${año}`);
     clearCachePuntos(`historial-${userDocId}-${año}-10`);
@@ -129,7 +131,7 @@ export const registrarPuntos = async (userId, tipo, referencia) => {
 
     return true;
   } catch (error) {
-    console.error("Error al registrar puntos para userId:", userId, "error:", error);
+    console.error("❌ Error al registrar puntos para userId:", userId, "error:", error);
     return false;
   }
 };

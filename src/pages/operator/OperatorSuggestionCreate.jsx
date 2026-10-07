@@ -13,6 +13,7 @@ import {
 
 import { useAuth } from "../../hooks/useAuth";
 import { createIdea, getIdeasByUser } from "../../services/ideasService";
+import { registrarPuntos } from "../../services/puntosService";
 import { notifySuccess, notifyError, notifyWarning } from "../../utils/notify";
 import MobileBackButton from "./components/MobileBackButton";
 import "../../styles/operator/operator-suggestions.css";
@@ -138,6 +139,10 @@ export default function OperatorSuggestionCreate({ onBack }) {
     const handleImagenChange = (event) => {
         const file = event.target.files[0];
         if (file && file.type.includes('image')) {
+            if (file.size > 2 * 1024 * 1024) {
+                notifyWarning("Imagen muy grande", "Máximo 2MB. Intenta con una imagen más pequeña.");
+                return;
+            }
             setImagenFile(file);
             setImagenName(file.name);
         }
@@ -174,6 +179,10 @@ export default function OperatorSuggestionCreate({ onBack }) {
                 pantalla: "Ideas"
             });
             if (res && res.success) {
+                const userId = String(user?.id || user?.uid || user?.nomina);    
+                if (userId && userId !== "undefined") {
+                    const puntosResult = await registrarPuntos(userId, "sugerencia_enviada", res.id || `idea-${Date.now()}`);                    
+                }
                 notifySuccess("Idea enviada", "Tu idea ha sido enviada correctamente.");
                 setTitulo("");
                 setDescripcion("");

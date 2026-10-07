@@ -51,7 +51,7 @@ export default function CreateCapacitaciones() {
         temario: [""],
         instructor: "",
         modalidad: "online",
-        tipoCurso: "programado",
+        tipoCurso: "Programado",
         formaEvaluacion: "",
         areas: [],
         duracionHoras: "0",
