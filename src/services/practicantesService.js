@@ -184,3 +184,15 @@ const updatePracticanteInAquaMedica = async (nomina, data) => {
     // No lanzar error para no interrumpir la actualización local
   }
 };
+
+export const deletePracticante = async (id) => {
+  try {
+    const deletePracticanteFunction = call("deletePracticante");
+    await deletePracticanteFunction({ id });
+    invalidatePracticantesCaches();
+    console.log("✓ Practicante eliminado completamente");
+  } catch (error) {
+    console.error("Error deleting practicante:", error);
+    throw error;
+  }
+};

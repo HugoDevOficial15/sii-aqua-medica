@@ -1,5 +1,5 @@
 process.env.FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099";
-process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8081";
+process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:9876";
 
 const admin = require("firebase-admin");
 
@@ -144,13 +144,88 @@ const seedAccount = async (account) => {
   console.log(`Password: ${password}`);
 };
 
-const seed = async () => {
-  for (const account of accounts) {
-    await seedAccount(account);
+const generateRandomPracticante = (index) => {
+  const nomina = 10000 + index;
+  const nombre = `${randomFrom(nombres, index)} ${randomFrom(apellidos, index + 7)}`;
+  const escuela = randomFrom(["ITESM", "IPN", "UNAM", "Otros"], index);
+  const area = randomFrom(areas, index);
+
+  return {
+    nomina,
+    nombre,
+    escuela,
+    area,
+    fechaIngreso: "2026-01-01",
+    cumpleanos: "2000-01-01",
+    curp: "XXXX000101HXXXXXX01",
+    activo: true,
+  };
+};
+
+const seedPracticantes = async () => {
+  const practicantes = Array.from({ length: 10 }, (_, i) => generateRandomPracticante(i + 1));
+
+  for (const practicante of practicantes) {
+    try {
+      await db.collection("Practicantes")
+        .doc(String(practicante.nomina))
+        .set(practicante);
+      console.log(`✅ Practicante creado: ${practicante.nombre} (${practicante.nomina})`);
+    } catch (error) {
+      console.error(`Error creando practicante ${practicante.nomina}:`, error.message);
+    }
   }
 };
 
+const seedComidas = async () => {
+  const hoy = new Date();
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() - hoy.getDay() + 1);
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
+
+  const formatDate = (d) => `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+  const semana = `${formatDate(lunes)}-${formatDate(domingo)}`;
+
+  const menus = {
+    desayunos: ["Pan", "Café", "Huevo", "Queso", "Jamón", "NA", "NA"],
+    comidas: ["Pollo", "Arroz", "Frijoles", "Verdura", "Sopa", "NA", "NA"],
+    cenas: ["NA", "NA", "NA", "NA", "NA", "NA", "NA"],
+  };
+
+  try {
+    await db.collection("Menus")
+      .doc(semana)
+      .set({
+        desayunos: menus.desayunos,
+        comidas: menus.comidas,
+        cenas: menus.cenas,
+        semana,
+      });
+    console.log(`✅ Menús de semana creados: ${semana}`);
+  } catch (error) {
+    console.error(`Error creando menús:`, error.message);
+  }
+};
+
+const seed = async () => {
+  console.log("📝 Sembrando base de datos del emulador...\n");
+
+  console.log("👤 Creando usuarios...");
+  for (const account of accounts) {
+    await seedAccount(account);
+  }
+
+  console.log("\n👨‍🎓 Creando practicantes...");
+  await seedPracticantes();
+
+  console.log("\n🍽️  Creando menús...");
+  await seedComidas();
+
+  console.log("\n✅ Seed completado!");
+};
+
 seed().catch((error) => {
-  console.error("No se pudo preparar el usuario del emulador:", error.message);
+  console.error("❌ No se pudo preparar el emulador:", error.message);
   process.exitCode = 1;
 });

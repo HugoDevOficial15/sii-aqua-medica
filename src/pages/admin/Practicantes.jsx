@@ -22,6 +22,9 @@ import { getPuestos } from "../../services/puestos-service";
 import { useComedorMenus } from "../../hooks/useComedorMenus";
 import { usePracticanteMealRequest } from "../../hooks/usePracticanteMealRequest";
 
+// Config Comedor
+import { EXTRAS_PRECIOS, DIAS_SEMANA } from "../../config/comedorConfig";
+
 // Notify
 import { notifySuccess, notifyError } from "../../utils/notify";
 
@@ -48,15 +51,17 @@ import {
 // Areas
 import { AREAS } from "../../catalogs/areas";
 
-// Comedor Config
-import { DIAS_SEMANA } from "../../config/comedorConfig";
-
 export default function Practicantes({ onClose }) {
   const location = useLocation();
   const { user } = useAuth();
 
   // Loading
   const [loading, setLoading] = useState(true);
+
+  // Dark Mode
+  const [isDarkMode, setIsDarkMode] = useState(
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
 
   // Modal
   const [showModal, setShowModal] = useState(false);
@@ -65,13 +70,26 @@ export default function Practicantes({ onClose }) {
   const [solicitudComidaModal, setSolicitudComidaModal] = useState(false);
   const [practicanteSolicitud, setPracticanteSolicitud] = useState(null);
 
-  // Modal Solicitud Comida Practicante
+  // Solicitud Comida - VENTANA COMPLETA CON 3 CUADROS
   const [showMealRequestModal, setShowMealRequestModal] = useState(false);
-  const [mealRequestData, setMealRequestData] = useState({
-    tipoComida: "Desayuno", // Desayuno o Comida
-    menuSeleccionado: "",
+
+  // Estado para Desayuno y Comida
+  const [desayunoData, setDesayunoData] = useState({
+    dia: "Lunes",
+    plato: "",
+    cantidad: 1,
     extras: [],
   });
+
+  const [comidaData, setComidaData] = useState({
+    dia: "Lunes",
+    plato: "",
+    cantidad: 1,
+    extras: [],
+  });
+
+  const [desayunosAcumulados, setDesayunosAcumulados] = useState([]);
+  const [comidasAcumuladas, setComidasAcumuladas] = useState([]);
 
   // Hook Comedor
   const { menus, loading: loadingMenus, error: errorMenus } = useComedorMenus();
@@ -136,6 +154,15 @@ export default function Practicantes({ onClose }) {
     document.addEventListener("mousedown", closeMenu);
 
     return () => document.removeEventListener("mousedown", closeMenu);
+  }, []);
+
+  // Detectar cambios de modo oscuro
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e) => setIsDarkMode(e.matches);
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
   // Tabla
@@ -314,12 +341,12 @@ export default function Practicantes({ onClose }) {
         },
       });
 
-      await updatePracticante(practicante.id, { activo: false });
+      await deletePracticante(practicante.id);
 
       Swal.close();
       notifySuccess(
-        "Baja registrada",
-        "El practicante ha sido dado de baja correctamente",
+        "Practicante eliminado",
+        "El documento ha sido eliminado completamente de la base de datos",
       );
 
       setPracticantes((prev) =>
@@ -500,56 +527,100 @@ export default function Practicantes({ onClose }) {
     XLSX.writeFile(workbook, "practicantes_aqua_medica.xlsx");
   };
 
-  // Manejo Modal Solicitud Comida
   const handleAbrirSolicitudComida = (practicante) => {
     setPracticanteSolicitud(practicante);
-    setMealRequestData({
-      tipoComida: "Desayuno",
-      menuSeleccionado: "",
-      extras: [],
-    });
+    setDesayunoData({ dia: "Lunes", plato: "", cantidad: 1, extras: [] });
+    setComidaData({ dia: "Lunes", plato: "", cantidad: 1, extras: [] });
+    setDesayunosAcumulados([]);
+    setComidasAcumuladas([]);
     setShowMealRequestModal(true);
   };
 
-  const handleGuardarSolicitudComida = async () => {
-    if (!mealRequestData.menuSeleccionado) {
-      notifyError("Error", "Selecciona un menú");
+  // Agregar desayuno
+  const handleAgregarDesayuno = () => {
+    if (!desayunoData.plato) {
+      notifyError("Error", "Selecciona un plato");
+      return;
+    }
+    const costoBase = 25;
+    const costoExtras = desayunoData.extras.reduce((t, e) => t + (EXTRAS_PRECIOS[e] || 10), 0);
+    const costo = (costoBase * desayunoData.cantidad) + costoExtras;
+
+    setDesayunosAcumulados([...desayunosAcumulados, {
+      id: `d-${Date.now()}`,
+      dia: desayunoData.dia,
+      plato: desayunoData.plato,
+      cantidad: desayunoData.cantidad,
+      extras: desayunoData.extras,
+      costo
+    }]);
+
+    setDesayunoData({ dia: "Lunes", plato: "", cantidad: 1, extras: [] });
+  };
+
+  // Agregar comida
+  const handleAgregarComida = () => {
+    if (!comidaData.plato) {
+      notifyError("Error", "Selecciona un plato");
+      return;
+    }
+    const costoBase = 25;
+    const costoExtras = comidaData.extras.reduce((t, e) => t + (EXTRAS_PRECIOS[e] || 10), 0);
+    const costo = (costoBase * comidaData.cantidad) + costoExtras;
+
+    setComidasAcumuladas([...comidasAcumuladas, {
+      id: `c-${Date.now()}`,
+      dia: comidaData.dia,
+      plato: comidaData.plato,
+      cantidad: comidaData.cantidad,
+      extras: comidaData.extras,
+      costo
+    }]);
+
+    setComidaData({ dia: "Lunes", plato: "", cantidad: 1, extras: [] });
+  };
+
+  // Guardar todas las solicitudes
+  const handleGuardarTodasLasSolicitudes = async () => {
+    if (desayunosAcumulados.length === 0 && comidasAcumuladas.length === 0) {
+      notifyError("Error", "No hay órdenes para guardar");
       return;
     }
 
-    const success = await guardarSolicitudComida(
-      practicanteSolicitud,
-      mealRequestData.tipoComida,
-      mealRequestData.menuSeleccionado,
-      mealRequestData.extras,
-      menus.semana
-    );
+    const desayunos = Array(7).fill("NA");
+    const comidas = Array(7).fill("NA");
+    const diaMap = { "Lunes": 0, "Martes": 1, "Miércoles": 2, "Jueves": 3, "Viernes": 4, "Sábado": 5, "Domingo": 6 };
+
+    // Llenar desayunos
+    for (const orden of desayunosAcumulados) {
+      const diaIndex = diaMap[orden.dia];
+      const firebaseIndex = diaIndex === 6 ? 0 : diaIndex + 1;
+      let menuText = orden.plato;
+      if (orden.extras.length > 0) menuText += `|${orden.extras.join(",")}`;
+      desayunos[firebaseIndex] = menuText;
+    }
+
+    // Llenar comidas
+    for (const orden of comidasAcumuladas) {
+      const diaIndex = diaMap[orden.dia];
+      const firebaseIndex = diaIndex === 6 ? 0 : diaIndex + 1;
+      let menuText = orden.plato;
+      if (orden.extras.length > 0) menuText += `|${orden.extras.join(",")}`;
+      comidas[firebaseIndex] = menuText;
+    }
+
+    const success = await guardarSolicitudComida(practicanteSolicitud, "Desayuno", { desayunos, comidas, cenas: Array(7).fill("NA") }, [], menus.semana);
 
     if (success) {
-      notifySuccess("Éxito", "Solicitud guardada correctamente");
+      notifySuccess("Éxito", "¡Solicitudes guardadas!");
       setShowMealRequestModal(false);
+      setDesayunosAcumulados([]);
+      setComidasAcumuladas([]);
     } else {
-      notifyError("Error", "No se pudo guardar la solicitud");
+      notifyError("Error", "No se pudo guardar");
     }
   };
 
-  const toggleExtra = (extra) => {
-    setMealRequestData((prev) => ({
-      ...prev,
-      extras: prev.extras.includes(extra)
-        ? prev.extras.filter((e) => e !== extra)
-        : [...prev.extras, extra],
-    }));
-  };
-
-  // Calcular total
-  const calcularTotal = () => {
-    const costoComida = 25;
-    const costoExtras = mealRequestData.extras.reduce((total, extra) => {
-      return total + (EXTRAS_PRECIOS[extra] || 0);
-    }, 0);
-    return costoComida + costoExtras;
-  };
 
   // Estilos Modal
   const styles = {
@@ -566,15 +637,18 @@ export default function Practicantes({ onClose }) {
       zIndex: 9999,
     },
     modalContent: {
-      backgroundColor: "white",
+      backgroundColor: isDarkMode ? "#333c6b" : "white",
+      color: isDarkMode ? "#e0e0e0" : "#000",
       borderRadius: "12px",
       padding: "24px",
       maxWidth: "500px",
       width: "90%",
       boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+      border: isDarkMode ? "1px solid #444" : "none",
     },
     formGroup: {
       marginBottom: "20px",
+      color: isDarkMode ? "#e0e0e0" : "#000",
     },
     radioGroup: {
       display: "flex",
@@ -586,14 +660,17 @@ export default function Practicantes({ onClose }) {
       alignItems: "center",
       gap: "8px",
       cursor: "pointer",
+      color: isDarkMode ? "#e0e0e0" : "#000",
     },
     select: {
       width: "100%",
       padding: "10px",
-      border: "1px solid #ddd",
+      border: isDarkMode ? "1px solid #444" : "1px solid #ddd",
       borderRadius: "8px",
       fontSize: "14px",
       marginTop: "8px",
+      backgroundColor: isDarkMode ? "#3a3a3a" : "white",
+      color: isDarkMode ? "#e0e0e0" : "#000",
     },
     extrasContainer: {
       display: "flex",
@@ -606,15 +683,17 @@ export default function Practicantes({ onClose }) {
       alignItems: "center",
       gap: "8px",
       cursor: "pointer",
+      color: isDarkMode ? "#e0e0e0" : "#000",
     },
     totalContainer: {
-      backgroundColor: "#f0f0f0",
+      backgroundColor: isDarkMode ? "#3a3a3a" : "#f0f0f0",
       padding: "15px",
       borderRadius: "8px",
       marginBottom: "20px",
       textAlign: "center",
       fontSize: "18px",
-      color: "#333",
+      color: isDarkMode ? "#e0e0e0" : "#333",
+      border: isDarkMode ? "1px solid #444" : "none",
     },
     buttonGroup: {
       display: "flex",
@@ -897,6 +976,17 @@ export default function Practicantes({ onClose }) {
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label>Encargado de área:</label>
+                    <input
+                      className="form-control"
+                      value={user?.nombre || ""}
+                      readOnly
+                      disabled
+                      style={{backgroundColor: "var(--operator-form)", cursor: "not-allowed", opacity: 0.6}}
+                    />
                   </div>
 
                   <div className="col-md-6">
@@ -1683,96 +1773,186 @@ export default function Practicantes({ onClose }) {
       `}</style>
 
       {/* Modal Solicitud Comida Practicante */}
-      {showMealRequestModal && practicanteSolicitud && (
-        <div style={styles.modal}>
-          <div style={styles.modalContent}>
-            <h4>Solicitud de Comida - {practicanteSolicitud.nombre}</h4>
+      {showMealRequestModal && practicanteSolicitud && menus && (
+        <div style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: "20px"}}>
+          <div style={{backgroundColor: "#1a1a2e", borderRadius: "8px", width: "100%", maxWidth: "1200px", maxHeight: "90vh", overflowY: "auto", padding: "30px", border: "1px solid rgba(255,255,255,0.1)"}}>
+            {/* Header */}
+            <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px"}}>
+              <h2 style={{margin: 0, color: "#fff"}}>Solicitud de Comida - {practicanteSolicitud.nombre}</h2>
+              <button onClick={() => {setShowMealRequestModal(false); setDesayunosAcumulados([]); setComidasAcumuladas([]);}} style={{background: "none", border: "none", fontSize: "28px", color: "#fff", cursor: "pointer"}}>×</button>
+            </div>
 
-            {/* Tipo de Comida */}
-            <div style={styles.formGroup}>
-              <label>Tipo de Comida (selecciona UNO):</label>
-              <div style={styles.radioGroup}>
-                <label style={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    value="Desayuno"
-                    checked={mealRequestData.tipoComida === "Desayuno"}
-                    onChange={(e) =>
-                      setMealRequestData({ ...mealRequestData, tipoComida: e.target.value })
-                    }
-                  />
-                  Desayuno
-                </label>
-                <label style={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    value="Comida"
-                    checked={mealRequestData.tipoComida === "Comida"}
-                    onChange={(e) =>
-                      setMealRequestData({ ...mealRequestData, tipoComida: e.target.value })
-                    }
-                  />
-                  Comida
-                </label>
+            {/* 3 Cuadros */}
+            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px"}}>
+              {/* CUADRO 1: DESAYUNO */}
+              <div style={{backgroundColor: "#2d2d44", padding: "20px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)"}}>
+                <h3 style={{color: "#fff", marginTop: 0}}>🥪 Desayuno</h3>
+
+                <select value={desayunoData.dia} onChange={(e) => setDesayunoData({...desayunoData, dia: e.target.value})} style={{width: "100%", padding: "8px", marginBottom: "10px", background: "#3a3a52", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "4px"}}>
+                  {DIAS_SEMANA.filter(d => d !== "Sábado" && d !== "Domingo").map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+
+                {(() => {
+                  const diaIdx = DIAS_SEMANA.indexOf(desayunoData.dia);
+                  const fbIdx = diaIdx === 6 ? 0 : diaIdx + 1;
+                  const menu = menus?.desayunos?.[fbIdx];
+                  return (
+                    <div>
+                      <div style={{fontSize: "12px", color: "#999", marginBottom: "8px"}}>Menús disponibles:</div>
+                      {[{v: menu?.G1 || "No disponible", l: "G1"}, {v: "Asada", l: "G2"}].map(p => (
+                        <label key={p.l} style={{display: "flex", gap: "8px", marginBottom: "6px", cursor: "pointer", color: "#ccc", fontSize: "13px"}}>
+                          <input type="radio" name="desayuno" value={p.v} checked={desayunoData.plato === p.v} onChange={(e) => setDesayunoData({...desayunoData, plato: e.target.value})} />
+                          {p.l}: {p.v}
+                        </label>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                <div style={{marginTop: "10px"}}>
+                  <label style={{fontSize: "12px", color: "#999", display: "block", marginBottom: "4px"}}>Orden:</label>
+                  <select value={desayunoData.cantidad} onChange={(e) => setDesayunoData({...desayunoData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: "#3a3a52", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "4px", fontSize: "12px"}}>
+                    <option value="1">Una orden</option>
+                    <option value="2">Dos órdenes</option>
+                    <option value="3">Tres órdenes</option>
+                  </select>
+                </div>
+
+                <div style={{marginTop: "10px"}}>
+                  <div style={{fontSize: "12px", color: "#999", marginBottom: "4px"}}>Extras:</div>
+                  {Object.entries(EXTRAS_PRECIOS).map(([e, p]) => (
+                    <label key={e} style={{display: "flex", gap: "6px", cursor: "pointer", color: "#ccc", fontSize: "12px", marginBottom: "4px"}}>
+                      <input type="checkbox" checked={desayunoData.extras.includes(e)} onChange={() => {
+                        if (desayunoData.extras.includes(e)) {
+                          setDesayunoData({...desayunoData, extras: desayunoData.extras.filter(x => x !== e)});
+                        } else {
+                          setDesayunoData({...desayunoData, extras: [...desayunoData.extras, e]});
+                        }
+                      }} />
+                      {e} (+${p})
+                    </label>
+                  ))}
+                </div>
+
+                <button onClick={handleAgregarDesayuno} style={{width: "100%", marginTop: "15px", padding: "8px", background: "#4CAF50", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "13px"}}>✓ Agregar</button>
+
+                {/* Lista de desayunos acumulados */}
+                {desayunosAcumulados.length > 0 && (
+                  <div style={{marginTop: "15px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "15px"}}>
+                    {desayunosAcumulados.map((orden, idx) => (
+                      <div key={orden.id} style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "6px", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: "4px", fontSize: "12px", color: "#ccc"}}>
+                        <div><strong>{orden.dia}:</strong> {orden.plato} x{orden.cantidad}</div>
+                        <button onClick={() => setDesayunosAcumulados(desayunosAcumulados.filter((_, i) => i !== idx))} style={{background: "none", border: "none", color: "#f44", cursor: "pointer", fontSize: "16px"}}>×</button>
+                      </div>
+                    ))}
+                    <div style={{marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)", textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
+                      Total: ${desayunosAcumulados.reduce((s, o) => s + o.costo, 0).toFixed(2)}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Seleccionar Menú */}
-            <div style={styles.formGroup}>
-              <label>Selecciona el menú:</label>
-              <select
-                style={styles.select}
-                value={mealRequestData.menuSeleccionado}
-                onChange={(e) =>
-                  setMealRequestData({ ...mealRequestData, menuSeleccionado: e.target.value })
-                }
-              >
-                <option value="">-- Selecciona un menú --</option>
-                {menus[mealRequestData.tipoComida]?.map((menu, idx) => (
-                  <option key={idx} value={menu}>
-                    {menu}
-                  </option>
-                ))}
-              </select>
-            </div>
+              {/* CUADRO 2: COMIDA */}
+              <div style={{backgroundColor: "#2d2d44", padding: "20px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)"}}>
+                <h3 style={{color: "#fff", marginTop: 0}}>🍽️ Comida</h3>
 
-            {/* Extras */}
-            <div style={styles.formGroup}>
-              <label>Extras (opcionales):</label>
-              <div style={styles.extrasContainer}>
-                {Object.entries(EXTRAS_PRECIOS).map(([extra, precio]) => (
-                  <label key={extra} style={styles.checkboxLabel}>
-                    <input
-                      type="checkbox"
-                      checked={mealRequestData.extras.includes(extra)}
-                      onChange={() => toggleExtra(extra)}
-                    />
-                    {extra} (+${precio})
-                  </label>
-                ))}
+                <select value={comidaData.dia} onChange={(e) => setComidaData({...comidaData, dia: e.target.value})} style={{width: "100%", padding: "8px", marginBottom: "10px", background: "#3a3a52", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "4px"}}>
+                  {DIAS_SEMANA.filter(d => d !== "Sábado" && d !== "Domingo").map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+
+                {(() => {
+                  const diaIdx = DIAS_SEMANA.indexOf(comidaData.dia);
+                  const fbIdx = diaIdx === 6 ? 0 : diaIdx + 1;
+                  const menu = menus?.comidas?.[fbIdx];
+                  return (
+                    <div>
+                      <div style={{fontSize: "12px", color: "#999", marginBottom: "8px"}}>Menús disponibles:</div>
+                      {[{v: menu?.G1 || "No disponible", l: "G1"}, {v: "Asada", l: "G2"}].map(p => (
+                        <label key={p.l} style={{display: "flex", gap: "8px", marginBottom: "6px", cursor: "pointer", color: "#ccc", fontSize: "13px"}}>
+                          <input type="radio" name="comida" value={p.v} checked={comidaData.plato === p.v} onChange={(e) => setComidaData({...comidaData, plato: e.target.value})} />
+                          {p.l}: {p.v}
+                        </label>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                <div style={{marginTop: "10px"}}>
+                  <label style={{fontSize: "12px", color: "#999", display: "block", marginBottom: "4px"}}>Orden:</label>
+                  <select value={comidaData.cantidad} onChange={(e) => setComidaData({...comidaData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: "#3a3a52", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "4px", fontSize: "12px"}}>
+                    <option value="1">Una orden</option>
+                    <option value="2">Dos órdenes</option>
+                    <option value="3">Tres órdenes</option>
+                  </select>
+                </div>
+
+                <div style={{marginTop: "10px"}}>
+                  <div style={{fontSize: "12px", color: "#999", marginBottom: "4px"}}>Extras:</div>
+                  {Object.entries(EXTRAS_PRECIOS).map(([e, p]) => (
+                    <label key={e} style={{display: "flex", gap: "6px", cursor: "pointer", color: "#ccc", fontSize: "12px", marginBottom: "4px"}}>
+                      <input type="checkbox" checked={comidaData.extras.includes(e)} onChange={() => {
+                        if (comidaData.extras.includes(e)) {
+                          setComidaData({...comidaData, extras: comidaData.extras.filter(x => x !== e)});
+                        } else {
+                          setComidaData({...comidaData, extras: [...comidaData.extras, e]});
+                        }
+                      }} />
+                      {e} (+${p})
+                    </label>
+                  ))}
+                </div>
+
+                <button onClick={handleAgregarComida} style={{width: "100%", marginTop: "15px", padding: "8px", background: "#4CAF50", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "13px"}}>✓ Agregar</button>
+
+                {/* Lista de comidas acumuladas */}
+                {comidasAcumuladas.length > 0 && (
+                  <div style={{marginTop: "15px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "15px"}}>
+                    {comidasAcumuladas.map((orden, idx) => (
+                      <div key={orden.id} style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "6px", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: "4px", fontSize: "12px", color: "#ccc"}}>
+                        <div><strong>{orden.dia}:</strong> {orden.plato} x{orden.cantidad}</div>
+                        <button onClick={() => setComidasAcumuladas(comidasAcumuladas.filter((_, i) => i !== idx))} style={{background: "none", border: "none", color: "#f44", cursor: "pointer", fontSize: "16px"}}>×</button>
+                      </div>
+                    ))}
+                    <div style={{marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)", textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
+                      Total: ${comidasAcumuladas.reduce((s, o) => s + o.costo, 0).toFixed(2)}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Total */}
-            <div style={styles.totalContainer}>
-              <strong>Total: ${calcularTotal()}</strong>
-            </div>
+              {/* CUADRO 3: TOTAL DE LA SEMANA */}
+              <div style={{backgroundColor: "#2d2d44", padding: "20px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", display: "flex", flexDirection: "column", justifyContent: "space-between"}}>
+                <div>
+                  <h3 style={{color: "#fff", marginTop: 0, marginBottom: "20px", textAlign: "center"}}>📊 Total Semana</h3>
 
-            {/* Botones */}
-            <div style={styles.buttonGroup}>
-              <button
-                style={styles.btnCancel}
-                onClick={() => setShowMealRequestModal(false)}
-              >
-                Cancelar
-              </button>
-              <button
-                style={styles.btnSave}
-                onClick={handleGuardarSolicitudComida}
-                disabled={loadingSolicitud}
-              >
-                {loadingSolicitud ? "Guardando..." : "Guardar Solicitud"}
-              </button>
+                  <div style={{textAlign: "center", marginBottom: "15px"}}>
+                    <div style={{fontSize: "14px", color: "#999", marginBottom: "8px"}}>Desayunos</div>
+                    <div style={{fontSize: "28px", color: "#4CAF50", fontWeight: "bold"}}>{desayunosAcumulados.length}</div>
+                    <div style={{fontSize: "12px", color: "#666"}}>Total: ${desayunosAcumulados.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
+                  </div>
+
+                  <div style={{textAlign: "center", marginBottom: "15px"}}>
+                    <div style={{fontSize: "14px", color: "#999", marginBottom: "8px"}}>Comidas</div>
+                    <div style={{fontSize: "28px", color: "#2196F3", fontWeight: "bold"}}>{comidasAcumuladas.length}</div>
+                    <div style={{fontSize: "12px", color: "#666"}}>Total: ${comidasAcumuladas.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
+                  </div>
+
+                  <div style={{borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "15px", textAlign: "center"}}>
+                    <div style={{fontSize: "14px", color: "#999", marginBottom: "8px"}}>Total General</div>
+                    <div style={{fontSize: "32px", color: "#FFD700", fontWeight: "bold"}}>
+                      ${(desayunosAcumulados.reduce((s, o) => s + o.costo, 0) + comidasAcumuladas.reduce((s, o) => s + o.costo, 0)).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleGuardarTodasLasSolicitudes}
+                  disabled={desayunosAcumulados.length === 0 && comidasAcumuladas.length === 0}
+                  style={{width: "100%", marginTop: "20px", padding: "12px", background: (desayunosAcumulados.length === 0 && comidasAcumuladas.length === 0) ? "#666" : "#4CAF50", color: "#fff", border: "none", borderRadius: "4px", cursor: (desayunosAcumulados.length === 0 && comidasAcumuladas.length === 0) ? "not-allowed" : "pointer", fontSize: "14px", fontWeight: "bold"}}
+                >
+                  ✓ Confirmar Todas
+                </button>
+              </div>
             </div>
           </div>
         </div>

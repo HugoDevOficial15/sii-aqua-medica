@@ -41,12 +41,11 @@ export const practicanteSchema = z.object({
 
     nomina: z
         .union([z.string(), z.number()])
-        .transform((value) => String(value ?? "").trim())
-        .pipe(
-            z.string()
-                .min(1, "La nómina es obligatoria")
-                .regex(/^\d+$/, "La nómina debe contener solo números")
-                .transform(Number)
-                .refine((val) => val >= 10000, "La nómina debe ser mayor o igual a 10000")
-        ),
+        .optional()
+        .transform((value) => {
+            const str = String(value ?? "").trim();
+            return str ? Number(str) : null;
+        })
+        .refine((val) => val === null || val >= 10000, "La nómina debe ser mayor o igual a 10000")
+        .nullable(),
 });

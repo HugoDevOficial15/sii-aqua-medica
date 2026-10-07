@@ -625,7 +625,7 @@ export default function CreateSurvey() {
     };
 
     if (loading) {
-        return <Loader text="Caragando encuestas..." />
+        return <Loader text="Cargando encuestas..." />
     }
 
     if (viewingResults) {
