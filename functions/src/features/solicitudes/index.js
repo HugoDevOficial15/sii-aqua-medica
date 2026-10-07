@@ -34,11 +34,38 @@ const snapshotCampos = (data = {}) => {
   return snap;
 };
 
+const resolvePrimaryNotificationUserId = async (userId) => {
+  if (userId === undefined || userId === null || userId === "") {
+    return null;
+  }
+
+  const value = String(userId).trim();
+  if (!value) {
+    return null;
+  }
+
+  const userByUid = await db.collection("users").where("uid", "==", value).limit(1).get();
+  if (!userByUid.empty) {
+    const data = userByUid.docs[0].data() || {};
+    return String(data.uid || userByUid.docs[0].id);
+  }
+
+  const userByDocId = await db.collection("users").doc(value).get();
+  if (userByDocId.exists) {
+    const data = userByDocId.data() || {};
+    return String(data.uid || userByDocId.id);
+  }
+
+  return value;
+};
+
 const createRequestNotification = async ({ userId, title, message, destino = "solicitudes", accion = null, extra = {} }) => {
-  if (!userId) return null;
+  const primaryUserId = await resolvePrimaryNotificationUserId(userId);
+
+  if (!primaryUserId) return null;
 
   const notificationRef = await notificationsCollection.add({
-    IdUsuario: userId,
+    IdUsuario: primaryUserId,
     Titulo: title,
     Mensaje: message,
     Destino: destino,
@@ -50,6 +77,76 @@ const createRequestNotification = async ({ userId, title, message, destino = "so
   });
 
   return notificationRef.id;
+};
+
+const clearProfileRequestAdminNotifications = async (requestId) => {
+  if (!requestId) return 0;
+
+  const pendingNotifications = await notificationsCollection
+    .where("Accion", "==", "solicitud_cambio_perfil")
+    .where("extra.solicitudId", "==", requestId)
+    .get();
+
+  if (pendingNotifications.empty) {
+    return 0;
+  }
+
+  const batch = db.batch();
+  pendingNotifications.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+
+  await batch.commit();
+  return pendingNotifications.size;
+};
+
+const notifyAdminsOfProfileChangeRequest = async ({ requestId, user, changes = {} }) => {
+  if (!requestId) return null;
+
+  const solicitorName = user?.nombre || "Usuario";
+  const changedFields = Object.keys(changes || {}).filter((campo) => changes[campo] !== undefined).slice(0, 4);
+
+  const adminSnapshot = await db.collection("users")
+    .where("rol", "==", "admin_sistemas")
+    .get();
+
+  if (adminSnapshot.empty) {
+    return { success: true, count: 0 };
+  }
+
+  const notificationBase = {
+    Titulo: "📋 Solicitud de cambio de perfil",
+    Mensaje: `${solicitorName} solicitó actualizar ${changedFields.length ? changedFields.join(", ") : "sus datos"}. Revisa la solicitud para continuar.`,
+    Destino: "solicitudes",
+    Accion: "solicitud_cambio_perfil",
+    extra: {
+      solicitudId: requestId,
+      tipo: "requestProfileChange",
+      solicitante: user?.uid || user?.id || user?.nomina || null,
+      nombreSolicitante: solicitorName,
+      cambios: Object.keys(changes || {}),
+    },
+    enviado: false,
+    fechaCreacion: FieldValue.serverTimestamp(),
+    fechaEnviado: null,
+  };
+
+  const batch = db.batch();
+  adminSnapshot.docs.forEach((adminDoc) => {
+    const adminData = adminDoc.data() || {};
+    const adminUserId = adminData.uid || adminDoc.id;
+
+    if (!adminUserId) return;
+
+    const notificationRef = notificationsCollection.doc();
+    batch.set(notificationRef, {
+      ...notificationBase,
+      IdUsuario: adminUserId,
+    });
+  });
+
+  await batch.commit();
+  return { success: true, count: adminSnapshot.size };
 };
 
 // CREAR SOLICITUD { OPERADOR }
@@ -97,6 +194,12 @@ exports.requestProfileChange = onCall(async (request) => {
     comentariosAdministrador: "",
     fechaRevision: null,
     administradorRevision: null,
+  });
+
+  await notifyAdminsOfProfileChangeRequest({
+    requestId: docRef.id,
+    user,
+    changes: datosSol,
   });
 
   return { success: true, id: docRef.id };
@@ -197,7 +300,7 @@ exports.approveRequest = onCall(async (request) => {
   });
 
   await createRequestNotification({
-    userId: solicitud.idUsuario || solicitud.uid || null,
+    userId: solicitud.uid || null,
     title: "✅ Solicitud aprobada",
     message: "Tu solicitud de cambio fue aprobada y ya quedó actualizada en tu perfil.",
     destino: "solicitudes",
@@ -207,6 +310,8 @@ exports.approveRequest = onCall(async (request) => {
       estado: "Aprobada",
     },
   });
+
+  await clearProfileRequestAdminNotifications(requestId);
 
   return { success: true, data: result.data };
 });
@@ -236,7 +341,7 @@ exports.rejectRequest = onCall(async (request) => {
   });
 
   await createRequestNotification({
-    userId: solicitud.idUsuario || solicitud.uid || null,
+    userId: solicitud.uid || null,
     title: "❌ Solicitud rechazada",
     message: `Tu solicitud de cambio fue rechazada. Motivo: ${comentario || "Sin comentario"}`,
     destino: "solicitudes",
@@ -247,6 +352,8 @@ exports.rejectRequest = onCall(async (request) => {
       motivo: comentario || "",
     },
   });
+
+  await clearProfileRequestAdminNotifications(requestId);
 
   return { success: true };
 });

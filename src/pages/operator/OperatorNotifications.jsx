@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { collection, query, where, doc, deleteDoc, writeBatch, limit, onSnapshot } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../config/firebase";
 import { FaTrash } from "react-icons/fa";
 
 import { useAuth } from "../../hooks/useAuth";
@@ -70,7 +70,7 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
         clearDismissedNotifications();
     }, []);
 
-    useEffect(() => {
+    const loadOperatorNotifications = async () => {
         const notificationUserIds = getNotificationUserIds(user);
 
         if (!notificationUserIds.length) {
@@ -83,54 +83,56 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
         setLoading(true);
         setLoadError(null);
 
-        // Usar listener en tiempo real (onSnapshot) - sin orderBy en la query (Firestore requiere índice)
-        // Ordenar en JavaScript para evitar necesidad de índice compuesto
-        const q = query(
-            collection(db, "notificaciones"),
-            where("IdUsuario", "in", notificationUserIds),
-            limit(50)
-        );
+        try {
+            const callable = httpsCallable(functions, "getOperatorNotifications");
+            const response = await callable();
 
-        const unsubscribe = onSnapshot(
-            q,
-            (snapshot) => {
-                const notifs = filterDismissedNotifications(
-                    snapshot.docs
-                        .map(docItem => ({
-                            id: docItem.id,
-                            ...docItem.data()
-                        }))
-                        // Ordenar por fecha (más recientes primero)
-                        .sort((a, b) => {
-                            const aTime = a.fechaCreacion?.toDate ? a.fechaCreacion.toDate().getTime() : new Date(a.fechaCreacion || 0).getTime();
-                            const bTime = b.fechaCreacion?.toDate ? b.fechaCreacion.toDate().getTime() : new Date(b.fechaCreacion || 0).getTime();
-                            return bTime - aTime;
-                        })
-                );
-                setNotificaciones(notifs);
-                setLoading(false);
-            },
-            (error) => {
-                console.error("Error en listener de notificaciones:", error);
-                setNotificaciones([]);
-                setLoadError(error);
-                setLoading(false);
+            const notifs = filterDismissedNotifications(
+                (response?.data?.notifications || [])
+                    .sort((a, b) => {
+                        const aTime = a.fechaCreacion?.toDate ? a.fechaCreacion.toDate().getTime() : new Date(a.fechaCreacion || 0).getTime();
+                        const bTime = b.fechaCreacion?.toDate ? b.fechaCreacion.toDate().getTime() : new Date(b.fechaCreacion || 0).getTime();
+                        return bTime - aTime;
+                    })
+            );
+
+            setNotificaciones(notifs);
+        } catch (error) {
+            console.error("Error al cargar notificaciones del operador:", error);
+            setNotificaciones([]);
+            setLoadError(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadOperatorNotifications();
+
+        const onVisible = () => {
+            if (!document.hidden) {
+                loadOperatorNotifications();
             }
-        );
+        };
 
-        return () => unsubscribe();
+        window.addEventListener("focus", onVisible);
+        document.addEventListener("visibilitychange", onVisible);
+
+        return () => {
+            window.removeEventListener("focus", onVisible);
+            document.removeEventListener("visibilitychange", onVisible);
+        };
     }, [user?.uid, user?.id, user?.userId, user?.nomina, user?.nominaUsuario, user?.numeroNomina]);
 
     //  FUNCIÓN PARA BORRAR Y NAVEGAR
     const handleCompletarTarea = async (idNotificacion, ruta) => {
         try {
-            // 🍪 Guardar en persistencia (cookies) antes de borrar de Firebase
+            // Guardar en persistencia antes de borrar en backend
             dismissNotification(idNotificacion);
 
-            // Borrar de Firestore
-            await deleteDoc(doc(db, "notificaciones", idNotificacion));
+            const deleteNotification = httpsCallable(functions, "deleteNotification");
+            await deleteNotification({ notificationId: idNotificacion });
 
-            // Actualizar UI local
             setNotificaciones(prev => prev.filter(n => n.id !== idNotificacion));
 
             if (typeof onNavigate === 'function') {
@@ -151,13 +153,9 @@ export default function OperatorNotifications({ onNavigate, onBack }) {
         }
 
         try {
-            const batch = writeBatch(db);
-            notificaciones.forEach((notif) => {
-                // 🍪 Guardar en persistencia antes de borrar
-                dismissNotification(notif.id);
-                batch.delete(doc(db, "notificaciones", notif.id));
-            });
-            await batch.commit();
+            const clearAllNotifications = httpsCallable(functions, "clearAllNotifications");
+            notificaciones.forEach((notif) => dismissNotification(notif.id));
+            await clearAllNotifications();
             setNotificaciones([]);
         } catch (error) {
             console.error("Error al borrar todas las notificaciones:", error);

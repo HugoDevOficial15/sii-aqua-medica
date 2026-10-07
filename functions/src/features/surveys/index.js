@@ -501,14 +501,24 @@ exports.saveOperatorSurveyResponse = onCall(async (request) => {
     await batch.commit();
 
     if (survey.userId) {
-        const creatorSnapshot = await db.collection("users").where("uid", "==", survey.userId).limit(1).get();
-        const creatorId = creatorSnapshot.empty ? String(survey.userId) : creatorSnapshot.docs[0].id;
+        let creatorUid = String(survey.userId).trim();
+
+        const creatorDoc = await db.collection("users").doc(String(survey.userId)).get();
+        if (creatorDoc.exists) {
+            creatorUid = String(creatorDoc.data()?.uid || creatorDoc.id || creatorUid);
+        } else {
+            const creatorSnapshot = await db.collection("users").where("uid", "==", creatorUid).limit(1).get();
+            if (!creatorSnapshot.empty) {
+                creatorUid = String(creatorSnapshot.docs[0].data()?.uid || creatorSnapshot.docs[0].id || creatorUid);
+            }
+        }
+
         const notificationRef = db.collection("notificaciones").doc();
         await notificationRef.set({
-            IdUsuario: creatorId,
+            IdUsuario: creatorUid,
             Titulo: "📋 Encuesta respondida",
             Mensaje: `${responseData.nombre || "Un operador"} respondió la encuesta: ${survey.titulo || "Encuesta"}`,
-            Destino: "surveys",
+            Destino: "encuestas",
             Accion: "encuesta_respondida",
             extra: { encuestaId: String(surveyId), usuarioId: operator.id, calificacion: responseData.calificacion ?? null },
             enviado: false,

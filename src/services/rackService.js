@@ -1,70 +1,66 @@
-import { db } from "../config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
 import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
 
-import {
-    collection,
-    addDoc,
-    doc,
-    updateDoc,
-    deleteDoc,
-    serverTimestamp,
-    orderBy,
-    query,
-    where,
-    onSnapshot,
-    getDocs
-} from "firebase/firestore";
+const call = (name) => httpsCallable(functions, name);
 
-import {
-    httpsCallable
-} from "firebase/functions";
+const crearRackFunction = call("crearRack");
+const actualizarRackFunction = call("actualizarRack");
+const eliminarRackFunction = call("eliminarRack");
+const obtenerRacksFunction = call("obtenerRacks");
+const suscribirRacksFunction = call("suscribirRacks");
+const suscribirMovimientosFunction = call("suscribirMovimientos");
+const lockRackFunction = call("lockRack");
+const obtenerItemsPorTipoFunction = call("obtenerItemsPorTipo");
 
-import {
-    functions
-} from "../config/firebase";
+export const obtenerItemsPorTipo = async (tipo) => {
+    if (!tipo) {
+        return [];
+    }
 
-const ref = collection(db, "racks");
-const RACKS_CACHE_KEY = "sii-aqua-racks-cache";
-
-const normalizeRackList = (racks = []) => {
-    return [...(racks || [])].sort((a, b) => {
-        const rackA = Number(a?.numeroRack || 0);
-        const rackB = Number(b?.numeroRack || 0);
-        if (rackA !== rackB) return rackA - rackB;
-        return String(a?.id || "").localeCompare(String(b?.id || ""));
-    });
+    try {
+        const result = await obtenerItemsPorTipoFunction({ tipo });
+        return Array.isArray(result?.data?.items) ? result.data.items : [];
+    } catch (error) {
+        console.error("Error al obtener items por tipo:", error);
+        return [];
+    }
 };
 
-const lockRackFunction =
-    httpsCallable(
-        functions,
-        "lockRack"
-    );
+const RACKS_CACHE_KEY = "sii-aqua-racks-cache";
 
 export const crearRack = async (data) => {
-    const result = await addDoc(ref, {
-        ...data,
-        createdAt: serverTimestamp()
-    });
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw new Error("Se requieren datos válidos para crear el rack.");
+    }
 
+    const result = await crearRackFunction(data);
     clearCachedData(RACKS_CACHE_KEY);
-    return result;
+    return result?.data ?? null;
 };
 
 export const actualizarRack = async (id, data) => {
-    const rackRef = doc(db, "racks", id);
-    const result = await updateDoc(rackRef, data);
+    if (!id) {
+        throw new Error("Se requiere un ID válido para actualizar el rack.");
+    }
 
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw new Error("Se requieren datos válidos para actualizar el rack.");
+    }
+
+    const result = await actualizarRackFunction({ id, data });
     clearCachedData(RACKS_CACHE_KEY);
-    return result;
+    return result?.data ?? null;
 };
 
 export const eliminarRack = async (id) => {
-    const rackRef = doc(db, "racks", id);
-    const result = await deleteDoc(rackRef);
+    if (!id) {
+        throw new Error("Se requiere un ID válido para eliminar el rack.");
+    }
 
+    const result = await eliminarRackFunction({ id });
     clearCachedData(RACKS_CACHE_KEY);
-    return result;
+    return result?.data ?? null;
 };
 
 /*
@@ -74,24 +70,24 @@ export const eliminarRack = async (id) => {
 */
 
 export const suscribirRacks = (callback) => {
+    let isActive = true;
 
-    const q = query(
-        ref,
-        orderBy("numeroRack")
-    );
+    suscribirRacksFunction()
+        .then((result) => {
+            if (!isActive) return;
 
-    return onSnapshot(q, (snapshot) => {
+            const racks = Array.isArray(result?.data?.racks) ? result.data.racks : [];
+            writeCachedData(RACKS_CACHE_KEY, racks);
+            callback?.(racks);
+        })
+        .catch((error) => {
+            console.error("Error al suscribir racks:", error);
+            callback?.([]);
+        });
 
-        const racks = normalizeRackList(snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        })));
-
-        writeCachedData(RACKS_CACHE_KEY, racks);
-        callback(racks);
-
-    });
-
+    return () => {
+        isActive = false;
+    };
 };
 
 /*
@@ -100,38 +96,23 @@ export const suscribirRacks = (callback) => {
 |--------------------------------------------------------------------------
 */
 
-export const suscribirMovimientos = (
+export const suscribirMovimientos = (rackId, callback) => {
+    let isActive = true;
 
-    rackId,
+    suscribirMovimientosFunction({ rackId })
+        .then((result) => {
+            if (!isActive) return;
+            const movimientos = Array.isArray(result?.data?.movimientos) ? result.data.movimientos : [];
+            callback?.(movimientos);
+        })
+        .catch((error) => {
+            console.error("Error al suscribir movimientos:", error);
+            callback?.([]);
+        });
 
-    callback
-
-) => {
-
-    const q = query(
-
-        collection(db, "movimientos"),
-
-        where("rackId", "==", rackId),
-
-        orderBy("createdAt", "desc")
-
-    );
-
-    return onSnapshot(q, (snapshot) => {
-
-        const movimientos = snapshot.docs.map(doc => ({
-
-            id: doc.id,
-
-            ...doc.data()
-
-        }));
-
-        callback(movimientos);
-
-    });
-
+    return () => {
+        isActive = false;
+    };
 };
 
 /*
@@ -198,11 +179,8 @@ export const obtenerRacks = async () => {
         return cached;
     }
 
-    const snap = await getDocs(ref);
-    const racks = normalizeRackList(snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    })));
+    const result = await obtenerRacksFunction();
+    const racks = Array.isArray(result?.data?.racks) ? result.data.racks : [];
 
     writeCachedData(RACKS_CACHE_KEY, racks);
     return racks;

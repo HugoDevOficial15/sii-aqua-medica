@@ -527,7 +527,7 @@ export default function ListaServiciosPage() {
 
             <div className="col-12 mt-2">
               <button
-                className="btn btn-warning btn-sm"
+                className="btn-bloquear"
                 onClick={handleBloquearHorario}
               >
                 Bloquear horario
@@ -1012,6 +1012,29 @@ export default function ListaServiciosPage() {
           transition: scale 0.2s ease-in-out;
           color: var(--operator-danger);
           box-shadow: 0 0px 20px var(--operator-shadow);
+        }
+
+        .btn-bloquear {
+          height: 50px;
+          padding: 0 20px;
+          border-radius: 10px;
+          border: none;
+          background: var(--operator-danger);
+          color: #fff;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0px 5px 1px var(--operator-danger);
+        }
+
+        .btn-bloquear:hover {
+          filter: brightness(1.1);
+          transform: scale(1.01);
+          transition: transform 0.2s ease-in-out;
+          background: var(--operator-danger);
+          box-shadow: 0 0px 10px 1px var(--operator-danger);
         }
 
         /*  MENU DE ACCIONES */

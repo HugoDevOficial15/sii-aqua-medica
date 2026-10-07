@@ -102,14 +102,14 @@ export default function ItemModal({ data, onClose, onSuccess }) {
     };
 
     const buildPayload = (form) => {
-        const tipo = sanitizeTextTrim(form.tipo || selectedType || data?.tipo || "");
+        const tipo = sanitizeText(form.tipo || selectedType || data?.tipo || "");
         const payload = {
             ...form,
             tipo,
-            nombre: sanitizeTextTrim(form.nombre || ""),
+            nombre: sanitizeText(form.nombre || ""),
             descripcion: sanitizeText(form.descripcion || "").trim(),
-            tipoUnidad: sanitizeTextTrim(form.tipoUnidad || ""),
-            estatus: sanitizeTextTrim(form.estatus || "activo")
+            tipoUnidad: sanitizeText(form.tipoUnidad || ""),
+            estatus: sanitizeText(form.estatus || "activo")
         };
 
         if (tipo === "materia_prima") {
@@ -228,7 +228,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                         <select
                             {...register("tipo")}
-                            onChange={(e) => setValue("tipo", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
+                            onChange={(e) => setValue("tipo", sanitizeText(e.target.value), { shouldValidate: true })}
                             style={styles.input}
                         >
                             <option value="">Tipo</option>
@@ -250,7 +250,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                         <input
                             placeholder="Nombre"
                             {...register("nombre")}
-                            onChange={(e) => setValue("nombre", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
+                            onChange={(e) => setValue("nombre", sanitizeText(e.target.value), { shouldValidate: true })}
                             style={styles.input}
                         />
 
@@ -270,7 +270,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                             <select
                                 {...register("tipoUnidad")}
-                                onChange={(e) => setValue("tipoUnidad", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
+                                onChange={(e) => setValue("tipoUnidad", sanitizeText(e.target.value), { shouldValidate: true })}
                                 style={{
                                     ...styles.input,
                                     flex: 1
@@ -283,7 +283,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                             <select
                                 {...register("estatus")}
-                                onChange={(e) => setValue("estatus", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
+                                onChange={(e) => setValue("estatus", sanitizeText(e.target.value), { shouldValidate: true })}
                                 style={{
                                     ...styles.input,
                                     flex: 1

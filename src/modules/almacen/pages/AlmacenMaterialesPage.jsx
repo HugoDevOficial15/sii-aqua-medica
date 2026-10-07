@@ -9,7 +9,7 @@ import {
   getUbicacionTipoLabel,
 } from "../../../utils/rackLocation";
 import { useRacksDashboard } from "../../almacen-peps/hooks/useRacksDashboard";
-
+import Swal from "sweetalert2";
 const parseDate = (value) => {
   if (!value) return null;
 
@@ -187,6 +187,14 @@ export default function AlmacenMaterialesPage() {
       setLoading(true);
 
       try {
+        Swal.fire({
+          title: 'Cargando datos',
+          text: 'Por favor, espere...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
         const racksData = await obtenerRacks();
 
         if (mounted) {
@@ -201,6 +209,7 @@ export default function AlmacenMaterialesPage() {
       } finally {
         if (mounted) {
           setLoading(false);
+          Swal.close();
         }
       }
     };
@@ -212,6 +221,7 @@ export default function AlmacenMaterialesPage() {
       if (unsubscribe) {
         unsubscribe();
       }
+      Swal.close();
     };
   }, []);
 

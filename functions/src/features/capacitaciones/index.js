@@ -461,7 +461,7 @@ exports.saveOperatorTrainingResponse = onCall(async (request) => {
             IdUsuario: creatorId,
             Titulo: "📋 Capacitacion respondida",
             Mensaje: `${responseData.nombre || "Un operador"} respondió la encuesta: ${training.titulo || "Capacitacion"}`,
-            Destino: "trainings",
+            Destino: "encuestas",
             Accion: "capacitacion_respondida",
             extra: { trainingId: String(trainingId), usuarioId: operator.id, calificacion: responseData.calificacion ?? null },
             enviado: false,

@@ -1,23 +1,22 @@
-import {
-    collection,
-    addDoc,
-    query,
-    where,
-    orderBy,
-    serverTimestamp,
-    updateDoc,
-    doc,
-    deleteDoc,
-    writeBatch,
-    onSnapshot, getDocs,
-    getDoc
-} from "firebase/firestore";
-
-import { db } from "../config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
 import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
 import { actualizarRack } from "./rackService";
 
-const COLLECTION = "rack_stock";
+const call = (name) => httpsCallable(functions, name);
+
+const crearStockFunction = call("crearStock");
+const actualizarCantidadStockFunction = call("actualizarCantidadStock");
+const eliminarStockFunction = call("eliminarStock");
+const actualizarColorStockPorItemFunction = call("actualizarColorStockPorItem");
+const obtenerStockPEPSFunction = call("obtenerStockPEPS");
+const descontarStockPEPSFunction = call("descontarStockPEPS");
+const trasladarStockPEPSFunction = call("trasladarStockPEPS");
+const suscribirStockPorRackFunction = call("suscribirStockPorRack");
+const suscribirStockFunction = call("suscribirStock");
+const obtenerStockPorRackFunction = call("obtenerStockPorRack");
+const refreshRackStockCachesFunction = call("refreshRackStockCaches");
+
 const RACK_STOCK_CACHE_KEY = "sii-aqua-rack-stock-cache";
 
 const getRackStockCacheKey = (rackId) =>
@@ -32,15 +31,8 @@ const formatStockData = (data = []) => {
 };
 
 const refreshRackStockCaches = async (rackId = null) => {
-    const snap = await getDocs(query(
-        collection(db, COLLECTION),
-        where("activo", "==", true)
-    ));
-
-    const stock = formatStockData(snap.docs.map(docItem => ({
-        id: docItem.id,
-        ...docItem.data()
-    })));
+    const result = await refreshRackStockCachesFunction({ rackId });
+    const stock = Array.isArray(result?.data?.stock) ? result.data.stock : [];
 
     writeCachedData(RACK_STOCK_CACHE_KEY, stock);
 
@@ -218,523 +210,136 @@ export const actualizarAsignacionRackPorStock = async (rackId, rack, stockItems 
 */
 
 export const crearStock = async (data) => {
-    if (data?.rackId && data?.tipoItem && Number(data?.cantidadActual || 0) > 0) {
-        const rackSnap = await getDoc(doc(db, "racks", data.rackId));
-        const rack = rackSnap.exists() ? { id: rackSnap.id, ...rackSnap.data() } : null;
-
-        if (rack) {
-            const stockActual = await obtenerStockPorRack(data.rackId);
-            const validacion = validarCapacidadRack({
-                rack,
-                tipoItem: data.tipoItem,
-                cantidad: Number(data.cantidadActual || 0),
-                stockItems: stockActual
-            });
-
-            if (!validacion.valido) {
-                throw new Error(validacion.mensaje || "No hay espacio suficiente en el rack para esta entrada");
-            }
-        }
-    }
-
-    const stockRef = await addDoc(
-        collection(db, COLLECTION),
-        {
-            ...data,
-
-            cantidadActual: Number(data.cantidadActual),
-
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-
-            activo: true
-        }
-    );
+    const result = await crearStockFunction(data);
+    const created = result?.data ?? null;
 
     if (data?.rackId) {
-        const rackSnap = await getDoc(doc(db, "racks", data.rackId));
-        const rack = rackSnap.exists() ? { id: rackSnap.id, ...rackSnap.data() } : null;
         const stockActual = await obtenerStockPorRack(data.rackId);
-
-        if (rack) {
-            await actualizarOcupacionRack({
-                rackId: data.rackId,
-                rack,
-                tipoItem: data.tipoItem,
-                cantidad: Number(data.cantidadActual || 0),
-                operacion: "sumar"
-            });
-
-            await actualizarAsignacionRackPorStock(
-                data.rackId,
-                rack,
-                stockActual
-            );
-        }
+        writeCachedData(getRackStockCacheKey(data.rackId), stockActual);
     }
 
-    await refreshRackStockCaches(data?.rackId || null);
+    clearCachedData(RACK_STOCK_CACHE_KEY);
     clearCachedData(getRackStockCacheKey(data?.rackId || "all"));
-    return stockRef;
-};
-/*
-|--------------------------------------------------------------------------
-| Actualizar cantidad
-|--------------------------------------------------------------------------
-*/
-
-export const actualizarCantidadStock = async (
-    stockId,
-    cantidadActual
-) => {
-
-    const ref = doc(db, COLLECTION, stockId);
-    const currentSnap = await getDoc(ref);
-    const rackId = currentSnap.exists() ? currentSnap.data()?.rackId : null;
-
-    await updateDoc(ref, {
-        cantidadActual: Number(cantidadActual),
-        updatedAt: serverTimestamp()
-    });
-
-    await refreshRackStockCaches(rackId || null);
-    clearCachedData(getRackStockCacheKey(rackId || "all"));
+    return created;
 };
 
-/*
-|--------------------------------------------------------------------------
-| Eliminar stock vacío
-|--------------------------------------------------------------------------
-*/
+export const actualizarCantidadStock = async (stockId, cantidadActual) => {
+    const result = await actualizarCantidadStockFunction({ stockId, cantidadActual });
+    const payload = result?.data ?? {};
+
+    if (payload?.rackId) {
+        clearCachedData(getRackStockCacheKey(payload.rackId));
+    }
+
+    clearCachedData(RACK_STOCK_CACHE_KEY);
+    clearCachedData(getRackStockCacheKey(payload?.rackId || "all"));
+    return payload;
+};
 
 export const eliminarStock = async (stockId) => {
+    const result = await eliminarStockFunction({ stockId });
+    const payload = result?.data ?? {};
 
-    const ref = doc(db, COLLECTION, stockId);
-    const currentSnap = await getDoc(ref);
-    const rackId = currentSnap.exists() ? currentSnap.data()?.rackId : null;
+    if (payload?.rackId) {
+        clearCachedData(getRackStockCacheKey(payload.rackId));
+    }
 
-    await deleteDoc(ref);
-    await refreshRackStockCaches(rackId || null);
-    clearCachedData(getRackStockCacheKey(rackId || "all"));
+    clearCachedData(RACK_STOCK_CACHE_KEY);
+    clearCachedData(getRackStockCacheKey(payload?.rackId || "all"));
+    return payload;
 };
 
 export const actualizarColorStockPorItem = async (itemId, color) => {
     if (!itemId) return;
 
-    const q = query(
-        collection(db, COLLECTION),
-        where("itemId", "==", itemId),
-        where("activo", "==", true)
-    );
-
-    const snap = await getDocs(q);
-
-    if (snap.empty) return;
-
-    const batch = writeBatch(db);
-
-    snap.docs.forEach((docItem) => {
-        batch.update(doc(db, COLLECTION, docItem.id), {
-            color: color || null,
-            updatedAt: serverTimestamp()
-        });
-    });
-
-    await batch.commit();
+    const result = await actualizarColorStockPorItemFunction({ itemId, color });
+    clearCachedData(RACK_STOCK_CACHE_KEY);
+    return result?.data ?? null;
 };
 
-/*
-|--------------------------------------------------------------------------
-| Obtener stock PEPS
-|--------------------------------------------------------------------------
-*/
-
-export const obtenerStockPEPS = async (
-    rackId,
-    itemId
-) => {
+export const obtenerStockPEPS = async (rackId, itemId) => {
     const cacheKey = `${RACK_STOCK_CACHE_KEY}:peps:${String(rackId || "all")}:${String(itemId || "all")}`;
     const cached = readCachedData(cacheKey);
     if (cached) {
         return cached;
     }
 
-    const q = query(
-        collection(db, COLLECTION),
-
-        where("rackId", "==", rackId),
-        where("itemId", "==", itemId),
-        where("activo", "==", true),
-
-        orderBy("fechaEntrada", "asc")
-    );
-
-    const snap = await getDocs(q);
-    const stock = snap.docs.map(docItem => ({
-        id: docItem.id,
-        ...docItem.data()
-    }));
+    const result = await obtenerStockPEPSFunction({ rackId, itemId });
+    const stock = Array.isArray(result?.data?.stock) ? result.data.stock : [];
 
     writeCachedData(cacheKey, stock);
     return stock;
 };
 
-
-/*
-|--------------------------------------------------------------------------
-| Salida PEPS
-|--------------------------------------------------------------------------
-*/
-
-export const descontarStockPEPS = async ({
-    rackId,
-    itemId,
-    cantidadSalida
-}) => {
-
-    /*
-    |--------------------------------------------------------------------------
-    | Obtener stock ordenado PEPS
-    |--------------------------------------------------------------------------
-    */
-
-    const stock =
-        await obtenerStockPEPS(
-            rackId,
-            itemId
-        );
-
-    /*
-    |--------------------------------------------------------------------------
-    | Validar stock suficiente
-    |--------------------------------------------------------------------------
-    */
-
-    const totalDisponible =
-        stock.reduce(
-            (acc, item) =>
-                acc + Number(item.cantidadActual),
-            0
-        );
-
-    if (
-        Number(cantidadSalida)
-        > totalDisponible
-    ) {
-        throw new Error(
-            "Stock insuficiente"
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Batch
-    |--------------------------------------------------------------------------
-    */
-
-    const batch = writeBatch(db);
-
-    let restante =
-        Number(cantidadSalida);
-
-    const movimientos = [];
-
-    /*
-    |--------------------------------------------------------------------------
-    | Recorrer stock PEPS
-    |--------------------------------------------------------------------------
-    */
-
-    for (const item of stock) {
-
-        if (restante <= 0) break;
-
-        const disponible =
-            Number(item.cantidadActual);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Consumir parcial
-        |--------------------------------------------------------------------------
-        */
-
-        if (disponible > restante) {
-
-            const nuevaCantidad =
-                disponible - restante;
-
-            const ref = doc(
-                db,
-                COLLECTION,
-                item.id
-            );
-
-            batch.update(ref, {
-                cantidadActual:
-                    nuevaCantidad,
-
-                updatedAt:
-                    serverTimestamp()
-            });
-
-            movimientos.push({
-                stockId: item.id,
-                lote: item.lote,
-                cantidad: restante,
-                unidad: item.unidad,
-                nombreItem:
-                    item.nombreItem,
-                tipoItem:
-                    item.tipoItem
-            });
-
-            restante = 0;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Consumir completo
-        |--------------------------------------------------------------------------
-        */
-
-        else {
-
-            const ref = doc(
-                db,
-                COLLECTION,
-                item.id
-            );
-
-            batch.delete(ref);
-
-            movimientos.push({
-                stockId: item.id,
-                lote: item.lote,
-                cantidad: disponible,
-                unidad: item.unidad,
-                nombreItem:
-                    item.nombreItem,
-                tipoItem:
-                    item.tipoItem
-            });
-
-            restante -= disponible;
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Ejecutar batch
-    |--------------------------------------------------------------------------
-    */
-
-    await batch.commit();
+export const descontarStockPEPS = async ({ rackId, itemId, cantidadSalida }) => {
+    const result = await descontarStockPEPSFunction({ rackId, itemId, cantidadSalida });
+    const movimientos = Array.isArray(result?.data?.movimientos) ? result.data.movimientos : [];
 
     if (rackId) {
-        const rackSnap = await getDoc(doc(db, "racks", rackId));
-        const rack = rackSnap.exists() ? { id: rackSnap.id, ...rackSnap.data() } : null;
-        const stockRestante = await obtenerStockPorRack(rackId);
-
-        if (rack) {
-            await actualizarOcupacionRackPorMovimientos({
-                rackId,
-                rack,
-                movimientos,
-                operacion: "restar"
-            });
-
-            await actualizarAsignacionRackPorStock(
-                rackId,
-                rack,
-                stockRestante
-            );
-        }
+        clearCachedData(getRackStockCacheKey(rackId));
+        clearCachedData(`${RACK_STOCK_CACHE_KEY}:peps:${String(rackId || "all")}:${String(itemId || "all")}`);
     }
 
+    clearCachedData(RACK_STOCK_CACHE_KEY);
     return movimientos;
 };
 
-/*
-|--------------------------------------------------------------------------
-| Traslado PEPS
-|--------------------------------------------------------------------------
-*/
+export const trasladarStockPEPS = async ({ rackOrigen, rackDestino, itemId, cantidad, usuario }) => {
+    const result = await trasladarStockPEPSFunction({ rackOrigen, rackDestino, itemId, cantidad, usuario });
+    const movimientos = Array.isArray(result?.data?.movimientos) ? result.data.movimientos : [];
 
-export const trasladarStockPEPS = async ({
-
-    rackOrigen,
-    rackDestino,
-
-    itemId,
-
-    cantidad,
-
-    usuario
-}) => {
-    const stockDestino = await obtenerStockPorRack(rackDestino.id);
-    const tipoItemDestino = (stockDestino || []).find(item => item.itemId === itemId)?.tipoItem || "";
-    const validacionDestino = validarCapacidadRack({
-        rack: rackDestino,
-        tipoItem: tipoItemDestino || rackOrigen?.tipoAsignacion || "",
-        cantidad,
-        stockItems: stockDestino
-    });
-
-    if (!validacionDestino.valido) {
-        throw new Error(validacionDestino.mensaje || "No hay espacio suficiente en el rack destino para esta transferencia");
+    if (rackOrigen?.id) {
+        clearCachedData(getRackStockCacheKey(rackOrigen.id));
+    }
+    if (rackDestino?.id) {
+        clearCachedData(getRackStockCacheKey(rackDestino.id));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Descontar origen
-    |--------------------------------------------------------------------------
-    */
-
-    const movimientos =
-        await descontarStockPEPS({
-
-            rackId: rackOrigen.id,
-
-            itemId,
-
-            cantidadSalida: cantidad
-        });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Crear stock destino
-    |--------------------------------------------------------------------------
-    */
-
-    for (const mov of movimientos) {
-
-        await crearStock({
-
-            rackId: rackDestino.id,
-
-            rackNumero:
-                rackDestino.numeroRack,
-
-            itemId,
-
-            nombreItem:
-                mov.nombreItem,
-
-            tipoItem:
-                mov.tipoItem,
-
-            lote:
-                mov.lote,
-
-            cantidadActual:
-                mov.cantidad,
-
-            unidad:
-                mov.unidad,
-
-            fechaEntrada:
-                new Date()
-                    .toISOString()
-                    .slice(0, 10),
-
-            createdBy: {
-
-                id: usuario.id,
-
-                nombre:
-                    usuario.nombre
-            }
-        });
-    }
-
+    clearCachedData(RACK_STOCK_CACHE_KEY);
     return movimientos;
 };
 
-/*
-|--------------------------------------------------------------------------
-| Snapshot Stock por Rack
-|--------------------------------------------------------------------------
-*/
+export const suscribirStockPorRack = (rackId, callback) => {
+    let isActive = true;
 
-export const suscribirStockPorRack = (
+    suscribirStockPorRackFunction({ rackId })
+        .then((result) => {
+            if (!isActive) return;
 
-    rackId,
+            const data = Array.isArray(result?.data?.stock) ? result.data.stock : [];
+            writeCachedData(getRackStockCacheKey(rackId), data);
+            callback?.(data);
+        })
+        .catch((error) => {
+            console.error("Error al suscribir stock por rack:", error);
+            callback?.([]);
+        });
 
-    callback
-
-) => {
-
-    const q = query(
-
-        collection(db, COLLECTION),
-
-        where("rackId", "==", rackId),
-
-        where("activo", "==", true)
-
-    );
-
-    return onSnapshot(q, (snapshot) => {
-
-        const data = formatStockData(snapshot.docs.map(docItem => ({
-
-            id: docItem.id,
-
-            ...docItem.data()
-
-        })));
-
-        writeCachedData(getRackStockCacheKey(rackId), data);
-        callback(data);
-
-    });
-
+    return () => {
+        isActive = false;
+    };
 };
 
+export const suscribirStock = (callback) => {
+    let isActive = true;
 
-/*
-|--------------------------------------------------------------------------
-| Snapshot Todo el Stock
-|--------------------------------------------------------------------------
-*/
+    suscribirStockFunction()
+        .then((result) => {
+            if (!isActive) return;
 
-export const suscribirStock = (
+            const stock = Array.isArray(result?.data?.stock) ? result.data.stock : [];
+            writeCachedData(RACK_STOCK_CACHE_KEY, stock);
+            callback?.(stock);
+        })
+        .catch((error) => {
+            console.error("Error al suscribir stock:", error);
+            callback?.([]);
+        });
 
-    callback
-
-) => {
-
-    const q = query(
-
-        collection(db, COLLECTION),
-
-        where("activo", "==", true)
-
-    );
-
-    return onSnapshot(q, (snapshot) => {
-
-        const stock = formatStockData(snapshot.docs.map(doc => ({
-
-            id: doc.id,
-
-            ...doc.data()
-
-        })));
-
-        writeCachedData(RACK_STOCK_CACHE_KEY, stock);
-        callback(stock);
-
-    });
-
+    return () => {
+        isActive = false;
+    };
 };
-
-
-/*
-|--------------------------------------------------------------------------
-| Obtener stock por rack
-|--------------------------------------------------------------------------
-*/
 
 export const obtenerStockPorRack = async (rackId) => {
     const cacheKey = getRackStockCacheKey(rackId);
@@ -743,22 +348,9 @@ export const obtenerStockPorRack = async (rackId) => {
         return cached;
     }
 
-    const q = query(
-        collection(db, COLLECTION),
-
-        where("rackId", "==", rackId),
-
-        where("activo", "==", true)
-    );
-
-    const snap = await getDocs(q);
-
-    const data = formatStockData(snap.docs.map(docItem => ({
-        id: docItem.id,
-        ...docItem.data()
-    })));
+    const result = await obtenerStockPorRackFunction({ rackId });
+    const data = Array.isArray(result?.data?.stock) ? result.data.stock : [];
 
     writeCachedData(cacheKey, data);
     return data;
-
 };

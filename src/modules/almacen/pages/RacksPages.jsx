@@ -4,6 +4,7 @@ import { obtenerStockPorRack } from "../../../services/rackStockService";
 import { useEffect, useState } from "react";
 import RackModal from "../components/RackModal";
 import Loader from "../../../components/Loader";
+import Swal from "sweetalert2";
 
 import { notifyError } from "../../../utils/notify";
 import {
@@ -16,7 +17,7 @@ import {
 } from "react-icons/fa";
 
 export default function RacksPages() {
-  const { racks, loading } = useRacks();
+  const { racks, loading, refetch } = useRacks();
   const [show, setShow] = useState(false);
   const [selected, setSelected] = useState(null);
   const [openActionsId, setOpenActionsId] = useState(null);
@@ -65,6 +66,14 @@ export default function RacksPages() {
       const currentStatus = normalizeStatus(rack.estatus);
 
       if (nextStatus === "mantenimiento") {
+        Swal.fire({
+          title: "Verificando stock...",
+          text: "Por favor espere...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
         const stock = await obtenerStockPorRack(rack.id);
 
         if ((stock || []).length > 0) {
@@ -72,11 +81,20 @@ export default function RacksPages() {
             "Rack no vacío",
             "El rack debe estar vacío antes de pasarlo a mantenimiento",
           );
+          Swal.close();
           return;
         }
       }
 
       if (nextStatus === "baja") {
+        Swal.fire({
+          title: "Verificando stock...",
+          text: "Por favor espere...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
         const stock = await obtenerStockPorRack(rack.id);
 
         if ((stock || []).length > 0) {
@@ -84,23 +102,44 @@ export default function RacksPages() {
             "Rack no vacío",
             "El rack debe estar vacío antes de darlo de baja",
           );
+          Swal.close();
           return;
         }
       }
 
       if (nextStatus === "activo" && currentStatus === "mantenimiento") {
+        Swal.fire({
+          title: "Actualizando estatus...",
+          text: "Por favor espere...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
         await actualizarRack(rack.id, {
           ...rack,
           estatus: "activo",
         });
+        await refetch();
+        Swal.close();
         return;
       }
-
+      Swal.fire({
+        title: "Actualizando estatus...",
+        text: "Por favor espere...",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
       await actualizarRack(rack.id, {
         ...rack,
         estatus: nextStatus,
       });
+      Swal.close();
+      await refetch();
     } catch (error) {
+      Swal.close();
       console.error(error);
       notifyError("Error", "No se pudo actualizar el estatus del rack");
     }
@@ -346,7 +385,7 @@ export default function RacksPages() {
             setShow(false);
             setSelected(null);
           }}
-          onSuccess={() => {}}
+          onSuccess={refetch}
         />
       )}
 
@@ -512,7 +551,6 @@ export default function RacksPages() {
           word-break: break-word;
           overflow-wrap: anywhere;
           max-width: 230px;
-          min-width: 100px;
         }
 
         .table thead th:nth-child(7) {
@@ -521,7 +559,6 @@ export default function RacksPages() {
         }
 
         .table tbody td:nth-child(7) {
-          display: flex;
           text-align: center;
           justify-content: center;
         }
@@ -537,7 +574,6 @@ export default function RacksPages() {
           background-color: var(--operator-producto-terminado);
         }
 
-
         .materia-prima-badge {
           padding: 6px 12px;
           border-radius: 999px;
@@ -551,8 +587,8 @@ export default function RacksPages() {
           padding: 6px 12px;
           border-radius: 999px;
           font-size: 12px;
-          font-weight: 700;}
-          color: var(--operator-material-acondiconamiento-text);
+          font-weight: 700;
+          color: var(--operator-material-acondicionamiento-text);
           background-color: var(--operator-material-acondicionamiento);
         }
 

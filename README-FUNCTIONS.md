@@ -1,6 +1,56 @@
 ==================================
 
             ============
+            = 07/10/26 =
+            ============
+
+**-Nuevas-Functions:-**
+
+* loadNotifications
+* dismissHeaderNotification
+* getOperatorNotifications
+* deleteNotification
+* clearAllNotifications
+* crearMateriaPrima
+* obtenerMateriaPrima
+* actualizarMateriaPrima
+* obtenerItemsPorTipo
+* crearAcondicionamiento
+* obtenerAcondicionamiento
+* actualizarAcondicionamiento
+* crearProducto
+* obtenerProducto
+* actualizarProducto
+* crearRack
+* actualizarRack
+* eliminarRack
+* suscribirRacks
+* suscribirMovimientos
+* obtenerRacks
+* refreshRackStockCaches
+* crearStock
+* actualizarCantidadStock
+* eliminarStock
+* actualizarColorStockPorItem
+* obtenerStockPEPS
+* descontarStockPEPS
+* trasladarStockPEPS
+* suscribirStockPorRack
+* suscribirStock
+* obtenerStockPorRack
+
+
+**-Functions-refactorizadas-**
+
+* saveOperatorSurveyResponse
+* saveOperatorTrainingResponse
+* approveRequest
+* rejectRequest
+* requestProfileChange
+
+==================================
+
+            ============
             = 06/10/26 =
             ============
 

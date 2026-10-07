@@ -1,11 +1,14 @@
 import { useForm } from "react-hook-form";
-import { crearRack, actualizarRack } from "../../../services/rackService";
+import { crearRack, actualizarRack, obtenerItemsPorTipo, obtenerRacks } from "../../../services/rackService";
 import { notifySuccess, notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import Loader from "../../../components/Loader";
 import { useState, useEffect } from "react";
 import { FaPlus, FaEdit } from "react-icons/fa";
 import { validateRack } from "../../../schemas/rackSchema";
+import Swal from "sweetalert2";
+import { obtenerStockPorRack } from "../../../services/rackStockService";
+
 
 const normalizarTipo = (valor = "") => String(valor || "").trim().toLowerCase();
 
@@ -42,10 +45,6 @@ const normalizarPayloadRack = (form = {}) => {
     return payload;
 };
 
-import { db } from "../../../config/firebase";
-import { collection, getDocs } from "firebase/firestore";
-import { obtenerRacks } from "../../../services/rackService";
-import { obtenerStockPorRack } from "../../../services/rackStockService";
 
 export default function RackModal({ onClose, onSuccess, data }) {
 
@@ -123,15 +122,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
             return;
         }
 
-        const snap = await getDocs(
-            collection(db, tipo)
-        );
-
-        const dataItems = snap.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-
+        const dataItems = await obtenerItemsPorTipo(tipo);
         setItems(dataItems);
     };
 
@@ -186,11 +177,11 @@ export default function RackModal({ onClose, onSuccess, data }) {
     const onSubmit = async (form) => {
         const sanitizedForm = {
             ...form,
-            numeroRack: sanitizeTextTrim(form.numeroRack || ""),
-            planta: sanitizeTextTrim(form.planta || ""),
-            ubicacionTipo: sanitizeTextTrim(form.ubicacionTipo || "rack"),
-            tipoAlmacenamiento: sanitizeTextTrim(form.tipoAlmacenamiento || ""),
-            tipoAsignacion: sanitizeTextTrim(tipoAsignacion || "")
+            numeroRack: sanitizeText(form.numeroRack || ""),
+            planta: sanitizeText(form.planta || ""),
+            ubicacionTipo: sanitizeText(form.ubicacionTipo || "rack"),
+            tipoAlmacenamiento: sanitizeText(form.tipoAlmacenamiento || ""),
+            tipoAsignacion: sanitizeText(tipoAsignacion || "")
         };
 
         if (!sanitizedForm.numeroRack) {
@@ -330,6 +321,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
             const payloadRack = normalizarPayloadRack({
                 ...sanitizedForm,
+                estatus: data ? (sanitizedForm.estatus || data.estatus || "activo") : "activo",
                 tipoAsignacion: asignacionFinal,
                 itemAsignado: itemAsignadoFinal,
                 colorTipoAlmacenamiento:
@@ -340,10 +332,19 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
             if (data) {
 
+                Swal.fire({
+                    title: "Actualizando rack...",
+                    text: "Por favor espere...",
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
                 await actualizarRack(
                     data.id,
                     payloadRack
                 );
+                Swal.close();
 
                 notifySuccess(
                     "Rack actualizado",
@@ -351,13 +352,21 @@ export default function RackModal({ onClose, onSuccess, data }) {
                 );
 
             } else {
-
+                Swal.fire({
+                    title: "Creando rack...",
+                    text: "Por favor espere...",
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
                 await crearRack({
 
                     ...payloadRack,
 
                     createdAt: new Date()
                 });
+                Swal.close();
 
                 notifySuccess(
                     "Rack creado",
@@ -370,7 +379,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
             if (onClose) onClose();
 
         } catch {
-
+            Swal.close();
             notifyError(
                 "Error",
                 "Error al guardar"
@@ -407,8 +416,6 @@ export default function RackModal({ onClose, onSuccess, data }) {
 
                 {/* BODY */}
                 <div style={styles.body}>
-
-                    {loading && <Loader />}
 
                     <form
                         onSubmit={handleSubmit(onSubmit)}
@@ -497,7 +504,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                             <select
                                 className="select"
                                 {...register("planta")}
-                                onChange={(e) => setValue("planta", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
+                                onChange={(e) => setValue("planta", sanitizeText(e.target.value), { shouldValidate: true })}
                                 style={{
                                     ...styles.input,
                                     flex: 1
@@ -523,7 +530,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                         <select
                             className="select"
                             {...register("tipoAlmacenamiento")}
-                            onChange={(e) => setValue("tipoAlmacenamiento", sanitizeTextTrim(e.target.value), { shouldValidate: true })}
+                            onChange={(e) => setValue("tipoAlmacenamiento", sanitizeText(e.target.value), { shouldValidate: true })}
                             style={styles.input}
                         >
                             <option value="">

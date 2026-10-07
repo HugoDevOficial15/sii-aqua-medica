@@ -704,7 +704,7 @@ export default function AgendarSalaMes() {
 
                 .btn-back {
                     border: none;
-                    background: var(--operator-card);
+                    background: var(--operator-form);
                     color: var(--operator-text, #1f2937);
                     border: 1px solid var(--operator-border);
                     border-radius: 12px;
@@ -717,6 +717,7 @@ export default function AgendarSalaMes() {
                 }
 
                 .btn-back:hover {
+                    background: var(--operator-border);
                     transform: scale(1.05);
                     transition: transform 0.2s ease-in-out;
                 }

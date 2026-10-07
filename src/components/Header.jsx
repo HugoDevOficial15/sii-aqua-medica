@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 
 import {
     FaBell,
@@ -13,11 +13,14 @@ import {
     FaUtensils,
 } from "react-icons/fa";
 
-import { db } from "../config/firebase";
+import { functions } from "../config/firebase";
 import { useAuth } from "../hooks/useAuth";
 import { useLogout } from "../hooks/useLogout";
 
 import { getDismissedNotifications, dismissNotification } from "../utils/notificationPersistence";
+
+const loadHeaderNotifications = httpsCallable(functions, "loadNotifications");
+const dismissHeaderNotification = httpsCallable(functions, "dismissHeaderNotification");
 
 export default function Header({ toggleSidebar }) {
 
@@ -58,43 +61,23 @@ export default function Header({ toggleSidebar }) {
         notificationLoadRef.current = true;
 
         try {
-            const q = query(
-                collection(db, "notificaciones"),
-                where("IdUsuario", "==", currentUserId)
-            );
+            const response = await loadHeaderNotifications();
+            const notifs = (response?.data?.notifications || []).map((n) => {
+                let icon = <FaUserCircle />;
+                if (n.title?.includes("📅")) icon = <FaUserCircle />;
+                if (n.title?.includes("❌")) icon = <FaUserCircle />;
+                if (n.title?.includes("✅")) icon = <FaUserCircle />;
+                if (n.title?.includes("🎉")) icon = <FaUserCircle />;
+                if (n.title?.includes("📋")) icon = <FaUserCircle />;
+                if (n.title?.includes("📚")) icon = <FaUserCircle />;
+                if (n.title?.includes("🚨")) icon = <FaUserCircle />;
+                if (n.title?.includes("🍽️")) icon = <FaUtensils />;
 
-            const snapshot = await getDocs(q);
-            const notifs = snapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
-                .sort((a, b) => {
-                    const aTime = a.fechaCreacion?.toDate ? a.fechaCreacion.toDate().getTime() : new Date(a.fechaCreacion || 0).getTime();
-                    const bTime = b.fechaCreacion?.toDate ? b.fechaCreacion.toDate().getTime() : new Date(b.fechaCreacion || 0).getTime();
-                    return bTime - aTime;
-                })
-                .slice(0, 50)
-                .map(n => {
-                    let icon = <FaUserCircle />;
-                    if (n.Titulo?.includes("📅")) icon = <FaUserCircle />;
-                    if (n.Titulo?.includes("❌")) icon = <FaUserCircle />;
-                    if (n.Titulo?.includes("✅")) icon = <FaUserCircle />;
-                    if (n.Titulo?.includes("🎉")) icon = <FaUserCircle />;
-                    if (n.Titulo?.includes("📋")) icon = <FaUserCircle />;
-                    if (n.Titulo?.includes("📚")) icon = <FaUserCircle />;
-                    if (n.Titulo?.includes("🚨")) icon = <FaUserCircle />;
-                    if (n.Titulo?.includes("🍽️")) icon = <FaUserUtensils />;
-
-                    return {
-                        id: n.id,
-                        icon,
-                        title: n.Titulo || "Nueva notificación",
-                        subtitle: n.Mensaje || n.extra?.motivo || "Sin detalles",
-                        ruta: n.Destino || "/",
-                        nomina: n.extra?.nomina ?? n.nomina ?? null,
-                        nombre: n.extra?.nombre ?? n.nombre ?? null,
-                        source: "firebase",
-                        persistedInDb: true
-                    };
-                });
+                return {
+                    ...n,
+                    icon,
+                };
+            });
 
             const filtered = notifs.filter(n => !getDismissedNotifications().includes(n.id));
             setNotifications(filtered);
@@ -153,10 +136,8 @@ export default function Header({ toggleSidebar }) {
 
         if (isPersistentNotification(notif)) {
             try {
-                // 🍪 Guardar en persistencia antes de borrar
                 dismissNotification(id);
-                // Borrar de Firestore
-                await deleteDoc(doc(db, "notificaciones", id));
+                await dismissHeaderNotification({ notificationId: id });
             } catch (err) {
                 console.error("Error al processar notificación:", err);
             }
@@ -188,10 +169,8 @@ export default function Header({ toggleSidebar }) {
 
         if (isPersistentNotification(notif)) {
             try {
-                // 🍪 Guardar en persistencia antes de borrar
                 dismissNotification(id);
-                // Borrar de Firestore
-                await deleteDoc(doc(db, "notificaciones", id));
+                await dismissHeaderNotification({ notificationId: id });
             } catch (err) {
                 console.error("Error al procesar notificación:", err);
             }

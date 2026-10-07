@@ -249,15 +249,18 @@ export default function ResumenServiciosModal({
                 }
 
                 .stat.total {
-                    background: #6b7280;
+                    background: var(--operator-badge-disabled);
+                    color: var(--operator-badge-disabled-text);
                 }
 
                 .stat.done {
-                    background: #10b981;
+                    background: var(--operator-activo);
+                    color: var(--operator-activo-text);
                 }
 
                 .stat.pending {
-                    background: #ef4444;
+                    background: var(--operator-producto-terminado);
+                    color: var(--operator-producto-terminado-text);
                 }
 
                 .lista {

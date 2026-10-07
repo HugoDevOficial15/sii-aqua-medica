@@ -1,16 +1,23 @@
-import { db } from "../config/firebase";
-
-import { collection, addDoc, getDocs, doc, updateDoc } from "firebase/firestore";
-import { actualizarColorStockPorItem } from "./rackStockService";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../config/firebase";
 import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
 
-const ref = collection(db, "materia_prima");
+const call = (name) => httpsCallable(functions, name);
+
+const crearMateriaPrimaFunction = call("crearMateriaPrima");
+const obtenerMateriaPrimaFunction = call("obtenerMateriaPrima");
+const actualizarMateriaPrimaFunction = call("actualizarMateriaPrima");
+
 const CACHE_KEY = "sii-aqua-materia-prima-cache";
 
 export const crearMateriaPrima = async (data) => {
-    const result = await addDoc(ref, data);
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw new Error("Se requieren datos válidos para crear la materia prima.");
+    }
+
+    const result = await crearMateriaPrimaFunction(data);
     clearCachedData(CACHE_KEY);
-    return result;
+    return result?.data ?? null;
 };
 
 export const obtenerMateriaPrima = async () => {
@@ -19,20 +26,23 @@ export const obtenerMateriaPrima = async () => {
         return cached;
     }
 
-    const snap = await getDocs(ref);
-    const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const result = await obtenerMateriaPrimaFunction();
+    const items = Array.isArray(result?.data?.materiaPrima) ? result.data.materiaPrima : [];
 
     writeCachedData(CACHE_KEY, items);
     return items;
 };
 
 export const actualizarMateriaPrima = async (id, data) => {
-    const result = await updateDoc(doc(db, "materia_prima", id), data);
-
-    if (typeof data?.color !== "undefined" && id) {
-        await actualizarColorStockPorItem(id, data.color ?? null);
+    if (!id) {
+        throw new Error("Se requiere un ID válido para actualizar la materia prima.");
     }
 
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw new Error("Se requieren datos válidos para actualizar la materia prima.");
+    }
+
+    const result = await actualizarMateriaPrimaFunction({ id, data });
     clearCachedData(CACHE_KEY);
-    return result;
+    return result?.data ?? null;
 };

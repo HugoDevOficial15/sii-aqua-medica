@@ -329,6 +329,14 @@ export default function AgregarSala() {
                     z-index: 20;
                 }
 
+                .table thead th:nth-child(2) {
+                    text-align: center;
+                }
+
+                .table tbody td:nth-child(2) {
+                    text-align: center;
+                }
+
                 .custom-badge-success,
                 .custom-badge-danger {
                     display: inline-flex;
