@@ -567,24 +567,23 @@ exports.obtenerStockPEPS = onCall(async (request) => {
     };
 });
 
-exports.descontarStockPEPS = onCall(async (request) => {
-    const payload = getPayload(request);
-    const { rackId, itemId, cantidadSalida } = payload || {};
+const descontarStockPEPSLogic = async ({ rackId, itemId, cantidadSalida }) => {
+    const cantidadSalidaNumerica = Number(cantidadSalida);
 
-    if (!rackId || !itemId) {
-        throw new HttpsError("invalid-argument", "Se requieren rackId e itemId válidos.");
+    if (!rackId || !itemId || !Number.isFinite(cantidadSalidaNumerica) || cantidadSalidaNumerica <= 0) {
+        throw new HttpsError("invalid-argument", "Se requieren rackId, itemId y cantidadSalida válidos.");
     }
 
     const stock = await obtenerStockPorRackDb(rackId)
         .then(items => items.filter(item => String(item.itemId) === String(itemId)));
 
     const totalDisponible = stock.reduce((acc, item) => acc + Number(item.cantidadActual || 0), 0);
-    if (Number(cantidadSalida || 0) > totalDisponible) {
+    if (cantidadSalidaNumerica > totalDisponible) {
         throw new HttpsError("failed-precondition", "Stock insuficiente");
     }
 
     const batch = db.batch();
-    let restante = Number(cantidadSalida || 0);
+    let restante = cantidadSalidaNumerica;
     const movimientos = [];
 
     for (const item of stock) {
@@ -642,18 +641,58 @@ exports.descontarStockPEPS = onCall(async (request) => {
     }
 
     return { movimientos };
+};
+
+exports.descontarStockPEPS = onCall(async (request) => {
+    const payload = getPayload(request);
+    const { rackId, itemId, cantidadSalida } = payload || {};
+    return descontarStockPEPSLogic({ rackId, itemId, cantidadSalida });
 });
 
 exports.trasladarStockPEPS = onCall(async (request) => {
     const payload = getPayload(request);
-    const { rackOrigen, rackDestino, itemId, cantidad, usuario } = payload || {};
+    const normalizarTexto = (valor) => (valor == null ? "" : String(valor).trim());
+    const normalizarCantidad = (valor) => {
+        const numero = Number(valor);
+        return Number.isFinite(numero) ? numero : NaN;
+    };
 
-    if (!rackOrigen?.id || !rackDestino?.id || !itemId || !cantidad) {
-        throw new HttpsError("invalid-argument", "Faltan datos para transferir el stock.");
+    const rawRackOrigen = payload?.rackOrigen ?? {};
+    const rawRackDestino = payload?.rackDestino ?? {};
+    const rackOrigenId = normalizarTexto(rawRackOrigen?.id ?? rawRackOrigen);
+    const rackDestinoId = normalizarTexto(rawRackDestino?.id ?? rawRackDestino);
+    const itemId = normalizarTexto(payload?.itemId ?? payload?.item?.id ?? "");
+    const cantidad = normalizarCantidad(payload?.cantidad ?? payload?.cantidadSalida ?? 0);
+    const usuario = payload?.usuario ?? null;
+
+    const rackOrigen = typeof rawRackOrigen === "object" && rawRackOrigen && !Array.isArray(rawRackOrigen)
+        ? { ...rawRackOrigen, id: rackOrigenId }
+        : { id: rackOrigenId };
+    const rackDestino = typeof rawRackDestino === "object" && rawRackDestino && !Array.isArray(rawRackDestino)
+        ? { ...rawRackDestino, id: rackDestinoId }
+        : { id: rackDestinoId };
+
+    const invalidReasons = [];
+    if (!rackOrigenId) invalidReasons.push("rackOrigen.id");
+    if (!rackDestinoId) invalidReasons.push("rackDestino.id");
+    if (!itemId) invalidReasons.push("itemId");
+    if (!Number.isFinite(cantidad)) invalidReasons.push("cantidad (no es numérica)");
+    if (Number.isFinite(cantidad) && cantidad <= 0) invalidReasons.push("cantidad (debe ser > 0)");
+
+    if (invalidReasons.length > 0) {
+        console.error("trasladarStockPEPS invalid arguments", {
+            payload,
+            rackOrigenId,
+            rackDestinoId,
+            itemId,
+            cantidad,
+            invalidReasons
+        });
+        throw new HttpsError("invalid-argument", `Argumentos inválidos: ${invalidReasons.join(", ")}.`);
     }
 
-    const stockDestino = await obtenerStockPorRackDb(rackDestino.id);
-    const tipoItemDestino = (stockDestino || []).find(item => item.itemId === itemId)?.tipoItem || "";
+    const stockDestino = await obtenerStockPorRackDb(rackDestinoId);
+    const tipoItemDestino = (stockDestino || []).find(item => String(item.itemId) === String(itemId))?.tipoItem || "";
     const validacionDestino = validarCapacidadRack({
         rack: rackDestino,
         tipoItem: tipoItemDestino || rackOrigen?.tipoAsignacion || "",
@@ -664,13 +703,13 @@ exports.trasladarStockPEPS = onCall(async (request) => {
     if (!validacionDestino.valido) {
         throw new HttpsError("failed-precondition", validacionDestino.mensaje || "No hay espacio suficiente en el rack destino para esta transferencia");
     }
-
-    const result = await exports.descontarStockPEPS({ data: { rackId: rackOrigen.id, itemId, cantidadSalida: cantidad } });
+    
+    const result = await descontarStockPEPSLogic({ rackId: rackOrigenId, itemId, cantidadSalida: cantidad });
     const movimientos = result?.movimientos || [];
 
     for (const mov of movimientos) {
         await rackStockCollection.add({
-            rackId: rackDestino.id,
+            rackId: rackDestinoId,
             rackNumero: rackDestino.numeroRack,
             itemId,
             nombreItem: mov.nombreItem,
@@ -708,4 +747,87 @@ exports.obtenerStockPorRack = onCall(async (request) => {
     const rackId = request?.data?.rackId;
     const stock = await obtenerStockPorRackDb(rackId);
     return { stock };
+});
+
+
+/* FUNCTIONS PARA PAGINA DE PEPS */
+
+exports.obtenerMovimientosPorRack = onCall(async (request) => {
+    const rackId = request?.data?.rackId;
+    const movimientos = await movimientoRackCollection.where("rackId", "==", rackId).get();
+    return { movimientos };
+});
+
+exports.registrarMovimiento = onCall(async (request) => {
+    const data = request?.data;
+
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw new HttpsError("invalid-argument", "Se requieren datos válidos para registrar el movimiento.");
+    }
+
+    const docRef = await movimientoRackCollection.add({
+        ...data,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        activo: true
+    });
+
+    return { id: docRef.id };
+});
+
+exports.obtenerMovimientosPorFecha = onCall(async (request) => {
+    const rackId = request?.data?.rackId;
+    const fechaInicio = request?.data?.fechaInicio;
+    const fechaFin = request?.data?.fechaFin;
+
+    const snap = await movimientoRackCollection
+        .where("rackId", "==", rackId)
+        .orderBy("createdAt", "desc")
+        .get();
+
+    const movimientos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    const filtered = movimientos.filter(mov => {
+        const fecha = mov.fecha;
+        return fecha >= fechaInicio && fecha <= fechaFin;
+    });
+
+    return { movimientos: filtered };
+});
+
+exports.suscribirMovimientos = onCall(async (request) => {
+    const rackId = request?.data?.rackId;
+    const snap = await movimientoRackCollection
+        .where("rackId", "==", rackId)
+        .orderBy("createdAt", "desc")
+        .get();
+    const movimientos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return { movimientos };
+});
+
+exports.vaciarRack = onCall(async (request) => {
+    const rackId = request?.data?.rackId;
+    const user = request?.data?.user;
+    const stock = await obtenerStockPorRackDb(rackId);
+
+    const operaciones = stock.map(item => {
+        return {
+            ...item,
+            cantidad: 0,
+            updatedBy: {
+                id: user?.id,
+                nombre: user?.nombre
+            },
+            updatedAt: FieldValue.serverTimestamp()
+        };
+    });
+
+    const batch = getDbBatch();
+    operaciones.forEach(op => {
+        const ref = rackStockCollection.doc(op.id);
+        batch.update(ref, op);
+    });
+    await batch.commit();
+
+    return { success: true };
 });

@@ -43,6 +43,7 @@ import {
 import SnapshotManager
     from "../../../services/snapshots/snapshotManager";
 import { getUbicacionLabel, getUbicacionTipoLabel } from "../../../utils/rackLocation";
+import Swal from "sweetalert2";
 
 export default function RackTransferModal({
 
@@ -281,7 +282,7 @@ export default function RackTransferModal({
                     );
                     return;
                 }
-
+            
             const stockDestino = await obtenerStockPorRack(rackDestino.id);
             const tipoItemDestino = producto?.tipoItem || "";
             const validacionDestino = validarCapacidadRack({
@@ -305,29 +306,47 @@ export default function RackTransferModal({
             |--------------------------------------------------------------------------
             */
 
+            Swal.fire({
+                title: 'Trasladando stock',
+                text: 'Por favor espere...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            const payloadTransferencia = {
+                rackOrigen: rack,
+                rackDestino,
+                itemId: String(formSanitized.itemId ?? "").trim(),
+                cantidad: Number(formSanitized.cantidad),
+                usuario: user ? {
+                    id: user.id ?? user.uid ?? null,
+                    nombre: user.nombre ?? user.displayName ?? user.email ?? null
+                } : null
+            };
+
+            const payloadEsValido = Boolean(
+                payloadTransferencia.rackOrigen?.id &&
+                payloadTransferencia.rackDestino?.id &&
+                payloadTransferencia.itemId &&
+                Number.isFinite(payloadTransferencia.cantidad) &&
+                payloadTransferencia.cantidad > 0
+            );
+
+            if (!payloadEsValido) {
+                throw new Error("Argumentos inválidos para transferir stock: faltan rackOrigen.id, rackDestino.id, itemId o cantidad.");
+            }
+
             const movimientos =
-                await trasladarStockPEPS({
-
-                    rackOrigen: rack,
-
-                    rackDestino,
-
-                    itemId:
-                        formSanitized.itemId,
-
-                    cantidad:
-                        Number(
-                            formSanitized.cantidad
-                        ),
-
-                    usuario: user
-                });
+                await trasladarStockPEPS(payloadTransferencia);
 
                 if (!form.cantidad) {
+                    Swal.close();
                     notifyError(
                         "Error",
                         "Debe ingresar una cantidad"
                     );
+                    Swal.close();
                     return;
                 }
 
@@ -427,13 +446,12 @@ export default function RackTransferModal({
 
             }
 
-            // await refresh();
-
             notifySuccess(
                 "Traslado realizado",
                 "Correctamente"
             );
 
+            await refresh?.();
             onClose();
 
         } catch (e) {
@@ -569,7 +587,7 @@ export default function RackTransferModal({
                     <div className="transfer-group">
 
                         <label>
-                            {getUbicacionTipoLabel(rack)} destino
+                            Destino
                         </label>
 
                         <select

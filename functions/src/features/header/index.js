@@ -13,6 +13,8 @@ const toTimestamp = (value) => {
   return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
 };
 
+const normalizeArea = (value = "") => String(value ?? "").trim().toLowerCase();
+
 exports.loadNotifications = onCall(async (request) => {
   const currentUserId = request.auth?.uid;
 
@@ -21,7 +23,9 @@ exports.loadNotifications = onCall(async (request) => {
   }
 
   const currentUserDoc = await db.collection("users").where("uid", "==", currentUserId).limit(1).get();
+  const currentUserData = !currentUserDoc.empty ? currentUserDoc.docs[0].data() : {};
   const currentUserDocId = !currentUserDoc.empty ? currentUserDoc.docs[0].id : null;
+  const currentUserArea = normalizeArea(currentUserData?.area ?? currentUserData?.Area ?? currentUserData?.perfil?.area ?? currentUserData?.perfil?.Area);
   const targetIds = Array.from(new Set([String(currentUserId), String(currentUserDocId || "")].filter(Boolean)));
 
   const notificationSnapshots = await Promise.all(
@@ -39,6 +43,23 @@ exports.loadNotifications = onCall(async (request) => {
 
   const notifications = [...uniqueNotifications.values()]
     .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .filter((notification) => {
+      const notificationArea = normalizeArea(
+        notification?.extra?.usuarioArea ||
+        notification?.extra?.areaUsuario ||
+        notification?.usuarioArea ||
+        notification?.area ||
+        notification?.extra?.adminArea ||
+        notification?.adminArea ||
+        notification?.extra?.areaAdmin ||
+        notification?.areaAdmin ||
+        ""
+      );
+
+      if (!currentUserArea) return true;
+      if (!notificationArea) return true;
+      return notificationArea === currentUserArea;
+    })
     .sort((a, b) => toTimestamp(b.fechaCreacion) - toTimestamp(a.fechaCreacion))
     .slice(0, 50)
     .map((notification) => ({

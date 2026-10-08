@@ -24,6 +24,45 @@ export const useRacksDashboard = () => {
     const [loading, setLoading] =
         useState(true);
 
+    const load = () => {
+        const unsubscribeRacks = suscribirRacks((data) => {
+            setRacks(data);
+            setLoading(false);
+        });
+
+        SnapshotManager.subscribe(
+            "racks-dashboard",
+            unsubscribeRacks
+        );
+
+        const unsubscribeStock = suscribirStock((stockData) => {
+            const agrupado = {};
+
+            stockData.forEach(item => {
+                if (!agrupado[item.rackId]) {
+                    agrupado[item.rackId] = [];
+                }
+
+                agrupado[item.rackId].push(item);
+            });
+
+            Object.keys(agrupado).forEach(rackId => {
+                agrupado[rackId].sort((a, b) => {
+                    const fechaA = a.createdAt?.seconds || 0;
+                    const fechaB = b.createdAt?.seconds || 0;
+                    return fechaA - fechaB;
+                });
+            });
+
+            setStockPorRack(agrupado);
+        });
+
+        SnapshotManager.subscribe(
+            "rack-stock",
+            unsubscribeStock
+        );
+    };
+
     /*
     |--------------------------------------------------------------------------
     | Snapshot de Racks
@@ -31,87 +70,16 @@ export const useRacksDashboard = () => {
     */
 
     useEffect(() => {
-
-        const unsubscribe = suscribirRacks((data) => {
-
-            setRacks(data);
-
-            setLoading(false);
-
-        });
-
-        SnapshotManager.subscribe(
-            "racks-dashboard",
-            unsubscribe
-        );
+        load();
 
         return () => {
-
             SnapshotManager.unsubscribe(
                 "racks-dashboard"
             );
-
-        };
-
-    }, []);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Snapshot Stock
-    |--------------------------------------------------------------------------
-    */
-
-    useEffect(() => {
-
-        const unsubscribe = suscribirStock((stockData) => {
-
-            const agrupado = {};
-
-            stockData.forEach(item => {
-
-                if (!agrupado[item.rackId]) {
-
-                    agrupado[item.rackId] = [];
-
-                }
-
-                agrupado[item.rackId].push(item);
-
-            });
-
-            Object.keys(agrupado).forEach(rackId => {
-
-                agrupado[rackId].sort((a, b) => {
-
-                    const fechaA =
-                        a.createdAt?.seconds || 0;
-
-                    const fechaB =
-                        b.createdAt?.seconds || 0;
-
-                    return fechaA - fechaB;
-
-                });
-
-            });
-
-            setStockPorRack(agrupado);
-
-        });
-
-        SnapshotManager.subscribe(
-            "rack-stock",
-            unsubscribe
-        );
-
-        return () => {
-
             SnapshotManager.unsubscribe(
                 "rack-stock"
             );
-
         };
-
     }, []);
 
     /*
@@ -133,7 +101,8 @@ export const useRacksDashboard = () => {
 
         racks: racksConStock,
 
-        loading
+        loading,
+        load
 
     };
 

@@ -87,8 +87,17 @@ const getDashboardCacheKey = () => {
 
 const getCurrentAdminArea = () => {
   try {
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-    return typeof user?.area === "string" ? user.area.trim() : user?.area || "";
+    const sessionUser = readSessionCache("user");
+    const localUser = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("user") || "null");
+      } catch {
+        return null;
+      }
+    })();
+    const user = sessionUser || localUser || {};
+    const areaValue = user?.area ?? user?.Area ?? user?.perfil?.area ?? user?.perfil?.Area ?? user?.usuario?.area ?? user?.usuario?.Area ?? "";
+    return typeof areaValue === "string" ? areaValue.trim() : areaValue || "";
   } catch {
     return "";
   }

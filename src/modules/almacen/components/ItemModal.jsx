@@ -6,6 +6,7 @@ import Loader from "../../../components/Loader";
 import { notifySuccess, notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { validateMaterial } from "../../../schemas/meterialSchema";
+import Swal from "sweetalert2";
 
 import {
     crearMateriaPrima,
@@ -140,7 +141,6 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
         try {
 
-            setLoading(true);
 
             const services = getServices(form.tipo);
 
@@ -155,21 +155,35 @@ export default function ItemModal({ data, onClose, onSuccess }) {
             const payload = buildPayload(cleanedForm);
 
             if (data) {
-
+                Swal.fire({
+                    title: 'Actualizando material...',
+                    text: 'Por favor espera',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
                 await services.update(data.id, payload);
-
+                Swal.close();
                 notifySuccess(
                     "Actualizado",
                     "Correctamente"
                 );
 
             } else {
-
+                Swal.fire({
+                    title: 'Creando material...',
+                    text: 'Por favor espera',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
                 await services.create({
                     ...payload,
                     createdAt: new Date()
                 });
-
+                Swal.close();
                 notifySuccess(
                     "Creado",
                     "Correctamente"
@@ -180,7 +194,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
             onClose();
 
         } catch {
-
+            Swal.close();
             notifyError(
                 "Error",
                 "Error al guardar"
@@ -188,7 +202,6 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
         } finally {
 
-            setLoading(false);
         }
     };
 
@@ -218,8 +231,6 @@ export default function ItemModal({ data, onClose, onSuccess }) {
 
                 {/* BODY */}
                 <div style={styles.body}>
-
-                    {loading && <Loader />}
 
                     <form
                         onSubmit={handleSubmit(onSubmit)}

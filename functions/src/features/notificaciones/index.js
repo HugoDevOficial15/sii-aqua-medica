@@ -27,6 +27,12 @@ const validarNotificacion = (data = {}) => {
         throw new HttpsError("invalid-argument", "Mensaje es requerido para crear una notificación.");
     }
 
+    const normalizedExtra = {
+        ...extra,
+        usuarioArea: extra?.usuarioArea ?? extra?.areaUsuario ?? extra?.area ?? extra?.usuario?.area ?? null,
+        areaAdmin: extra?.adminArea ?? extra?.areaAdmin ?? extra?.area ?? null,
+    };
+
     return {
         IdUsuario,
         Titulo: String(Titulo).trim(),
@@ -36,7 +42,7 @@ const validarNotificacion = (data = {}) => {
         enviado: false,
         fechaCreacion: FieldValue.serverTimestamp(),
         fechaEnviado: null,
-        ...extra,
+        extra: normalizedExtra,
     };
 };
 

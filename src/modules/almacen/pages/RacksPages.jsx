@@ -213,7 +213,7 @@ export default function RacksPages() {
           <table className="table custom-table">
             <thead>
               <tr>
-                <th width="10%">Rack</th>
+                <th width="10%">Ubicación</th>
                 <th width="10%">Planta</th>
                 <th width="10%">Estatus</th>
                 <th width="17%">Tipo almacenamiento</th>
@@ -249,19 +249,27 @@ export default function RacksPages() {
                         openActionsId === r.id ? "rack-row-active" : ""
                       }
                     >
-                      <td># {r.numeroRack}</td>
-
+                      <td>
+                        {r.ubicacionTipo && (
+                          <>{r.ubicacionTipo === "rackselectivo" ? "Rack selectivo #" :
+                            r.ubicacionTipo === "mezzanine" ? "Mezzanine #" :
+                            r.ubicacionTipo === "tanqueacido" ? "Tanque de acido #" :
+                            r.ubicacionTipo === "zona" ? "Zona: " :
+                            r.ubicacionTipo === "rack" ? "Rack #" :
+                             ""}</>
+                        )}
+                        {r.numeroRack}</td> 
                       <td>{r.planta}</td>
                       <td>
                         <span
                           className={`badge 
                                                     ${
                                                       rackStatus === "activo"
-                                                        ? "bg-success-subtle text-success"
+                                                        ? "activo"
                                                         : rackStatus ===
                                                             "mantenimiento"
-                                                          ? "bg-warning-subtle text-warning"
-                                                          : "bg-danger-subtle text-danger"
+                                                          ? "mantenimiento"
+                                                          : "baja"
                                                     }`}
                         >
                           {rackStatus}
@@ -551,6 +559,7 @@ export default function RacksPages() {
           word-break: break-word;
           overflow-wrap: anywhere;
           max-width: 230px;
+          min-width: 150px;
         }
 
         .table thead th:nth-child(7) {
@@ -561,6 +570,13 @@ export default function RacksPages() {
         .table tbody td:nth-child(7) {
           text-align: center;
           justify-content: center;
+        }
+
+
+        .table tbody td:nth-child(1),
+        .table thead th:nth-child(1) {
+          width: 200px;
+          min-width: 150px;
         }
 
         /*  COLOR BADGES  */
@@ -590,6 +606,33 @@ export default function RacksPages() {
           font-weight: 700;
           color: var(--operator-material-acondicionamiento-text);
           background-color: var(--operator-material-acondicionamiento);
+        }
+
+        .activo {
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--operator-activo-text);
+          background-color: var(--operator-activo);
+        }
+
+        .mantenimiento {
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--operator-cambio-text);
+          background-color: var(--operator-cambio);
+        }
+
+        .baja {
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+          color: var(--operator-producto-terminado-text);
+          background-color: var(--operator-producto-terminado);
         }
 
         /* MENU DESPLEGABLE */

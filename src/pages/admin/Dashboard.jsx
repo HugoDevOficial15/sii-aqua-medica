@@ -1,19 +1,32 @@
 import { useState, useEffect } from "react";
 import Loader from "../../components/Loader";
-import { getDashboardStats, refreshDashboardStats } from "../../services/usersService";
+import {
+    getDashboardStats,
+    getUsers,
+    refreshDashboardStats,
+} from "../../services/usersService";
 import { FaUserCheck,FaLaptopCode, FaUserSlash, FaUserShield,FaFemale,FaMale,FaChartPie,FaChartBar,FaSyncAlt,FaWarehouse,FaFlask,FaUtensils,FaUserTie, FaCalculator, FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaHeartbeat,FaShieldAlt,FaHandsHelping,FaStethoscope,FaClipboardCheck,FaEye,FaShoppingCart} from "react-icons/fa";
 
 import CountUp from "react-countup";
 import { usePreferences } from "../../hooks/usePreferences";
+import { useAuth } from "../../hooks/useAuth";
+import { createNotification } from "../../utils/createNotification";
 
 const chartModulesPromise = import("recharts");
 
 
 export default function Dashboard() {
 
+    const { user: currentUser } = useAuth();
     const { resolvedTheme } = usePreferences();
     const isDark = resolvedTheme === "dark";
     const [chartLib, setChartLib] = useState(null);
+
+    const normalizeArea = (value = "") => String(value || "").trim().toLowerCase();
+    const generateIncapacidadAlertKey = (usuarioId, adminId) => {
+        const todayKey = new Date().toISOString().slice(0, 10);
+        return `incapacidad-alert-${todayKey}-${usuarioId || "sin-usuario"}-${adminId || "sin-admin"}`;
+    };
 
     const AREA_ICONS = {
             "Almacen": FaWarehouse,
@@ -144,6 +157,90 @@ export default function Dashboard() {
             isMounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        if (!currentUser || !String(currentUser.rol || "").startsWith("admin")) {
+            return;
+        }
+
+        const runIncapacidadAlertCheck = async () => {
+            const currentAdminId = currentUser?.id || currentUser?.uid || currentUser?.username;
+            const currentAdminRol = String(currentUser?.rol || "").trim().toLowerCase();
+            const adminArea = normalizeArea(currentUser?.area ?? currentUser?.Area ?? currentUser?.perfil?.area ?? currentUser?.perfil?.Area ?? currentUser?.usuario?.area ?? currentUser?.usuario?.Area);
+            const isGlobalAdmin = currentAdminRol === "admin" || currentAdminRol === "administrador" || currentAdminRol === "admin_sistemas" || currentAdminRol.startsWith("admin") || currentAdminRol.startsWith("administrador");
+            const runKey = `dashboard-incapacidad-check-${currentAdminId || "anon"}-${new Date().toISOString().slice(0, 10)}`;
+
+            if (typeof window !== "undefined" && localStorage.getItem(runKey) === "true") {
+                return;
+            }
+
+            if (typeof window !== "undefined") {
+                localStorage.setItem(runKey, "true");
+            }
+
+            try {
+                if (!isGlobalAdmin && !adminArea) {
+                    return;
+                }
+
+                const operadores = await getUsers({
+                    source: "cache",
+                    areaAdmin: isGlobalAdmin ? "" : adminArea,
+                });
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const oneDayAhead = new Date(today);
+                oneDayAhead.setDate(today.getDate() + 1);
+
+                const incapacidadesPorTerminar = (Array.isArray(operadores) ? operadores : []).filter((usuario) => {
+                    if (String(usuario?.estado || "").trim().toLowerCase() !== "incapacidad") return false;
+                    if (!usuario?.fechaFinIncapacidad) return false;
+
+                    const fechaFin = new Date(`${usuario.fechaFinIncapacidad}T00:00:00`);
+                    fechaFin.setHours(0, 0, 0, 0);
+
+                    if (fechaFin < today || fechaFin > oneDayAhead) return false;
+
+                    if (isGlobalAdmin) return true;
+                    return normalizeArea(usuario?.area) === adminArea;
+                });
+
+                if (!incapacidadesPorTerminar.length) {
+                    return;
+                }
+
+                for (const usuario of incapacidadesPorTerminar) {
+                    const usuarioArea = normalizeArea(usuario?.area);
+                    const grupoIncapacidad = `incapacidad-proxima-termino-${usuario?.id || usuario?.uid || usuario?.nomina || "sin-usuario"}-${usuario?.fechaFinIncapacidad || "sin-fecha"}`;
+
+                    await createNotification({
+                        IdUsuario: currentAdminId,
+                        Titulo: "Incapacidad próxima a terminar",
+                        Mensaje: `La incapacidad de ${usuario?.nombre || "un operador"} vence el ${usuario?.fechaFinIncapacidad}. Revisa la coordinación del área ${usuarioArea || "general"}.`,
+                        Destino: "/dashboard",
+                        Accion: "incapacidad_proxima_termino",
+                        extra: {
+                            tipo: "incapacidad_proxima_termino",
+                            grupo: grupoIncapacidad,
+                            usuarioId: usuario?.id || usuario?.uid || usuario?.nomina || null,
+                            usuarioArea: usuarioArea || "general",
+                            adminArea: adminArea || currentUser?.area || "general",
+                            fechaFinIncapacidad: usuario?.fechaFinIncapacidad || null,
+                        },
+                    });
+                }
+
+                if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("sii-aqua-notifications-refresh"));
+                }
+            } catch (error) {
+                console.error("Error al verificar incapacidades próximas a terminar:", error);
+            }
+        };
+
+        runIncapacidadAlertCheck();
+    }, [currentUser?.id, currentUser?.uid, currentUser?.username, currentUser?.rol]);
 
     const handleRefresh = async () => {
         setLoading(true);

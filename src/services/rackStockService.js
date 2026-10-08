@@ -3,7 +3,13 @@ import { functions } from "../config/firebase";
 import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
 import { actualizarRack } from "./rackService";
 
-const call = (name) => httpsCallable(functions, name);
+const call = (name) => {
+    if (!functions || typeof httpsCallable !== "function") {
+        throw new Error(`Firebase Functions no está inicializado para "${name}".`);
+    }
+
+    return httpsCallable(functions, name);
+};
 
 const crearStockFunction = call("crearStock");
 const actualizarCantidadStockFunction = call("actualizarCantidadStock");
@@ -284,15 +290,54 @@ export const descontarStockPEPS = async ({ rackId, itemId, cantidadSalida }) => 
     return movimientos;
 };
 
+const serializarRackParaTransferencia = (rack = {}) => ({
+    id: rack.id,
+    numeroRack: rack.numeroRack,
+    planta: rack.planta,
+    tipoAsignacion: rack.tipoAsignacion,
+    tipoAlmacenamiento: rack.tipoAlmacenamiento,
+    ubicacionTipo: rack.ubicacionTipo,
+    pesoMaximoMateriaPrima: rack.pesoMaximoMateriaPrima,
+    pesoMaximoMaterialAcondicionamiento: rack.pesoMaximoMaterialAcondicionamiento,
+    pesoMaximoProductoTerminado: rack.pesoMaximoProductoTerminado,
+    estatus: rack.estatus
+});
+
 export const trasladarStockPEPS = async ({ rackOrigen, rackDestino, itemId, cantidad, usuario }) => {
-    const result = await trasladarStockPEPSFunction({ rackOrigen, rackDestino, itemId, cantidad, usuario });
+    const normalizarTexto = (valor) => (valor == null ? "" : String(valor).trim());
+    const normalizarCantidad = (valor) => {
+        const numero = Number(valor);
+        return Number.isFinite(numero) ? numero : NaN;
+    };
+
+    const rackOrigenId = normalizarTexto(rackOrigen?.id ?? rackOrigen);
+    const rackDestinoId = normalizarTexto(rackDestino?.id ?? rackDestino);
+    const itemIdNormalizado = normalizarTexto(itemId);
+    const cantidadNumerica = normalizarCantidad(cantidad);
+
+    if (!rackOrigenId || !rackDestinoId || !itemIdNormalizado || !Number.isFinite(cantidadNumerica) || cantidadNumerica <= 0) {
+        throw new Error("Argumentos inválidos para transferir stock: se requieren rackOrigen.id, rackDestino.id, itemId y una cantidad mayor a 0.");
+    }
+
+    const payload = {
+        rackOrigen: typeof rackOrigen === "string" ? { id: rackOrigenId } : serializarRackParaTransferencia(rackOrigen),
+        rackDestino: typeof rackDestino === "string" ? { id: rackDestinoId } : serializarRackParaTransferencia(rackDestino),
+        itemId: itemIdNormalizado,
+        cantidad: cantidadNumerica,
+        usuario: usuario ? {
+            id: usuario.id ?? usuario.uid ?? null,
+            nombre: usuario.nombre ?? usuario.displayName ?? usuario.email ?? null
+        } : null
+    };
+
+    const result = await trasladarStockPEPSFunction(payload);
     const movimientos = Array.isArray(result?.data?.movimientos) ? result.data.movimientos : [];
 
-    if (rackOrigen?.id) {
-        clearCachedData(getRackStockCacheKey(rackOrigen.id));
+    if (rackOrigenId) {
+        clearCachedData(getRackStockCacheKey(rackOrigenId));
     }
-    if (rackDestino?.id) {
-        clearCachedData(getRackStockCacheKey(rackDestino.id));
+    if (rackDestinoId) {
+        clearCachedData(getRackStockCacheKey(rackDestinoId));
     }
 
     clearCachedData(RACK_STOCK_CACHE_KEY);

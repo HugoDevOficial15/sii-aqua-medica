@@ -429,6 +429,7 @@ export default function MovimientoModal({
                 "Correctamente"
             );
 
+            await refresh?.();
             onClose();
 
         } catch (e) {

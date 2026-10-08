@@ -25,6 +25,42 @@
 * createPracticante 
 * updatePracticante 
 
+
+
+
+**-ADMINISTRADOR-**
+**Nuevas-Functions**
+* obtenerMovimientosPorRack
+* registrarMovimiento
+* obtenerMovimientosPorFecha
+* suscribirMovimientos
+* vaciarRack
+
+
+
+**Functions-Refactorizadas**
+* getOperatorTrainings
+* getOperatorTrainingResponses
+* hasOperatorAnsweredTraining
+* getOperatorTrainingHistory
+* saveOperatorTrainingResponse
+* createTraining
+* updateTraining
+* trasladarStockPEPS
+* obtenerStockPEPS
+* descontarStockPEPS
+* loadNotifications
+* dismissHeaderNotification
+* saveNotification
+* createNotification
+* sendAdminNotificationToRoles
+
+* verificarUsuariosLogueados
+* verificarUsuariosLogueadosHttp
+
+* createSurvey
+* updateSurvey
+
 ==================================
 
             ============

@@ -16,8 +16,12 @@ export const crearProducto = async (data) => {
     return result?.data ?? null;
 };
 
-export const obtenerProducto = async () => {
-    const cached = readCachedData(CACHE_KEY);
+export const obtenerProducto = async (forceRefresh = false) => {
+    if (forceRefresh) {
+        clearCachedData(CACHE_KEY);
+    }
+
+    const cached = !forceRefresh ? readCachedData(CACHE_KEY) : null;
     if (cached) {
         return cached;
     }

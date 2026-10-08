@@ -12,6 +12,37 @@ const isOperatorProfile = (profile) =>
         .replace(/[\u0300-\u036f]/g, "")
         .includes("operador");
 
+const matchesAuthenticatedUser = (profile, request) => {
+    if (!profile || !request?.auth?.uid) return false;
+
+    const authUid = String(request.auth.uid).trim();
+    const tokenEmail = String(request?.token?.email || request?.auth?.token?.email || request?.auth?.email || "").trim().toLowerCase();
+    const loginIdentifier = tokenEmail ? tokenEmail.split("@")[0] : "";
+    const requestedNomina = String(request?.data?.nomina || request?.data?.nominaUsuario || "").trim();
+
+    const comparableValues = [
+        profile.uid,
+        profile.userId,
+        profile.id,
+        profile.firebaseUid,
+        profile.email,
+        profile.username,
+        profile.nomina,
+        profile.nominaUsuario,
+        profile.numeroNomina,
+    ].map((value) => String(value ?? "").trim());
+
+    return comparableValues.some((value) =>
+        value && (
+            value === authUid ||
+            value.toLowerCase() === authUid.toLowerCase() ||
+            value.toLowerCase() === tokenEmail ||
+            value.toLowerCase() === loginIdentifier ||
+            value === requestedNomina
+        )
+    );
+};
+
 const getOperatorProfile = async (request) =>{
     const authUid = request?.auth?.uid;
     if(!authUid) return null;
@@ -21,29 +52,21 @@ const getOperatorProfile = async (request) =>{
         const requestedSnapshot = await db.collection("users").doc(String(requestedUserId)).get();
         if (requestedSnapshot.exists) {
             const requestedProfile = { id: requestedSnapshot.id, ...requestedSnapshot.data(), firebaseUid: authUid };
-            const tokenEmail = String(request?.token?.email || "").trim().toLowerCase();
-            const loginIdentifier = tokenEmail.split("@")[0];
-            const requestedNomina = String(request?.data?.nomina || "").trim();
-            const matchesSession = [requestedProfile.email, requestedProfile.username]
-                .map((value) => String(value ?? "").trim().toLowerCase())
-                .some((value) => value && (value === tokenEmail || value === loginIdentifier))
-                || [requestedProfile.nomina, requestedProfile.nominaUsuario, requestedProfile.numeroNomina]
-                    .map((value) => String(value ?? "").trim())
-                    .some((value) => value && (value === loginIdentifier || value === requestedNomina));
-
-            if ((requestedProfile.uid === authUid || matchesSession) && isOperatorProfile(requestedProfile)) {
+            if (matchesAuthenticatedUser(requestedProfile, request) || isOperatorProfile(requestedProfile)) {
                 return requestedProfile;
             }
         }
     }
-    
+
     const byUid = await db.collection("users").where("uid", "==", authUid).limit(1).get();
     if (!byUid.empty) {
         const profile = { id: byUid.docs[0].id, ...byUid.docs[0].data(), firebaseUid: authUid };
-        return isOperatorProfile(profile) ? profile : null;
+        if (matchesAuthenticatedUser(profile, request) || isOperatorProfile(profile)) {
+            return profile;
+        }
     }
 
-    const authEmail = request?.token?.email;
+    const authEmail = request?.token?.email || request?.auth?.token?.email || request?.auth?.email;
     if (authEmail) {
         const usersRef = db.collection("users");
         const loginIdentifier = String(authEmail).split("@")[0].trim();
@@ -56,12 +79,16 @@ const getOperatorProfile = async (request) =>{
 
         if (!byEmail.empty) {
             const profile = { id: byEmail.docs[0].id, ...byEmail.docs[0].data(), firebaseUid: authUid };
-            return isOperatorProfile(profile) ? profile : null;
+            if (matchesAuthenticatedUser(profile, request) || isOperatorProfile(profile)) {
+                return profile;
+            }
         }
 
         if (!byNomina.empty) {
             const profile = { id: byNomina.docs[0].id, ...byNomina.docs[0].data(), firebaseUid: authUid };
-            return isOperatorProfile(profile) ? profile : null;
+            if (matchesAuthenticatedUser(profile, request) || isOperatorProfile(profile)) {
+                return profile;
+            }
         }
 
         const fallbackSnapshot = await usersRef.get();
@@ -75,13 +102,15 @@ const getOperatorProfile = async (request) =>{
 
         if (fallbackDoc) {
             const profile = { id: fallbackDoc.id, ...fallbackDoc.data(), firebaseUid: authUid };
-            return isOperatorProfile(profile) ? profile : null;
+            if (matchesAuthenticatedUser(profile, request) || isOperatorProfile(profile)) {
+                return profile;
+            }
         }
     }
 
     const byId = await db.collection("users").doc(authUid).get();
     const profile = byId.exists ? { id: byId.id, ...byId.data(), firebaseUid: authUid } : null;
-    return isOperatorProfile(profile) ? profile : null;
+    return (profile && (matchesAuthenticatedUser(profile, request) || isOperatorProfile(profile))) ? profile : null;
 };
 
 const normalizeAssignment = (assignment = {} ) => {
@@ -107,6 +136,9 @@ const getUsersForAssignment = async (assignment) => {
     const users = usersSnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
 
     const normalizeValue = (value) => String(value ?? "").trim().toLowerCase();
+    const getRecipientId = (user) => [user.uid, user.userId, user.id]
+        .map((value) => String(value ?? "").trim())
+        .find((value) => value.length > 0);
     const assignedValues = new Set(normalized.valores.map(normalizeValue));
     const assignedIdentifiers = new Set(normalized.valores.map(normalizeIdentifier));
     const isOperator = (user) => String(user.rol || user.Rol || user.role || "").trim().toLowerCase() === "operador";
@@ -136,11 +168,11 @@ const getUsersForAssignment = async (assignment) => {
     return [...new Map(
         users
             .filter(matchesAssignment)
-            .filter((user) => user.id || user.uid || user.userId)
             .map((user) => {
-                const recipientId = String(user.id || user.uid || user.userId);
-                return [recipientId, recipientId];
+                const recipientId = getRecipientId(user);
+                return recipientId ? [recipientId, recipientId] : null;
             })
+            .filter(Boolean)
     ).values()];
 };
 
@@ -461,7 +493,7 @@ exports.saveOperatorTrainingResponse = onCall(async (request) => {
             IdUsuario: creatorId,
             Titulo: "📋 Capacitacion respondida",
             Mensaje: `${responseData.nombre || "Un operador"} respondió la encuesta: ${training.titulo || "Capacitacion"}`,
-            Destino: "encuestas",
+            Destino: "capacitaciones",
             Accion: "capacitacion_respondida",
             extra: { trainingId: String(trainingId), usuarioId: operator.id, calificacion: responseData.calificacion ?? null },
             enviado: false,

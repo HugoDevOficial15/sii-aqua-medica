@@ -331,8 +331,8 @@
 }
 
 .personal-status-badge.warning {
-  background: rgba(146, 37, 235, 0.27) !important;
-  color: var(--operator-incapacidad);
+  background: var(--operator-incapacidad) !important;
+  color: var(--operator-incapacidad-text);
 }
 
 .personal-status-badge.danger {
@@ -361,8 +361,8 @@
 }
 
 .personal-record-badge.incapacidad {
-  background: #ca56ff48;
-  color: var(--operator-incapacidad);
+  background: var(--operator-incapacidad);
+  color: var(--operator-incapacidad-text);
 }
 
 .personal-record-badge.historialMedico {

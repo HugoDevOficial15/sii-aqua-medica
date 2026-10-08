@@ -57,7 +57,7 @@ export default function MaterialesTable({ data, onEdit }) {
                                         : "material-acondicionamiento-badge"
                                     }`}
                             >
-                                {item.tipo?.replaceAll("_", " ")}
+                                {item.tipo?.replaceAll("_", " ")?.replace(/^./, str => str.toUpperCase())}
                             </span>
                         </td>
 

@@ -190,6 +190,33 @@ export default function EncuestaResultados({ survey, onBack }) {
     );
   }, [survey]);
 
+  const hasActiveIncapacidad = (user) => {
+    if (!user || user.activo === false) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const records = [];
+    if (user.fechaInicioIncapacidad || user.fechaFinIncapacidad) {
+      records.push({
+        fechaInicio: user.fechaInicioIncapacidad || null,
+        fechaFin: user.fechaFinIncapacidad || null,
+      });
+    }
+
+    if (Array.isArray(user.incapacidades) && user.incapacidades.length) {
+      records.push(...user.incapacidades);
+    }
+
+    return records.some((incapacidad) => {
+      const fechaInicio = incapacidad?.fechaInicio ? new Date(`${incapacidad.fechaInicio}T00:00:00`) : null;
+      const fechaFin = incapacidad?.fechaFin ? new Date(`${incapacidad.fechaFin}T23:59:59`) : null;
+      const startOk = !fechaInicio || fechaInicio <= today;
+      const endOk = !fechaFin || fechaFin >= today;
+      return startOk && endOk;
+    });
+  };
+
   const usuariosAsignados = useMemo(() => {
     const asignacion = survey?.asignacion || { tipo: "global", valores: [] };
     const valoresAsignados = (asignacion.valores || []).map((v) =>
@@ -244,6 +271,7 @@ export default function EncuestaResultados({ survey, onBack }) {
         const respondido = Boolean(respuesta);
         const estadoActual = String(respuesta?.estadoActual ?? "").trim().toLowerCase();
         const puntuacion = Number(respuesta?.puntuacionObtenida ?? respuesta?.calificacion ?? 0);
+        const tieneIncapacidadActiva = hasActiveIncapacidad(user);
 
         let estado = "faltante";
 
@@ -253,6 +281,8 @@ export default function EncuestaResultados({ survey, onBack }) {
           } else {
             estado = "realizado";
           }
+        } else if (tieneIncapacidadActiva) {
+          estado = "incapacidad";
         } else if (surveyExpired) {
           estado = "reprobada";
         }
@@ -331,8 +361,8 @@ export default function EncuestaResultados({ survey, onBack }) {
           area: user.area || perfil?.area || "—",
           puesto: perfil?.puesto || "—",
           puntuacion: 0,
-          aprobada: false,
-          estado: "reprobada",
+          aprobada: user.estado === "incapacidad",
+          estado: user.estado === "incapacidad" ? "incapacidad" : "reprobada",
           expiroSinResponder: true,
         };
       });
@@ -409,6 +439,9 @@ export default function EncuestaResultados({ survey, onBack }) {
   const usuariosRespondidos = usuariosAsignados.filter(
     (user) => user.respondido && user.estado === "realizado" && !user.respuesta?.certificado,
   );
+  const usuariosIncapacidades = usuariosAsignados.filter(
+    (user) => user.estado === "incapacidad",
+  );
   const usuariosReprobadas = usuariosAsignados.filter(
     (user) => user.estado === "reprobada",
   );
@@ -423,6 +456,10 @@ export default function EncuestaResultados({ survey, onBack }) {
   const usuariosFiltradosPorEstado = useMemo(() => {
     if (statusFilter === "realizado") {
       return usuariosRespondidos;
+    }
+
+    if (statusFilter === "incapacidad") {
+      return usuariosIncapacidades;
     }
 
     if (statusFilter === "reprobada") {
@@ -441,6 +478,7 @@ export default function EncuestaResultados({ survey, onBack }) {
   }, [
     statusFilter,
     usuariosAsignados,
+    usuariosIncapacidades,
     usuariosFaltantes,
     usuariosReprobadas,
     usuariosRespondidos,
@@ -473,6 +511,7 @@ export default function EncuestaResultados({ survey, onBack }) {
       row?.expiroSinResponder ||
       row?.respondido === false;
 
+    if (row?.estado === "incapacidad") return "Incapacidad";
     if (isMissingScore) return "Sin registro";
 
     const score = Number(row?.puntuacion ?? row?.calificacion ?? 0);
@@ -487,6 +526,7 @@ export default function EncuestaResultados({ survey, onBack }) {
   const tituloUsuariosAsignados = {
     todos: `Todos los usuarios: ${usuariosAsignados.length}`,
     realizado: `Usuarios aprobados: ${usuariosRespondidos.length}`,
+    incapacidad: `Usuarios en incapacidad: ${usuariosIncapacidades.length}`,
     reprobada: `Usuarios reprobados: ${usuariosReprobadas.length}`,
     faltante: `Usuarios faltantes: ${usuariosFaltantes.length}`,
     certificado: `Certificados: ${certificadosCount}`,
@@ -517,13 +557,13 @@ export default function EncuestaResultados({ survey, onBack }) {
 
     const rowsForPdf = usuariosFiltradosPorEstado.map((user) => {
       const match = rowsByNomina.get(String(user.nomina ?? "").trim());
-      const hasMissingScore = !match || user.estado === "faltante";
+      const hasMissingScore = !match || user.estado === "faltante" || user.estado === "incapacidad";
 
       return {
         nomina: user.nomina || "—",
         nombre: user.nombre || "Sin nombre",
         area: user.area || "Sin área",
-        puntuacion: hasMissingScore ? "Sin registro" : Number(match?.puntuacion ?? match?.calificacion ?? 0),
+        puntuacion: hasMissingScore ? (user.estado === "incapacidad" ? "Incapacidad" : "Sin registro") : Number(match?.puntuacion ?? match?.calificacion ?? 0),
       };
     });
 
@@ -734,6 +774,8 @@ export default function EncuestaResultados({ survey, onBack }) {
                   <td>
                     {row.estado === "aprobada" ? (
                       <span className="text-success">Aprobada</span>
+                    ) : row.estado === "incapacidad" ? (
+                      <span className="text-warning">Incapacidad</span>
                     ) : row.estado === "reprobada" ? (
                       <span className="text-danger">Reprobada</span>
                     ) : (
@@ -888,6 +930,13 @@ export default function EncuestaResultados({ survey, onBack }) {
               </button>
               <button
                 type="button"
+                className={`button text-incapacidad ${statusFilter === "incapacidad" ? "active" : ""}`}
+                onClick={() => setStatusFilter("incapacidad")}
+              >
+                <FaExclamationCircle /> Incapacidades: {usuariosIncapacidades.length}
+              </button>
+              <button
+                type="button"
                 className={`button text-reprobada ${statusFilter === "reprobada" ? "active" : ""}`}
                 onClick={() => setStatusFilter("reprobada")}
               >
@@ -933,14 +982,18 @@ export default function EncuestaResultados({ survey, onBack }) {
                         ? "text-success"
                         : user.estado === "reprobada"
                           ? "text-danger"
-                          : "text-warning"
+                          : user.estado === "incapacidad"
+                            ? "incapacidad"
+                            : "text-warning"
                     }`}
                   >
                     {user.estado === "realizado"
                       ? "Realizado"
                       : user.estado === "reprobada"
                         ? "Reprobada"
-                        : "Faltante"}
+                        : user.estado === "incapacidad"
+                          ? "Incapacidad"
+                          : "Faltante"}
                   </span>
                 </div>
               ))
@@ -1204,7 +1257,7 @@ export default function EncuestaResultados({ survey, onBack }) {
 }
 
 
-.text-todos,.text-realizado,.text-reprobada,.text-faltante,.text-certificado {
+.text-todos,.text-realizado,.text-reprobada,.text-faltante,.text-certificado,.text-incapacidad {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1236,6 +1289,13 @@ export default function EncuestaResultados({ survey, onBack }) {
 .text-reprobada.active {
     color: var(--operator-danger);
     border-color: var(--operator-danger);
+    transform: scale(1.02);
+}
+
+.text-incapacidad:hover,
+.text-incapacidad.active {
+    color: var(--operator-incapacidad-text);
+    border-color: var(--operator-incapacidad-text);
     transform: scale(1.02);
 }
 
@@ -1315,6 +1375,13 @@ export default function EncuestaResultados({ survey, onBack }) {
     transform: translateY(0);
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
+    
+.incapacidad {
+    background: var(--operator-incapacidad);
+    color: var(--operator-incapacidad-text);
+    border-color: var(--operator-incapacidad);
+}
+
 
 @media (max-width: 992px) {
     .results-filter-grid {

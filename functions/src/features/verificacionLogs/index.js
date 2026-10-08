@@ -1,5 +1,6 @@
 const { onCall, onRequest } = require("firebase-functions/v2/https");
 const { admin, db } = require("../../config/firebase");
+const { normalize } = require("zod");
 
 const usersCollection = db.collection("users");
 const VALID_LOGIN_CUTOFF = new Date("2026-09-26T06:00:00.000Z");
@@ -106,6 +107,11 @@ const isOperatorRole = (userData = {}) => {
   return role === "operador" || role.includes("operador") || role === "operator" || role.includes("operator");
 };
 
+const isActive = (userData = {}) => {
+  const activo = normalizeText(userData.activo ?? "");
+  return activo === "true" || activo === "1"; 
+};
+
 const getAuthUsersMap = async () => {
   const usersMap = new Map();
   let pageToken = undefined;
@@ -132,6 +138,7 @@ const buildLoginReport = async (areaFilter = "") => {
     .map((doc) => ({ id: doc.id, ...doc.data() }))
     .filter((userData) => {
       if (!isOperatorRole(userData)) return false;
+      if (!isActive(userData)) return false;
       return matchesArea(userData, areaFilter);
     });
 

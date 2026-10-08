@@ -59,6 +59,9 @@ const getUsersForAssignment = async (assignment) => {
     const users = usersSnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
 
     const normalizeValue = (value) => String(value ?? "").trim().toLowerCase();
+    const getRecipientId = (user) => [user.uid, user.userId, user.id]
+        .map((value) => String(value ?? "").trim())
+        .find((value) => value.length > 0);
     const assignedValues = new Set(normalized.valores.map(normalizeValue));
     const assignedIdentifiers = new Set(normalized.valores.map(normalizeIdentifier));
     const isOperator = (user) => String(user.rol || user.Rol || user.role || "").trim().toLowerCase() === "operador";
@@ -88,11 +91,11 @@ const getUsersForAssignment = async (assignment) => {
     return [...new Map(
         users
             .filter(matchesAssignment)
-            .filter((user) => user.id || user.uid || user.userId)
             .map((user) => {
-                const recipientId = String(user.id || user.uid || user.userId);
-                return [recipientId, recipientId];
+                const recipientId = getRecipientId(user);
+                return recipientId ? [recipientId, recipientId] : null;
             })
+            .filter(Boolean)
     ).values()];
 };
 
@@ -239,7 +242,7 @@ const surveyMatchesOperator = (survey, operator) => {
                 .trim()
                 .toLowerCase();
             return new Set(assignment.valores.map((value) => String(value).trim().toLowerCase())).has(operatorArea);
-    }
+        }
 
         return [
             operator.nomina,

@@ -90,10 +90,30 @@ export default function Header({ toggleSidebar }) {
     };
 
     useEffect(() => {
-        if (!showDropdown || !user?.uid && !user?.id) return;
-        if (notificationLoadRef.current) return;
+        if (!user?.uid && !user?.id) {
+            setNotifications([]);
+            return;
+        }
+
+        if (!showDropdown && notificationLoadRef.current) return;
+        if (showDropdown && notificationLoadRef.current) return;
+
         loadNotifications();
     }, [showDropdown, user?.uid, user?.id]);
+
+    useEffect(() => {
+        const handleNotificationsRefresh = () => {
+            if (!notificationLoadRef.current) {
+                loadNotifications();
+            }
+        };
+
+        window.addEventListener("sii-aqua-notifications-refresh", handleNotificationsRefresh);
+
+        return () => {
+            window.removeEventListener("sii-aqua-notifications-refresh", handleNotificationsRefresh);
+        };
+    }, [user?.uid, user?.id]);
 
     const isPersistentNotification = (notif) => {
         return notif?.persistedInDb !== false && notif?.source !== "medicamento" && notif?.source !== "solicitud";

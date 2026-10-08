@@ -340,13 +340,12 @@ export default function RackSalidaModal({
                 });
             }
 
-            // await refresh();
-
             notifySuccess(
                 "Salida realizada",
                 "Correctamente"
             );
 
+            await refresh?.();
             onClose();
 
         } catch (e) {

@@ -742,8 +742,7 @@ export default function PdfGeneralModal({
           justify-content: space-between;
           align-items: center;
           padding: 20px 24px 18px;
-          background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-          border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+          background: var(--operator-card, #ffffff);
         }
 
         .personal-modal-header h3 {
@@ -833,7 +832,7 @@ export default function PdfGeneralModal({
         .personal-field-label {
           font-size: 0.82rem;
           font-weight: 700;
-          color: var(--operator-text-soft);
+          color: var(--operator-text);
         }
 
         .personal-field input,

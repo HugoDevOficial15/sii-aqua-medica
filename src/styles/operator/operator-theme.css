@@ -62,6 +62,10 @@
 
     --operator-aqua-text:  #1865ff;
 
+    --operator-incapacidad: #b670cc86 ;
+
+    --operator-incapacidad-text: #c03aff;
+
     --operator-salas: #bc70fa6b;
 
     --operator-salas-text:  #9700fc;
@@ -141,7 +145,9 @@ html[data-theme="dark"] {
 
     --operator-incidencia: #f33030;
 
-    --operator-incapacidad: #d666f8;
+    --operator-incapacidad: #863d9ca1;
+
+    --operator-incapacidad-text: #d666f8;
 
     --operator-historialMedico: #24c2c2;
 

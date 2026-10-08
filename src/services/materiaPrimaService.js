@@ -20,8 +20,12 @@ export const crearMateriaPrima = async (data) => {
     return result?.data ?? null;
 };
 
-export const obtenerMateriaPrima = async () => {
-    const cached = readCachedData(CACHE_KEY);
+export const obtenerMateriaPrima = async (forceRefresh = false) => {
+    if (forceRefresh) {
+        clearCachedData(CACHE_KEY);
+    }
+
+    const cached = !forceRefresh ? readCachedData(CACHE_KEY) : null;
     if (cached) {
         return cached;
     }
