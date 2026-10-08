@@ -82,16 +82,18 @@ export const createPracticante = async (data) => {
     const result = await createPracticanteFunction(practicanteData);
 
     // También crear en AquamedicaSoftware (solo 7 campos permitidos, sin puesto, rfc, nss, email)
-    const datosAquaMedica = {
-      nombre: data.nombre,
-      nomina: Number(data.nomina),
-      escuela: data.escuela || "",
-      area: data.area || "",
-      fechaIngreso: data.fechaIngreso || "",
-      cumpleanos: data.cumpleanos || "",
-      curp: data.curp || "",
-    };
-    await createPracticanteInAquaMedica(datosAquaMedica);
+    if (data.nomina) {
+      const datosAquaMedica = {
+        nombre: data.nombre,
+        nomina: Number(data.nomina),
+        escuela: data.escuela || "",
+        area: data.area || "",
+        fechaIngreso: data.fechaIngreso || "",
+        cumpleanos: data.cumpleanos || "",
+        curp: data.curp || "",
+      };
+      await createPracticanteInAquaMedica(datosAquaMedica);
+    }
 
     invalidatePracticantesCaches();
     return result.data || {};
@@ -120,6 +122,7 @@ const createPracticanteInAquaMedica = async (data) => {
     return result;
   } catch (error) {
     console.error("⚠ Error creating practicante in AquaMedica:", error);
+    // No lanzar error para no interrumpir la creación local
   }
 };
 
@@ -185,14 +188,45 @@ const updatePracticanteInAquaMedica = async (nomina, data) => {
   }
 };
 
-export const deletePracticante = async (id) => {
+export const deletePracticante = async (id, nomina) => {
   try {
     const deletePracticanteFunction = call("deletePracticante");
+
+    // Eliminar en sii-aqua-medica
     await deletePracticanteFunction({ id });
+
+    // También eliminar en AquamedicaSoftware si tiene nómina
+    if (nomina) {
+      await deletePracticanteInAquaMedica(nomina);
+    }
+
     invalidatePracticantesCaches();
     console.log("✓ Practicante eliminado completamente");
   } catch (error) {
     console.error("Error deleting practicante:", error);
     throw error;
+  }
+};
+
+const deletePracticanteInAquaMedica = async (nomina) => {
+  try {
+    const AQUAMEDICA_URL = "https://us-central1-aquamedica2023.cloudfunctions.net";
+
+    const response = await fetch(`${AQUAMEDICA_URL}/deletePracticanteAquaMedica`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nomina }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log("✓ Practicante eliminado en AquaMedica:", result);
+    return result;
+  } catch (error) {
+    console.error("⚠ Error deleting practicante in AquaMedica:", error);
+    // No lanzar error para no interrumpir la eliminación local
   }
 };

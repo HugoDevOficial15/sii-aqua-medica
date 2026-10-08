@@ -1,17 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiArrowLeft, FiCheck, FiX } from "react-icons/fi";
 import { useComedorMenus } from "../../hooks/useComedorMenus";
 import { useComedorOrdenes } from "../../hooks/useComedorOrdenes";
 import { DIAS_SEMANA, COMEDOR_COSTOS } from "../../config/comedorConfig";
+import { getNextWeekRange } from "../../utils/weekCalculator";
 
 export default function Comedor({ onBack, uid }) {
-  const { menus, loading: loadingMenus, error: errorMenus } = useComedorMenus();
+  const { menus, loading: loadingMenus, error: errorMenus, obtenerMenus } = useComedorMenus();
   const { guardarOrden, loading: loadingOrden, error: errorOrden, success } = useComedorOrdenes(uid);
 
   const [tipoComidaSeleccionada, setTipoComidaSeleccionada] = useState("Comida");
   const [diaSeleccionado, setDiaSeleccionado] = useState(0);
   const [menuSeleccionado, setMenuSeleccionado] = useState(null);
   const [enviado, setEnviado] = useState(false);
+
+  // Cargar menú de la siguiente semana al montar
+  useEffect(() => {
+    const siguienteSemana = getNextWeekRange().formatted;
+    obtenerMenus(siguienteSemana);
+  }, [obtenerMenus]);
 
   const handleGuardarOrden = async () => {
     if (!menuSeleccionado || !menus) return;

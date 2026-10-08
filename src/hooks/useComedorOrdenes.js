@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { db } from "../config/firebase";
+import { functions } from "../config/firebase";
 import { COMEDOR_API } from "../config/comedorConfig";
 import { useAuth } from "./useAuth";
 
@@ -81,7 +82,25 @@ export const useComedorOrdenes = (uid) => {
           throw new Error(`Error al guardar orden: ${response.status}`);
         }
 
-        const data = await response.json();
+        // Guardar también en Firestore de sii-aqua-medica
+        try {
+          const saveComedorOrden = httpsCallable(functions, "saveComedorOrden");
+          await saveComedorOrden({
+            IDoperador: user.nomina || user.id,
+            IDdocF: semana,
+            Nombre: user.nombre,
+            Nomina: user.nomina,
+            Area: user.area,
+            Desayuno: JSON.stringify(desayunos),
+            Comida: JSON.stringify(comidas),
+            Cena: JSON.stringify(cenas),
+          });
+          console.log("✓ Orden guardada en Firestore sii-aqua-medica");
+        } catch (firestoreErr) {
+          console.warn("⚠ Error guardando en Firestore local:", firestoreErr);
+          // No lanzar error - la orden se guardó en AquamedicaSoftware
+        }
+
         setSuccess(true);
         return true;
       } catch (err) {

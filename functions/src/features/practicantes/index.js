@@ -222,3 +222,33 @@ exports.updatePracticante = onCall(async (request) => {
     throw new HttpsError("internal", "Error al actualizar practicante");
   }
 });
+
+exports.deletePracticante = onCall(async (request) => {
+  requireAuth(request);
+
+  const { id = "" } = request.data || {};
+
+  try {
+    if (!id) {
+      throw new HttpsError("invalid-argument", "ID de practicante requerido");
+    }
+
+    const docRef = practicantesCollection.doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      throw new HttpsError("not-found", "Practicante no encontrado");
+    }
+
+    await docRef.delete();
+
+    return {
+      success: true,
+      message: "Practicante eliminado correctamente",
+    };
+  } catch (error) {
+    console.error("Error in deletePracticante:", error);
+    if (error.code) throw error;
+    throw new HttpsError("internal", "Error al eliminar practicante");
+  }
+});

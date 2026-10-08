@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, Fragment } from "react";
+import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 
 import { sanitizeText } from "../../utils/sanitize";
+import { readCachedData, writeCachedData, invalidateCacheGroup } from "../../utils/cacheStore";
 
 // Loader
 import Loader from "../../components/Loader";
@@ -15,6 +17,7 @@ import {
   searchPracticantes,
   createPracticante,
   updatePracticante,
+  deletePracticante,
 } from "../../services/practicantesService";
 import { getPuestos } from "../../services/puestos-service";
 
@@ -50,6 +53,11 @@ import {
 
 // Areas
 import { AREAS } from "../../catalogs/areas";
+
+// Cache config
+const PRACTICANTES_CACHE_KEY = "sii-aqua-practicantes-cache";
+const PRACTICANTES_PAGE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+const PRACTICANTES_SEARCH_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutos
 
 export default function Practicantes({ onClose }) {
   const location = useLocation();
@@ -132,6 +140,9 @@ export default function Practicantes({ onClose }) {
 
   // Acciones abiertas
   const [openActionsId, setOpenActionsId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const actionButtonRef = useRef(null);
+  const actionMenuRef = useRef(null);
 
   // Form React Hook Form
   const {
@@ -153,7 +164,10 @@ export default function Practicantes({ onClose }) {
   // Cerrar menú de acciones al hacer clic fuera
   useEffect(() => {
     const closeMenu = (event) => {
-      if (!event.target.closest(".practicantes-actions-cell")) {
+      if (
+        !event.target.closest(".practicantes-actions-cell") &&
+        !actionMenuRef.current?.contains(event.target)
+      ) {
         setOpenActionsId(null);
       }
     };
@@ -162,6 +176,42 @@ export default function Practicantes({ onClose }) {
 
     return () => document.removeEventListener("mousedown", closeMenu);
   }, []);
+
+  // Mantener el menú dentro de la ventana y junto al botón que lo abrió.
+  useLayoutEffect(() => {
+    if (!openActionsId || !actionButtonRef.current || !actionMenuRef.current) {
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!actionButtonRef.current || !actionMenuRef.current) return;
+
+      const buttonRect = actionButtonRef.current.getBoundingClientRect();
+      const menuRect = actionMenuRef.current.getBoundingClientRect();
+      const viewportPadding = 8;
+      const left = Math.max(
+        viewportPadding,
+        Math.min(
+          buttonRect.right - menuRect.width,
+          window.innerWidth - menuRect.width - viewportPadding,
+        ),
+      );
+      const top = Math.max(
+        viewportPadding,
+        Math.min(
+          window.innerHeight - menuRect.height - viewportPadding,
+          buttonRect.top + (buttonRect.height - menuRect.height) / 2,
+        ),
+      );
+
+      setMenuPosition({ top, left });
+    };
+
+    updatePosition();
+
+    window.addEventListener("scroll", updatePosition, true);
+    return () => window.removeEventListener("scroll", updatePosition, true);
+  }, [openActionsId]);
 
   // Detectar cambios de modo oscuro
   useEffect(() => {
@@ -249,7 +299,6 @@ export default function Practicantes({ onClose }) {
         puesto: sanitizeText(data.puesto || "").trim(),
         rol: "practicante",
         nomina: normalizedNomina,
-        email: `${normalizedNomina}@aquamedica.com`,
         activo: true,
         estado: "activo",
       };
@@ -288,6 +337,13 @@ export default function Practicantes({ onClose }) {
           "El practicante fue registrado correctamente.",
         );
       }
+
+      // Invalidar cache
+      invalidateCacheGroup(
+        PRACTICANTES_CACHE_KEY,
+        `${PRACTICANTES_CACHE_KEY}:page-`,
+        `${PRACTICANTES_CACHE_KEY}:search-`
+      );
 
       reset();
 
@@ -348,7 +404,14 @@ export default function Practicantes({ onClose }) {
         },
       });
 
-      await deletePracticante(practicante.id);
+      await deletePracticante(practicante.id, practicante.nomina);
+
+      // Invalidar cache
+      invalidateCacheGroup(
+        PRACTICANTES_CACHE_KEY,
+        `${PRACTICANTES_CACHE_KEY}:page-`,
+        `${PRACTICANTES_CACHE_KEY}:search-`
+      );
 
       Swal.close();
       notifySuccess(
@@ -402,8 +465,36 @@ export default function Practicantes({ onClose }) {
     setLoading(true);
 
     try {
+      // Verificar cache
+      const cacheKey = `${PRACTICANTES_CACHE_KEY}:page-${page}:${cursor ?? "first"}`;
+      const cachedData = readCachedData(cacheKey, PRACTICANTES_PAGE_CACHE_TTL_MS);
+
+      if (cachedData) {
+        console.log(`✓ Practicantes page ${page} desde cache`);
+        const { practicantes: nextPracticantes, hasMore, nextCursor } = cachedData;
+        setPracticantes(nextPracticantes);
+        practicantesLoadedRef.current = true;
+        setHasNextPage(Boolean(hasMore));
+        setCurrentPage(page);
+        setPageCursors((previous) => {
+          const next = [...previous];
+          next[page] = nextCursor || null;
+          return next;
+        });
+        setLoading(false);
+        return;
+      }
+
       const pageData = await getPracticantesPage({ cursor, pageSize: 30 });
       const nextPracticantes = pageData.practicantes || [];
+
+      // Guardar en cache
+      writeCachedData(cacheKey, {
+        practicantes: nextPracticantes,
+        hasMore: pageData.hasMore,
+        nextCursor: pageData.nextCursor
+      }, PRACTICANTES_PAGE_CACHE_TTL_MS);
+
       setPracticantes(nextPracticantes);
       practicantesLoadedRef.current = true;
       setHasNextPage(Boolean(pageData.hasMore));
@@ -475,9 +566,30 @@ export default function Practicantes({ onClose }) {
     }
 
     cachePracticantesSnapshot();
+    setLoading(true);
 
     try {
+      // Verificar cache de búsqueda
+      const cacheKey = `${PRACTICANTES_CACHE_KEY}:search-${term}`;
+      const cachedResult = readCachedData(cacheKey, PRACTICANTES_SEARCH_CACHE_TTL_MS);
+
+      if (cachedResult) {
+        console.log(`✓ Búsqueda "${term}" desde cache`);
+        setPracticantes(cachedResult.practicantes || []);
+        setCurrentPage(1);
+        setPageCursors([null]);
+        setHasNextPage(false);
+        setLoading(false);
+        return;
+      }
+
       const result = await searchPracticantes(term);
+
+      // Guardar en cache
+      writeCachedData(cacheKey, {
+        practicantes: result.practicantes || []
+      }, PRACTICANTES_SEARCH_CACHE_TTL_MS);
+
       setPracticantes(result.practicantes || []);
       setCurrentPage(1);
       setPageCursors([null]);
@@ -485,6 +597,8 @@ export default function Practicantes({ onClose }) {
     } catch (error) {
       console.error("Error buscando practicantes:", error);
       notifyError("Error", "No se pudo buscar practicantes.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -806,6 +920,12 @@ export default function Practicantes({ onClose }) {
                 >
                   Área
                 </th>
+                <th 
+                onClick={() => handleSort("nomina")}
+                style={{ cursor: "pointer" }}
+                >
+                  Nomina
+                </th>
                 <th width="15%">Estado</th>
                 <th width="10%">Acciones</th>
               </tr>
@@ -816,6 +936,7 @@ export default function Practicantes({ onClose }) {
                 <tr key={practicante.id}>
                   <td>{practicante.nombre}</td>
                   <td>{String(practicante.area ?? "").toUpperCase()}</td>
+                  <td>{String(practicante.nomina ?? "")}</td>
                   <td>
                     <span className={practicante.activo ? "custom-badge-success" : "custom-badge-danger"}>
                       {practicante.activo ? "Activo" : "Inactivo"}
@@ -832,9 +953,15 @@ export default function Practicantes({ onClose }) {
                         className="practicante-action-menu-button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          setOpenActionsId(
-                            openActionsId === practicante.id ? null : practicante.id,
-                          );
+                          if (openActionsId === practicante.id) {
+                            setOpenActionsId(null);
+                            return;
+                          }
+
+                          actionButtonRef.current = event.currentTarget;
+                          const rect = event.currentTarget.getBoundingClientRect();
+                          setMenuPosition({ top: rect.top + 400, left: rect.right - 180 });
+                          setOpenActionsId(practicante.id);
                         }}
                         aria-label="Abrir menú de acciones"
                       >
@@ -842,67 +969,72 @@ export default function Practicantes({ onClose }) {
                       </button>
 
                       {openActionsId === practicante.id && (
-                        <div
-                          className="practicante-action-menu"
-                          onMouseDown={(event) => event.stopPropagation()}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            className="practicante-action-menu-editar"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setOpenActionsId(null);
-                              handleEdit(practicante);
-                            }}
+                        createPortal(
+                          <div
+                            ref={actionMenuRef}
+                            className="practicante-action-menu"
+                            style={{ top: menuPosition.top, left: menuPosition.left }}
                             onMouseDown={(event) => event.stopPropagation()}
+                            onClick={(event) => event.stopPropagation()}
                           >
-                            <FaEdit className="me-1" />
-                            Editar
-                          </button>
+                            <button
+                              type="button"
+                              className="practicante-action-menu-editar"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenActionsId(null);
+                                handleEdit(practicante);
+                              }}
+                              onMouseDown={(event) => event.stopPropagation()}
+                            >
+                              <FaEdit className="me-1" />
+                              Editar
+                            </button>
 
-                          <button
-                            type="button"
-                            className="practicante-action-menu-info"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setOpenActionsId(null);
-                              handleOpenInfo(practicante);
-                            }}
-                            onMouseDown={(event) => event.stopPropagation()}
-                          >
-                            <FaAddressCard className="me-1" />
-                            Información
-                          </button>
+                            <button
+                              type="button"
+                              className="practicante-action-menu-info"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenActionsId(null);
+                                handleOpenInfo(practicante);
+                              }}
+                              onMouseDown={(event) => event.stopPropagation()}
+                            >
+                              <FaAddressCard className="me-1" />
+                              Información
+                            </button>
 
-                          <button
-                            type="button"
-                            className="practicante-action-menu-comida"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setOpenActionsId(null);
-                              handleSolicitudComida(practicante);
-                            }}
-                            onMouseDown={(event) => event.stopPropagation()}
-                          >
-                            <FaUtensils className="me-1" />
-                            Solicitar comida
-                          </button>
+                            <button
+                              type="button"
+                              className="practicante-action-menu-comida"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenActionsId(null);
+                                handleSolicitudComida(practicante);
+                              }}
+                              onMouseDown={(event) => event.stopPropagation()}
+                            >
+                              <FaUtensils className="me-1" />
+                              Solicitar comida
+                            </button>
 
-                          <button
-                            type="button"
-                            className={`practicante-action-menu-${practicante.activo ? "baja" : "activar"}`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setOpenActionsId(null);
-                              handleBaja(practicante);
-                            }}
-                            onMouseDown={(event) => event.stopPropagation()}
-                          >
-                            <FaUserSlash className="me-1" />
-                            {practicante.activo ? "Baja" : "Activar"}
-                          </button>
-                        </div>
+                            <button
+                              type="button"
+                              className={`practicante-action-menu-${practicante.activo ? "baja" : "activar"}`}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenActionsId(null);
+                                handleBaja(practicante);
+                              }}
+                              onMouseDown={(event) => event.stopPropagation()}
+                            >
+                              <FaUserSlash className="me-1" />
+                              {practicante.activo ? "Baja" : "Activar"}
+                            </button>
+                          </div>,
+                          document.body,
+                        )
                       )}
                     </div>
                   </td>
@@ -1453,7 +1585,7 @@ export default function Practicantes({ onClose }) {
           justify-content: center;
           background: var(--operator-form);
           border-radius: 6px;
-          padding: 4px 30px;
+          padding: 100px 90px;
           display: flex;
           align-items: center;
           gap: 8px;
@@ -1645,19 +1777,22 @@ export default function Practicantes({ onClose }) {
 
         .practicantes-actions-cell {
           text-align: center;
-          overflow: visible;
+          overflow: visible !important;
           position: relative;
           z-index: 3;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 5px !important;
         }
 
         .practicantes-actions-wrapper {
           position: relative;
-          display: inline-flex;
+          display: flex;
           align-items: center;
           justify-content: center;
-          max-width: 36px;
-          min-width: 36px;
-          z-index: 4;
+          width: 36px;
+          height: 36px;
           overflow: visible;
         }
 
@@ -1668,11 +1803,12 @@ export default function Practicantes({ onClose }) {
           border-radius: 999px;
           background: var(--operator-card);
           color: var(--operator-text);
-          display: inline-flex;
+          display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          padding: 10px;
+          padding: 0;
+          flex-shrink: 0;
         }
 
         .practicante-action-menu-button:hover {
@@ -1681,18 +1817,20 @@ export default function Practicantes({ onClose }) {
         }
 
         .practicante-action-menu {
-          position: absolute;
+          position: fixed;
           min-width: 180px;
-          overflow: visible;
+          max-height: calc(100vh - 16px);
+          overflow-y: auto;
           background: var(--operator-background);
-          border: 1px solid var(--operator-background);
+          border: 1px solid var(--operator-border);
           border-radius: 10px;
           box-shadow: 0 10px 24px var(--operator-shadow);
           padding: 8px 10px;
           display: flex;
           flex-direction: column;
           gap: 4px;
-          z-index: 99999;
+          white-space: nowrap;
+          z-index: 9999;
         }
 
         .practicante-action-menu-editar,
@@ -1706,6 +1844,7 @@ export default function Practicantes({ onClose }) {
           display: flex;
           text-align: center;
           align-items: center;
+          justify-content: center;
           font-size: 12px;
           font-weight: 800;
           border-radius: 8px;
@@ -1782,20 +1921,20 @@ export default function Practicantes({ onClose }) {
       {/* Modal Solicitud Comida Practicante */}
       {showMealRequestModal && practicanteSolicitud && menus && (
         <div style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: "20px"}}>
-          <div style={{backgroundColor: isDarkMode ? "#1a1a2e" : "#f5f5f5", borderRadius: "8px", width: "100%", maxWidth: "1200px", maxHeight: "90vh", overflowY: "auto", padding: "30px", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, color: isDarkMode ? "#fff" : "#000"}}>
+          <div style={{backgroundColor: "var(--operator-card)", borderRadius: "8px", width: "100%", maxWidth: "1200px", maxHeight: "90vh", overflowY: "auto", padding: "30px", border: `1px solid var(--operator-border)`, color: "var(--operator-text)"}}>
             {/* Header */}
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px"}}>
-              <h2 style={{margin: 0, color: isDarkMode ? "#fff" : "#000"}}>Solicitud de Comida - {practicanteSolicitud.nombre}</h2>
-              <button onClick={() => {setShowMealRequestModal(false); setDesayunosAcumulados([]); setComidasAcumuladas([]);}} style={{background: "none", border: "none", fontSize: "28px", color: isDarkMode ? "#fff" : "#000", cursor: "pointer"}}>×</button>
+              <h2 style={{margin: 0, color: "var(--operator-text)"}}>Solicitud de Comida - {practicanteSolicitud.nombre}</h2>
+              <button onClick={() => {setShowMealRequestModal(false); setDesayunosAcumulados([]); setComidasAcumuladas([]);}} style={{background: "none", border: "none", fontSize: "28px", color: "var(--operator-text)", cursor: "pointer"}}>×</button>
             </div>
 
             {/* 3 Cuadros */}
             <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px"}}>
               {/* CUADRO 1: DESAYUNO */}
-              <div style={{backgroundColor: isDarkMode ? "#2d2d44" : "#fff", padding: "20px", borderRadius: "8px", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, boxShadow: isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.1)"}}>
-                <h3 style={{color: isDarkMode ? "#fff" : "#000", marginTop: 0}}>🥪 Desayuno</h3>
+              <div style={{backgroundColor: "var(--operator-form)", padding: "20px", borderRadius: "8px", border: `1px solid var(--operator-border)`, boxShadow: "0 2px 8px var(--operator-shadow)"}}>
+                <h3 style={{color: "var(--operator-text)", marginTop: 0}}>🥪 Desayuno</h3>
 
-                <select value={desayunoData.dia} onChange={(e) => setDesayunoData({...desayunoData, dia: e.target.value})} style={{width: "100%", padding: "8px", marginBottom: "10px", background: isDarkMode ? "#3a3a52" : "#e8e8e8", color: isDarkMode ? "#fff" : "#000", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`, borderRadius: "4px"}}>
+                <select value={desayunoData.dia} onChange={(e) => setDesayunoData({...desayunoData, dia: e.target.value})} style={{width: "100%", padding: "8px", marginBottom: "10px", background: "var(--operator-form)", color: "var(--operator-text)", border: `1px solid var(--operator-border)`, borderRadius: "4px"}}>
                   {DIAS_SEMANA.filter(d => d !== "Sábado" && d !== "Domingo").map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
 
@@ -1805,9 +1944,9 @@ export default function Practicantes({ onClose }) {
                   const menu = menus?.desayunos?.[fbIdx];
                   return (
                     <div>
-                      <div style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", marginBottom: "8px"}}>Menús disponibles:</div>
+                      <div style={{fontSize: "12px", color: "var(--operator-text-soft)", marginBottom: "8px"}}>Menús disponibles:</div>
                       {[{v: menu?.G1 || "No disponible", l: "G1"}, {v: "Asada", l: "G2"}].map(p => (
-                        <label key={p.l} style={{display: "flex", gap: "8px", marginBottom: "6px", cursor: "pointer", color: isDarkMode ? "#ccc" : "#333", fontSize: "13px"}}>
+                        <label key={p.l} style={{display: "flex", gap: "8px", marginBottom: "6px", cursor: "pointer", color: "var(--operator-text)", fontSize: "13px"}}>
                           <input type="radio" name="desayuno" value={p.v} checked={desayunoData.plato === p.v} onChange={(e) => setDesayunoData({...desayunoData, plato: e.target.value})} />
                           {p.l}: {p.v}
                         </label>
@@ -1817,8 +1956,8 @@ export default function Practicantes({ onClose }) {
                 })()}
 
                 <div style={{marginTop: "10px"}}>
-                  <label style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", display: "block", marginBottom: "4px"}}>Orden:</label>
-                  <select value={desayunoData.cantidad} onChange={(e) => setDesayunoData({...desayunoData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: isDarkMode ? "#3a3a52" : "#e8e8e8", color: isDarkMode ? "#fff" : "#000", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`, borderRadius: "4px", fontSize: "12px"}}>
+                  <label style={{fontSize: "12px", color: "var(--operator-text-soft)", display: "block", marginBottom: "4px"}}>Orden:</label>
+                  <select value={desayunoData.cantidad} onChange={(e) => setDesayunoData({...desayunoData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: "var(--operator-form)", color: "var(--operator-text)", border: `1px solid var(--operator-border)`, borderRadius: "4px", fontSize: "12px"}}>
                     <option value="1">Una orden</option>
                     <option value="2">Dos órdenes</option>
                     <option value="3">Tres órdenes</option>
@@ -1826,9 +1965,9 @@ export default function Practicantes({ onClose }) {
                 </div>
 
                 <div style={{marginTop: "10px"}}>
-                  <div style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", marginBottom: "4px"}}>Extras:</div>
+                  <div style={{fontSize: "12px", color: "var(--operator-text-soft)", marginBottom: "4px"}}>Extras:</div>
                   {Object.entries(EXTRAS_PRECIOS).map(([e, p]) => (
-                    <label key={e} style={{display: "flex", gap: "6px", cursor: "pointer", color: isDarkMode ? "#ccc" : "#333", fontSize: "12px", marginBottom: "4px"}}>
+                    <label key={e} style={{display: "flex", gap: "6px", cursor: "pointer", color: "var(--operator-text)", fontSize: "12px", marginBottom: "4px"}}>
                       <input type="checkbox" checked={desayunoData.extras.includes(e)} onChange={() => {
                         if (desayunoData.extras.includes(e)) {
                           setDesayunoData({...desayunoData, extras: desayunoData.extras.filter(x => x !== e)});
@@ -1845,14 +1984,14 @@ export default function Practicantes({ onClose }) {
 
                 {/* Lista de desayunos acumulados */}
                 {desayunosAcumulados.length > 0 && (
-                  <div style={{marginTop: "15px", borderTop: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, paddingTop: "15px"}}>
+                  <div style={{marginTop: "15px", borderTop: `1px solid var(--operator-border)`, paddingTop: "15px"}}>
                     {desayunosAcumulados.map((orden, idx) => (
-                      <div key={orden.id} style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "6px", backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "4px", fontSize: "12px", color: isDarkMode ? "#ccc" : "#666"}}>
+                      <div key={orden.id} style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "6px", backgroundColor: "var(--operator-card)", borderRadius: "4px", fontSize: "12px", color: "var(--operator-text-soft)"}}>
                         <div><strong>{orden.dia}:</strong> {orden.plato} x{orden.cantidad}</div>
                         <button onClick={() => setDesayunosAcumulados(desayunosAcumulados.filter((_, i) => i !== idx))} style={{background: "none", border: "none", color: "#f44", cursor: "pointer", fontSize: "16px"}}>×</button>
                       </div>
                     ))}
-                    <div style={{marginTop: "8px", paddingTop: "8px", borderTop: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
+                    <div style={{marginTop: "8px", paddingTop: "8px", borderTop: `1px solid var(--operator-border)`, textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
                       Total: ${desayunosAcumulados.reduce((s, o) => s + o.costo, 0).toFixed(2)}
                     </div>
                   </div>
@@ -1860,10 +1999,10 @@ export default function Practicantes({ onClose }) {
               </div>
 
               {/* CUADRO 2: COMIDA */}
-              <div style={{backgroundColor: isDarkMode ? "#2d2d44" : "#fff", padding: "20px", borderRadius: "8px", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, boxShadow: isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.1)"}}>
-                <h3 style={{color: isDarkMode ? "#fff" : "#000", marginTop: 0}}>🍽️ Comida</h3>
+              <div style={{backgroundColor: "var(--operator-form)", padding: "20px", borderRadius: "8px", border: `1px solid var(--operator-border)`, boxShadow: "0 2px 8px var(--operator-shadow)"}}>
+                <h3 style={{color: "var(--operator-text)", marginTop: 0}}>🍽️ Comida</h3>
 
-                <select value={comidaData.dia} onChange={(e) => setComidaData({...comidaData, dia: e.target.value})} style={{width: "100%", padding: "8px", marginBottom: "10px", background: isDarkMode ? "#3a3a52" : "#e8e8e8", color: isDarkMode ? "#fff" : "#000", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`, borderRadius: "4px"}}>
+                <select value={comidaData.dia} onChange={(e) => setComidaData({...comidaData, dia: e.target.value})} style={{width: "100%", padding: "8px", marginBottom: "10px", background: "var(--operator-form)", color: "var(--operator-text)", border: `1px solid var(--operator-border)`, borderRadius: "4px"}}>
                   {DIAS_SEMANA.filter(d => d !== "Sábado" && d !== "Domingo").map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
 
@@ -1873,9 +2012,9 @@ export default function Practicantes({ onClose }) {
                   const menu = menus?.comidas?.[fbIdx];
                   return (
                     <div>
-                      <div style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", marginBottom: "8px"}}>Menús disponibles:</div>
+                      <div style={{fontSize: "12px", color: "var(--operator-text-soft)", marginBottom: "8px"}}>Menús disponibles:</div>
                       {[{v: menu?.G1 || "No disponible", l: "G1"}, {v: "Asada", l: "G2"}].map(p => (
-                        <label key={p.l} style={{display: "flex", gap: "8px", marginBottom: "6px", cursor: "pointer", color: isDarkMode ? "#ccc" : "#333", fontSize: "13px"}}>
+                        <label key={p.l} style={{display: "flex", gap: "8px", marginBottom: "6px", cursor: "pointer", color: "var(--operator-text)", fontSize: "13px"}}>
                           <input type="radio" name="comida" value={p.v} checked={comidaData.plato === p.v} onChange={(e) => setComidaData({...comidaData, plato: e.target.value})} />
                           {p.l}: {p.v}
                         </label>
@@ -1885,8 +2024,8 @@ export default function Practicantes({ onClose }) {
                 })()}
 
                 <div style={{marginTop: "10px"}}>
-                  <label style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", display: "block", marginBottom: "4px"}}>Orden:</label>
-                  <select value={comidaData.cantidad} onChange={(e) => setComidaData({...comidaData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: isDarkMode ? "#3a3a52" : "#e8e8e8", color: isDarkMode ? "#fff" : "#000", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)"}`, borderRadius: "4px", fontSize: "12px"}}>
+                  <label style={{fontSize: "12px", color: "var(--operator-text-soft)", display: "block", marginBottom: "4px"}}>Orden:</label>
+                  <select value={comidaData.cantidad} onChange={(e) => setComidaData({...comidaData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: "var(--operator-form)", color: "var(--operator-text)", border: `1px solid var(--operator-border)`, borderRadius: "4px", fontSize: "12px"}}>
                     <option value="1">Una orden</option>
                     <option value="2">Dos órdenes</option>
                     <option value="3">Tres órdenes</option>
@@ -1894,9 +2033,9 @@ export default function Practicantes({ onClose }) {
                 </div>
 
                 <div style={{marginTop: "10px"}}>
-                  <div style={{fontSize: "12px", color: isDarkMode ? "#999" : "#666", marginBottom: "4px"}}>Extras:</div>
+                  <div style={{fontSize: "12px", color: "var(--operator-text-soft)", marginBottom: "4px"}}>Extras:</div>
                   {Object.entries(EXTRAS_PRECIOS).map(([e, p]) => (
-                    <label key={e} style={{display: "flex", gap: "6px", cursor: "pointer", color: isDarkMode ? "#ccc" : "#333", fontSize: "12px", marginBottom: "4px"}}>
+                    <label key={e} style={{display: "flex", gap: "6px", cursor: "pointer", color: "var(--operator-text)", fontSize: "12px", marginBottom: "4px"}}>
                       <input type="checkbox" checked={comidaData.extras.includes(e)} onChange={() => {
                         if (comidaData.extras.includes(e)) {
                           setComidaData({...comidaData, extras: comidaData.extras.filter(x => x !== e)});
@@ -1913,14 +2052,14 @@ export default function Practicantes({ onClose }) {
 
                 {/* Lista de comidas acumuladas */}
                 {comidasAcumuladas.length > 0 && (
-                  <div style={{marginTop: "15px", borderTop: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, paddingTop: "15px"}}>
+                  <div style={{marginTop: "15px", borderTop: `1px solid var(--operator-border)`, paddingTop: "15px"}}>
                     {comidasAcumuladas.map((orden, idx) => (
-                      <div key={orden.id} style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "6px", backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", borderRadius: "4px", fontSize: "12px", color: isDarkMode ? "#ccc" : "#666"}}>
+                      <div key={orden.id} style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "6px", backgroundColor: "var(--operator-card)", borderRadius: "4px", fontSize: "12px", color: "var(--operator-text-soft)"}}>
                         <div><strong>{orden.dia}:</strong> {orden.plato} x{orden.cantidad}</div>
                         <button onClick={() => setComidasAcumuladas(comidasAcumuladas.filter((_, i) => i !== idx))} style={{background: "none", border: "none", color: "#f44", cursor: "pointer", fontSize: "16px"}}>×</button>
                       </div>
                     ))}
-                    <div style={{marginTop: "8px", paddingTop: "8px", borderTop: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
+                    <div style={{marginTop: "8px", paddingTop: "8px", borderTop: `1px solid var(--operator-border)`, textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
                       Total: ${comidasAcumuladas.reduce((s, o) => s + o.costo, 0).toFixed(2)}
                     </div>
                   </div>
@@ -1928,24 +2067,24 @@ export default function Practicantes({ onClose }) {
               </div>
 
               {/* CUADRO 3: TOTAL DE LA SEMANA */}
-              <div style={{backgroundColor: isDarkMode ? "#2d2d44" : "#fff", padding: "20px", borderRadius: "8px", border: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, boxShadow: isDarkMode ? "none" : "0 2px 8px rgba(0,0,0,0.1)", display: "flex", flexDirection: "column", justifyContent: "space-between"}}>
+              <div style={{backgroundColor: "var(--operator-form)", padding: "20px", borderRadius: "8px", border: `1px solid var(--operator-border)`, boxShadow: "0 2px 8px var(--operator-shadow)", display: "flex", flexDirection: "column", justifyContent: "space-between"}}>
                 <div>
-                  <h3 style={{color: isDarkMode ? "#fff" : "#000", marginTop: 0, marginBottom: "20px", textAlign: "center"}}>📊 Total Semana</h3>
+                  <h3 style={{color: "var(--operator-text)", marginTop: 0, marginBottom: "20px", textAlign: "center"}}>📊 Total Semana</h3>
 
                   <div style={{textAlign: "center", marginBottom: "15px"}}>
-                    <div style={{fontSize: "14px", color: isDarkMode ? "#999" : "#666", marginBottom: "8px"}}>Desayunos</div>
+                    <div style={{fontSize: "14px", color: "var(--operator-text-soft)", marginBottom: "8px"}}>Desayunos</div>
                     <div style={{fontSize: "28px", color: "#4CAF50", fontWeight: "bold"}}>{desayunosAcumulados.length}</div>
-                    <div style={{fontSize: "12px", color: isDarkMode ? "#666" : "#999"}}>Total: ${desayunosAcumulados.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
+                    <div style={{fontSize: "12px", color: "var(--operator-text-soft)"}}>Total: ${desayunosAcumulados.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
                   </div>
 
                   <div style={{textAlign: "center", marginBottom: "15px"}}>
-                    <div style={{fontSize: "14px", color: isDarkMode ? "#999" : "#666", marginBottom: "8px"}}>Comidas</div>
+                    <div style={{fontSize: "14px", color: "var(--operator-text-soft)", marginBottom: "8px"}}>Comidas</div>
                     <div style={{fontSize: "28px", color: "#2196F3", fontWeight: "bold"}}>{comidasAcumuladas.length}</div>
-                    <div style={{fontSize: "12px", color: isDarkMode ? "#666" : "#999"}}>Total: ${comidasAcumuladas.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
+                    <div style={{fontSize: "12px", color: "var(--operator-text-soft)"}}>Total: ${comidasAcumuladas.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
                   </div>
 
-                  <div style={{borderTop: `1px solid ${isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`, paddingTop: "15px", textAlign: "center"}}>
-                    <div style={{fontSize: "14px", color: isDarkMode ? "#999" : "#666", marginBottom: "8px"}}>Total General</div>
+                  <div style={{borderTop: `1px solid var(--operator-border)`, paddingTop: "15px", textAlign: "center"}}>
+                    <div style={{fontSize: "14px", color: "var(--operator-text-soft)", marginBottom: "8px"}}>Total General</div>
                     <div style={{fontSize: "32px", color: "#FFD700", fontWeight: "bold"}}>
                       ${(desayunosAcumulados.reduce((s, o) => s + o.costo, 0) + comidasAcumuladas.reduce((s, o) => s + o.costo, 0)).toFixed(2)}
                     </div>

@@ -1,12 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiArrowLeft, FiMapPin, FiEye, FiClock, FiChevronDown } from "react-icons/fi";
 import { getCurrentWeekRange, getNextWeekRange } from "../../utils/weekCalculator";
 import { COMEDOR_HORARIOS } from "../../config/comedorHorarios";
+import { readCachedData, writeCachedData } from "../../utils/cacheStore";
+
+// Cache config
+const COMEDOR_HORARIOS_CACHE_KEY = "sii-aqua-comedor-horarios-cache";
+const COMEDOR_HORARIOS_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
 
 export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavigateSuggestions }) {
     const currentWeek = getCurrentWeekRange();
     const nextWeek = getNextWeekRange();
     const [horarioExpanded, setHorarioExpanded] = useState(false);
+
+    // Cache horarios al montar
+    useEffect(() => {
+        const cacheKey = `${COMEDOR_HORARIOS_CACHE_KEY}:horarios`;
+
+        // Verificar cache
+        const cachedHorarios = readCachedData(cacheKey, COMEDOR_HORARIOS_TTL_MS);
+        if (cachedHorarios) {
+            console.log("✓ Horarios desde cache");
+        } else {
+            // Guardar en cache
+            writeCachedData(cacheKey, COMEDOR_HORARIOS, COMEDOR_HORARIOS_TTL_MS);
+            console.log("✓ Horarios cacheados");
+        }
+    }, []);
 
     return (
         <div style={styles.container}>

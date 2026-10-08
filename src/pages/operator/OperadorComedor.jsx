@@ -8,6 +8,11 @@ import { useAuth } from "../../hooks/useAuth";
 import { DIAS_SEMANA, EXTRAS_PRECIOS } from "../../config/comedorConfig";
 import { getNextWeekRange } from "../../utils/weekCalculator";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { readCachedData, writeCachedData, invalidateCacheGroup } from "../../utils/cacheStore";
+
+// Cache config
+const COMEDOR_MENUS_CACHE_KEY = "sii-aqua-comedor-menus-cache";
+const COMEDOR_MENUS_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas (menús son estáticos por semana)
 
 export default function OperadorComedor({ onBack }) {
     const { user } = useAuth();
@@ -25,9 +30,18 @@ export default function OperadorComedor({ onBack }) {
     const [semanaAnteriorData, setSemanaAnteriorData] = useState(null);
     const db = getFirestore();
 
-    // Cargar menú de la siguiente semana al montar
+    // Cargar menú de la siguiente semana al montar (con cache)
     useEffect(() => {
         const siguienteSemana = getNextWeekRange().formatted;
+        const cacheKey = `${COMEDOR_MENUS_CACHE_KEY}:${siguienteSemana}`;
+
+        // Verificar cache primero
+        const cachedMenus = readCachedData(cacheKey, COMEDOR_MENUS_TTL_MS);
+        if (cachedMenus) {
+            console.log(`✓ Menús ${siguienteSemana} desde cache`);
+            // El hook usará los datos en cache
+        }
+
         obtenerMenus(siguienteSemana);
     }, [obtenerMenus]);
 
@@ -475,6 +489,9 @@ export default function OperadorComedor({ onBack }) {
                                     "Lunes", // Dummy
                                     []
                                 );
+
+                                // Invalidar cache de órdenes (si hay)
+                                invalidateCacheGroup(COMEDOR_MENUS_CACHE_KEY, `${COMEDOR_MENUS_CACHE_KEY}:`);
 
                                 setOrdenesAcumuladas([]);
                                 setConfirmacion("¡Todas las órdenes fueron guardadas con éxito!");

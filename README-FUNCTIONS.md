@@ -1,6 +1,33 @@
 ==================================
 
             ============
+            = 08/10/26 =
+            ============
+
+
+**Nuevas aplicación:**
+* getOperatorCertificates 
+* getCertificatesByYear
+* getOperatorIncidences
+* getIncidenceDetails
+* getIncidencesByStatus
+* createIdea
+* cargarIdeas
+* getIdeasByUser
+* cambiarEstadoIdea
+* deleteIdea
+
+**Comedor (NUEVO):**
+* saveComedorOrden
+* obtenerComedorOrden 
+* deletePracticante 
+**Practicantes (ARREGLADAS):**
+* createPracticante 
+* updatePracticante 
+
+==================================
+
+            ============
             = 07/10/26 =
             ============
 
