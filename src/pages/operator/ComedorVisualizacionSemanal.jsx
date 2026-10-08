@@ -20,7 +20,7 @@ export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavi
         // Verificar cache
         const cachedHorarios = readCachedData(cacheKey, COMEDOR_HORARIOS_TTL_MS);
         if (cachedHorarios) {
-            console.log("✓ Horarios desde cache");
+        
         } else {
             // Guardar en cache
             writeCachedData(cacheKey, COMEDOR_HORARIOS, COMEDOR_HORARIOS_TTL_MS);

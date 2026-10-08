@@ -19,12 +19,26 @@ export const usePracticanteMealRequest = () => {
         const url = `${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.GUARDAR_ORDEN}`;
 
         let desayunos, comidas, cenas;
+        let registroCobros = {};
 
         if (typeof menuSeleccionado === 'object' && menuSeleccionado.desayunos) {
           desayunos = menuSeleccionado.desayunos;
           comidas = menuSeleccionado.comidas;
           cenas = menuSeleccionado.cenas;
-          console.log("📦 Guardando solicitud de practicante con arrays compilados:", { desayunos, comidas, cenas });
+
+          // Calcular cobro: SOLO desayuno O comida (no ambos)
+          const costoDesayuno = desayunos.filter(d => d !== "NA").length * 25;
+          const costoComida = comidas.filter(c => c !== "NA").length * 25;
+
+          registroCobros = {
+            tipoAlimento: costoDesayuno > 0 ? "Desayuno" : "Comida",
+            cantidad: costoDesayuno > 0 ? desayunos.filter(d => d !== "NA").length : comidas.filter(c => c !== "NA").length,
+            costoUnitario: 25,
+            costoTotal: costoDesayuno > 0 ? costoDesayuno : costoComida,
+            fechaCobro: new Date().toISOString(),
+          };
+
+          console.log("📦 Guardando solicitud de practicante con registro de cobros:", { desayunos, comidas, cenas, registroCobros });
         } else {
           desayunos = Array(7).fill("NA");
           comidas = Array(7).fill("NA");
@@ -44,6 +58,7 @@ export const usePracticanteMealRequest = () => {
           Desayuno: JSON.stringify(desayunos),
           Comida: JSON.stringify(comidas),
           Cena: JSON.stringify(cenas),
+          RegistroCobros: JSON.stringify(registroCobros),
         };
 
         console.log("📤 Enviando payload a AquamedicaSoftware:", payload);

@@ -9,6 +9,7 @@ export const COMEDOR_API = {
     GUARDAR_ORDEN: "/InDataMeal",
     CANCELAR_ORDEN: "/CancelarComida",
     HISTORIAL: "/getComedorHistory",
+    COSTOS: "/obtenerCostosComedor",
   },
 };
 

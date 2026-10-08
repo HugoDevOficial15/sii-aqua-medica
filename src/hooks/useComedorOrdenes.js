@@ -61,16 +61,17 @@ export const useComedorOrdenes = (uid) => {
 
         // Estructura esperada por InDataMeal en aquamedica2023
         const payload = {
-          IDoperador: user.nomina || user.id,
+          IDoperador: String(user.nomina || user.id),
           IDdocF: semana, // Formato: "01.06.2026-07.06.2026"
           Nombre: user.nombre,
-          Nomina: user.nomina,
+          Nomina: String(user.nomina),
           Area: user.area,
           Desayuno: JSON.stringify(desayunos),
           Comida: JSON.stringify(comidas),
           Cena: JSON.stringify(cenas),
         };
 
+        console.log("📤 Payload enviado a InDataMeal:", JSON.stringify(payload, null, 2));
 
         const response = await fetch(url, {
           method: "POST",
@@ -78,8 +79,12 @@ export const useComedorOrdenes = (uid) => {
           body: JSON.stringify(payload),
         });
 
+        console.log("📥 Respuesta de InDataMeal - Status:", response.status);
+        const responseData = await response.text();
+        console.log("📥 Respuesta de InDataMeal - Body:", responseData);
+
         if (!response.ok) {
-          throw new Error(`Error al guardar orden: ${response.status}`);
+          throw new Error(`Error al guardar orden: ${response.status} - ${responseData}`);
         }
 
         // Guardar también en Firestore de sii-aqua-medica

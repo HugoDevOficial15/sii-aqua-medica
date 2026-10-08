@@ -28,6 +28,8 @@ export default function OperadorComedor({ onBack }) {
 
     // Estado para datos históricos de la semana pasada
     const [semanaAnteriorData, setSemanaAnteriorData] = useState(null);
+    const [tienePedidosExistentes, setTienePedidosExistentes] = useState(false);
+    const [pedidosExistentes, setPedidosExistentes] = useState(null);
     const db = getFirestore();
 
     // Cargar menú de la siguiente semana al montar (con cache)
@@ -43,7 +45,41 @@ export default function OperadorComedor({ onBack }) {
         }
 
         obtenerMenus(siguienteSemana);
+
+        // Verificar si ya hay pedidos para esta semana
+        verificarPedidosExistentes(siguienteSemana);
     }, [obtenerMenus]);
+
+    // Verificar si hay pedidos existentes
+    const verificarPedidosExistentes = async (idSemanaNom) => {
+        console.log("🔍 verificarPedidosExistentes iniciado - idSemanaNom:", idSemanaNom, "user:", user?.nomina);
+        try {
+            if (!user?.nomina) {
+                console.error("❌ Usuario sin nómina");
+                return;
+            }
+            const nominaUser = String(user.nomina).trim();
+            console.log("📋 Buscando pedidos en:", { nomina: nominaUser, semana: idSemanaNom });
+
+            const docRef = doc(db, "AquaMedica-Morelos", "Usuarios", "Comedor", nominaUser, "Comida", idSemanaNom);
+            const docSnap = await getDoc(docRef);
+
+            console.log("📊 Documento encontrado:", docSnap.exists());
+
+            if (docSnap.exists()) {
+                const pedidosData = docSnap.data();
+                console.log("✅ Pedidos encontrados:", pedidosData);
+                setTienePedidosExistentes(true);
+                setPedidosExistentes(pedidosData);
+            } else {
+                console.log("❌ No hay pedidos previos");
+                setTienePedidosExistentes(false);
+                setPedidosExistentes(null);
+            }
+        } catch (err) {
+            console.error("❌ Error al verificar pedidos:", err);
+        }
+    };
 
     const mealExtras = Object.keys(EXTRAS_PRECIOS);
 
@@ -140,6 +176,25 @@ export default function OperadorComedor({ onBack }) {
                 </div>
             )}
 
+            {/* Mostrar pedidos existentes si los hay */}
+            {tienePedidosExistentes && pedidosExistentes ? (
+                <div style={{ ...styles.carritoSection, borderColor: "#FF9800" }}>
+                    <h3 style={{ ...styles.carritoTitle, color: "#FF9800" }}>✓ Pedido Registrado para Esta Semana</h3>
+                    <p style={{ fontSize: "13px", margin: "4px 0" }}>
+                        <strong>Desayunos:</strong> {pedidosExistentes?.Desayuno ? JSON.parse(pedidosExistentes.Desayuno).filter(d => d !== "NA").length : 0} días
+                    </p>
+                    <p style={{ fontSize: "13px", margin: "4px 0" }}>
+                        <strong>Comidas:</strong> {pedidosExistentes?.Comida ? JSON.parse(pedidosExistentes.Comida).filter(c => c !== "NA").length : 0} días
+                    </p>
+                    <p style={{ fontSize: "13px", margin: "4px 0" }}>
+                        <strong>Cenas:</strong> {pedidosExistentes?.Cena ? JSON.parse(pedidosExistentes.Cena).filter(c => c !== "NA").length : 0} días
+                    </p>
+                    <p style={{ fontSize: "12px", color: "var(--operator-text-soft)", marginTop: "12px", textAlign: "center" }}>
+                        Para realizar cambios, comuníquese con administración.
+                    </p>
+                </div>
+            ) : (
+                <>
             {/* Meal Type Cards */}
             <div style={styles.mealCardsContainer}>
                 {mealTypes.map((meal) => (
@@ -502,6 +557,8 @@ export default function OperadorComedor({ onBack }) {
                         </button>
                     </div>
                 </div>
+            )}
+                </>
             )}
         </div>
     );

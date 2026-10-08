@@ -1,6 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 import { sanitizeText } from "../../utils/sanitize";
 import { readCachedData, writeCachedData, invalidateCacheGroup } from "../../utils/cacheStore";
@@ -62,6 +63,7 @@ const PRACTICANTES_SEARCH_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutos
 export default function Practicantes({ onClose }) {
   const location = useLocation();
   const { user } = useAuth();
+  const db = getFirestore();
 
   // Loading
   const [loading, setLoading] = useState(true);
@@ -87,6 +89,8 @@ export default function Practicantes({ onClose }) {
 
   // Solicitud Comida - VENTANA COMPLETA CON 3 CUADROS
   const [showMealRequestModal, setShowMealRequestModal] = useState(false);
+  const [tienePedidosExistentes, setTienePedidosExistentes] = useState(false);
+  const [pedidosExistentes, setPedidosExistentes] = useState(null);
 
   // Estado para Desayuno y Comida
   const [desayunoData, setDesayunoData] = useState({
@@ -648,13 +652,50 @@ export default function Practicantes({ onClose }) {
     XLSX.writeFile(workbook, "practicantes_aqua_medica.xlsx");
   };
 
-  const handleAbrirSolicitudComida = (practicante) => {
+  const handleAbrirSolicitudComida = async (practicante) => {
+    console.log("🎯 handleAbrirSolicitudComida - practicante:", practicante.nombre, "menus:", menus);
     setPracticanteSolicitud(practicante);
-    setDesayunoData({ dia: "Lunes", plato: "", cantidad: 1, extras: [] });
-    setComidaData({ dia: "Lunes", plato: "", cantidad: 1, extras: [] });
-    setDesayunosAcumulados([]);
-    setComidasAcumuladas([]);
     setShowMealRequestModal(true);
+
+    // Verificar si hay pedidos previos
+    try {
+      const nominaUser = String(practicante.nomina).trim();
+      const semanaTrim = menus?.semana ? String(menus.semana).trim() : null;
+
+      console.log("🔍 Buscando pedidos:", { nomina: nominaUser, semana: semanaTrim });
+
+      if (!semanaTrim) {
+        console.warn("⚠️ No hay semana disponible en menus");
+        setTienePedidosExistentes(false);
+        setPedidosExistentes(null);
+        return;
+      }
+
+      // Cargar desde: AquaMedica-Morelos/Usuarios/Comedor/{nomina}/Comida/{semana}
+      const docRef = doc(db, "AquaMedica-Morelos", "Usuarios", "Comedor", nominaUser, "Comida", semanaTrim);
+      const docSnap = await getDoc(docRef);
+
+      console.log("📊 Documento encontrado:", docSnap.exists());
+
+      if (docSnap.exists()) {
+        const pedidosData = docSnap.data();
+        console.log("✅ Pedidos encontrados:", pedidosData);
+        setTienePedidosExistentes(true);
+        setPedidosExistentes(pedidosData);
+      } else {
+        console.log("❌ No hay pedidos previos");
+        setTienePedidosExistentes(false);
+        setPedidosExistentes(null);
+        setDesayunoData({ dia: "Lunes", plato: "", cantidad: 1, extras: [] });
+        setComidaData({ dia: "Lunes", plato: "", cantidad: 1, extras: [] });
+        setDesayunosAcumulados([]);
+        setComidasAcumuladas([]);
+      }
+    } catch (error) {
+      console.error("❌ Error verificando pedidos:", error);
+      setTienePedidosExistentes(false);
+      setPedidosExistentes(null);
+    }
   };
 
   // Agregar desayuno
@@ -1582,16 +1623,17 @@ export default function Practicantes({ onClose }) {
         }
 
         .modal-body-info p {
-          justify-content: center;
+          justify-content: flex-start;
           background: var(--operator-form);
           border-radius: 6px;
-          padding: 100px 90px;
+          padding: 8px 12px;
           display: flex;
           align-items: center;
           gap: 8px;
           font-size: 14px;
           color: var(--operator-text);
           border: 1px solid var(--operator-border);
+          margin-bottom: 8px;
         }
 
         .modal-card-comida {
@@ -1924,10 +1966,35 @@ export default function Practicantes({ onClose }) {
           <div style={{backgroundColor: "var(--operator-card)", borderRadius: "8px", width: "100%", maxWidth: "1200px", maxHeight: "90vh", overflowY: "auto", padding: "30px", border: `1px solid var(--operator-border)`, color: "var(--operator-text)"}}>
             {/* Header */}
             <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px"}}>
-              <h2 style={{margin: 0, color: "var(--operator-text)"}}>Solicitud de Comida - {practicanteSolicitud.nombre}</h2>
-              <button onClick={() => {setShowMealRequestModal(false); setDesayunosAcumulados([]); setComidasAcumuladas([]);}} style={{background: "none", border: "none", fontSize: "28px", color: "var(--operator-text)", cursor: "pointer"}}>×</button>
+              <h2 style={{margin: 0, color: "var(--operator-text)"}}>
+                {tienePedidosExistentes ? "Pedido Actual" : "Solicitud de Comida"} - {practicanteSolicitud.nombre}
+              </h2>
+              <button onClick={() => {
+                setShowMealRequestModal(false);
+                setDesayunosAcumulados([]);
+                setComidasAcumuladas([]);
+                setTienePedidosExistentes(false);
+                setPedidosExistentes(null);
+              }} style={{background: "none", border: "none", fontSize: "28px", color: "var(--operator-text)", cursor: "pointer"}}>×</button>
             </div>
 
+            {tienePedidosExistentes ? (
+              <div style={{background: "var(--operator-form)", padding: "20px", borderRadius: "8px", textAlign: "center"}}>
+                <p style={{fontSize: "16px", fontWeight: "bold", marginBottom: "20px"}}>
+                  Ya tiene registrado un pedido para la semana {menus?.semana}
+                </p>
+                <div style={{background: "var(--operator-card)", padding: "15px", borderRadius: "8px", marginBottom: "15px"}}>
+                  <p><strong>Semana:</strong> {pedidosExistentes?.semana}</p>
+                  <p><strong>Desayunos:</strong> {pedidosExistentes?.Desayuno ? JSON.parse(pedidosExistentes.Desayuno).filter(d => d !== "NA").length : 0} días</p>
+                  <p><strong>Comidas:</strong> {pedidosExistentes?.Comida ? JSON.parse(pedidosExistentes.Comida).filter(c => c !== "NA").length : 0} días</p>
+                  <p><strong>Cena:</strong> {pedidosExistentes?.Cena ? JSON.parse(pedidosExistentes.Cena).filter(c => c !== "NA").length : 0} días</p>
+                </div>
+                <p style={{fontSize: "14px", color: "var(--operator-text-soft)"}}>
+                  Para realizar cambios, comuníquese con administración.
+                </p>
+              </div>
+            ) : (
+              <>
             {/* 3 Cuadros */}
             <div style={{display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px"}}>
               {/* CUADRO 1: DESAYUNO */}
@@ -2100,6 +2167,8 @@ export default function Practicantes({ onClose }) {
                 </button>
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
       )}
