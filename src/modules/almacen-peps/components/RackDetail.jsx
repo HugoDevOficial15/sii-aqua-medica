@@ -47,6 +47,9 @@ export default function RackDetail({ rack, refresh }) {
     const rackSinStock =
         (rack?.stock || []).length === 0;
 
+    const rackSinEspacio =
+        Number(rack?.espacioOcupado || 0) >= 100;
+
     const rackLleno =
         (rack?.stock || []).length >= 10;
 
@@ -239,7 +242,9 @@ export default function RackDetail({ rack, refresh }) {
 
                         rackBloqueado ||
 
-                        rackLleno
+                        rackLleno ||
+
+                        rackSinEspacio
 
                     }
 

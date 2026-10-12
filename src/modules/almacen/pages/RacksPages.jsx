@@ -6,7 +6,7 @@ import RackModal from "../components/RackModal";
 import Loader from "../../../components/Loader";
 import Swal from "sweetalert2";
 
-import { notifyError } from "../../../utils/notify";
+import { notifyError, notifySuccess } from "../../../utils/notify";
 import {
   FaPlus,
   FaEllipsisV,
@@ -65,15 +65,28 @@ export default function RacksPages() {
       const nextStatus = normalizeStatus(nuevoEstatus);
       const currentStatus = normalizeStatus(rack.estatus);
 
-      if (nextStatus === "mantenimiento") {
-        Swal.fire({
-          title: "Verificando stock...",
-          text: "Por favor espere...",
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          }
+      const statusTitles = {
+        mantenimiento: "Seguro que desea cambiar el estatus a mantenimiento?",
+        baja: "Seguro que desea cambiar el estatus a baja?",
+        activo: "Seguro que desea cambiar el estatus a activo?",
+      };
+
+      const statusMessage = statusTitles[nextStatus];
+
+      if (statusMessage) {
+        const { isConfirmed } = await Swal.fire({
+          title: statusMessage,
+          showCancelButton: true,
+          confirmButtonText: "Sí",
+          cancelButtonText: "No",
         });
+
+        if (!isConfirmed) {
+          return;
+        }
+      }
+
+      if (nextStatus === "mantenimiento") {
         const stock = await obtenerStockPorRack(rack.id);
 
         if ((stock || []).length > 0) {
@@ -81,20 +94,11 @@ export default function RacksPages() {
             "Rack no vacío",
             "El rack debe estar vacío antes de pasarlo a mantenimiento",
           );
-          Swal.close();
           return;
         }
       }
 
       if (nextStatus === "baja") {
-        Swal.fire({
-          title: "Verificando stock...",
-          text: "Por favor espere...",
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          }
-        });
         const stock = await obtenerStockPorRack(rack.id);
 
         if ((stock || []).length > 0) {
@@ -102,44 +106,39 @@ export default function RacksPages() {
             "Rack no vacío",
             "El rack debe estar vacío antes de darlo de baja",
           );
-          Swal.close();
           return;
         }
       }
 
-      if (nextStatus === "activo" && currentStatus === "mantenimiento") {
-        Swal.fire({
-          title: "Actualizando estatus...",
-          text: "Por favor espere...",
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          }
-        });
-        await actualizarRack(rack.id, {
-          ...rack,
-          estatus: "activo",
-        });
-        await refetch();
-        Swal.close();
-        return;
-      }
-      Swal.fire({
-        title: "Actualizando estatus...",
-        text: "Por favor espere...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
       await actualizarRack(rack.id, {
         ...rack,
         estatus: nextStatus,
       });
-      Swal.close();
       await refetch();
+
+      if (nextStatus === "mantenimiento") {
+        notifySuccess(
+          "Estatus actualizado",
+          "El rack ha sido cambiado a mantenimiento correctamente",
+        );
+        return;
+      }
+
+      if (nextStatus === "baja") {
+        notifySuccess(
+          "Estatus actualizado",
+          "El rack ha sido dado de baja correctamente",
+        );
+        return;
+      }
+
+      if (nextStatus === "activo") {
+        notifySuccess(
+          "Estatus actualizado",
+          "El rack ha sido cambiado a activo correctamente",
+        );
+      }
     } catch (error) {
-      Swal.close();
       console.error(error);
       notifyError("Error", "No se pudo actualizar el estatus del rack");
     }

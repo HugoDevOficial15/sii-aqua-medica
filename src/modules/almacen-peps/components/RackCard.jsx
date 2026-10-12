@@ -28,11 +28,14 @@ export default function RackCard({
 
     const porcentaje =
         Math.min(
-            Math.round(
-                Number(rack?.espacioOcupado || 0)
-            ),
+            Number(rack?.espacioOcupado || 0),
             100
         );
+
+    const porcentajeFormateado = porcentaje.toLocaleString("es-MX", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -279,7 +282,7 @@ export default function RackCard({
                     </span>
 
                     <span>
-                        {porcentaje}%
+                        {porcentajeFormateado}%
                     </span>
 
                 </div>

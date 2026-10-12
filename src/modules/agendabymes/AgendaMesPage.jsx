@@ -93,18 +93,21 @@ export default function AgendaMesPage() {
     };
 
     const ordenarEquipos = (lista) => {
+        return [...lista].sort((a, b) => {
+            const fechaA = a.fecha ? new Date(`${a.fecha}T00:00:00`).getTime() : Number.MAX_SAFE_INTEGER;
+            const fechaB = b.fecha ? new Date(`${b.fecha}T00:00:00`).getTime() : Number.MAX_SAFE_INTEGER;
 
-        return lista.sort((a, b) => {
+            if (fechaA !== fechaB) {
+                return fechaA - fechaB;
+            }
 
-            return a.codigo.localeCompare(
-                b.codigo,
-                undefined,
-                {
-                    numeric: true,
-                    sensitivity: "base"
-                }
-            );
+            const codigoA = String(a.codigo || "").trim();
+            const codigoB = String(b.codigo || "").trim();
 
+            return codigoA.localeCompare(codigoB, undefined, {
+                numeric: true,
+                sensitivity: "base"
+            });
         });
     }
 

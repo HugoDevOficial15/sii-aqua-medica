@@ -48,6 +48,7 @@ import {
 import {
     sanitizeTextTrim
 } from "../../../utils/sanitize";
+import Swal from "sweetalert2";
 
 export default function MovimientoModal({
 
@@ -248,7 +249,7 @@ export default function MovimientoModal({
                 return;
             }
 
-            setLoading(true);
+            setLoading(false);
 
             const item =
                 items.find(
@@ -360,6 +361,14 @@ export default function MovimientoModal({
             |--------------------------------------------------------------------------
             */
 
+            Swal.fire({
+                title: 'Registrando movimiento',
+                text: 'Por favor espere...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
             await registrarMovimiento({
 
                 stockId:
@@ -423,7 +432,7 @@ export default function MovimientoModal({
             | Liberar
             |--------------------------------------------------------------------------
             */
-
+            Swal.close();
             notifySuccess(
                 "Movimiento guardado",
                 "Correctamente"
@@ -443,7 +452,7 @@ export default function MovimientoModal({
 
 
         } finally {
-
+            Swal.close();
             setLoading(false);
         }
     };
@@ -668,9 +677,17 @@ export default function MovimientoModal({
 
                     <div className="movement-actions">
                         <button
+                            type="button"
+                            className="movement-cancel"
+                            onClick={onClose}
+                        >
+                            Cancelar
+                        </button>
+                        <button
                             type="submit"
                             className="movement-submit"
                         >
+                            <FaCarAlt className="movement-icon" />
                             Guardar entrada
                         </button>
                     </div>
@@ -680,6 +697,9 @@ export default function MovimientoModal({
             </div>
 
             <style>{`
+                .movement-icon {
+                    margin-right: 8px;
+                }
 
                 .movement-backdrop {
 
@@ -820,6 +840,7 @@ export default function MovimientoModal({
                     display: flex;
                     justify-content: flex-end;
                     margin-top: 20px;
+                    gap: 12px;
                 }
 
                 .movement-submit {
@@ -844,6 +865,29 @@ export default function MovimientoModal({
                     box-shadow: 0 0px 20px var(--operator-primary-light);
                     transition: transform 0.2s;
                     transform: scale(1.02);
+                }
+
+                .movement-cancel {
+
+                    height: 50px;
+                    padding: 0 24px;
+                    border: none;
+                    border-radius: 14px;
+                    background: var(--operator-border);
+                    color: var(--operator-text);
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    box-shadow: 0 0px 10px var(--operator-secondary-light);
+                }
+
+                .movement-cancel:hover {
+                    box-shadow: 0 0px 20px var(--operator-secondary-light);
+                    transition: transform 0.2s ease-in-out;
+                    transform: scale(1.02);
+                    color: var(--operator-danger);
                 }
 
             `}</style>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaBoxes, FaEye } from "react-icons/fa";
 import Loader from "../../../components/Loader";
@@ -145,9 +145,20 @@ const buildMaterialGroups = (stock = [], racks = [], planta = "") => {
         : group.lastEntry || entryDate;
 
     const rackInfo = rack || {};
+    const rackKey = item.rackId || `${item.rackNumero || "sin-rack"}-${rackInfo.planta || "sin-planta"}`;
+    const existingRack = group.racks.find((rackEntry) => rackEntry.rackId === rackKey);
+
+    if (existingRack) {
+      existingRack.cantidad += cantidad;
+      existingRack.ultimaEntrada =
+        compareDates(entryDate, existingRack.ultimaEntrada) < 0
+          ? entryDate
+          : existingRack.ultimaEntrada;
+      return;
+    }
 
     group.racks.push({
-      rackId: item.rackId,
+      rackId: rackKey,
       rackNumero: item.rackNumero || rackInfo.numeroRack || "Sin rack",
       planta: rackInfo.planta || "Sin planta",
       cantidad,
@@ -380,9 +391,8 @@ export default function AlmacenMaterialesPage() {
                 </tr>
               ) : (
                 filteredMateriales.map((item) => (
-                  <>
+                  <Fragment key={item.id}>
                     <tr
-                      key={item.id}
                       onClick={() =>
                         setExpandedId((prev) =>
                           prev === item.id ? null : item.id,
@@ -431,7 +441,7 @@ export default function AlmacenMaterialesPage() {
                             <div className="rack-location-list">
                               {item.racks.map((rack) => (
                                 <table
-                                  key={`${item.id}-${rack.rackId}`}
+                                  key={`${item.id}-${rack.rackId}-${rack.cantidad}-${rack.ultimaEntrada || "sin-fecha"}`}
                                   className="table table-sm mb-0 rack-location-table"
                                 >
                                   <thead>
@@ -458,7 +468,7 @@ export default function AlmacenMaterialesPage() {
                                             handleVerRack(rack);
                                           }}
                                         >
-                                        <FaEye />
+                                        <FaEye className="icono-ojo" />
                                           Ver
                                         </button>
                                       </th>
@@ -471,15 +481,14 @@ export default function AlmacenMaterialesPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))
               )}
             </tbody>
           </table>
         </div>
       </div>
-      <style >{`
-
+      <style>{`
 
 /* PAGINA */
 
@@ -556,7 +565,10 @@ export default function AlmacenMaterialesPage() {
 
                 word-break: break-word;
                 overflow-wrap: anywhere;
+            }
 
+            .table-principal tbody tr:hover {
+                background: none !important;
             }
 
             .table-principal thead th:nth-child(5) {
@@ -580,6 +592,7 @@ export default function AlmacenMaterialesPage() {
               justify-content: center;
               display: flex;
               box-shadow: none !important;
+              border-bottom: none !important;
             }
 
 
@@ -658,6 +671,12 @@ export default function AlmacenMaterialesPage() {
                 color: var(--operator-primary);
                 border: none;
                 transform: translateY(-1px);
+            }
+
+            .icono-ojo {
+                margin-right: 5px;
+                align-items: center;
+                justify-content: center;
             }
 
 /* LABELS INPUTS */

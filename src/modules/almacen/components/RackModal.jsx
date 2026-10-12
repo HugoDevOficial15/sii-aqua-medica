@@ -635,10 +635,18 @@ export default function RackModal({ onClose, onSuccess, data }) {
                         <div style={styles.footer}>
 
                             <button
+                                type="button"
+                                className="btn-cerrar"
+                                onClick={onClose}
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
                                 type="submit"
                                 className="btn btn-primary"
                             >
-
+                                <FaPlus className="plus-icon" />
                                 {loading
                                     ? "Guardando..."
                                     : "Guardar"}
@@ -654,6 +662,9 @@ export default function RackModal({ onClose, onSuccess, data }) {
             </div>
 
             <style>{`
+                .plus-icon {
+                    margin-right: 8px;
+                }
 
                 .input::placeholder {
                     color: var(--operator-text);
@@ -716,8 +727,30 @@ export default function RackModal({ onClose, onSuccess, data }) {
                 }
 
                 .close-button:hover {
+                    transform: scale(1.02);
+                    transition: 0.2s ease-in-out;
                     background: var(--operator-border);
                     color: var(--operator-primary);
+                }
+
+                .btn-cerrar {
+                    height: 50px;
+                    padding: 0 24px;
+                    border-radius: 14px;
+                    border: none;
+                    background: var(--operator-form);
+                    color: var(--operator-text);
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .btn-cerrar:hover {
+                    color: var(--operator-danger);
+                    transition: 0.2s ease-in-out;
+                    transform: scale(1.02);
                 }
 
             `}</style>
@@ -884,7 +917,9 @@ const styles = {
 
         display: "flex",
 
-        justifyContent: "flex-end"
+        justifyContent: "flex-end",
+
+        gap: "10px",
     },
 
 };

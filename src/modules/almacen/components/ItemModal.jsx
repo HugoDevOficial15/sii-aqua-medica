@@ -238,9 +238,9 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                     >
 
                         <select
+                            className="form-seleccionar"
                             {...register("tipo")}
                             onChange={(e) => setValue("tipo", sanitizeText(e.target.value), { shouldValidate: true })}
-                            style={styles.input}
                         >
                             <option value="">Tipo</option>
 
@@ -259,17 +259,17 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                         </select>
 
                         <input
+                            className="form-controlar"
                             placeholder="Nombre"
                             {...register("nombre")}
                             onChange={(e) => setValue("nombre", sanitizeText(e.target.value), { shouldValidate: true })}
-                            style={styles.input}
                         />
 
                         <input
+                            className="form-controlar"
                             placeholder="Descripción"
                             {...register("descripcion")}
                             onChange={(e) => setValue("descripcion", sanitizeText(e.target.value), { shouldValidate: true })}
-                            style={styles.input}
                         />
 
                         <div
@@ -282,10 +282,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                             <select
                                 {...register("tipoUnidad")}
                                 onChange={(e) => setValue("tipoUnidad", sanitizeText(e.target.value), { shouldValidate: true })}
-                                style={{
-                                    ...styles.input,
-                                    flex: 1
-                                }}
+                                className="form-seleccionar"
                             >
                                 <option value="">Unidad</option>
                                 <option value="kg">KG</option>
@@ -295,10 +292,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                             <select
                                 {...register("estatus")}
                                 onChange={(e) => setValue("estatus", sanitizeText(e.target.value), { shouldValidate: true })}
-                                style={{
-                                    ...styles.input,
-                                    flex: 1
-                                }}
+                                className="form-seleccionar"
                             >
                                 <option value="activo">
                                     Activo
@@ -372,10 +366,18 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                         <div style={styles.footer}>
 
                             <button
+                                type="button"
+                                className="btn-cerrar"
+                                onClick={onClose}
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
                                 type="submit"
                                 className="btn btn-primary"
                                 >
-
+                                    <FaPlus className="plus-icon" />
                                 Guardar
 
                             </button>
@@ -389,6 +391,32 @@ export default function ItemModal({ data, onClose, onSuccess }) {
             </div>
 
             <style>{`
+
+                .form-seleccionar,
+                .form-controlar {
+                    height: 50px;
+                    padding: 0 16px;
+                    border-radius: 14px;
+                    border: 1px solid var(--operator-border);
+                    background: var(--operator-form);
+                    color: var(--operator-text);
+                    font-weight: 500;
+                    outline: none;
+                }
+
+                .form-seleccionar:focus,
+                .form-controlar:focus {
+                    outline: none;
+                    border-color: var(--operator-primary) !important;
+                }
+
+                .form-seleccionar::placeholder,
+                .form-controlar::placeholder {
+                    outline: none;
+                    color: var(--operator-text-soft);
+                    opacity: 0.6;
+                }
+
                 .btn-primary {
                     height: 50px;
                     padding: 0 24px;
@@ -430,6 +458,33 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                     background: var(--operator-border);
                     color: var(--operator-primary);
                 }
+
+                .btn-cerrar {
+                    height: 50px;
+                    padding: 0 24px;
+                    border-radius: 14px;
+                    border: none;
+                    background: var(--operator-form);
+                    color: var(--operator-text);
+                    font-weight: 700;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0px 20px var(--operator-secondary-light);
+                }
+
+                .btn-cerrar:hover {
+                    color: var(--operator-danger);
+                    box-shadow: 0 0px 10px var(--operator-secondary-light);
+                    transition: 0.2s ease-in-out;
+                    transform: scale(1.02);
+                }
+
+                .plus-icon {
+                margin-right: 8px;
+                }
+        
             `}</style>
 
         </div>
@@ -683,7 +738,9 @@ const styles = {
 
         display: "flex",
 
-        justifyContent: "flex-end"
+        justifyContent: "flex-end",
+        
+        gap: "10px",
     },
 
     saveButton: {

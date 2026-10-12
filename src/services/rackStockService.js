@@ -28,12 +28,29 @@ const RACK_STOCK_CACHE_KEY = "sii-aqua-rack-stock-cache";
 const getRackStockCacheKey = (rackId) =>
     rackId ? `${RACK_STOCK_CACHE_KEY}:${String(rackId)}` : RACK_STOCK_CACHE_KEY;
 
+const obtenerFechaOrden = (item = {}) => {
+    const fechaEntrada = item?.fechaEntrada;
+    if (fechaEntrada instanceof Date) return fechaEntrada.getTime();
+
+    if (typeof fechaEntrada === "string" && fechaEntrada.trim()) {
+        const fecha = new Date(fechaEntrada);
+        if (!Number.isNaN(fecha.getTime())) return fecha.getTime();
+    }
+
+    const createdAt = item?.createdAt;
+    if (createdAt && typeof createdAt.toDate === "function") {
+        return createdAt.toDate().getTime();
+    }
+
+    const segundos = Number(createdAt?.seconds ?? createdAt?._seconds ?? 0);
+    if (Number.isFinite(segundos)) return segundos * 1000;
+
+    const fechaFallback = Date.parse(String(item?.fecha ?? ""));
+    return Number.isNaN(fechaFallback) ? 0 : fechaFallback;
+};
+
 const formatStockData = (data = []) => {
-    return [...(data || [])].sort((a, b) => {
-        const fechaA = Number(a?.createdAt?.seconds || a?.fechaEntrada || 0);
-        const fechaB = Number(b?.createdAt?.seconds || b?.fechaEntrada || 0);
-        return fechaA - fechaB;
-    });
+    return [...(data || [])].sort((a, b) => obtenerFechaOrden(a) - obtenerFechaOrden(b));
 };
 
 const refreshRackStockCaches = async (rackId = null) => {

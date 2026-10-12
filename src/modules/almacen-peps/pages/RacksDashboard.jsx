@@ -5,6 +5,7 @@ import RacksFilters from "../components/RacksFilters";
 import RackGrid from "../components/RackGrid";
 import RackDetail from "../components/RackDetail";
 import Loader from "../../../components/Loader";
+import Swal from "sweetalert2";
 
 
 export default function RacksDashboard() {

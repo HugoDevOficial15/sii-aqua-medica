@@ -213,7 +213,11 @@ export default function RackInventory({ rack }) {
                                 <div className="rack-stock-lote">
                                     Lote:
                                     {" "}
-                                    {item.lote}
+                                    <b>{item.lote}</b>
+                                    <br></br>
+                                    Num. Analisis:
+                                    {" "}
+                                    <b>{item.numeroAnalisis}</b>
                                 </div>
 
                                 <div className="rack-stock-qty">

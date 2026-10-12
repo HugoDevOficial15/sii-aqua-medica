@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaGift, FaSyncAlt } from "react-icons/fa";
-
+import Loader from "../../components/Loader";
 import { getCumpleaniosPorMes, refreshCumpleaniosPorMes } from "../../services/aniversariosService";
 
 export default function AniversarioMesesPage() {
@@ -89,6 +89,9 @@ export default function AniversarioMesesPage() {
     const handleRefresh = async () => {
         await cargarConteos({ forceRefresh: true });
     };
+    if (loading) {
+        return <Loader message="Cargando aniversarios..." />;
+    }
 
     return (
         <>

@@ -38,6 +38,63 @@ export default function RackPdfModal({
     const ubicacionValor = String(rack?.numeroRack ?? "").trim();
     const ubicacionLabel = getUbicacionLabel(rack);
 
+    const getUbicacionTexto = (ubicacion) => {
+        if (!ubicacion) return "";
+
+        const numero = String(ubicacion?.numeroRack ?? ubicacion?.numero ?? "").trim();
+        const tipo = String(ubicacion?.ubicacionTipo || ubicacion?.tipo || "rack").trim().toLowerCase();
+
+        if (!numero && typeof ubicacion === "string") {
+            return ubicacion.trim();
+        }
+
+        if (!numero) {
+            return "ubicación";
+        }
+
+        if (tipo === "zona") {
+            return `Zona ${numero.toUpperCase()}`;
+        }
+
+        if (tipo === "rack" || tipo === "mezzanine" || tipo === "rackselectivo" || tipo === "tanqueacido") {
+            const label = {
+                rack: "Rack",
+                mezzanine: "Mezzanine",
+                rackselectivo: "Rack Selectivo",
+                tanqueacido: "Tanque de Ácido"
+            }[tipo] || "Ubicación";
+
+            return `${label} #${numero}`;
+        }
+
+        return `Ubicación ${numero}`;
+    };
+
+    const getMovimientoDescripcion = (mov) => {
+        const tipo = String(mov?.tipoMovimiento || "").trim().toLowerCase();
+        const origen = getUbicacionTexto(mov?.ubicacionOrigen || {
+            numeroRack: mov?.rackOrigenNumero,
+            ubicacionTipo: mov?.rackOrigenTipo || "rack"
+        });
+        const destino = getUbicacionTexto(mov?.ubicacionDestino || {
+            numeroRack: mov?.rackDestinoNumero,
+            ubicacionTipo: mov?.rackDestinoTipo || "rack"
+        });
+
+        if (tipo === "entrada") {
+            return origen ? `Entrada desde ${origen}` : "Entrada";
+        }
+
+        if (tipo === "traslado") {
+            return destino ? `Traslado a ${destino}` : "Traslado";
+        }
+
+        if (tipo === "salida") {
+            return "Salida";
+        }
+
+        return tipo || "Movimiento";
+    };
 
     /*
     |--------------------------------------------------------------------------
@@ -186,7 +243,7 @@ export default function RackPdfModal({
 
                     m.fecha,
 
-                    m.tipoMovimiento,
+                    getMovimientoDescripcion(m),
 
                     m.nombreItem,
 
@@ -367,6 +424,7 @@ export default function RackPdfModal({
                         disabled={loading || !fechaInicio || !fechaFin}
                     >
 
+                        <FaFilePdf className="pdf-icon" />
                         {
                             loading
                                 ? "Generando..."
@@ -380,6 +438,9 @@ export default function RackPdfModal({
             </div>
 
             <style >{`
+                .pdf-icon {
+                    margin-right: 8px;
+                }
 
             .pdf-backdrop {
 

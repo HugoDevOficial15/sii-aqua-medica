@@ -663,6 +663,7 @@ export default function RackTransferModal({
 
                             disabled={loading}
                         >
+                            <FaArrowRightArrowLeft className="transfer-icon" />
 
                             {
                                 loading
@@ -867,6 +868,10 @@ export default function RackTransferModal({
                     box-shadow: 0 0px 20px var(--operator-primary-light);
                     transition: transform 0.2s;
                     transform: scale(1.02);
+                }
+
+                .transfer-icon {
+                    margin-right: 8px;
                 }
 
             `}</style>

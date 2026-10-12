@@ -1,6 +1,33 @@
 ==================================
 
             ============
+            = 06/10/26 =
+            ============
+
+**Functions-Nuevas**
+
+
+
+**Functions-Refactorizadas**
+* obtenerStockPEPS
+* refreshRackStockCaches
+* descontarStockPEPS
+* trasladarStockPEPS
+* obtenerMovimientosPorRack
+* registrarMovimiento
+* obtenerMovimientosPorFecha
+* suscribirMovimientos
+* vaciarRack
+
+
+obtenerMovimientosPorFecha
+obtenerMovimientosPorRack
+registrarMovimiento
+vaciarRack
+
+==================================
+
+            ============
             = 08/10/26 =
             ============
 

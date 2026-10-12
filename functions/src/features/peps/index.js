@@ -40,12 +40,29 @@ const normalizeRackList = (racks) => {
 
 /* LOGICA PARA OBTENER EL STOCK DEL RACK */
 
+const obtenerFechaOrden = (item = {}) => {
+    const fechaEntrada = item?.fechaEntrada;
+    if (fechaEntrada instanceof Date) return fechaEntrada.getTime();
+
+    if (typeof fechaEntrada === "string" && fechaEntrada.trim()) {
+        const fecha = new Date(fechaEntrada);
+        if (!Number.isNaN(fecha.getTime())) return fecha.getTime();
+    }
+
+    const createdAt = item?.createdAt;
+    if (createdAt && typeof createdAt.toDate === "function") {
+        return createdAt.toDate().getTime();
+    }
+
+    const segundos = Number(createdAt?.seconds ?? createdAt?._seconds ?? 0);
+    if (Number.isFinite(segundos)) return segundos * 1000;
+
+    const fechaFallback = Date.parse(String(item?.fecha ?? ""));
+    return Number.isNaN(fechaFallback) ? 0 : fechaFallback;
+};
+
 const formatStockData = (data = []) => {
-    return [...(data || [])].sort((a, b) => {
-        const fechaA = Number(a?.createdAt?.seconds || a?.fechaEntrada || 0);
-        const fechaB = Number(b?.createdAt?.seconds || b?.fechaEntrada || 0);
-        return fechaA - fechaB;
-    });
+    return [...(data || [])].sort((a, b) => obtenerFechaOrden(a) - obtenerFechaOrden(b));
 };
 
 const normalizarTipo = (valor = "") => String(valor || "").toLowerCase().trim();
@@ -575,7 +592,10 @@ const descontarStockPEPSLogic = async ({ rackId, itemId, cantidadSalida }) => {
     }
 
     const stock = await obtenerStockPorRackDb(rackId)
-        .then(items => items.filter(item => String(item.itemId) === String(itemId)));
+        .then(items => items
+            .filter(item => String(item.itemId) === String(itemId))
+            .sort((a, b) => obtenerFechaOrden(a) - obtenerFechaOrden(b))
+        );
 
     const totalDisponible = stock.reduce((acc, item) => acc + Number(item.cantidadActual || 0), 0);
     if (cantidadSalidaNumerica > totalDisponible) {
@@ -604,7 +624,9 @@ const descontarStockPEPSLogic = async ({ rackId, itemId, cantidadSalida }) => {
                 cantidad: restante,
                 unidad: item.unidad,
                 nombreItem: item.nombreItem,
-                tipoItem: item.tipoItem
+                tipoItem: item.tipoItem,
+                color: item.color || item.color2 || null,
+                color2: item.color2 || null
             });
 
             restante = 0;
@@ -616,7 +638,9 @@ const descontarStockPEPSLogic = async ({ rackId, itemId, cantidadSalida }) => {
                 cantidad: disponible,
                 unidad: item.unidad,
                 nombreItem: item.nombreItem,
-                tipoItem: item.tipoItem
+                tipoItem: item.tipoItem,
+                color: item.color || item.color2 || null,
+                color2: item.color2 || null
             });
             restante -= disponible;
         }
@@ -714,6 +738,8 @@ exports.trasladarStockPEPS = onCall(async (request) => {
             itemId,
             nombreItem: mov.nombreItem,
             tipoItem: mov.tipoItem,
+            color: mov.color || mov.color2 || null,
+            color2: mov.color2 || null,
             lote: mov.lote,
             cantidadActual: Number(mov.cantidad || 0),
             unidad: mov.unidad,
@@ -726,6 +752,20 @@ exports.trasladarStockPEPS = onCall(async (request) => {
             updatedAt: FieldValue.serverTimestamp(),
             activo: true
         });
+    }
+
+    const rackDestinoActual = await rackCollection.doc(rackDestinoId).get();
+    const rackDestinoActualizado = rackDestinoActual.exists ? { id: rackDestinoActual.id, ...rackDestinoActual.data() } : null;
+
+    if (rackDestinoActualizado) {
+        const stockDestinoActual = await obtenerStockPorRackDb(rackDestinoId);
+        await actualizarOcupacionRackPorMovimientos({
+            rackId: rackDestinoId,
+            rack: rackDestinoActualizado,
+            movimientos,
+            operacion: "sumar"
+        });
+        await actualizarAsignacionRackPorStock(rackDestinoId, rackDestinoActualizado, stockDestinoActual);
     }
 
     return { movimientos };

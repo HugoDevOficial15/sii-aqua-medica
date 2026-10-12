@@ -554,6 +554,7 @@ export default function RackSalidaModal({
                             disabled={loading}
                         >
 
+                            <FaCloudDownloadAlt className="salida-icon" />
                             {
                                 loading
                                     ? "Procesando..."
@@ -875,7 +876,9 @@ export default function RackSalidaModal({
                 transform: scale(1.02);
             }
 
-
+            .salida-icon {
+                margin-right: 8px;
+            }
 
         `}</style>
 
