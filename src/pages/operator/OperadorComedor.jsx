@@ -5,7 +5,7 @@ import { useComedorMenus } from "../../hooks/useComedorMenus";
 import { useComedorOrdenes } from "../../hooks/useComedorOrdenes";
 import "../../styles/operator/operator-comedor.css";
 import { useAuth } from "../../hooks/useAuth";
-import { DIAS_SEMANA, EXTRAS_PRECIOS } from "../../config/comedorConfig";
+import { COMEDOR_API, DIAS_SEMANA, EXTRAS_PRECIOS } from "../../config/comedorConfig";
 import { getNextWeekRange } from "../../utils/weekCalculator";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { readCachedData, writeCachedData, invalidateCacheGroup } from "../../utils/cacheStore";
@@ -52,32 +52,24 @@ export default function OperadorComedor({ onBack }) {
 
     // Verificar si hay pedidos existentes
     const verificarPedidosExistentes = async (idSemanaNom) => {
-        console.log("🔍 verificarPedidosExistentes iniciado - idSemanaNom:", idSemanaNom, "user:", user?.nomina);
+        if (!user?.nomina) return;
         try {
-            if (!user?.nomina) {
-                console.error("❌ Usuario sin nómina");
-                return;
-            }
-            const nominaUser = String(user.nomina).trim();
-            console.log("📋 Buscando pedidos en:", { nomina: nominaUser, semana: idSemanaNom });
+            const response = await fetch(`${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.MENU_EMPLEADO}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nomina: Number(user.nomina), idSemana: idSemanaNom }),
+            });
+            const data = await response.json();
 
-            const docRef = doc(db, "AquaMedica-Morelos", "Usuarios", "Comedor", nominaUser, "Comida", idSemanaNom);
-            const docSnap = await getDoc(docRef);
-
-            console.log("📊 Documento encontrado:", docSnap.exists());
-
-            if (docSnap.exists()) {
-                const pedidosData = docSnap.data();
-                console.log("✅ Pedidos encontrados:", pedidosData);
+            if (data.status === "OK" && data.existe) {
                 setTienePedidosExistentes(true);
-                setPedidosExistentes(pedidosData);
+                setPedidosExistentes(data.menu);
             } else {
-                console.log("❌ No hay pedidos previos");
                 setTienePedidosExistentes(false);
                 setPedidosExistentes(null);
             }
         } catch (err) {
-            console.error("❌ Error al verificar pedidos:", err);
+            console.error("Error al verificar pedidos:", err);
         }
     };
 
@@ -89,6 +81,18 @@ export default function OperadorComedor({ onBack }) {
         { value: "Orden y media", label: "Orden y media", multiplier: 1.5 },
         { value: "Dos órdenes", label: "Dos órdenes", multiplier: 2 }
     ];
+
+    const DIAS_LECTURA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+    const nombrePlatillo = (valor) => {
+        if (!valor || valor === "NA") return null;
+        const partes = valor.split("-");
+        return partes.length > 1 ? partes[1] : valor;
+    };
+
+    const extrasDelDia = (extras) => (extras || [])
+        .filter((extra) => extra && extra !== "NA")
+        .map((extra) => extra.split("-")[0]);
 
     const mealTypes = [
         { type: "Desayuno", label: "Desayuno", color: "#FF9800", icon: <FaCoffee /> },
@@ -177,18 +181,42 @@ export default function OperadorComedor({ onBack }) {
             )}
 
             {/* Mostrar pedidos existentes si los hay */}
-            {tienePedidosExistentes && pedidosExistentes ? (
+            {/* PRUEBAS: banner de pedido registrado desactivado (quitar "false &&" para reactivar) */}
+            {false && tienePedidosExistentes && pedidosExistentes ? (
                 <div style={{ ...styles.carritoSection, borderColor: "#FF9800" }}>
-                    <h3 style={{ ...styles.carritoTitle, color: "#FF9800" }}>✓ Pedido Registrado para Esta Semana</h3>
+                    <h3 style={{ ...styles.carritoTitle, color: "#FF9800" }}>✓ Pedido Registrado para la siguiente semana</h3> 
+                     <p style={styles.dateRange}>
+                    {menus?.semana || "Cargando..."}
+                </p>
                     <p style={{ fontSize: "13px", margin: "4px 0" }}>
-                        <strong>Desayunos:</strong> {pedidosExistentes?.Desayuno ? JSON.parse(pedidosExistentes.Desayuno).filter(d => d !== "NA").length : 0} días
+                        <strong>Desayunos:</strong> {pedidosExistentes?.desayuno?.filter(d => d !== "NA").length || 0} días
                     </p>
                     <p style={{ fontSize: "13px", margin: "4px 0" }}>
-                        <strong>Comidas:</strong> {pedidosExistentes?.Comida ? JSON.parse(pedidosExistentes.Comida).filter(c => c !== "NA").length : 0} días
+                        <strong>Comidas:</strong> {pedidosExistentes?.comida?.filter(c => c !== "NA").length || 0} días
                     </p>
                     <p style={{ fontSize: "13px", margin: "4px 0" }}>
-                        <strong>Cenas:</strong> {pedidosExistentes?.Cena ? JSON.parse(pedidosExistentes.Cena).filter(c => c !== "NA").length : 0} días
+                        <strong>Cenas:</strong> {pedidosExistentes?.cena?.filter(c => c !== "NA").length || 0} días
                     </p>
+                    <div style={{ marginTop: "12px" }}>
+                        {DIAS_LECTURA.map((dia, i) => {
+                            const desayuno = nombrePlatillo(pedidosExistentes.desayuno?.[i]);
+                            const extras = extrasDelDia(pedidosExistentes.desayunoExtra?.[i]);
+                            const comida = nombrePlatillo(pedidosExistentes.comida?.[i]);
+                            const cena = nombrePlatillo(pedidosExistentes.cena?.[i]);
+                            if (!desayuno && extras.length === 0 && !comida && !cena) return null;
+
+                            return (
+                                <div key={dia} style={{ fontSize: "13px", padding: "8px 0", borderTop: "1px solid var(--operator-border)" }}>
+                                    <strong>{dia}</strong>
+                                    {(desayuno || extras.length > 0) && (
+                                        <div>Desayuno: {desayuno || "—"}{extras.length > 0 && ` + ${extras.join(", ")}`}</div>
+                                    )}
+                                    {comida && <div>Comida: {comida}</div>}
+                                    {cena && <div>Cena: {cena}</div>}
+                                </div>
+                            );
+                        })}
+                    </div>
                     <p style={{ fontSize: "12px", color: "var(--operator-text-soft)", marginTop: "12px", textAlign: "center" }}>
                         Para realizar cambios, comuníquese con administración.
                     </p>
@@ -445,7 +473,7 @@ export default function OperadorComedor({ onBack }) {
 
             {/* Resumen de órdenes acumuladas */}
             {ordenesAcumuladas.length > 0 && (
-                <div style={styles.carritoSection}>
+                <div style={{ ...styles.carritoSection, marginTop: "24px" }}>
                     <h2 style={styles.carritoTitle}>🛒 Órdenes Acumuladas ({ordenesAcumuladas.length})</h2>
 
                     <div style={styles.carritoContent}>
@@ -507,6 +535,7 @@ export default function OperadorComedor({ onBack }) {
                                 const desayunos = Array(7).fill("NA");
                                 const comidas = Array(7).fill("NA");
                                 const cenas = Array(7).fill("NA");
+                                const desayunosExtras = Array.from({ length: 7 }, () => ["NA"]);
 
                                 // Mapeo de día a índice
                                 const diaMap = {
@@ -525,21 +554,21 @@ export default function OperadorComedor({ onBack }) {
 
                                     const array = arrayMap[orden.tipo];
                                     if (array && indice >= 0) {
-                                        // Si hay extras, agregar con pipe separator
-                                        if (orden.extras.length > 0) {
-                                            array[indice] = `${orden.menu}|${orden.extras.join(",")}`;
-                                        } else {
-                                            array[indice] = orden.menu;
+                                        array[indice] = orden.menu;
+                                        if (orden.tipo === "Desayuno" && orden.extras.length > 0) {
+                                            desayunosExtras[indice] = orden.extras.map(
+                                                (extra) => `${extra.split(" ")[0]}-${EXTRAS_PRECIOS[extra] || 10}`
+                                            );
                                         }
                                     }
                                 }
 
-                                console.log("📦 Arrays finales compilados:", { desayunos, comidas, cenas });
+                                console.log("📦 Arrays finales compilados:", { desayunos, comidas, cenas, desayunosExtras });
 
                                 // Llamar UNA SOLA VEZ con todos los datos
                                 await guardarOrden(
                                     "Desayuno", // Dummy - la función ahora espera arrays
-                                    { desayunos, comidas, cenas },
+                                    { desayunos, comidas, cenas, desayunosExtras },
                                     menus.semana,
                                     "Lunes", // Dummy
                                     []

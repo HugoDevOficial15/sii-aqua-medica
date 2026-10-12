@@ -80,8 +80,9 @@ exports.saveComedorOrden = onCall(async (request) => {
       updatedAt: new Date().toISOString(),
     };
 
-    // Guardar en Firestore: Comida/{semana}
-    const docRef = db.collection("Comida").doc(IDdocF);
+    // Guardar en Firestore: Comida/{semana}/Pedidos/{nomina}
+    const docRef = db.collection("Comida").doc(IDdocF)
+      .collection("Pedidos").doc(String(Nomina || IDoperador));
     await docRef.set(ordenData, { merge: true });
 
     console.log(`✓ Orden guardada para ${Nombre} (${IDdocF})`);
@@ -111,14 +112,14 @@ exports.obtenerComedorOrden = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
   }
 
-  const { semana = "" } = request.data || {};
+  const { semana = "", nomina = "" } = request.data || {};
 
   try {
-    if (!semana) {
-      throw new HttpsError("invalid-argument", "Semana es requerida");
+    if (!semana || !nomina) {
+      throw new HttpsError("invalid-argument", "Semana y nómina son requeridas");
     }
 
-    const docRef = db.collection("Comida").doc(semana);
+    const docRef = db.collection("Comida").doc(semana).collection("Pedidos").doc(String(nomina));
     const doc = await docRef.get();
 
     if (!doc.exists) {

@@ -81,11 +81,12 @@ export const createPracticante = async (data) => {
     // Crear en sii-aqua-medica
     const result = await createPracticanteFunction(practicanteData);
 
-    // También crear en AquamedicaSoftware (solo 7 campos permitidos, sin puesto, rfc, nss, email)
-    if (data.nomina) {
+    // Crear en AquamedicaSoftware con la nómina final asignada por el SII
+    const nominaFinal = Number(result.data?.nomina);
+    if (nominaFinal) {
       const datosAquaMedica = {
         nombre: data.nombre,
-        nomina: Number(data.nomina),
+        nomina: nominaFinal,
         escuela: data.escuela || "",
         area: data.area || "",
         fechaIngreso: data.fechaIngreso || "",
@@ -110,7 +111,7 @@ const createPracticanteInAquaMedica = async (data) => {
     const response = await fetch(`${AQUAMEDICA_URL}/createPracticanteAquaMedica`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ data }),
     });
 
     if (!response.ok) {
@@ -172,7 +173,7 @@ const updatePracticanteInAquaMedica = async (nomina, data) => {
     const response = await fetch(`${AQUAMEDICA_URL}/updatePracticanteAquaMedica`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nomina, ...data }),
+      body: JSON.stringify({ data: { nomina, ...data } }),
     });
 
     if (!response.ok) {
@@ -212,10 +213,10 @@ const deletePracticanteInAquaMedica = async (nomina) => {
   try {
     const AQUAMEDICA_URL = "https://us-central1-aquamedica2023.cloudfunctions.net";
 
-    const response = await fetch(`${AQUAMEDICA_URL}/deletePracticanteAquaMedica`, {
+    const response = await fetch(`${AQUAMEDICA_URL}/deletePracticante`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nomina }),
+      body: JSON.stringify({ data: { nomina } }),
     });
 
     if (!response.ok) {

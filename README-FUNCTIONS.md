@@ -1,11 +1,13 @@
 ==================================
 
             ============
-            = 06/10/26 =
+            = 12/10/26 =
             ============
 
-**Functions-Nuevas**
-
+**Funciones arregladas:**
+* createPracticante 
+* saveComedorOrden
+* obtenerComedorOrden
 
 
 **Functions-Refactorizadas**

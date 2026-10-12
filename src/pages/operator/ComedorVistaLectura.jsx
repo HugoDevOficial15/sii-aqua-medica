@@ -1,13 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
+import Swal from "sweetalert2";
 import { FaUtensils, FaCoffee, FaDrumstickBite, FaMoon } from "react-icons/fa";
 import { FiArrowLeft, FiTrash2, FiRefreshCw } from "react-icons/fi";
 import { useComedorMenuEmpleado } from "../../hooks/useComedorMenuEmpleado";
+import { useComedorOrdenes } from "../../hooks/useComedorOrdenes";
 import { getCurrentWeekRange } from "../../utils/weekCalculator";
+import { notifySuccess, notifyError } from "../../utils/notify";
 import "../../styles/operator/operator-comedor.css";
+
+const COSTO_POR_PLATILLO = 25;
 
 export default function ComedorVistaLectura({ onBack, uid }) {
     const [activeMealTab, setActiveMealTab] = useState("desayuno");
     const { menuEmpleado, obtenerMenuEmpleado, loading, error } = useComedorMenuEmpleado(uid);
+    const { cancelarOrden, loading: cancelando } = useComedorOrdenes(uid);
 
     // Obtener la semana actual dinámicamente (memoized)
     const idSemanaActual = useMemo(() => {
@@ -25,7 +31,7 @@ export default function ComedorVistaLectura({ onBack, uid }) {
         { type: "cena", label: "Cena", color: "#9C27B0", icon: <FaMoon /> }
     ];
 
-    const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
     // Función para limpiar y entender el platillo ("G1-HUEVOS-25...")
     const procesarPlatillo = (platilloString) => {
@@ -37,6 +43,35 @@ export default function ComedorVistaLectura({ onBack, uid }) {
             precio: partes[2] || "0",
             sopa: partes[4] || ""
         };
+    };
+
+    const handleCancelar = async (diaIndex, dayName, conExtras) => {
+        const tipoComida = mealTypes.find(m => m.type === activeMealTab).label;
+
+        const confirmacion = await Swal.fire({
+            title: "¿Cancelar platillo?",
+            text: `${tipoComida} del ${dayName}${conExtras ? " (incluye extras)" : ""}`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, cancelar",
+            cancelButtonText: "No",
+        });
+        if (!confirmacion.isConfirmed) return;
+
+        const ok = await cancelarOrden({
+            semana: idSemanaActual,
+            diaIndex,
+            tipoComida,
+            conExtras,
+            amount: COSTO_POR_PLATILLO,
+        });
+
+        if (ok) {
+            notifySuccess("Solicitud enviada", `La cancelación de ${tipoComida} del ${dayName} está pendiente de aprobación.`);
+            obtenerMenuEmpleado(idSemanaActual);
+        } else {
+            notifyError("Error", "No se pudo cancelar el platillo. Intenta de nuevo.");
+        }
     };
 
     return (
@@ -174,7 +209,8 @@ export default function ComedorVistaLectura({ onBack, uid }) {
                                                 </div>
                                                 <button
                                                     style={styles.cancelButton}
-                                                    onClick={() => alert("Función de cancelar platillo en desarrollo...")}
+                                                    disabled={cancelando}
+                                                    onClick={() => handleCancelar(index, dayName, activeMealTab === "desayuno" && extrasArray.length > 0 && extrasArray[0] !== "NA")}
                                                 >
                                                     <FiTrash2 /> Cancelar
                                                 </button>

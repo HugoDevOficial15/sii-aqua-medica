@@ -10,6 +10,7 @@ export const COMEDOR_API = {
     CANCELAR_ORDEN: "/CancelarComida",
     HISTORIAL: "/getComedorHistory",
     COSTOS: "/obtenerCostosComedor",
+    MENU_EMPLEADO: "/obtenerMenuEmpleado",
   },
 };
 

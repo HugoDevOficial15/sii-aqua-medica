@@ -15,6 +15,24 @@ const normalizeSearchText = (value) => String(value || "")
 
 const practicanteFromSnapshot = (snapshot) => ({ id: snapshot.id, ...snapshot.data() });
 
+const NOMINA_INICIAL = 10000;
+
+const obtenerPrimeraNominaLibre = async () => {
+  const snapshot = await practicantesCollection
+    .where("nomina", ">=", NOMINA_INICIAL)
+    .orderBy("nomina", "asc")
+    .select("nomina")
+    .get();
+
+  let candidata = NOMINA_INICIAL;
+  for (const doc of snapshot.docs) {
+    const nomina = Number(doc.get("nomina"));
+    if (nomina === candidata) candidata++;
+    else if (nomina > candidata) break;
+  }
+  return candidata;
+};
+
 exports.getPracticantesPage = onCall(async (request) => {
   requireAuth(request);
 
@@ -118,18 +136,7 @@ exports.createPracticante = onCall(async (request) => {
 
     // Si no se proporciona nómina, generar automáticamente
     if (!nomina || Number(nomina) < 10000) {
-      const snapshot = await practicantesCollection
-        .orderBy("nomina", "desc")
-        .limit(1)
-        .get();
-
-      let nextNomina = 10000;
-      if (!snapshot.empty) {
-        const highestNomina = Number(snapshot.docs[0].data().nomina || 9999);
-        nextNomina = Math.max(10000, highestNomina + 1);
-      }
-
-      finalNomina = nextNomina;
+      finalNomina = await obtenerPrimeraNominaLibre();
     } else {
       // Si se proporciona nómina, validar que sea única
       finalNomina = Number(nomina);

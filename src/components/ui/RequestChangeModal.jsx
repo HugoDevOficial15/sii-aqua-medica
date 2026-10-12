@@ -212,7 +212,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
 
                         <div style={styles.row}>
 
-                            <div style={{ ...styles.inputGroup, flex: 1 }}>
+                            <div style={{ ...styles.inputGroup, ...styles.halfGroup }}>
                                 <label style={styles.label}>Género</label>
                                 <select
                                     style={{ ...styles.input, ...(errors.Genero ? styles.inputError : {}) }}
@@ -225,7 +225,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
                                 {errors.Genero && <div style={styles.errorText}>{errors.Genero.message}</div>}
                             </div>
 
-                            <div style={{ ...styles.inputGroup, flex: 1 }}>
+                            <div style={{ ...styles.inputGroup, ...styles.halfGroup }}>
                                 <label style={styles.label}>Área</label>
                                 <select
                                     style={{ ...styles.input, ...(errors.area ? styles.inputError : {}) }}
@@ -281,7 +281,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
 
                         <div style={styles.row}>
 
-                            <div style={{ ...styles.inputGroup, flex: 1 }}>
+                            <div style={{ ...styles.inputGroup, ...styles.halfGroup }}>
                                 <label style={styles.label}>Fecha de ingreso</label>
                                 <input
                                     type="date"
@@ -291,7 +291,7 @@ export default function RequestChangeModal({ user, onClose, onSuccess }) {
                                 {errors.fechaIngreso && <div style={styles.errorText}>{errors.fechaIngreso.message}</div>}
                             </div>
 
-                            <div style={{ ...styles.inputGroup, flex: 1 }}>
+                            <div style={{ ...styles.inputGroup, ...styles.halfGroup }}>
                                 <label style={styles.label}>Cumpleaños</label>
                                 <input
                                     type="date"
@@ -457,12 +457,18 @@ const styles = {
     },
     row: {
         display: "flex",
+        flexWrap: "wrap",
         gap: "12px"
     },
     inputGroup: {
         display: "flex",
         flexDirection: "column",
-        gap: "6px"
+        gap: "6px",
+        minWidth: 0
+    },
+    halfGroup: {
+        flex: "1 1 170px",
+        minWidth: 0
     },
     label: {
         fontSize: "13px",
@@ -470,6 +476,10 @@ const styles = {
         color: "var(--operator-text-soft)"
     },
     input: {
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
+        boxSizing: "border-box",
         padding: "12px 14px",
         borderRadius: "12px",
         border: "1px solid var(--operator-border)",

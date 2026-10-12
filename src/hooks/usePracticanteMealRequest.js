@@ -26,15 +26,14 @@ export const usePracticanteMealRequest = () => {
           comidas = menuSeleccionado.comidas;
           cenas = menuSeleccionado.cenas;
 
-          // Calcular cobro: SOLO desayuno O comida (no ambos)
-          const costoDesayuno = desayunos.filter(d => d !== "NA").length * 25;
-          const costoComida = comidas.filter(c => c !== "NA").length * 25;
+          // Cobro: SOLO desayuno O comida (no ambos), con costo ya calculado por porción y extras
+          const { costoDesayuno = 0, costoComida = 0, cantidadDesayuno = 0, cantidadComida = 0 } = menuSeleccionado.costos || {};
+          const cobraDesayuno = costoDesayuno > 0;
 
           registroCobros = {
-            tipoAlimento: costoDesayuno > 0 ? "Desayuno" : "Comida",
-            cantidad: costoDesayuno > 0 ? desayunos.filter(d => d !== "NA").length : comidas.filter(c => c !== "NA").length,
-            costoUnitario: 25,
-            costoTotal: costoDesayuno > 0 ? costoDesayuno : costoComida,
+            tipoAlimento: cobraDesayuno ? "Desayuno" : "Comida",
+            cantidad: cobraDesayuno ? cantidadDesayuno : cantidadComida,
+            costoTotal: cobraDesayuno ? costoDesayuno : costoComida,
             fechaCobro: new Date().toISOString(),
           };
 

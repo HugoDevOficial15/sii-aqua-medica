@@ -771,7 +771,14 @@ export default function Practicantes({ onClose }) {
       comidas[firebaseIndex] = menuText;
     }
 
-    const success = await guardarSolicitudComida(practicanteSolicitud, "Desayuno", { desayunos, comidas, cenas: Array(7).fill("NA") }, [], menus.semana);
+    const costos = {
+      costoDesayuno: desayunosAcumulados.reduce((s, o) => s + o.costo, 0),
+      costoComida: comidasAcumuladas.reduce((s, o) => s + o.costo, 0),
+      cantidadDesayuno: desayunosAcumulados.length,
+      cantidadComida: comidasAcumuladas.length,
+    };
+
+    const success = await guardarSolicitudComida(practicanteSolicitud, "Desayuno", { desayunos, comidas, cenas: Array(7).fill("NA"), costos }, [], menus.semana);
 
     if (success) {
       notifySuccess("Éxito", "¡Solicitudes guardadas!");
@@ -783,6 +790,10 @@ export default function Practicantes({ onClose }) {
     }
   };
 
+
+  const totalDesayunos = desayunosAcumulados.reduce((s, o) => s + o.costo, 0);
+  const totalComidas = comidasAcumuladas.reduce((s, o) => s + o.costo, 0);
+  const cobraDesayuno = totalDesayunos > 0;
 
   // Estilos Modal
   const styles = {
@@ -2058,9 +2069,11 @@ export default function Practicantes({ onClose }) {
                         <button onClick={() => setDesayunosAcumulados(desayunosAcumulados.filter((_, i) => i !== idx))} style={{background: "none", border: "none", color: "#f44", cursor: "pointer", fontSize: "16px"}}>×</button>
                       </div>
                     ))}
+                    {cobraDesayuno && (
                     <div style={{marginTop: "8px", paddingTop: "8px", borderTop: `1px solid var(--operator-border)`, textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
-                      Total: ${desayunosAcumulados.reduce((s, o) => s + o.costo, 0).toFixed(2)}
+                      Total: ${totalDesayunos.toFixed(2)}
                     </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -2126,9 +2139,11 @@ export default function Practicantes({ onClose }) {
                         <button onClick={() => setComidasAcumuladas(comidasAcumuladas.filter((_, i) => i !== idx))} style={{background: "none", border: "none", color: "#f44", cursor: "pointer", fontSize: "16px"}}>×</button>
                       </div>
                     ))}
+                    {!cobraDesayuno && (
                     <div style={{marginTop: "8px", paddingTop: "8px", borderTop: `1px solid var(--operator-border)`, textAlign: "right", color: "#4CAF50", fontWeight: "bold"}}>
-                      Total: ${comidasAcumuladas.reduce((s, o) => s + o.costo, 0).toFixed(2)}
+                      Total: ${totalComidas.toFixed(2)}
                     </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -2141,19 +2156,19 @@ export default function Practicantes({ onClose }) {
                   <div style={{textAlign: "center", marginBottom: "15px"}}>
                     <div style={{fontSize: "14px", color: "var(--operator-text-soft)", marginBottom: "8px"}}>Desayunos</div>
                     <div style={{fontSize: "28px", color: "#4CAF50", fontWeight: "bold"}}>{desayunosAcumulados.length}</div>
-                    <div style={{fontSize: "12px", color: "var(--operator-text-soft)"}}>Total: ${desayunosAcumulados.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
+                    {cobraDesayuno && <div style={{fontSize: "12px", color: "var(--operator-text-soft)"}}>Total: ${totalDesayunos.toFixed(2)}</div>}
                   </div>
 
                   <div style={{textAlign: "center", marginBottom: "15px"}}>
                     <div style={{fontSize: "14px", color: "var(--operator-text-soft)", marginBottom: "8px"}}>Comidas</div>
                     <div style={{fontSize: "28px", color: "#2196F3", fontWeight: "bold"}}>{comidasAcumuladas.length}</div>
-                    <div style={{fontSize: "12px", color: "var(--operator-text-soft)"}}>Total: ${comidasAcumuladas.reduce((s, o) => s + o.costo, 0).toFixed(2)}</div>
+                    {!cobraDesayuno && <div style={{fontSize: "12px", color: "var(--operator-text-soft)"}}>Total: ${totalComidas.toFixed(2)}</div>}
                   </div>
 
                   <div style={{borderTop: `1px solid var(--operator-border)`, paddingTop: "15px", textAlign: "center"}}>
                     <div style={{fontSize: "14px", color: "var(--operator-text-soft)", marginBottom: "8px"}}>Total General</div>
                     <div style={{fontSize: "32px", color: "#FFD700", fontWeight: "bold"}}>
-                      ${(desayunosAcumulados.reduce((s, o) => s + o.costo, 0) + comidasAcumuladas.reduce((s, o) => s + o.costo, 0)).toFixed(2)}
+                      ${(cobraDesayuno ? totalDesayunos : totalComidas).toFixed(2)}
                     </div>
                   </div>
                 </div>

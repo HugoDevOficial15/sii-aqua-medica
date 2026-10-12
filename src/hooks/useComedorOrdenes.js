@@ -26,13 +26,14 @@ export const useComedorOrdenes = (uid) => {
         const url = `${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.GUARDAR_ORDEN}`;
 
         // Si menuSeleccionado es un objeto con arrays (nuevo formato)
-        let desayunos, comidas, cenas;
+        let desayunos, comidas, cenas, desayunosExtras = null;
 
         if (typeof menuSeleccionado === 'object' && menuSeleccionado.desayunos) {
           // Usar arrays ya compilados
           desayunos = menuSeleccionado.desayunos;
           comidas = menuSeleccionado.comidas;
           cenas = menuSeleccionado.cenas;
+          desayunosExtras = menuSeleccionado.desayunosExtras || null;
           console.log(`📦 Usando arrays compilados:`, { desayunos, comidas, cenas });
         } else {
           // Formato antiguo: construir arrays para una sola orden
@@ -70,6 +71,11 @@ export const useComedorOrdenes = (uid) => {
           Comida: JSON.stringify(comidas),
           Cena: JSON.stringify(cenas),
         };
+
+        // InDataMeal espera DesayunoE doblemente codificado (JSON.parse(JSON.parse(...)))
+        if (desayunosExtras?.some((dia) => dia[0] !== "NA")) {
+          payload.DesayunoE = JSON.stringify(JSON.stringify(desayunosExtras));
+        }
 
         console.log("📤 Payload enviado a InDataMeal:", JSON.stringify(payload, null, 2));
 
@@ -120,8 +126,8 @@ export const useComedorOrdenes = (uid) => {
   );
 
   const cancelarOrden = useCallback(
-    async (semana, dia, tipoComida) => {
-      if (!uid || !user) {
+    async ({ semana, diaIndex, tipoComida, conExtras = false, amount }) => {
+      if (!user) {
         setError("Usuario no autenticado");
         return false;
       }
@@ -133,32 +139,21 @@ export const useComedorOrdenes = (uid) => {
       try {
         const url = `${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.CANCELAR_ORDEN}`;
 
-        // Construir arrays vacíos para cancelación (todos "NA")
-        const diasDeSemana = 7;
-        const desayunos = Array(diasDeSemana).fill("NA");
-        const comidas = Array(diasDeSemana).fill("NA");
-        const cenas = Array(diasDeSemana).fill("NA");
-
-        // Asignar "NA" al índice del día a cancelar
-        const indiceActual = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"].indexOf(dia);
-
-        if (tipoComida === "Desayuno") {
-          desayunos[indiceActual] = "NA";
-        } else if (tipoComida === "Comida") {
-          comidas[indiceActual] = "NA";
-        } else if (tipoComida === "Cena") {
-          cenas[indiceActual] = "NA";
-        }
+        const opciones = {
+          Desayuno: conExtras ? "DEN" : "D",
+          Comida: "C",
+          Cena: "CE",
+        };
 
         const payload = {
-          IDoperador: user.nomina || user.id,
-          IDdocF: semana,
+          Opcion: opciones[tipoComida],
+          Dia: diaIndex,
+          IdOperador: String(user.nomina),
+          IDFirebase: semana,
+          Amount: amount,
+          Solicitar: true,
           Nombre: user.nombre,
-          Nomina: user.nomina,
           Area: user.area,
-          Desayuno: JSON.stringify(desayunos),
-          Comida: JSON.stringify(comidas),
-          Cena: JSON.stringify(cenas),
         };
 
         console.log("📤 Payload cancelación enviando a CancelarComida:", payload);
