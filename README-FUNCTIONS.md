@@ -1,6 +1,23 @@
 ==================================
 
             ============
+            = 13/10/26 =
+            ============
+**Functions-Nuevas**
+
+* getUserData
+
+**Functions-Refactorizadas**
+
+* registrarMovimiento
+* obtenerMovimientosPorFecha
+* actualizarMateriaPrima
+* actualizarAcondicionamiento
+* actualizarProducto
+
+==================================
+
+            ============
             = 12/10/26 =
             ============
 

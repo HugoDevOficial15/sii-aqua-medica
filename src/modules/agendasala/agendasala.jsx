@@ -105,6 +105,10 @@ export default function AgendaSala() {
         return <Loader text="Cargando agenda de salas..." />;
     }
 
+    if (loading) {
+        return <Loader text="Cargando agenda de salas..." />;
+    }
+
     return (
 
         <div className="agenda-container">

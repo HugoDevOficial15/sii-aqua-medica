@@ -6,6 +6,8 @@ import { notifyError, notifySuccess } from "../../utils/notify";
 import AgregarSalaModal from "./components/agregarSalaModal";
 import { fetchSalas, removeSala, updateSala } from "../../services/agregarSalasService";
 
+import Loader from "../../components/Loader";
+
 export default function AgregarSala() {
     const [showModal, setShowModal] = useState(false);
     const [salaEdit, setSalaEdit] = useState(null);
@@ -132,6 +134,10 @@ export default function AgregarSala() {
             notifyError("No se pudo cambiar el estado de la sala");
         }
     };
+
+    if (loading) {
+        return <Loader text="Cargando las salas..."/>;
+    }
 
     return (
         <div className="agregar-sala-page">

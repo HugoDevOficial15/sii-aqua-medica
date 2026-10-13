@@ -8,6 +8,7 @@ const capacitaciones = require("./features/capacitaciones");
 const solicitudes = require("./features/solicitudes");
 const notificationTriggers = require("./features/sendNotificationOnCreate");
 const usuarios = require("./features/usuarios");
+const userServ = require("./features/userServ");
 const personal = require("./features/personal");
 const puestos = require("./features/puestos");
 const inventarios = require("./features/inventarios");
@@ -51,12 +52,13 @@ module.exports = {
   ...solicitudes,
   ...notificationTriggers,
   ...usuarios,
+  ...userServ,
   ...corregirEmailsAquaMedica,
   ...personal,
   ...puestos,
   ...inventarios,
   ...agendaServicios,
-   ...practicantes,
+  ...practicantes,   
   ...aniversarios,
   ...ideas,
   ...soporte,

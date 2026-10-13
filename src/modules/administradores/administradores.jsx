@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaEye, FaPlus, FaSearch, FaEllipsisV, FaEdit, FaTrash, FaUserPlus, FaAddressCard, FaKey, FaUser} from "react-icons/fa";
+import { FaEye, FaPlus, FaSearch, FaEllipsisV, FaEdit, FaTrash, FaUserPlus, FaAddressCard, FaKey, FaUser, } from "react-icons/fa";
 import Loader from "../../components/Loader";
 
 import AdministradoresModal from "./components/administradoresModal";

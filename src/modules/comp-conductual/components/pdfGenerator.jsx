@@ -211,8 +211,12 @@ export const generateCompConductualReportPDF = async ({
       ? registros
       : await obtenerRegistrosConductuales({ registros, fechaInicio, fechaFin });
 
-  const titulo = "Reporte de comportamiento conductual";
-  const subtitulo = `${formatearNombre(operador || { nombre: nombreOperador })} • ${operador?.nomina || "Sin nómina"}`;
+  const titulo = tipoReporte === "general"
+    ? "Reporte general de comportamiento conductual"
+    : "Reporte de comportamiento conductual";
+  const subtitulo = tipoReporte === "general"
+    ? `Personal con registros • ${registrosDesdeColeccion.length} evaluaciones`
+    : `${formatearNombre(operador || { nombre: nombreOperador })} • ${operador?.nomina || "Sin nómina"}`;
 
   await drawPdfHeader(doc, titulo, subtitulo, new Date());
 
@@ -259,10 +263,7 @@ export const generateCompConductualReportPDF = async ({
           ["Tipo", "Puntual"],
         ]
       : [
-          ["Puesto", puestoSeleccionado],
-          ["Operador", formatearNombre(operador || { nombre: nombreOperador })],
-          ["Área", areaSeleccionada],
-          ["Nómina", operador?.nomina || "Sin nómina"],
+          ["Área", areaSeleccionada || "Todas"],
           ["Fecha inicio", formatDate(fechaInicio)],
           ["Fecha fin", formatDate(fechaFin)],
           ["Tipo", "General"],
@@ -369,21 +370,23 @@ export const generateCompConductualReportPDF = async ({
   } else {
     const bodyRows = registrosDesdeColeccion.length
       ? registrosDesdeColeccion.map((registro) => [
+          formatearNombre(registro?.usuario || operador || { nombre: nombreOperador }),
+          registro?.nomina || registro?.usuario?.nomina || operador?.nomina || "Sin nómina",
           formatDate(getValorFecha(registro?.fechaElaboracion || registro?.fecha || registro?.createdAt) || registro?.fechaElaboracion || registro?.fecha),
           registro?.periodoEvaluacion || "Sin periodo",
           `${Number(registro?.calificacionGeneral ?? 0)}%`,
           registro?.comentarioGeneral || registro?.comentarioAdicional || "Sin comentarios",
         ])
-      : [["Sin registros", "—", "—", "No hay información para este rango de fechas."]];
+      : [["Sin registros", "—", "—", "—", "—", "No hay información para este rango de fechas."]];
 
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 10,
       margin: { left: 14, right: 14 },
-      head: [["Fecha", "Periodo", "Calificación", "Comentarios"]],
+      head: [["Operador", "Nómina", "Fecha", "Periodo", "Calificación", "Comentarios"]],
       body: bodyRows,
       styles: {
         font: "helvetica",
-        fontSize: 8,
+        fontSize: 7,
         cellPadding: 3,
         overflow: "linebreak",
         valign: "middle",
@@ -397,10 +400,12 @@ export const generateCompConductualReportPDF = async ({
         fillColor: [245, 245, 245],
       },
       columnStyles: {
-        0: { cellWidth: 26 },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 24 },
-        3: { cellWidth: 86 },
+        0: { cellWidth: 38 },
+        1: { cellWidth: 24 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 18 },
+        5: { cellWidth: 52 },
       },
     });
   }

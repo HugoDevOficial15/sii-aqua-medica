@@ -206,12 +206,12 @@ export default function AlmacenMaterialesPage() {
         }
         unsubscribe = suscribirStock((data) => {
           if (mounted) {
+            setLoading(false);
             setStock(data);
           }
         });
       } finally {
         if (mounted) {
-          setLoading(false);
         }
       }
     };

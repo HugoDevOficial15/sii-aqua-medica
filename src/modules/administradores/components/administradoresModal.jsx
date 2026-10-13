@@ -1,5 +1,57 @@
 import { useEffect, useState } from "react";
-import { FaEdit, FaTimes, FaUserPlus, FaUser, FaKey, FaAddressCard } from "react-icons/fa";
+import {
+  FaEdit,
+  FaTimes,
+  FaUserPlus,
+  FaUser,
+  FaKey,
+  FaAddressCard,
+  FaBoxes,
+  FaUserCheck,
+  FaLaptopCode,
+  FaUserSlash,
+  FaUserShield,
+  FaFemale,
+  FaMale,
+  FaChartPie,
+  FaChartBar,
+  FaSyncAlt,
+  FaWarehouse,
+  FaFlask,
+  FaUtensils,
+  FaUserTie,
+  FaCalculator,
+  FaBuilding,
+  FaTools,
+  FaHardHat,
+  FaLeaf,
+  FaIndustry,
+  FaDoorOpen,
+  FaUsers,
+  FaHeartbeat,
+  FaShieldAlt,
+  FaHandsHelping,
+  FaStethoscope,
+  FaClipboardCheck,
+  FaEye,
+  FaShoppingCart,
+  FaHome,
+  FaUserCog,
+  FaCalendarDay,
+  FaHotel,
+  FaBirthdayCake,
+  FaClipboardList,
+  FaUserFriends,
+  FaBook,
+  FaGraduationCap,
+  FaNewspaper,
+  FaSyringe,
+  FaAmbulance,
+  FaFileMedical,
+  FaExchangeAlt,
+  FaStickyNote,
+  FaCog,
+} from "react-icons/fa";
 
 import { AREAS } from "../../../catalogs/areas";
 import { useAuth } from "../../../hooks/useAuth";
@@ -8,29 +60,29 @@ import { createUser, updateUser, updateUserPasswordByReset } from "../../../serv
 import { notifyError, notifySuccess } from "../../../utils/notify";
 
 const ADMIN_PERMISSION_OPTIONS = [
-  { key: "dashboard.ver", label: "Dashboard" },
-  { key: "usuarios.ver", label: "Usuarios" },
-  { key: "administradores.ver", label: "Administradores" },
-  { key: "puestos.ver", label: "Puestos" },
-  { key: "inventario.ver", label: "Inventario" },
-  { key: "servicios.agendar", label: "Agenda Servicios" },
-  { key: "servicios.ver_global", label: "Lista Servicios" },
-  { key: "aniversarios.ver", label: "Aniversarios" },
-  { key: "solicitudes.ver", label: "Solicitudes" },
-  { key: "salas_agregar.ver", label: "Agregar Sala" },
-  { key: "salas.ver", label: "Agendar Sala" },
-  { key: "personal.ver", label: "Personal" },
-  { key: "practicantes.ver", label: "Practicantes" },
-  { key: "comportamiento.ver", label: "Comp. Conductual" },
-  { key: "encuestas.ver", label: "Encuestas" },
-  { key: "capacitaciones.ver", label: "Capacitaciones" },
-  { key: "noticias.ver", label: "Noticias" },
-  { key: "medicamentos.ver", label: "Medicamentos" },
-  { key: "citas.ver", label: "Citas Médicas" },
-  { key: "ordenes.ver", label: "Orden Médico" },
-  { key: "peps.ver", label: "PEPS" },
-  { key: "notas.ver", label: "Notas" },
-  { key: "config.ver", label: "Configuración" },
+  { key: "dashboard.ver", label: "Dashboard", icon: FaHome },
+  { key: "usuarios.ver", label: "Usuarios", icon: FaUsers },
+  { key: "administradores.ver", label: "Administradores", icon: FaUserCog },
+  { key: "puestos.ver", label: "Puestos", icon: FaUserTie },
+  { key: "inventario.ver", label: "Inventario", icon: FaBoxes },
+  { key: "servicios.agendar", label: "Agenda Servicios", icon: FaCalendarDay },
+  { key: "servicios.ver_global", label: "Lista Servicios", icon: FaClipboardList },
+  { key: "aniversarios.ver", label: "Aniversarios", icon: FaBirthdayCake },
+  { key: "solicitudes.ver", label: "Solicitudes", icon: FaClipboardCheck },
+  { key: "salas_agregar.ver", label: "Agregar Sala", icon: FaHotel },
+  { key: "salas.ver", label: "Agendar Sala", icon: FaCalendarDay },
+  { key: "personal.ver", label: "Personal", icon: FaUserFriends },
+  { key: "practicantes.ver", label: "Practicantes", icon: FaBook },
+  { key: "comportamiento.ver", label: "Comp. Conductual", icon: FaUserCheck },
+  { key: "encuestas.ver", label: "Encuestas", icon: FaClipboardList },
+  { key: "capacitaciones.ver", label: "Capacitaciones", icon: FaGraduationCap },
+  { key: "noticias.ver", label: "Noticias", icon: FaNewspaper },
+  { key: "medicamentos.ver", label: "Medicamentos", icon: FaSyringe },
+  { key: "citas.ver", label: "Citas Médicas", icon: FaAmbulance },
+  { key: "ordenes.ver", label: "Orden Médico", icon: FaFileMedical },
+  { key: "peps.ver", label: "PEPS", icon: FaExchangeAlt },
+  { key: "notas.ver", label: "Notas", icon: FaStickyNote },
+  { key: "config.ver", label: "Configuración", icon: FaCog },
 ];
 
 const PRESET_ADMIN_ROLES = {
@@ -414,11 +466,17 @@ export default function AdministradoresModal({
               <h6>Permisos actuales</h6>
               <div className="admin-permissions-grid">
                 {currentPermissions.length ? (
-                  currentPermissions.map((permission) => (
-                    <span key={permission} className="admin-permission-view-tag">
-                      {ADMIN_PERMISSION_OPTIONS.find((option) => option.key === permission)?.label || permission}
-                    </span>
-                  ))
+                  currentPermissions.map((permission) => {
+                    const option = ADMIN_PERMISSION_OPTIONS.find((item) => item.key === permission);
+                    const Icon = option?.icon;
+
+                    return (
+                      <span key={permission} className="admin-permission-view-tag">
+                        {Icon ? <Icon className="admin-permission-tag-icon" /> : null}
+                        {option?.label || permission}
+                      </span>
+                    );
+                  })
                 ) : (
                   <span className="admin-permission-empty">Sin permisos asignados.</span>
                 )}
@@ -566,11 +624,15 @@ export default function AdministradoresModal({
                   <div className="admin-permissions-grid">
                     {ADMIN_PERMISSION_OPTIONS.map((option) => {
                       const checked = (formData.permisos || []).includes(option.key);
+                      const Icon = option.icon;
 
                       return (
                         <label key={option.key} className="admin-permission-option">
                           <input type="checkbox" checked={checked} onChange={() => togglePermission(option.key)} />
-                          <span>{option.label}</span>
+                          <span className="admin-permission-option-content">
+                            {Icon ? <Icon className="admin-permission-option-icon" /> : null}
+                            <span>{option.label}</span>
+                          </span>
                         </label>
                       );
                     })}
@@ -775,6 +837,19 @@ export default function AdministradoresModal({
           margin-right: 8px;
         }
 
+        .admin-permission-option-content {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          flex: 1;
+        }
+
+        .admin-permission-option-icon,
+        .admin-permission-tag-icon {
+          font-size: 19px;
+        }
+
         .admin-permission-option span {
           font-size: 13px;
           font-weight: 600;
@@ -880,6 +955,7 @@ export default function AdministradoresModal({
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          gap: 6px;
           background: rgba(14, 153, 233, 0.1);
           color: var(--operator-text);
           border: 1px solid var(--operator-border);

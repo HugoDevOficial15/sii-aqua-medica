@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { getAniversariosByMes, refreshAniversariosByMes } from "../../services/aniversariosService";
 import { FaSyncAlt, FaArrowLeft } from "react-icons/fa";
+import Loader from "../../components/Loader";
 
 import BirthdayList from "./components/BirthdayList";
 import AnniversaryList from "./components/AnniversaryList";
@@ -66,6 +67,7 @@ export default function AniversarioPage() {
                 const memoryCached = readMonthCache(monthKey);
                 if (memoryCached) {
                     setData(memoryCached);
+                    setLoading(false);
                     return;
                 }
 
@@ -73,6 +75,7 @@ export default function AniversarioPage() {
                 if (cached) {
                     saveMonthCache(monthKey, cached);
                     setData(cached);
+                    setLoading(false);
                     return;
                 }
             }
@@ -80,8 +83,10 @@ export default function AniversarioPage() {
             const res = await refreshAniversariosByMes(Number(mes));
             const nextData = res || { cumpleanios: [], aniversarios: [] };
             saveMonthCache(monthKey, nextData);
+            setLoading(false);
             setData(nextData);
         } catch (error) {
+            setLoading(false);
             console.error("Error cargando celebraciones:", error);
             setData({ cumpleanios: [], aniversarios: [] });
         } finally {
@@ -92,6 +97,10 @@ export default function AniversarioPage() {
     const handleRefresh = async () => {
         await loadData({ forceRefresh: true });
     };
+
+    if (loading) {
+        return <Loader text="Cargando celebraciones..." />;
+    }
 
     return (
         <>

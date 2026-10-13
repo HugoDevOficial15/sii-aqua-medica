@@ -278,7 +278,10 @@
 }
 
 .reporte-modal-btn.secondary:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease-in-out;
   background: rgba(148, 163, 184, 0.2);
+  box-shadow: none !important;
 }
 
 @media (max-width: 576px) {

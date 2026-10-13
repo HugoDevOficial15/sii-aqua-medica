@@ -30,6 +30,16 @@ const safeValue = (value, fallback = "Sin información") => {
   return value;
 };
 
+const getNominaSortValue = (value) => {
+  const raw = String(value ?? "").trim();
+  if (!raw) return Number.MAX_SAFE_INTEGER;
+
+  const numericValue = Number(raw.replace(/[^0-9.-]/g, ""));
+  if (!Number.isNaN(numericValue)) return numericValue;
+
+  return Number.MAX_SAFE_INTEGER;
+};
+
 const getIncidenciaTipoLabel = (value) => {
   const map = {
     incidencia: "Incidencia",
@@ -494,6 +504,17 @@ export default function PdfGeneralModal({
         }
       }
 
+      const rowsOrdenados = [...rows].sort((a, b) => {
+        const nominaA = getNominaSortValue(a[1]);
+        const nominaB = getNominaSortValue(b[1]);
+
+        if (nominaA !== nominaB) return nominaA - nominaB;
+
+        const nombreA = String(a[0] ?? "").trim().toLowerCase();
+        const nombreB = String(b[0] ?? "").trim().toLowerCase();
+        return nombreA.localeCompare(nombreB);
+      });
+
       if (rows.length === 0) {
         doc.setFillColor(248, 250, 252);
         doc.setDrawColor(203, 213, 225);
@@ -520,7 +541,7 @@ export default function PdfGeneralModal({
           pageBreak: "auto",
           rowPageBreak: "avoid",
           head: [["Nombre", "Nómina", "Tipo", "Título", "Descripción", "Fecha"]],
-          body: rows,
+          body: rowsOrdenados,
           styles: {
             font: "helvetica",
             fontSize: 8,

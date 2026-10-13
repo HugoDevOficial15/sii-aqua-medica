@@ -803,15 +803,15 @@ export default function AgendarSalaMes() {
                 }
 
                 .month-badge {
-                    background: linear-gradient(135deg, #c084fc, #8b5cf6);
-                    color: white;
+                    background: none;
+                    color: #b85cf6!important;
                     border-radius: 12px;
                     padding: 10px 16px;
-                    font-weight: 700;
+                    font-size: 26px;
+                    font-weight: 800;
                     display: inline-flex;
                     align-items: center;
                     gap: 8px;
-                    box-shadow: 0 12px 25px rgba(139, 92, 246, 0.25);
                     margin-left: auto;
                     height: 60px;
                 }

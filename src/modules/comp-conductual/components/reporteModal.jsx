@@ -75,7 +75,13 @@ export default function ReporteModal({ isOpen, usuario, operadores = [], onClose
 
   useEffect(() => {
     const cargarEvaluaciones = async () => {
-      if (!isOpen || !seleccionado) {
+      if (!isOpen || tipoReporte !== "puntual") {
+        setEvaluacionesDisponibles([]);
+        setEvaluacionSeleccionadaId("");
+        return;
+      }
+
+      if (!seleccionado) {
         setEvaluacionesDisponibles([]);
         setEvaluacionSeleccionadaId("");
         return;
@@ -190,14 +196,9 @@ const termino = sanitizeText(busqueda).trim().toLowerCase();
   };
 
   const handleGenerarPdf = async () => {
-    if (!seleccionado) {
-      setError("Selecciona un operador para generar el reporte.");
-      return;
-    }
-
     if (tipoReporte === "general") {
       if (!fechaInicio || !fechaFin) {
-        setError("Selecciona ambas fechas para generar el reporte.");
+        setError("Selecciona ambas fechas para generar el reporte general.");
         return;
       }
 
@@ -213,6 +214,11 @@ const termino = sanitizeText(busqueda).trim().toLowerCase();
     }
 
     if (tipoReporte === "puntual") {
+      if (!seleccionado) {
+        setError("Selecciona un operador para generar el reporte puntual.");
+        return;
+      }
+
       if (!evaluacionSeleccionadaId) {
         setError("No hay evaluaciones disponibles para este operador.");
         return;
@@ -231,11 +237,56 @@ const termino = sanitizeText(busqueda).trim().toLowerCase();
     setError("");
 
     try {
+      if (tipoReporte === "general") {
+        const registrosGenerales = [];
+
+        for (const operador of operadores) {
+          const userId = operador.id || operador.uid;
+          if (!userId) continue;
+
+          const registros = await getEvaluacionesConductuales({
+            usuarioId: userId,
+            tipoReporte: "general",
+            fechaInicio,
+            fechaFin,
+          });
+
+          const registrosFiltrados = (Array.isArray(registros) ? registros : []).map((registro) => ({
+            ...registro,
+            usuario: operador,
+            operadorId: userId,
+            nombreOperador: formatearNombre(operador),
+            nomina: operador?.nomina || "Sin nómina",
+            periodoEvaluacion: sanitizeText(registro?.periodoEvaluacion ?? ""),
+            fechaElaboracion: sanitizeText(registro?.fechaElaboracion ?? ""),
+            nombre: sanitizeText(registro?.nombre ?? ""),
+          }));
+
+          registrosGenerales.push(...registrosFiltrados);
+        }
+
+        if (!registrosGenerales.length) {
+          setError("No hay registros para el rango seleccionado en el personal activo.");
+          return;
+        }
+
+        await generateCompConductualReportPDF({
+          operador: null,
+          nombreOperador: "",
+          fechaInicio: sanitizeText(fechaInicio),
+          fechaFin: sanitizeText(fechaFin),
+          registros: registrosGenerales,
+          tipoReporte,
+          documentoSeleccionado: null,
+        });
+        return;
+      }
+
       const documentoSeleccionado = evaluacionesDisponibles.find(
         (registro) => registro.id === evaluacionSeleccionadaId,
       );
 
-      const registrosSanitizados = (tipoReporte === "general" ? evaluacionesDisponibles : [documentoSeleccionado])
+      const registrosSanitizados = [documentoSeleccionado]
         .filter(Boolean)
         .map((registro) => ({
           ...registro,
@@ -290,38 +341,42 @@ const termino = sanitizeText(busqueda).trim().toLowerCase();
         </div>
 
         <div className="reporte-modal-body">
-          <div className="reporte-modal-search-wrap">
-            <label htmlFor="reporte-operador-busqueda">Usuario</label>
-            <input
-              className="nombre-input"
-              id="reporte-operador-busqueda"
-              type="text"
-              value={busqueda}
-              onChange={(event) => setBusqueda(event.target.value)}
-              placeholder="Buscar por nómina o nombre..."
-            />
+          {tipoReporte === "puntual" && (
+            <div className="reporte-modal-search-wrap">
+              <label htmlFor="reporte-operador-busqueda">Usuario</label>
+              <input
+                className="nombre-input"
+                id="reporte-operador-busqueda"
+                type="text"
+                value={busqueda}
+                onChange={(event) => setBusqueda(event.target.value)}
+                placeholder="Buscar por nómina o nombre..."
+              />
 
-            {sugerencias.length > 0 && (
-              <div className="reporte-modal-suggestions" role="listbox">
-                {sugerencias.map((operador) => (
-                  <button
-                    key={operador.id || operador.uid || operador.nomina}
-                    type="button"
-                    className="reporte-modal-suggestion"
-                    onClick={() => handleSeleccionSugerencia(operador)}
-                  >
-                    <span>{formatearNombre(operador)}</span>
-                    <small>{operador.nomina || "Sin nómina"}</small>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+              {sugerencias.length > 0 && (
+                <div className="reporte-modal-suggestions" role="listbox">
+                  {sugerencias.map((operador) => (
+                    <button
+                      key={operador.id || operador.uid || operador.nomina}
+                      type="button"
+                      className="reporte-modal-suggestion"
+                      onClick={() => handleSeleccionSugerencia(operador)}
+                    >
+                      <span>{formatearNombre(operador)}</span>
+                      <small>{operador.nomina || "Sin nómina"}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-          <div className="reporte-modal-user">
-            <span className="reporte-modal-label">Usuario seleccionado</span>
-            <strong>{nombreUsuario}</strong>
-          </div>
+          {tipoReporte === "puntual" && (
+            <div className="reporte-modal-user">
+              <span className="reporte-modal-label">Usuario seleccionado</span>
+              <strong>{nombreUsuario}</strong>
+            </div>
+          )}
 
           <div className="reporte-modal-option-group">
             <span className="reporte-modal-label">Tipo de reporte</span>
@@ -334,6 +389,10 @@ const termino = sanitizeText(busqueda).trim().toLowerCase();
                   checked={tipoReporte === "general"}
                   onChange={() => {
                     setTipoReporte("general");
+                    setBusqueda("");
+                    setSugerencias([]);
+                    setSeleccionado(null);
+                    setEvaluacionSeleccionadaId("");
                     setError("");
                   }}
                 />
@@ -350,6 +409,8 @@ const termino = sanitizeText(busqueda).trim().toLowerCase();
                     setTipoReporte("puntual");
                     setFechaInicio("");
                     setFechaFin("");
+                    setBusqueda(usuario ? formatearNombre(usuario) : "");
+                    setSeleccionado(usuario || null);
                     setError("");
                   }}
                 />

@@ -449,7 +449,7 @@ export default function ListaServiciosPage() {
 
             <div className="col-md-2">
               <button
-                className="btn btn-danger btn-sm w-100"
+                className="btn btn-danger btn-sm w-100 h-100"
                 onClick={handleBloquearDia}
               >
                 Bloquear día

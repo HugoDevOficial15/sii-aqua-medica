@@ -93,9 +93,9 @@ export const MedicamentosTable = ({ data, onEdit, onToggle, onDelete }) => {
                     (openActionsId === item.id
                       ? "medicamento-row-active"
                       : "") +
-                    (item.semaforo.color === "rojo"
+                    (item.semaforo?.color === "rojo"
                       ? " table-danger"
-                      : item.semaforo.color === "amarillo"
+                      : item.semaforo?.color === "amarillo"
                         ? " table-warning"
                         : "")
                   }

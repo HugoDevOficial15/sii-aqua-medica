@@ -9,11 +9,14 @@ const map = {
 }
 
 export const SemaforoBadge = ({ semaforo }) => {
+    const color = map[semaforo?.color] ?? "secondary"
+    const label = semaforo?.label ?? "Sin semáforo"
+
     return (
         <div className="d-flex align-items-center gap-2">
-            <span className={`badge bg-${map[semaforo.color]} px-3 py-2`}>
+            <span className={`badge bg-${color} px-3 py-2`}>
                 <FaCircle className="me-1" />
-                {semaforo.label}
+                {label}
             </span>
 
         </div>

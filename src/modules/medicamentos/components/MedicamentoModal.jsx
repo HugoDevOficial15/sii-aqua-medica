@@ -8,6 +8,7 @@ import Loader from "../../../components/Loader"
 import { FaPlus, FaEdit } from "react-icons/fa"
 import { useEffect, useState } from "react"
 import Swal from "sweetalert2";
+import { color } from "chart.js/helpers"
 
 const parseDateInput = (value) => {
     if (!value) return null
@@ -99,6 +100,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
     const [hoveredField, setHoveredField] = useState(null)
     const [focusedField, setFocusedField] = useState(null)
     const [isCloseHovered, setIsCloseHovered] = useState(false)
+    const [isSaveHovered, setIsSaveHovered] = useState(false)
     const todayString = new Date().toISOString().split("T")[0]
 
     const {
@@ -156,7 +158,6 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
         try {
 
-            setLoading(true)
 
             const sanitizedForm = {
                 ...form,
@@ -170,7 +171,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
             if (data) {
 
-                Swal.fire({
+                const result = await Swal.fire({
                     title: '¿Estás seguro?',
                     text: "Se actualizará el medicamento",
                     icon: 'warning',
@@ -179,6 +180,11 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                     cancelButtonColor: '#d33',
                     confirmButtonText: 'Sí, actualizar'
                 })
+
+                if (!result.isConfirmed) {
+                    return
+                }
+
                 await updateMedicamento(data.id, sanitizedForm)
 
                 await Swal.close();
@@ -189,7 +195,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
             } else {
 
-                Swal.fire({
+                const result = await Swal.fire({
                     title: '¿Estás seguro?',
                     text: "Se creará el medicamento",
                     icon: 'warning',
@@ -198,8 +204,13 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                     cancelButtonColor: '#d33',
                     confirmButtonText: 'Sí, crear'
                 })
+
+                if (!result.isConfirmed) {
+                    return
+                }
+
                 await createMedicamento(sanitizedForm)
-                
+
                 await Swal.close();
                 notifySuccess(
                     "Medicamento creado",
@@ -219,7 +230,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
         } finally {
 
-            setLoading(false)
+
         }
     }
 
@@ -274,8 +285,6 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
                 {/* BODY */}
                 <div style={styles.body}>
-
-                    {loading && <Loader />}
 
                     <form
                         onSubmit={handleSubmit(onSubmit)}
@@ -444,7 +453,12 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
                             <button
                                 type="submit"
-                                style={styles.saveButton}
+                                style={{
+                                    ...styles.saveButton,
+                                    ...(isSaveHovered ? styles.saveButtonHover : {})
+                                }}
+                                onMouseEnter={() => setIsSaveHovered(true)}
+                                onMouseLeave={() => setIsSaveHovered(false)}
                             >
 
                                 {loading
@@ -700,7 +714,7 @@ const styles = {
 
         border: "none",
 
-        background: "linear-gradient(135deg,var(--btn-start,#2563eb),var(--btn-end,#1d4ed8))",
+        background: "var(--operator-primary)",
 
         color: "#fff",
 
@@ -715,5 +729,13 @@ const styles = {
         justifyContent: "center",
 
         boxShadow: "0 12px 24px rgba(37,99,235,0.14)"
+    },
+    
+    saveButtonHover: {
+        transform: "scale(1.02)",
+        transition: "transform 0.2s ease-in-out",
+        color: "var(--operator-primary)",
+        boxShadow: "0 0px 10px 1px var(--operator-primary)"
+
     }
-}
+};

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { FaEdit, FaEllipsisV, FaTrash } from "react-icons/fa";
+import { FaEdit, FaEllipsisV, FaTrash, FaPlus} from "react-icons/fa";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
 import { uploadNewsFile, uploadNewsImage } from "../../services/newsStorageService";
 import { getNoticias, createNoticia, updateNoticia, deleteNoticia } from "../../services/newsService";
 import { sanitizeText, sanitizeTextTrim } from "../../utils/sanitize";
+import Loader from "../../components/Loader";
 import Swal from "sweetalert2";
 
 // 1. Función para obtener la fecha local de hoy en formato YYYY-MM-DD
@@ -53,11 +54,14 @@ export default function News() {
   const [noticias, setNoticias] = useState([]);
 
   const cargarNoticias = async () => {
+    setLoading(true);
     try {
       const lista = await getNoticias();
       setNoticias(lista);
+      setLoading(false);
     } catch (error) {
       console.error("Error al cargar noticias:", error);
+      setLoading(false);
     }
   };
 
@@ -250,6 +254,10 @@ export default function News() {
     return noticia.fechaLimite >= fechaHoy;
   });
 
+  if (loading) {
+    return <Loader text="Cargando noticias..." />;
+  }
+
   return (
     <div className="container-fluid p-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -265,7 +273,7 @@ export default function News() {
         {vistaActual === "lista" ? (
           <button className="btn btn-sm btn-primary btn-custom "
            onClick={abrirFormularioCrear}>
-            + Crear Noticia
+            <FaPlus className="me-2" /> Crear Noticia
           </button>
         ) : (
           <button className="btn btn-outline-secondary" onClick={() => setVistaActual("lista")}>Volver a la lista</button>

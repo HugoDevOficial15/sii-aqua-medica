@@ -19,6 +19,8 @@ export default function MedicamentosPage() {
         fetchData,
         toggleMedicamento,
         deleteMedicamento,
+        filtroNombre,
+        setFiltroNombre,
         filtroSemaforo,
         setFiltroSemaforo,
         filtroEstado,
@@ -101,12 +103,13 @@ export default function MedicamentosPage() {
 
             {/* FILTROS */}
             <FiltrosMedicamentos
+                filtroNombre={filtroNombre}
+                setFiltroNombre={setFiltroNombre}
                 filtroSemaforo={filtroSemaforo}
                 setFiltroSemaforo={setFiltroSemaforo}
                 filtroEstado={filtroEstado}
                 setFiltroEstado={setFiltroEstado}
                 onExportPdf={handleExportPdf}
-                
             />
                         <button className="btn btn-primary d-flex align-items-center gap-2" onClick={handleNew}>
                     <FaPlus />

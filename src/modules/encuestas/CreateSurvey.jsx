@@ -1217,7 +1217,7 @@ export default function CreateSurvey() {
 
                                         <div className="d-flex-mb-3">
 
-                                            <h5 className="m-0">
+                                            <h5 className="margin-bottom-10px">
                                                 Preguntas
                                             </h5>
 
@@ -1468,10 +1468,11 @@ export default function CreateSurvey() {
 .btn-primary:not(.btn-sm),
 .btn-success:not(.btn-sm),
 .btn-danger:not(.btn-sm) {
+    
 
     height: 46px;
 
-    padding: 0 18px !important;
+    padding: 18px !important;
 
     border-radius: 12px !important;
 
@@ -2153,6 +2154,7 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
     align-items: center;
     justify-content: center;
     box-shadow: 0 0px 10px var(--operator-primary-light);
+    margin-top: 10px;
 }
 
 .btn-agregar-temario:hover {

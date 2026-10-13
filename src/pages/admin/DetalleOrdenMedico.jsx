@@ -5,6 +5,7 @@ import { notifySuccess, notifyError, notifyWarning, confirmDelete, notifyInfo } 
 import { useAuth } from "../../hooks/useAuth";
 import { dismissNotification } from "../../utils/notificationPersistence";
 import { getOrdenesMedicas, buscarOrdenesActivasPorPaciente, getUsuarioPorNomina, getUsuarioByDocId, crearOrdenAtencionRapida, guardarRevisionOrdenMedica, eliminarOrdenMedicaAdmin } from "../../services/ordenesMedicasService";
+import Loader from "../../components/Loader";
 
 export default function DetalleOrdenMedica() {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ export default function DetalleOrdenMedica() {
   const [ordenes, setOrdenes] = useState([]);
   const [cargandoOrdenes, setCargandoOrdenes] = useState(false);
   const [filtroActivo, setFiltroActivo] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [comentarios, setComentarios] = useState("");
   const [medicamentos, setMedicamentos] = useState("");
@@ -34,6 +36,7 @@ export default function DetalleOrdenMedica() {
   // 0. CARGAR TODAS LAS ÓRDENES
   const cargarOrdenes = async () => {
     setCargandoOrdenes(true);
+    setLoading(true);
     try {
       const items = await getOrdenesMedicas();
       setOrdenes(items);
@@ -41,6 +44,7 @@ export default function DetalleOrdenMedica() {
       console.error("Error al cargar órdenes:", error);
     } finally {
       setCargandoOrdenes(false);
+      setLoading(false);
     }
   };
 
@@ -262,6 +266,9 @@ export default function DetalleOrdenMedica() {
     }
   };
 
+  if (loading) {
+    return <Loader text="Cargando las ordenes medicas..."/>;
+  }
   return (
     <div className="page-transition">
 
@@ -382,7 +389,7 @@ export default function DetalleOrdenMedica() {
                       <td>{orden.nominaPaciente || orden.nominaPAciente || "N/A"}</td>
                       <td>{new Date(orden.fechaApertura).toLocaleDateString("es-MX")}</td>
                       <td>
-                        <span className={`badge ${orden.estado === "Pendiente" ? "bg-warning text-dark" : "bg-info text-dark"}`}>
+                        <span className={`badge ${orden.estado === "Pendiente" ? "badge-pendiente" : "badge-tratamiento"}`}>
                           {orden.estado}
                         </span>
                       </td>
@@ -454,7 +461,7 @@ export default function DetalleOrdenMedica() {
             <h5 className="mb-0 text-white">
               Paciente: <strong>{ordenCargada.nombrePaciente || "Nombre no registrado"}</strong>
             </h5>
-            <span className="badge bg-warning text-dark ms-auto">
+            <span className={`badge ${ordenCargada.estado === "Pendiente" ? "badge-pendiente" : "badge-tratamiento"}`}>
               {ordenCargada.estado}
             </span>
           </div>
@@ -696,6 +703,7 @@ export default function DetalleOrdenMedica() {
 
         .btn-primary {
             height: 50px;
+            min-width: 200px;
             padding: 0 20px;
             border-radius: 10px;
             border: none;
@@ -706,13 +714,13 @@ export default function DetalleOrdenMedica() {
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0px 20px var(--operator-primary-light);
+            box-shadow: 0 0px 5px var(--operator-primary-light);
             transition: all 0.3s ease;
         }
 
         .btn-primary:hover {
             background: var(--operator-primary);
-            box-shadow: 0 0px 10px var(--operator-primary-light);
+            box-shadow: 0 0px 15px var(--operator-primary-light);
         }
 
         .btn-success {
@@ -727,13 +735,13 @@ export default function DetalleOrdenMedica() {
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0px 20px rgba(16, 185, 129, 0.5);
+            box-shadow: 0 0px 5px rgba(16, 185, 129, 0.5);
             transition: all 0.3s ease;
         }
 
         .btn-success:hover {
             background: #059669;
-            box-shadow: 0 0px 10px rgba(16, 185, 129, 0.7);
+            box-shadow: 0 0px 15px rgba(16, 185, 129, 0.7);
         }
 
         .custom-users-card {
@@ -789,7 +797,7 @@ export default function DetalleOrdenMedica() {
         }
 
         .kpi-card.active {
-            border-color: currentColor;
+            border-color:var(--operator-primary);
             box-shadow: 0 0px 20px rgba(59, 130, 246, 0.3);
         }
 
@@ -965,9 +973,18 @@ export default function DetalleOrdenMedica() {
             transform: scale(1.01);
         }
 
-        .badge {
+        .badge-pendiente {
             border-radius: 999px;
             padding: 6px 12px;
+            background: var(--operator-cambio);
+            color: var(--operator-cambio-text);
+        }
+
+        .badge-tratamiento {
+            border-radius: 999px;
+            padding: 6px 12px;
+            background: var(--operator-materia-prima);
+            color: var(--operator-materia-prima-text);
         }
 
         .btn-sm {

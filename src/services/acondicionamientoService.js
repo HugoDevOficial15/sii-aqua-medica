@@ -1,6 +1,6 @@
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../config/firebase";
-import { readCachedData, writeCachedData, clearCachedData } from "../utils/cacheStore";
+import { readCachedData, writeCachedData, clearCachedData, clearCachedByPrefix } from "../utils/cacheStore";
 
 const call = (name) => httpsCallable(functions, name);
 
@@ -38,5 +38,7 @@ export const obtenerAcondicionamiento = async (forceRefresh = false) => {
 export const actualizarAcondicionamiento = async (id, data) => {
     const result = await actualizarAcondicionamientoFunction({ id, data });
     clearCachedData(CACHE_KEY);
+    clearCachedData("sii-aqua-rack-stock-cache");
+    clearCachedByPrefix("sii-aqua-rack-stock-cache:");
     return result?.data ?? null;
 };
