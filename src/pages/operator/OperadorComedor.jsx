@@ -90,9 +90,20 @@ export default function OperadorComedor({ onBack }) {
         return partes.length > 1 ? partes[1] : valor;
     };
 
+    const TAMANOS_ORDEN = { "0.5": "Media orden", "1": "Una orden", "1.5": "Orden y media", "2": "Dos órdenes" };
+
+    const tamanoPlatillo = (valor) => {
+        if (!valor || valor === "NA") return null;
+        return TAMANOS_ORDEN[valor.split("-")[3]] || null;
+    };
+
     const extrasDelDia = (extras) => (extras || [])
         .filter((extra) => extra && extra !== "NA")
         .map((extra) => extra.split("-")[0]);
+
+    const formatoPlatillo = (menu, multiplicador) => menu === "Asada"
+        ? `Asada-Asada-25-${multiplicador}`
+        : `G1-${menu}-25-${multiplicador}`;
 
     const mealTypes = [
         { type: "Desayuno", label: "Desayuno", color: "#FF9800", icon: <FaCoffee /> },
@@ -182,7 +193,7 @@ export default function OperadorComedor({ onBack }) {
 
             {/* Mostrar pedidos existentes si los hay */}
             {/* PRUEBAS: banner de pedido registrado desactivado (quitar "false &&" para reactivar) */}
-            {false && tienePedidosExistentes && pedidosExistentes ? (
+            {/*false && */tienePedidosExistentes && pedidosExistentes ? (
                 <div style={{ ...styles.carritoSection, borderColor: "#FF9800" }}>
                     <h3 style={{ ...styles.carritoTitle, color: "#FF9800" }}>✓ Pedido Registrado para la siguiente semana</h3> 
                      <p style={styles.dateRange}>
@@ -209,16 +220,26 @@ export default function OperadorComedor({ onBack }) {
                                 <div key={dia} style={{ fontSize: "13px", padding: "8px 0", borderTop: "1px solid var(--operator-border)" }}>
                                     <strong>{dia}</strong>
                                     {(desayuno || extras.length > 0) && (
-                                        <div>Desayuno: {desayuno || "—"}{extras.length > 0 && ` + ${extras.join(", ")}`}</div>
+                                        <div>Desayuno: {desayuno || "—"}{tamanoPlatillo(pedidosExistentes.desayuno?.[i]) && ` (${tamanoPlatillo(pedidosExistentes.desayuno?.[i])})`}{extras.length > 0 && ` + ${extras.join(", ")}`}</div>
                                     )}
-                                    {comida && <div>Comida: {comida}</div>}
-                                    {cena && <div>Cena: {cena}</div>}
+                                    {comida && <div>Comida: {comida}{tamanoPlatillo(pedidosExistentes.comida?.[i]) && ` (${tamanoPlatillo(pedidosExistentes.comida?.[i])})`}</div>}
+                                    {cena && <div>Cena: {cena}{tamanoPlatillo(pedidosExistentes.cena?.[i]) && ` (${tamanoPlatillo(pedidosExistentes.cena?.[i])})`}</div>}
                                 </div>
                             );
                         })}
                     </div>
+                    {pedidosExistentes.totales && (
+                        <div style={{ marginTop: "12px", borderTop: "1px solid var(--operator-border)", paddingTop: "12px", fontSize: "13px" }}>
+                            <div>Total desayunos: <strong>${pedidosExistentes.totales.desayuno}</strong></div>
+                            <div>Total comidas: <strong>${pedidosExistentes.totales.comida}</strong></div>
+                            <div>Total cenas: <strong>${pedidosExistentes.totales.cena}</strong></div>
+                            <div style={{ marginTop: "6px", fontSize: "15px", color: "#4CAF50" }}>
+                                Total general: <strong>${pedidosExistentes.totales.semana}</strong>
+                            </div>
+                        </div>
+                    )}
                     <p style={{ fontSize: "12px", color: "var(--operator-text-soft)", marginTop: "12px", textAlign: "center" }}>
-                        Para realizar cambios, comuníquese con administración.
+                        Para realizar cambios, comuníquese con comedor.
                     </p>
                 </div>
             ) : (
@@ -554,11 +575,21 @@ export default function OperadorComedor({ onBack }) {
 
                                     const array = arrayMap[orden.tipo];
                                     if (array && indice >= 0) {
-                                        array[indice] = orden.menu;
-                                        if (orden.tipo === "Desayuno" && orden.extras.length > 0) {
-                                            desayunosExtras[indice] = orden.extras.map(
+                                        const multiplicador = orden.multiplicador || 1;
+                                        if (orden.tipo === "Desayuno") {
+                                            const extrasDia = orden.extras.map(
                                                 (extra) => `${extra.split(" ")[0]}-${EXTRAS_PRECIOS[extra] || 10}`
                                             );
+                                            if (orden.menu === "Asada") {
+                                                desayunosExtras[indice] = ["Asada-25", ...extrasDia];
+                                            } else {
+                                                desayunos[indice] = formatoPlatillo(orden.menu, multiplicador);
+                                                if (extrasDia.length > 0) {
+                                                    desayunosExtras[indice] = extrasDia;
+                                                }
+                                            }
+                                        } else {
+                                            array[indice] = formatoPlatillo(orden.menu, multiplicador);
                                         }
                                     }
                                 }

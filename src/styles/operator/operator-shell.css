@@ -3677,7 +3677,7 @@ RANKING - ÁREA + GLOBAL
 
 @media (max-width: 768px) {
     .survey-stats {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
         margin-bottom: 16px;
     }
@@ -3697,13 +3697,14 @@ RANKING - ÁREA + GLOBAL
 
 @media (max-width: 480px) {
     .survey-stats {
-        grid-template-columns: 1fr;
-        gap: 10px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
         margin-bottom: 16px;
     }
 
     .survey-stat-card {
-        padding: 12px;
+        padding: 12px 6px;
+        min-width: 0;
     }
 
     .survey-stat-card h3 {
@@ -3712,9 +3713,53 @@ RANKING - ÁREA + GLOBAL
 
     .survey-stat-card span {
         font-size: 10px;
+        overflow-wrap: anywhere;
     }
 
     .survey-stat-card svg {
         font-size: 18px;
     }
+}
+
+.points-screen,
+.points-content,
+.points-card,
+.points-stat-card,
+.ranking-card-design,
+.ranking-card-list,
+.ranking-card-item,
+.ranking-card-left {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.points-stats,
+.points-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ranking-card-item {
+    gap: 8px;
+}
+
+.ranking-card-info strong,
+.ranking-card-info small {
+    overflow-wrap: anywhere;
+}
+
+.ranking-global-item {
+    gap: 8px;
+}
+
+.ranking-global-item .ranking-card-info strong {
+    font-size: 13px;
+}
+
+.ranking-number {
+    min-width: 28px;
+    flex-shrink: 0;
+}
+
+.ranking-points {
+    min-width: 36px;
 }

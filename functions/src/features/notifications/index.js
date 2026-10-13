@@ -21,9 +21,10 @@ const getNotificationUserIds = (user) => [...new Set([
 const getUserIdsForCurrentUser = async (uid) => {
   const userDoc = await usersCollection.where("uid", "==", uid).limit(1).get();
   const userData = !userDoc.empty ? userDoc.docs[0].data() : {};
+  const docId = !userDoc.empty ? userDoc.docs[0].id : null;
   const userIds = getNotificationUserIds(userData);
 
-  return Array.from(new Set([String(uid), ...userIds]));
+  return Array.from(new Set([String(uid), String(docId || ""), ...userIds].filter(Boolean)));
 };
 
 const toTimestamp = (value) => {

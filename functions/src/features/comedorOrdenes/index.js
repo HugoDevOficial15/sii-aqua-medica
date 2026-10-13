@@ -10,7 +10,8 @@ const COMEDOR_COSTOS = {
 const calcularCostoArray = (array, costo) => {
   return array.reduce((total, item) => {
     if (item === "NA" || !item) return total;
-    return total + costo;
+    const multiplicador = parseFloat(String(item).split("-")[3]) || 1;
+    return total + costo * multiplicador;
   }, 0);
 };
 

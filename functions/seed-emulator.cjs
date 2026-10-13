@@ -208,13 +208,94 @@ const seedComidas = async () => {
   }
 };
 
+const puestosEmulador = [
+  "COORDINADOR DE SISTEMAS",
+  "OPERADOR",
+  "SUPERVISOR DE COMEDOR",
+  "AUXILIAR ADMINISTRATIVO",
+  "ANALISTA",
+];
+
+const seedPuestos = async () => {
+  for (const nombre of puestosEmulador) {
+    await db.collection("puestos").doc(nombre.replace(/\s+/g, "_")).set({
+      nombre,
+      activo: true,
+      createdAt: new Date(),
+    }, { merge: true });
+  }
+  console.log(`✅ Puestos creados: ${puestosEmulador.length}`);
+};
+
+const seedEncuestas = async () => {
+  const userSnap = await db.collection("users").doc("emulator-999002").get();
+  const uid = userSnap.exists ? userSnap.data().uid : null;
+  const nomina = 999002;
+
+  const fechaInicio = new Date("2026-01-01T00:00:00Z");
+  const fechaFin = new Date("2030-12-31T23:59:59Z");
+
+  const encuestas = [
+    { id: "emulator-encuesta-1", titulo: "Encuesta de seguridad (disponible)" },
+    { id: "emulator-encuesta-2", titulo: "Encuesta de comedor (disponible)" },
+    { id: "emulator-encuesta-3", titulo: "Encuesta de capacitación (completada)" },
+    { id: "emulator-encuesta-4", titulo: "Encuesta de calidad (reprobada)" },
+  ];
+
+  for (const encuesta of encuestas) {
+    await db.collection("encuestas").doc(encuesta.id).set({
+      titulo: encuesta.titulo,
+      descripcion: "Encuesta de prueba del emulador",
+      instructor: "Seed",
+      modalidad: "Online",
+      activa: true,
+      asignacion: { tipo: "global", valores: [] },
+      preguntas: [],
+      fechaInicio,
+      fechaFin,
+    }, { merge: true });
+  }
+
+  if (!uid) {
+    console.log("⚠️  No se encontró uid del operador 999002; encuestas creadas sin respuestas.");
+    return;
+  }
+
+  const respuesta = (encuestaId, estadoActual, puntuacionObtenida) => ({
+    encuestaId,
+    userId: uid,
+    nomina,
+    estadoActual,
+    puntuacionObtenida,
+    intentos: 1,
+    fechaRespuesta: new Date(),
+  });
+
+  await db.collection("respuestasEncuestas").doc("emulator-encuesta-3")
+    .collection("aprobados").doc(`${uid}-emulator-encuesta-3`)
+    .set(respuesta("emulator-encuesta-3", "completada", 90), { merge: true });
+
+  await db.collection("respuestasEncuestas").doc("emulator-encuesta-4")
+    .collection("reprobados").doc(`${uid}-emulator-encuesta-4`)
+    .set(respuesta("emulator-encuesta-4", "completada", 50), { merge: true });
+
+  console.log("✅ Encuestas creadas: 2 disponibles, 1 completada, 1 reprobada");
+};
+
 const seed = async () => {
   console.log("📝 Sembrando base de datos del emulador...\n");
 
+  console.log("🏷️  Creando puestos...");
+  await seedPuestos();
+
   console.log("👤 Creando usuarios...");
-  for (const account of accounts) {
-    await seedAccount(account);
+  const LOTE = 10;
+  for (let i = 0; i < accounts.length; i += LOTE) {
+    await Promise.all(accounts.slice(i, i + LOTE).map(seedAccount));
   }
+
+  console.log("\n📋 Creando encuestas...");
+  await seedEncuestas();
 
   console.log("\n👨‍🎓 Creando practicantes...");
   await seedPracticantes();

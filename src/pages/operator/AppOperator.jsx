@@ -1,6 +1,6 @@
 import { Suspense, lazy, useState, useEffect, useRef } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../config/firebase";
 import { useAuth } from "../../hooks/useAuth";
 import { useOperatorSurveys } from "../../hooks/hooksOperator/useOperatorSurveys";
 import { useOperatorTrainings } from "../../hooks/hooksOperator/useOperatorTrainings";
@@ -114,27 +114,22 @@ export default function AppOperator() {
             return;
         }
 
-        const q = query(
-            collection(db, "notificaciones"),
-            where("IdUsuario", "in", notificationUserIds)
-        );
+        const obtenerNotificaciones = httpsCallable(functions, "getOperatorNotifications");
 
-        const unsubscribe = onSnapshot(
-            q,
-            (snapshot) => setNotificacionesCount(snapshot.size),
-            (error) => {
+        const actualizarContador = async () => {
+            try {
+                const response = await obtenerNotificaciones();
+                setNotificacionesCount(response?.data?.count || 0);
+            } catch (error) {
                 console.error("Error contando notificaciones del usuario:", error);
                 setNotificacionesCount(0);
             }
-        );
+        };
 
-        // Polling cada 5 segundos como fallback
-        const interval = setInterval(() => {
-            onSnapshot(q, (snapshot) => setNotificacionesCount(snapshot.size));
-        }, 5000);
+        actualizarContador();
+        const interval = setInterval(actualizarContador, 5000);
 
         return () => {
-            unsubscribe();
             clearInterval(interval);
         };
     }, [user?.uid, user?.id, user?.userId, user?.nomina, user?.nominaUsuario, user?.numeroNomina]);

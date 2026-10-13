@@ -15,6 +15,13 @@
 * actualizarAcondicionamiento
 * actualizarProducto
 
+
+**Funciones arregladas**
+* saveComedorOrden
+* ObtenerComedorOrden
+* getOperatorNotifications
+* deleteNotification
+* clearAllNotifications
 ==================================
 
             ============

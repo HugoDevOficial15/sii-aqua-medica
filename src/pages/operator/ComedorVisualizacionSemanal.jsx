@@ -7,6 +7,7 @@ import { readCachedData, writeCachedData } from "../../utils/cacheStore";
 // Cache config
 const COMEDOR_HORARIOS_CACHE_KEY = "sii-aqua-comedor-horarios-cache";
 const COMEDOR_HORARIOS_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
+const ENCUESTA_SATISFACCION_COMEDOR_URL = "https://docs.google.com/forms/d/e/1FAIpQLSem5LyJGIR7n-5MMkjxQ1LF99WVdmrFfTPG3zLLBG47j4il9A/viewform?pli=1";
 
 export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavigateSuggestions }) {
     const currentWeek = getCurrentWeekRange();
@@ -143,6 +144,13 @@ export default function ComedorVisualizacionSemanal({ onBack, onNavigate, onNavi
             <div style={{ textAlign: "center", marginTop: "40px" }}>
                 <button style={styles.suggestButton} onClick={onNavigateSuggestions}>
                     💡 Enviar sugerencia
+                </button>
+            </div>
+
+            {/* Encuesta button */}
+            <div style={{ textAlign: "center", marginTop: "40px" }}>
+                <button style={styles.suggestButton} onClick={() => window.open(ENCUESTA_SATISFACCION_COMEDOR_URL, "_blank", "noopener,noreferrer")}>
+                   📝 Encuesta mensual de satisfacción del Servicio de Comedor
                 </button>
             </div>
         </div>

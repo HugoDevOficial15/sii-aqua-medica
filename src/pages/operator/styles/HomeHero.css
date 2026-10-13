@@ -81,5 +81,23 @@
     border-radius: 50%;
 
     border: 3px solid rgba(255, 255, 255, .9);
+    flex-shrink: 0;
+}
+
+.homeHero {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    gap: 14px;
+}
+
+.heroContent {
+    flex: 1;
+    min-width: 0;
+}
+
+.heroContent h1,
+.heroContent p {
+    overflow-wrap: break-word;
 
 }

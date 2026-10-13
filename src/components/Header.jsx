@@ -19,7 +19,8 @@ import { useLogout } from "../hooks/useLogout";
 
 import { getDismissedNotifications, dismissNotification } from "../utils/notificationPersistence";
 
-const loadHeaderNotifications = httpsCallable(functions, "loadNotifications");
+const loadHeaderNotifications = httpsCallable(functions, "getOperatorNotifications");
+const TIEMPO_MAX_NOTIFICACIONES_MS = 15000;
 const dismissHeaderNotification = httpsCallable(functions, "dismissHeaderNotification");
 
 export default function Header({ toggleSidebar }) {
@@ -61,8 +62,19 @@ export default function Header({ toggleSidebar }) {
         notificationLoadRef.current = true;
 
         try {
-            const response = await loadHeaderNotifications();
-            const notifs = (response?.data?.notifications || []).map((n) => {
+            const timeout = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Tiempo agotado al cargar notificaciones")), TIEMPO_MAX_NOTIFICACIONES_MS)
+            );
+            const response = await Promise.race([loadHeaderNotifications(), timeout]);
+            const notifs = (response?.data?.notifications || []).map((raw) => {
+                const n = {
+                    ...raw,
+                    title: raw.title || raw.Titulo || "Nueva notificación",
+                    subtitle: raw.subtitle || raw.Mensaje || "Sin detalles",
+                    ruta: raw.ruta || raw.Destino || "/",
+                    persistedInDb: raw.persistedInDb ?? true,
+                    source: raw.source || "firebase",
+                };
                 let icon = <FaUserCircle />;
                 if (n.title?.includes("📅")) icon = <FaUserCircle />;
                 if (n.title?.includes("❌")) icon = <FaUserCircle />;

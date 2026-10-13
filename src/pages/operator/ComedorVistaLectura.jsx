@@ -45,7 +45,7 @@ export default function ComedorVistaLectura({ onBack, uid }) {
         };
     };
 
-    const handleCancelar = async (diaIndex, dayName, conExtras) => {
+    const handleCancelar = async (diaIndex, dayName, conExtras, costo) => {
         const tipoComida = mealTypes.find(m => m.type === activeMealTab).label;
 
         const confirmacion = await Swal.fire({
@@ -63,7 +63,7 @@ export default function ComedorVistaLectura({ onBack, uid }) {
             diaIndex,
             tipoComida,
             conExtras,
-            amount: COSTO_POR_PLATILLO,
+            amount: costo,
         });
 
         if (ok) {
@@ -166,6 +166,9 @@ export default function ComedorVistaLectura({ onBack, uid }) {
                     const platilloProcesado = procesarPlatillo(platilloActual);
                     const tienePedido = platilloProcesado !== null || (extrasArray.length > 0 && extrasArray[0] !== "NA");
                     const colorActivo = mealTypes.find(m => m.type === activeMealTab).color;
+                    const costoPlatillo = platilloProcesado
+                        ? COSTO_POR_PLATILLO * (parseFloat(String(platilloActual).split("-")[3]) || 1)
+                        : 0;
 
                     return (
                         <div key={index} style={{...styles.dayCard, opacity: tienePedido ? 1 : 0.6}}>
@@ -210,7 +213,7 @@ export default function ComedorVistaLectura({ onBack, uid }) {
                                                 <button
                                                     style={styles.cancelButton}
                                                     disabled={cancelando}
-                                                    onClick={() => handleCancelar(index, dayName, activeMealTab === "desayuno" && extrasArray.length > 0 && extrasArray[0] !== "NA")}
+                                                    onClick={() => handleCancelar(index, dayName, activeMealTab === "desayuno" && extrasArray.length > 0 && extrasArray[0] !== "NA", costoPlatillo)}
                                                 >
                                                     <FiTrash2 /> Cancelar
                                                 </button>

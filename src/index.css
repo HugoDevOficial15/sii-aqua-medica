@@ -122,10 +122,12 @@ html[data-theme="dark"] .card .text-muted {
 
 html[data-fontsize="small"] #root {
   zoom: 0.9;
+  width: calc(100vw / 0.9);
 }
 
 html[data-fontsize="large"] #root {
   zoom: 1.15;
+  width: calc(100vw / 1.15);
 }
 
 /* ENLACES */
