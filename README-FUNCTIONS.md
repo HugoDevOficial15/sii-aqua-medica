@@ -14,6 +14,7 @@
 * actualizarMateriaPrima
 * actualizarAcondicionamiento
 * actualizarProducto
+* updateUserPasswordByReset
 
 
 **Funciones arregladas**

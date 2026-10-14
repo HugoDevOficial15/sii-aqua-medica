@@ -422,28 +422,70 @@ exports.updateUserFields = onCall(async (request) => {
 
 exports.updateUserPasswordByReset = onCall(async (request) => {
   requireAuth(request);
-  const { userId, password, nomina } = request.data || {};
+  const { userId, email, password, nomina } = request.data || {};
   const userSnapshot = await getUserByUidOrId(userId);
   if (!userSnapshot) throw new HttpsError("not-found", "Usuario no encontrado.");
 
   const userData = userSnapshot.data() || {};
-  const uid = userData.uid;
-  if (!uid) throw new HttpsError("not-found", "No se encontró el UID del usuario.");
+  const normalizedNomina = userData.nomina ?? nomina ?? "";
+  const resolvedEmail = String(userData.email || email || "").trim() || (
+    normalizedNomina !== "" ? `${normalizedNomina}@aquamedica.com` : ""
+  );
 
-  const resetPassword = String(password || "").trim() || `AQUAmedica${userData.nomina ?? nomina ?? ""}`;
+  let uid = typeof userData.uid === "string" ? userData.uid.trim() : "";
+  let resolvedWith = "uid";
+
+  const resetPassword = String(password || "").trim() || `AQUAmedica${normalizedNomina}`;
   if (!resetPassword) throw new HttpsError("invalid-argument", "La contraseña de reset no es válida.");
 
-  await admin.auth().updateUser(uid, { password: resetPassword });
-  await userSnapshot.ref.update({
-    mustChangePassword: true,
-    activo: true,
-    bloqueado: false,
-    intentosFallidos: 0,
-    ultimoIntentoFallido: null,
-    updatedAt: FieldValue.serverTimestamp(),
-  });
+  try {
+    if (uid) {
+      try {
+        await admin.auth().getUser(uid);
+      } catch (authError) {
+        if (authError?.code !== "auth/user-not-found") throw authError;
+        uid = "";
+      }
+    }
 
-  return { success: true, userId: userSnapshot.id, uid, password: resetPassword };
+    if (!uid && resolvedEmail) {
+      const authUser = await admin.auth().getUserByEmail(resolvedEmail);
+      uid = authUser?.uid || "";
+      resolvedWith = "email";
+    }
+
+    if (!uid) {
+      throw new HttpsError("not-found", "No se encontró el UID del usuario en Firebase Authentication.");
+    }
+
+    await admin.auth().updateUser(uid, { password: resetPassword });
+    await userSnapshot.ref.update({
+      uid,
+      mustChangePassword: true,
+      activo: true,
+      bloqueado: false,
+      intentosFallidos: 0,
+      ultimoIntentoFallido: null,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    return { success: true, userId: userSnapshot.id, uid, password: resetPassword, resolvedWith };
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+
+    const code = error?.code || "unknown";
+    const message = error?.message || "No se pudo resetear la contraseña del usuario.";
+    console.error("Error al resetear contraseña por recuperación:", {
+      userId,
+      email: resolvedEmail,
+      nomina: normalizedNomina,
+      code,
+      message,
+      stack: error?.stack,
+    });
+
+    throw new HttpsError("internal", `No se pudo resetear la contraseña: ${message}`, { code, details: message });
+  }
 });
 
 exports.resetFailedLoginAttempts = onCall(async (request) => {
