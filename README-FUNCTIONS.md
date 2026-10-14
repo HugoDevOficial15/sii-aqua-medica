@@ -7,7 +7,15 @@
 # ###########  SII  ############ #
 
 **Functions-Nuevas**
-* 
+* registrarPuntos
+* obtenerPuntosUsuario
+* obtenerHistorialPuntos
+* obtenerUltimosLogros
+* obtenerObjetivosCompletados
+* obtenerTopArea
+* obtenerUsuariosArea
+* obtenerTopGlobal
+* obtenerMiPosicionArea 
 
 **Functions-Refactorizadas**
 
@@ -17,7 +25,9 @@
 * createOrdenMedica
 * crearOrdenAtencionRapida
 * guardarRevisionOrdenMedica
-
+* getOperatorNotifications
+* deleteNotification
+* clearAllNotifications
 # #########  COMEDOR  ########## #
 
 
