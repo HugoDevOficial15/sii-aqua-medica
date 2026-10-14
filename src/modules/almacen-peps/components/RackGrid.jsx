@@ -1,10 +1,18 @@
 import RackCard from "./RackCard";
+import Loader from "../../../components/Loader";
+import { useState } from "react";
 
 export default function RackGrid({
     racks,
     onSelect
 }) {
 
+    const [loading, setLoading] = useState(false);
+
+
+    if (loading) {
+        return <Loader text="Cargando racks..." />;
+    }
     return (
 
         <div className="rack-grid">

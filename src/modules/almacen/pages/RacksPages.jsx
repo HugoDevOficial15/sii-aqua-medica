@@ -110,11 +110,20 @@ export default function RacksPages() {
         }
       }
 
+      Swal.fire({
+        title: 'Actualizando estado...',
+        text: 'Por favor espere mientras se actualiza el estado del rack...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
       await actualizarRack(rack.id, {
         ...rack,
         estatus: nextStatus,
       });
       await refetch();
+      Swal.close();
 
       if (nextStatus === "mantenimiento") {
         notifySuccess(

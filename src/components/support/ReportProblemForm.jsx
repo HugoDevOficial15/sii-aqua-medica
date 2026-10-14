@@ -252,9 +252,8 @@ export default function ReportProblemForm({
 
                 <button
                     type="submit"
-                    className="report-submit-btn"
+                    className="btn-enviar"
                     disabled={status === "sending"}
-                    style = {{backgroundColor: "var(--operator-border)"}}
                 >
                     <FiSend />
                     {status === "sending" ? "Enviando..." : "Enviar"}
@@ -266,6 +265,30 @@ export default function ReportProblemForm({
                 .report-field:focus {
                     border: 1px solid var(--operator-primary);
                     box-shadow: 0 0 5px var(--operator-primary-light);
+                }
+
+                .btn-enviar {
+                    width: 100%;
+                    height: 54px;
+                    border: none;
+                    border-radius: 18px;
+                    background: var(--operator-primary);
+                    color: white;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                }
+
+                .btn-enviar:hover {
+                    transform: scale(1.01);
+                    transition: transform 0.2s ease-in-out;
+                    box-shadow: 0 0 5px var(--operator-primary-light);
+                }
+                .btn-enviar:disabled {
+                    background-color: var(--operator-border);
+                    cursor: not-allowed;
                 }
             `}</style>
 

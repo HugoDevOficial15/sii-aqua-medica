@@ -21,7 +21,7 @@ export default function RackInventory({ rack }) {
             try {
 
                 setLoading(true);
-
+                
                 const data =
                     await obtenerStockPorRack(
                         rack.id

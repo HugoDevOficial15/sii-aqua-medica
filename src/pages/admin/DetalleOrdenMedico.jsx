@@ -6,6 +6,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { dismissNotification } from "../../utils/notificationPersistence";
 import { getOrdenesMedicas, buscarOrdenesActivasPorPaciente, getUsuarioPorNomina, getUsuarioByDocId, crearOrdenAtencionRapida, guardarRevisionOrdenMedica, eliminarOrdenMedicaAdmin } from "../../services/ordenesMedicasService";
 import Loader from "../../components/Loader";
+import Swal from "sweetalert2";
+
 
 export default function DetalleOrdenMedica() {
   const { user } = useAuth();
@@ -129,16 +131,26 @@ export default function DetalleOrdenMedica() {
     );
 
     if (!result.isConfirmed) return;
-
+    Swal.close();
     try {
+        Swal.fire({
+          title: 'Eliminando orden...',
+          text: 'Por favor espere mientras se elimina la orden...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
       const notifSnapshot = await buscarOrdenesActivasPorPaciente(orden.nominaPaciente || "");
       if (notifSnapshot && notifSnapshot.length) {
         // no-op: la limpieza de notificaciones se hace en el backend
       }
       await eliminarOrdenMedicaAdmin(orden.id);
       setOrdenes(ordenes.filter(o => o.id !== orden.id));
+      Swal.close();
       notifySuccess("Eliminado", "La orden médica y notificaciones asociadas han sido eliminadas exitosamente.");
     } catch (error) {
+      Swal.close();
       console.error("Error al eliminar orden:", error);
       notifyError("Error", "No se pudo eliminar la orden médica.");
     }
@@ -160,6 +172,14 @@ export default function DetalleOrdenMedica() {
 
     setProcesandoAtencionRapida(true);
     try {
+      Swal.fire({
+        title: 'Creando orden...',
+        text: 'Por favor espere mientras se crea la orden...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
       const result = await crearOrdenAtencionRapida(nominaStr);
       const orden = result?.orden ?? null;
 
@@ -170,9 +190,11 @@ export default function DetalleOrdenMedica() {
       setMostrarModalAtencionRapida(false);
       setNominaAtencionRapida("");
       await cargarOrdenes();
+      Swal.close();
       notifySuccess("Orden creada", result?.created ? "Nueva orden médica para atención rápida creada exitosamente." : "Se cargó la orden médica activa del paciente.");
 
     } catch (error) {
+      Swal.close();
       console.error("Error al solicitar atención rápida:", error);
       notifyError("Error", "No se pudo crear la orden médica. Verifica la nómina e intenta de nuevo.");
     } finally {
@@ -227,6 +249,14 @@ export default function DetalleOrdenMedica() {
         return;
       }
 
+      Swal.fire({
+        title: 'Guardando revisión...',
+        text: 'Por favor espere mientras se guarda la revisión...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
       await guardarRevisionOrdenMedica({
         ordenId: ordenCargada.id,
         esAltaMedica,
@@ -241,6 +271,7 @@ export default function DetalleOrdenMedica() {
         ordenCargada,
       });
 
+      Swal.close();
       notifySuccess(
         esAltaMedica ? "Paciente dado de alta" : "Revisión guardada",
         esAltaMedica ? "El paciente ha sido dado de alta exitosamente." : "La revisión ha sido guardada exitosamente."
@@ -259,6 +290,7 @@ export default function DetalleOrdenMedica() {
       cargarOrdenes();
 
     } catch (error) {
+      Swal.close();
       console.error("Error al guardar:", error);
       notifyError("Error", "Hubo un problema al guardar el expediente.");
     } finally {
@@ -363,11 +395,14 @@ export default function DetalleOrdenMedica() {
         </div>
       </div>
 
-      {/* TABLA DE PACIENTES EN ESPERA */}
+      {/* TABLA DE PACIENTES EN ESPERA, TRATAMIENTO Y ALTAS */}
       {pacientesEnEspera.length > 0 && !ordenCargada && (
         <div className="card shadow-sm mb-4">
           <div className="card-header bg-transparent border-bottom border-secondary pt-4 pb-3 px-4">
-            <h5 className="mb-0 text-white">Pacientes en Espera</h5>
+            <h5 className="mb-0 text-white">
+                  {`${filtroActivo === "pendientes" ? "Pacientes en espera: " + kpis.pendientes : filtroActivo === "tratamiento" ?
+                  "Pacientes en tratamiento: " + kpis.enTratamiento :
+                  filtroActivo === "altas" ? "Pacientes de alta: " + kpis.altasDelDia : 0}`}</h5>
           </div>
           <div className="card-body table-responsive-container">
             <table className="table table-sol">
@@ -389,7 +424,7 @@ export default function DetalleOrdenMedica() {
                       <td>{orden.nominaPaciente || orden.nominaPAciente || "N/A"}</td>
                       <td>{new Date(orden.fechaApertura).toLocaleDateString("es-MX")}</td>
                       <td>
-                        <span className={`badge ${orden.estado === "Pendiente" ? "badge-pendiente" : "badge-tratamiento"}`}>
+                        <span className={`badge ${orden.estado === "Pendiente" ? "badge-pendiente" : orden.estado === "En Tratamiento" ? "badge-tratamiento" : "badge-cerrada"}`}>
                           {orden.estado}
                         </span>
                       </td>
@@ -985,6 +1020,13 @@ export default function DetalleOrdenMedica() {
             padding: 6px 12px;
             background: var(--operator-materia-prima);
             color: var(--operator-materia-prima-text);
+        }
+
+        .badge-cerrada {
+            border-radius: 999px;
+            padding: 6px 12px;
+            background: var(--operator-activo);
+            color: var(--operator-activo-text);
         }
 
         .btn-sm {

@@ -246,8 +246,56 @@ exports.getCitasPorAgenda = onCall(async (request) => {
     .where("agendaId", "==", agendaId)
     .get();
 
+  const agendaSnap = await db.collection("agendas_medicas").doc(agendaId).get();
+  const duracionAgenda = Number(agendaSnap.exists ? agendaSnap.data()?.duracionMin || 30 : 30);
+
+  const citas = normalizeCitaListado(snap).map((cita) => {
+    if (!cita.horaFin && cita.horaInicio) {
+      const [hh, mm] = String(cita.horaInicio).split(":").map(Number);
+      const totalMinutos = hh * 60 + mm + duracionAgenda;
+      const horas = Math.floor(totalMinutos / 60) % 24;
+      const minutos = totalMinutos % 60;
+
+      return {
+        ...cita,
+        horaFin: `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`,
+      };
+    }
+
+    return cita;
+  });
+
+  const horariosOcupados = new Set();
+
+  citas.forEach((cita) => {
+    const estado = cita.estado;
+    if (!estado || ![CITA_ESTADOS.ACTIVA, "pendiente", "reservado", CITA_ESTADOS.ATENDIDA, CITA_ESTADOS.FINALIZADA].includes(estado)) {
+      return;
+    }
+
+    const horaInicio = cita.horaInicio || cita.hora || "";
+    if (!cita.fecha || !horaInicio) {
+      return;
+    }
+
+    horariosOcupados.add(`${cita.fecha}|${horaInicio}`);
+  });
+
+  const filtradas = citas.filter((cita) => {
+    if (cita.estado !== "libre" && cita.estado !== "pendiente") {
+      return true;
+    }
+
+    const horaInicio = cita.horaInicio || cita.hora || "";
+    if (!cita.fecha || !horaInicio) {
+      return true;
+    }
+
+    return !horariosOcupados.has(`${cita.fecha}|${horaInicio}`);
+  });
+
   return {
-    citas: normalizeCitaListado(snap),
+    citas: filtradas,
   };
 });
 
@@ -457,6 +505,20 @@ exports.bookAppointment = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "Datos incompletos para agendar la cita.");
   }
 
+  const agendaSnap = await db.collection("agendas_medicas").doc(agendaId).get();
+  const agendaData = agendaSnap.exists ? agendaSnap.data() || {} : {};
+  const duracionMin = Number(agendaData.duracionMin || 30);
+
+  const calcularHoraFin = (hora, duracion) => {
+    const [hh, mm] = String(hora).split(":").map(Number);
+    const totalMinutos = hh * 60 + mm + Number(duracion || 30);
+    const horas = Math.floor(totalMinutos / 60) % 24;
+    const minutos = totalMinutos % 60;
+    return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
+  };
+
+  const horaFinCalculada = calcularHoraFin(horaInicio, duracionMin);
+
   const campanaSnap = await db
     .collection("citas_medicas")
     .where("agendaId", "==", agendaId)
@@ -503,10 +565,24 @@ exports.bookAppointment = onCall(async (request) => {
     }
   });
 
+  const slotsDisponibles = await db
+    .collection("citas_medicas")
+    .where("agendaId", "==", agendaId)
+    .where("fecha", "==", fecha)
+    .where("horaInicio", "==", horaInicio)
+    .limit(10)
+    .get();
+
+  const slotLibre = slotsDisponibles.docs.find((docSnap) => {
+    const cita = docSnap.data() || {};
+    return (cita.estado === "libre" || (!cita.userId && !cita.usuarioId && cita.estado !== CITA_ESTADOS.ACTIVA));
+  });
+
   const nuevaCita = {
     agendaId,
     fecha,
     horaInicio,
+    horaFin: slotLibre?.data()?.horaFin || horaFinCalculada,
     hora: horaInicio,
     horario: horaInicio,
     time: horaInicio,
@@ -519,7 +595,38 @@ exports.bookAppointment = onCall(async (request) => {
     createdAt: FieldValue.serverTimestamp(),
   };
 
-  const docRef = await db.collection("citas_medicas").add(nuevaCita);
+  let docRef;
+  let citaId;
+
+  if (slotLibre) {
+    const slotData = slotLibre.data() || {};
+    const docUpdate = {
+      ...nuevaCita,
+      agendaId: slotData.agendaId || agendaId,
+      fecha: slotData.fecha || fecha,
+      horaInicio: slotData.horaInicio || horaInicio,
+      horaFin: slotData.horaFin || nuevaCita.horaFin,
+      usuarioId: userId,
+      usuarioNombre: usuario || nombre || paciente || null,
+      usuario: usuario || nombre || paciente || null,
+      paciente: paciente || usuario || nombre || null,
+      nombre: nombre || usuario || paciente || null,
+      updatedAt: FieldValue.serverTimestamp(),
+      estado: CITA_ESTADOS.ACTIVA,
+    };
+
+    await slotLibre.ref.update(docUpdate);
+    docRef = slotLibre.ref;
+    citaId = slotLibre.id;
+  } else {
+    docRef = await db.collection("citas_medicas").add({
+      ...nuevaCita,
+      usuarioId: userId,
+      usuarioNombre: usuario || nombre || paciente || null,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    citaId = docRef.id;
+  }
 
   const resolvedUserDocId = await resolveUserDocIdByFirebaseUid(userId);
   if (resolvedUserDocId) {
@@ -537,6 +644,7 @@ exports.bookAppointment = onCall(async (request) => {
       id: userYearCitaRef.id,
       usuarioDocId: resolvedUserDocId,
       createdAt: FieldValue.serverTimestamp(),
+      horaFin: nuevaCita.horaFin,
     });
   }
 
@@ -548,7 +656,7 @@ exports.bookAppointment = onCall(async (request) => {
       Destino: "citas-medicas",
       Accion: "cita_agendada",
       extra: {
-        citaId: docRef.id,
+        citaId,
         fecha,
         horaInicio,
       },
@@ -560,8 +668,9 @@ exports.bookAppointment = onCall(async (request) => {
   return {
     ok: true,
     cita: {
-      id: docRef.id,
+      id: citaId,
       ...nuevaCita,
+      horaFin: nuevaCita.horaFin,
     },
   };
 });

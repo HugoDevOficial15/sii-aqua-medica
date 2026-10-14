@@ -17,7 +17,7 @@ export default function OperatorSurveyResult({ result, onBack, onRetry }) {
         </div>
 
         <span className="op-result-label">
-          {pendingReview ? "Se enviaron las respuestas" : approved ? "Encuesta aprobada" : "Encuesta completada"}
+          {pendingReview ? "Se enviaron las respuestas" : approved ? "Cuestionario aprobado" : "Cuestrionario completado"}
         </span>
 
         {pendingReview ? (
@@ -25,7 +25,7 @@ export default function OperatorSurveyResult({ result, onBack, onRetry }) {
             <h2 className="op-result-pending">RESPUESTAS ENVIADAS</h2>
             <p>
               Sus respuestas se enviaron a calificar. Cuando el administrador termine
-              la revisión, podrá ver el resultado final en la encuesta.
+              la revisión, podrá ver el resultado final.
             </p>
           </>
         ) : approved ? (
@@ -83,7 +83,7 @@ export default function OperatorSurveyResult({ result, onBack, onRetry }) {
           )}
 
           <button className="op-result-btn" onClick={onBack}>
-            {pendingReview ? "Volver a Encuestas" : "Regresar a Encuestas"}
+            {pendingReview ? "Volver" : "Regresar"}
           </button>
         </div>
       </div>

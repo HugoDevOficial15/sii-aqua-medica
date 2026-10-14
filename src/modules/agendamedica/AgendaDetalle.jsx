@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaArrowLeft, FaCheck, FaTimes } from "react-icons/fa";
+import { FaArrowLeft, FaCheck, FaTimes, FaEllipsisV } from "react-icons/fa";
 
 import Loader from "../../components/Loader";
 import { notifyError, notifySuccess } from "../../utils/notify";
@@ -20,6 +20,7 @@ export default function AgendaDetalle({ agenda, onBack }) {
     const { user } = useAuth();
     const [citas, setCitas] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [openActionsId, setOpenActionsId] = useState(null);
 
     // 🔥 MODAL DE CANCELACIÓN CON MOTIVO
     const [citaACancelar, setCitaACancelar] = useState(null);
@@ -28,6 +29,18 @@ export default function AgendaDetalle({ agenda, onBack }) {
     // 🔥 FECHA AUTOMÁTICA (vacío = mostrar todas las citas)
     const hoy = new Date().toISOString().split("T")[0];
     const [fecha, setFecha] = useState("");
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (!event.target.closest(".cita-actions-menu-wrapper")) {
+                setOpenActionsId(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     // 🔹 Fetch
     const fetchData = async () => {
@@ -191,8 +204,47 @@ export default function AgendaDetalle({ agenda, onBack }) {
     };
 
     //  Filtro por fecha 
+    const calcularHoraFin = (horaInicio, duracionMin = 30) => {
+        if (!horaInicio) return "";
+
+        const [hh, mm] = String(horaInicio).split(":").map(Number);
+        const totalMinutos = hh * 60 + mm + Number(duracionMin || 30);
+        const horas = Math.floor(totalMinutos / 60) % 24;
+        const minutos = totalMinutos % 60;
+
+        return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
+    };
+
+    const getHoraRango = (cita) => {
+        const horaInicio = cita?.horaInicio || cita?.hora || "";
+        const horaFin = cita?.horaFin || calcularHoraFin(horaInicio, agenda?.duracionMin || 30);
+
+        if (!horaInicio) return "-";
+        if (!horaFin) return horaInicio;
+
+        return `${horaInicio} - ${horaFin}`;
+    };
+
+    const estadosOcupados = [
+        CITA_ESTADOS.ACTIVA,
+        "pendiente",
+        "reservado",
+        CITA_ESTADOS.ATENDIDA,
+        CITA_ESTADOS.FINALIZADA,
+    ];
+
+    const citasPorHoraOcupada = new Set(
+        citas
+            .filter(c => estadosOcupados.includes(c.estado))
+            .map(c => `${c.fecha || ""}|${c.horaInicio || c.hora || ""}`)
+    );
+
     const citasFiltradas = citas
         .filter(c => {
+            if ((c.estado === "libre" || c.estado === "pendiente") && citasPorHoraOcupada.has(`${c.fecha || ""}|${c.horaInicio || c.hora || ""}`)) {
+                return false;
+            }
+
             if (!fecha) return true;
 
             // 1. Extraemos las partes del input (ej. "2026-08-05")
@@ -219,17 +271,26 @@ export default function AgendaDetalle({ agenda, onBack }) {
         <div className="page-transition">
 
             {/* HEADER */}
-            <div className="d-flex justify-content-between align-items-center mb-4 custom-users-header">
+            <div>
+            <div className="page mb-3">
+                <h6>
+                    <strong>Horarios citas médicas</strong>
+                </h6>
 
-                <div className="d-flex align-items-center gap-2">
+                <span className= "badge-title"> AQUA Médica</span>
+            <div className= "contenedor-header">
+            <div className="d-flex gap-4 custom-users-header">
+
+                <div className="d-flex align-items-center gap-4">
                     <button
                         className="btn btn-outline-secondary btn-sm"
                         onClick={onBack}
                     >
-                        <FaArrowLeft />
+                        <FaArrowLeft /> Volver
                     </button>
 
                     <h6 className="mb-0">{agenda.nombre}</h6>
+                    
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -251,7 +312,9 @@ export default function AgendaDetalle({ agenda, onBack }) {
                         </button>
                     )}
                 </div>
-
+                </div>
+            </div>
+            </div>
             </div>
 
             {/* TABLA */}
@@ -275,13 +338,13 @@ export default function AgendaDetalle({ agenda, onBack }) {
 
                             {citasFiltradas.length > 0 ? (
                                 citasFiltradas.map((c) => (
-                                    <tr key={c.id}>
+                                    <tr key={c.id}
+                                        className={openActionsId === c.id ? "cita-row-active" : ""}>
 
                                         <td>{c.fecha}</td>
 
                                         <td>
-                                            {/* Adaptado para leer 'horaInicio' (viejo) u 'hora' (nuevo) */}
-                                            <strong>{c.horaInicio || c.hora || "-"}</strong> {c.horaFin ? `- ${c.horaFin}` : ""}
+                                            <strong>{getHoraRango(c)}</strong>
                                         </td>
 
                                         {/* Mostrar nombre del usuario que reservó y, si existe, la nómina */}
@@ -295,22 +358,22 @@ export default function AgendaDetalle({ agenda, onBack }) {
                                         <td>
                                             {/* Estados modernos */}
                                             {c.estado === CITA_ESTADOS.ACTIVA && (
-                                                <span className="badge-primary">Activa</span>
+                                                <span className="badge-activa">Activa</span>
                                             )}
                                             {(c.estado === "libre" || c.estado === "pendiente") && (
-                                                <span className="badge-warning">Pendiente / Libre</span>
+                                                <span className="badge-pendiente">Pendiente / Libre</span>
                                             )}
                                             {c.estado === CITA_ESTADOS.ATENDIDA && (
-                                                <span className="badge-success">Atendida</span>
+                                                <span className="badge-atendida">Atendida</span>
                                             )}
                                             {c.estado === CITA_ESTADOS.FINALIZADA && (
-                                                <span className="badge-success">Finalizada</span>
+                                                <span className="badge-finalizada">Finalizada</span>
                                             )}
                                             {c.estado === CITA_ESTADOS.CANCELADA_USUARIO && (
                                                 <div>
-                                                    <span className="badge-danger">Cancelada (Usuario)</span>
+                                                    <span className="badge-cancelada">Cancelada (Usuario)</span>
                                                     {c.motivoCancelacion && (
-                                                        <div style={{ marginTop: '4px', fontSize: '12px', color: '#ef4444', fontStyle: 'italic' }}>
+                                                        <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--operator-danger)', fontStyle: 'italic' }}>
                                                             "{c.motivoCancelacion}"
                                                         </div>
                                                     )}
@@ -318,9 +381,9 @@ export default function AgendaDetalle({ agenda, onBack }) {
                                             )}
                                             {c.estado === CITA_ESTADOS.CANCELADA_ADMIN && (
                                                 <div>
-                                                    <span className="badge-danger">Cancelada (Admin)</span>
+                                                    <span className="badge-cancelada">Cancelada (Admin)</span>
                                                     {c.motivoCancelacion && (
-                                                        <div style={{ marginTop: '4px', fontSize: '12px', color: '#ef4444', fontStyle: 'italic' }}>
+                                                        <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--operator-danger)', fontStyle: 'italic' }}>
                                                             "{c.motivoCancelacion}"
                                                         </div>
                                                     )}
@@ -331,31 +394,53 @@ export default function AgendaDetalle({ agenda, onBack }) {
                                             )}
                                         </td>
 
-                                        <td>
-                                            {/* Mostrar acciones solo para citas activas (no atendidas, no canceladas) */}
-                                            {(c.estado === CITA_ESTADOS.ACTIVA || c.estado === "libre" || c.estado === "pendiente" || c.estado === "reservado") && (
-                                                <>
-                                                    {/* Solo mostrar "Atender" si hay un usuario asignado */}
-                                                    {(c.usuarioNombre || c.usuario || c.nombre) && (
-                                                        <button
-                                                            className="btn btn-sm btn-outline-success me-2 custom-btn"
-                                                            onClick={() => handleAtender(c.id)}
-                                                            title="Marcar como atendido"
-                                                        >
-                                                            <FaCheck />
-                                                        </button>
-                                                    )}
+                                        <td className="cita-actions-menu-cell">
+                                            <div className="cita-actions-menu-wrapper">
+                                                <button
+                                                    type= "button"
+                                                    className= "cita-action-menu-button"
+                                                    onClick= {(event) => {
+                                                        event.stopPropagation();
+                                                        setOpenActionsId(
+                                                            openActionsId === c.id ? null : c.id,
+                                                        );
+                                                    }}
+                                                > 
+                                                    <FaEllipsisV />
+                                                </button>
 
-                                                    {/* Siempre mostrar cancelar (para liberar el horario o cancelar reserva) */}
-                                                    <button
-                                                        className="btn btn-sm btn-outline-danger custom-btn"
-                                                        onClick={() => handleCancelar(c)}
-                                                        title="Cancelar cita"
-                                                    >
-                                                        <FaTimes />
-                                                    </button>
-                                                </>
-                                            )}
+                                                {openActionsId === c.id && (
+                                                    <div className="cita-actions-menu">
+                                                        {/* Mostrar acciones solo para citas activas (no atendidas, no canceladas) */}
+                                                        {(c.estado === CITA_ESTADOS.ACTIVA || c.estado === "libre" || c.estado === "pendiente" || c.estado === "reservado") && (
+                                                            <>
+                                                                {/* Solo mostrar "Atender" si hay un usuario asignado */}
+                                                                {(c.usuarioNombre || c.usuario || c.nombre) && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="cita-action-menu-item-atender"
+                                                                        onClick={() => 
+                                                                            handleAtender(c.id)}
+                                                                        title="Marcar como atendido"
+                                                                    >
+                                                                        <FaCheck /> Atender cita
+                                                                    </button>
+                                                                )}
+
+                                                                {/* Siempre mostrar cancelar (para liberar el horario o cancelar reserva) */}
+                                                                <button
+                                                                    type="button"
+                                                                    className="cita-action-menu-item-cancelar"
+                                                                    onClick={() => handleCancelar(c)}
+                                                                    title="Cancelar cita"
+                                                                >
+                                                                    <FaTimes /> Cancelar cita
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
 
                                     </tr>
@@ -398,6 +483,17 @@ export default function AgendaDetalle({ agenda, onBack }) {
             {/*  ESTILOS PRO (Con la corrección de JSX) */}
             <style >{`
 
+            .contenedor-header {
+                display: flex;
+                justify-content: end;
+                align-items: center;
+                background: var(--operator-card);
+                padding: 30px;
+                margin: 0;
+                border-radius: 30px;
+                margin-top: 20px;
+            }
+
             .custom-users-header input {
                 border-radius: 10px;
             }
@@ -421,15 +517,27 @@ export default function AgendaDetalle({ agenda, onBack }) {
             }
 
             .custom-table {
-                border-collapse: separate;
-                border-spacing: 0 10px;
+                table-layout: fixed;
+                width: 100%;
+                border-collapse: separate !important;
+                border-spacing: 0 10px !important;
+                padding: 0;
             }
 
             .custom-table thead th {
-                font-size: 12px;
-                text-transform: uppercase;
-                color: var(--operator-text);
-                border-color: var(--operator-border);
+                border-bottom: 3px solid var(--operator-text);
+                height: 50px;
+                font-size: 20px;
+                font-weight: 900;
+                padding: 5px 5px;
+                vertical-align: middle;
+                border-top: none !important;
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                max-width: 230px;
+                min-width: 100px;
             }
 
             .custom-table tbody tr {
@@ -449,33 +557,77 @@ export default function AgendaDetalle({ agenda, onBack }) {
                 box-shadow: 0 8px 20px rgba(0,0,0,0.06);
             }
 
+            .custom-table tbody tr.cita-row-active:hover {
+                transform: none;
+                box-shadow: none;
+            }
+
             .custom-table td {
+                height: 50px;
+                font-size: 14px;
+                padding: 5px 5px;
                 vertical-align: middle;
-                border-top: none;
-                padding: 12px;
+                border-top: none !important;
+                border-bottom: 1px solid var(--operator-border);
+                white-space: wrap;
+
+                word-break: break-word;
+                overflow: hidden;
+                max-width: 230px;
+                min-width: 100px;
             }
 
-            .badge-success {
-                background: #dcfce7;
-                color: #15803d;
+            .custom-table tbody td:nth-child(4) {
+                text-align: center;
+            }
+
+            .custom-table thead th:nth-child(4) {
+                text-align: center;
+            }
+
+            .custom-table tbody td:nth-child(5) {
+                text-align: center;
+            }
+
+            .custom-table thead th:nth-child(5) {
+                text-align: center;
+            }
+
+            .badge-activa {
+                background: var(--operator-activo);
+                color: var(--operator-activo-text);
                 padding: 6px 12px;
                 border-radius: 999px;
             }
 
-            .badge-warning {
-                background: #fef9c3;
-                color: #854d0e;
+            .badge-pendiente {
+                background: var(--operator-cambio);
+                color: var(--operator-cambio-text);
                 padding: 6px 12px;
                 border-radius: 999px;
             }
 
-            .badge-primary {
-                background: #dbeafe;
-                color: #1d4ed8;
+            .badge-atendida {
+                background: var(--operator-aqua);
+                color: var(--operator-aqua-text);
                 padding: 6px 12px;
                 border-radius: 999px;
             }
 
+            .badge-finalizada {
+                background: var(--operator-badge-disabled);
+                color: var(--operator-badge-disabled-text);
+                padding: 6px 12px;
+                border-radius: 999px;
+            }
+
+            .badge-cancelada {
+                background: var(--operator-badge-disabled);
+                color: var(--operator-badge-disabled-text);
+                padding: 6px 12px;
+                border-radius: 999px;
+            }
+                
             .custom-btn {
                 border-radius: 8px;
                 transition: all 0.2s ease;
@@ -485,8 +637,83 @@ export default function AgendaDetalle({ agenda, onBack }) {
                 transform: translateY(-1px);
             }
 
-            `}</style>
+            /*  MENU DESPLEGABLE */
 
+            .cita-actions-cell {
+                text-align: center;
+                overflow: visible;
+                justify-content: center;
+                isolation: auto;
+                align-items: center;
+            }
+
+            .cita-actions-menu-wrapper {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+
+                max-width: 36px;
+                min-width: 36px;
+            }
+
+            .cita-action-menu-button {
+                width: 36px;
+                height: 36px;
+                border: 1px solid var(--operator-border);
+                border-radius: 999px;
+                background: var(--operator-card);
+                color: var(--operator-text);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                padding: 10px;
+            }
+
+            .cita-action-menu-button:hover {
+                background: var(--operator-border);
+                color: var(--operator-primary);
+            }
+
+            .cita-actions-menu {
+                position: absolute;
+                min-width: 200px;
+                background: var(--operator-background);
+                border: 1px solid var(--operator-border);
+                border-radius: 10px;
+                box-shadow: 0 10px 24px var(--operator-shadow);
+                padding: 10px 10px;
+                display: flex;
+                text-align: center;
+                flex-direction: column;
+                gap: 4px;
+                z-index: 9999;
+            }
+
+            .cita-action-menu-item-atender,
+            .cita-action-menu-item-cancelar {
+                border: none;
+                background: var(--operator-form);
+                padding: 8px 12px;
+                text-align: left;
+                border-radius: 8px;
+                color: var(--operator-text);
+                cursor: pointer;
+                font-weight: 600;
+            }
+
+            .cita-action-menu-item-atender:hover {
+                background: var(--operator-border);
+                color: var(--operator-success);
+            }
+
+            .cita-action-menu-item-cancelar:hover {
+                background: var(--operator-border);
+                color: var(--operator-danger);
+            }
+
+
+            `}</style>
         </div>
     );
 }

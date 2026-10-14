@@ -1,6 +1,32 @@
 ==================================
 
             ============
+            = 14/10/26 =
+            ============
+
+# ###########  SII  ############ #
+
+**Functions-Nuevas**
+* 
+
+**Functions-Refactorizadas**
+
+* updateUserPasswordByReset
+* getCitasPorAgenda
+* bookAppointment
+* createOrdenMedica
+* crearOrdenAtencionRapida
+* guardarRevisionOrdenMedica
+
+# #########  COMEDOR  ########## #
+
+
+
+
+
+==================================
+
+            ============
             = 13/10/26 =
             ============
 **Functions-Nuevas**

@@ -59,7 +59,7 @@ const getUserProfileByNomina = async (nomina) => {
 };
 
 const notifyAdmins = async (titulo, mensaje, destino = "detalle-orden-medico", extra = {}) => {
-  const adminsSnap = await usersCollection.where("rol", "in", ["admin_medico", "admin_sistemas", "admin_area", "admin_sist", "admin_super"]).get();
+  const adminsSnap = await usersCollection.where("rol", "in", ["admin_medico"]).get();
 
   await Promise.all(
     adminsSnap.docs.map(async (adminDoc) => {
@@ -375,7 +375,7 @@ exports.guardarRevisionOrdenMedica = onCall(async (request) => {
     );
   }
 
-  const adminRoles = ["admin_area", "admin_medico", "admin_sistemas", "admin_sist", "admin_super"];
+  const adminRoles = ["admin_medico"];
   const adminSnap = await usersCollection.where("rol", "in", adminRoles).get();
 
   const areaPaciente = current.areaPaciente || ordenCargada?.areaPaciente || "";

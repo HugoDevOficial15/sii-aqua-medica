@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import {FaEllipsisV} from "react-icons/fa";
-import { FiEye, FiEdit, FiTrash2, FiArrowLeft, FiSave, FiPlus } from "react-icons/fi";
+import {FaEllipsisV, FaTimesCircle, FaCheckCircle} from "react-icons/fa";
+import { FiEye, FiEdit, FiTrash2, FiArrowLeft, FiSave, FiPlus, FiToggleLeft, FiToggleRight } from "react-icons/fi";
 import Loader from "../../components/Loader";
 
 import { useAuth } from "../../hooks/useAuth";
@@ -186,11 +186,17 @@ export default function AgendaMedicaPage() {
                     Swal.showLoading();
                 },
             });
+
             await toggleAgendaEstado(id, estatusActual);
+
             Swal.close();
+
             cargarAgendas();
+
         } catch (error) {
+
             Swal.close();
+            
             console.error("Error al cambiar estatus:", error);
             notifyError("Error", "No se pudo cambiar el estado de la agenda.");
         }
@@ -459,7 +465,6 @@ export default function AgendaMedicaPage() {
                                     <th>Rango</th>
                                     <th>Duración</th>
                                     <th>Estatus</th>
-                                    <th>Cambiar</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -484,17 +489,9 @@ export default function AgendaMedicaPage() {
                                             <td>{agenda.fechaInicio} → {agenda.fechaFin}</td>
                                             <td>{agenda.duracionMin} min</td>
                                             <td>
-                                                <span className={`badge ${agenda.estado === 'activa' ? 'bg-success' : 'bg-warning text-dark'} px-2 py-1`} style={{ borderRadius: '6px' }}>
+                                                <span className={`badge ${agenda.estado === 'activa' ? 'bg-activa' : 'bg-inactiva text-dark'} `}>
                                                     {agenda.estado || "inactiva"}
                                                 </span>
-                                            </td>
-                                            <td>
-                                                <button 
-                                                    className="btn btn-outline-secondary "
-                                                    onClick={() => handleCambiarEstatus(agenda)}
-                                                >
-                                                    {agenda.estado === 'activa' ? 'Desactivar' : 'Activar'}
-                                                </button>
                                             </td>
 
 
@@ -544,6 +541,17 @@ export default function AgendaMedicaPage() {
                                                             <FiEdit /> Editar
                                                             </button>
 
+                                                            <button 
+                                                                type="button"
+                                                                className={`agenda-action-menu-item-estado ${agenda.estado === 'activa' ? 'activa' : 'inactiva'}`}
+                                                                onClick={() => {
+                                                                    setOpenActivationId(null);
+                                                                    handleCambiarEstatus(agenda)}}
+                                                            >
+                                                                {agenda.estado === 'activa' ? <FiToggleRight /> : <FiToggleLeft />}
+                                                                <span>{agenda.estado === 'activa' ? 'Desactivar' : 'Activar'}</span>
+                                                            </button>
+
                                                             <button
                                                             type="button"
                                                             className="agenda-action-menu-item-borrar"
@@ -579,11 +587,12 @@ export default function AgendaMedicaPage() {
                     background: var(--operator-card);
                     color: var(--operator-text);
                     border: 1px solid var(--operator-border) !important;
-                    padding: 30px !important;
+                    padding: 0px !important;
+                    overflow: visible;
                 }
 
                 .table-responsive{
-                    padding:16px;
+                    padding:46px;
                 }
                     
                 .agenda-medica-input {
@@ -715,7 +724,8 @@ export default function AgendaMedicaPage() {
 
                 .agenda-action-menu-item-ver,
                 .agenda-action-menu-item-editar,
-                .agenda-action-menu-item-borrar {
+                .agenda-action-menu-item-borrar,
+                .agenda-action-menu-item-estado {
                     border: none;
                     background: var(--operator-card);
                     padding: 8px 10px;
@@ -738,8 +748,18 @@ export default function AgendaMedicaPage() {
                 }
 
                 .agenda-action-menu-item-borrar:hover {
-                    background: rgba(255, 0, 0, 0.1);
+                    background: var(--operator-border);
                     color: var(--operator-danger);
+                }
+                
+                .agenda-action-menu-item-estado.activa:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-danger);
+                }
+
+                .agenda-action-menu-item-estado.inactiva:hover {
+                    background: var(--operator-border);
+                    color: var(--operator-success);
                 }
                 
                 .btn-primary {       
@@ -760,6 +780,21 @@ export default function AgendaMedicaPage() {
                 .btn-primary:hover {
                     background: var(--operator-primary);
                     box-shadow: 0 0px 20px var(--operator-primary-light);
+                }
+
+
+                .bg-activa {
+                    background: var(--operator-activo);
+                    color: var(--operator-activo-text);
+                    padding: 10px;
+                    border-radius: 999px !important;
+                }
+
+                .bg-inactiva {
+                    background: var(--operator-cambio);
+                    color: var(--operator-cambio-text) !important;
+                    padding: 10px;
+                    border-radius: 999px !important;
                 }
 
 

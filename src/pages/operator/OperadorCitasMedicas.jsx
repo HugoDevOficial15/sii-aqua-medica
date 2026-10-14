@@ -219,7 +219,7 @@ export default function OperadorCitasMedicas({ onBack }) {
                         fecha: fechaElegida,
                         hora: horaElegida
                     },
-                    rolesPermitidos: ["admin_medico", "admin_sistemas", "admin", "administrador", "admin_general"]
+                    rolesPermitidos: ["admin_medico"]
                 });
             } catch (error) {
                 console.error("Error al notificar a admins sobre la cita agendada:", error);

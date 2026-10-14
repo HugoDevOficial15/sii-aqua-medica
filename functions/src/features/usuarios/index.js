@@ -432,30 +432,41 @@ exports.updateUserPasswordByReset = onCall(async (request) => {
     normalizedNomina !== "" ? `${normalizedNomina}@aquamedica.com` : ""
   );
 
-  let uid = typeof userData.uid === "string" ? userData.uid.trim() : "";
-  let resolvedWith = "uid";
-
+  const firestoreUid = typeof userData.uid === "string" ? userData.uid.trim() : "";
+  const expectedEmail = String(resolvedEmail || "").trim().toLowerCase();
   const resetPassword = String(password || "").trim() || `AQUAmedica${normalizedNomina}`;
   if (!resetPassword) throw new HttpsError("invalid-argument", "La contraseña de reset no es válida.");
 
+  let uid = "";
+  let resolvedWith = "";
+
   try {
-    if (uid) {
+    if (firestoreUid) {
       try {
-        await admin.auth().getUser(uid);
+        const authUser = await admin.auth().getUser(firestoreUid);
+        const authEmail = String(authUser?.email || "").trim().toLowerCase();
+
+        if (!expectedEmail || authEmail === expectedEmail) {
+          uid = authUser.uid;
+          resolvedWith = "uid";
+        }
       } catch (authError) {
         if (authError?.code !== "auth/user-not-found") throw authError;
-        uid = "";
       }
     }
 
-    if (!uid && resolvedEmail) {
-      const authUser = await admin.auth().getUserByEmail(resolvedEmail);
-      uid = authUser?.uid || "";
-      resolvedWith = "email";
+    if (!uid && expectedEmail) {
+      try {
+        const authUser = await admin.auth().getUserByEmail(expectedEmail);
+        uid = authUser?.uid || "";
+        resolvedWith = "email";
+      } catch (authError) {
+        if (authError?.code !== "auth/user-not-found") throw authError;
+      }
     }
 
     if (!uid) {
-      throw new HttpsError("not-found", "No se encontró el UID del usuario en Firebase Authentication.");
+      throw new HttpsError("not-found", "No se encontró un usuario válido en Firebase Authentication para este empleado.");
     }
 
     await admin.auth().updateUser(uid, { password: resetPassword });
@@ -469,7 +480,7 @@ exports.updateUserPasswordByReset = onCall(async (request) => {
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    return { success: true, userId: userSnapshot.id, uid, password: resetPassword, resolvedWith };
+    return { success: true, userId: userSnapshot.id, uid, password: resetPassword, resolvedWith: resolvedWith || "uid" };
   } catch (error) {
     if (error instanceof HttpsError) throw error;
 
@@ -477,8 +488,9 @@ exports.updateUserPasswordByReset = onCall(async (request) => {
     const message = error?.message || "No se pudo resetear la contraseña del usuario.";
     console.error("Error al resetear contraseña por recuperación:", {
       userId,
-      email: resolvedEmail,
+      email: expectedEmail,
       nomina: normalizedNomina,
+      firestoreUid,
       code,
       message,
       stack: error?.stack,
