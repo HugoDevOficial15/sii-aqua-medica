@@ -11,7 +11,7 @@ export default function AppLoader({
                 <div className="operator-loader-logo">
 
                     <img
-                        src="/logo.png"
+                        src="/aqua_medica_gif.gif"
                         alt="AQUA"
                     />
 

@@ -124,7 +124,7 @@ function App() {
           <div className="internet-saver__panel">
             <div className="internet-saver__icon" aria-hidden="true">
               <img
-                            src="/logo.png"
+                            src="/aqua_medica_gif.gif"
                             alt="AQUA Médica"
                             className="offline-logo"
                         />

@@ -60,6 +60,11 @@ export const usePracticanteMealRequest = () => {
           RegistroCobros: JSON.stringify(registroCobros),
         };
 
+        const desayunosExtras = typeof menuSeleccionado === 'object' ? menuSeleccionado.desayunosExtras : null;
+        if (desayunosExtras?.some((dia) => dia[0] !== "NA")) {
+          payload.DesayunoE = JSON.stringify(JSON.stringify(desayunosExtras));
+        }
+
         console.log("📤 Enviando payload a AquamedicaSoftware:", payload);
 
         const response = await fetch(url, {

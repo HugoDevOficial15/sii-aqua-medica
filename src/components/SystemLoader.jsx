@@ -9,7 +9,7 @@ export default function SystemLoader() {
 
             <div className="loader-box">
 
-                <img src="/logo.png" alt="AQUA Médica" className="loader-logo" />
+                <img src="/aqua_medica_gif.gif" alt="AQUA Médica" className="loader-logo" />
 
                 <div className="loader-spinner"></div>
 

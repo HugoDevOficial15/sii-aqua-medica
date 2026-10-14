@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { httpsCallable } from "firebase/functions";
-import { db } from "../config/firebase";
-import { functions } from "../config/firebase";
+import { db, functions } from "../config/firebase";
 import { COMEDOR_API } from "../config/comedorConfig";
 import { useAuth } from "./useAuth";
 

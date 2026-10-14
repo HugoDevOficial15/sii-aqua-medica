@@ -62,8 +62,10 @@ export default function OperatorPoints({ onBack, initialTab = "Puntos" }) {
     const [objetivos, setObjetivos] = useState([]);
     const [activeTab, setActiveTab] = useState(initialTab);
 
+    const userDocId = user?.id || user?.uid;
+
     useEffect(() => {
-        if (!user?.uid) return;
+        if (!userDocId) return;
 
         setLoading(true);
         let unsubscribePuntos;
@@ -76,7 +78,7 @@ export default function OperatorPoints({ onBack, initialTab = "Puntos" }) {
                 const año = new Date().getFullYear().toString();
 
                 // Listener 1: Puntos en tiempo real
-                const puntosRef = doc(collection(db, "users", user.uid, año, "informacion", "puntos_general"), "general");
+                const puntosRef = doc(collection(db, "users", userDocId, año, "informacion", "puntos_general"), "general");
                 unsubscribePuntos = onSnapshot(puntosRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const nuevosPuntos = docSnap.data();
@@ -93,7 +95,7 @@ export default function OperatorPoints({ onBack, initialTab = "Puntos" }) {
                 });
 
                 // Listener 2: Ranking en tiempo real
-                const rankingRef = doc(db, "rankings_users", user.uid);
+                const rankingRef = doc(db, "rankings_users", userDocId);
                 const unsubscribeRanking = onSnapshot(rankingRef, async (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
@@ -121,7 +123,7 @@ export default function OperatorPoints({ onBack, initialTab = "Puntos" }) {
                 });
 
                 // Listener 3: Historial de puntos para logros
-                const historialRef = collection(db, "users", user.uid, año, "informacion", "historialPuntos");
+                const historialRef = collection(db, "users", userDocId, año, "informacion", "historialPuntos");
                 const q = query(historialRef, orderBy("fechaCreacion", "desc"), limit(4));
                 unsubscribeHistorial = onSnapshot(q, async (snapshot) => {
                     const logros = snapshot.docs.map(doc => ({
@@ -131,7 +133,7 @@ export default function OperatorPoints({ onBack, initialTab = "Puntos" }) {
                     setUltimosLogros(logros);
 
                     // Cargar objetivos cuando cambie el historial
-                    const objetivosCompletados = await obtenerObjetivosCompletados(user.uid);
+                    const objetivosCompletados = await obtenerObjetivosCompletados(userDocId);
                     setObjetivos(objetivosCompletados);
                 }, (error) => {
                     console.error("Error en listener de historial:", error);
@@ -157,7 +159,7 @@ export default function OperatorPoints({ onBack, initialTab = "Puntos" }) {
             if (unsubscribeRanking) unsubscribeRanking();
             if (updateRankingTimeout) clearTimeout(updateRankingTimeout);
         };
-    }, [user?.uid]);
+    }, [userDocId]);
 
     if (loading) return <Loader text="Cargando tu información de puntos..." />;
 
@@ -246,7 +248,7 @@ export default function OperatorPoints({ onBack, initialTab = "Puntos" }) {
                                                 <small>{usuario.puntos} pts • {usuario.nivel}</small>
                                             </div>
                                         </div>
-                                        {usuario.uid === user.uid && (
+                                        {usuario.uid === userDocId && (
                                             <span className="ranking-card-badge">Tú</span>
                                         )}
                                     </div>

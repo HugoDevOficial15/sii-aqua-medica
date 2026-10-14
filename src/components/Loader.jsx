@@ -11,7 +11,7 @@ export default function Loader({ text }) {
                     <div className="row">
                         <div className="col-12 d-flex align-items-center justify-content-center">
                             <img
-                                src="/logo.png"
+                                src="/aqua_medica_gif.gif"
                                 alt="AQUA Médica"
                                 className="loader-logo"
                             />

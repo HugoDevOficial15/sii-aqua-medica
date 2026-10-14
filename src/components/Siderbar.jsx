@@ -119,7 +119,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
                     <div className="logo-wrapper">
 
                         <img
-                            src="/logo.png"
+                            src="/aqua_medica_gif.gif"
                             alt="AQUA Médica"
                             className="logo-image"
                         />

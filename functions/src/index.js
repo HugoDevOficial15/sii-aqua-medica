@@ -34,6 +34,8 @@ const peps = require("./features/peps");
 const comedorOrdenes = require("./features/comedorOrdenes");
 const certificados = require("./features/certificados");
 const incidencias = require("./features/incidencias");
+const puntos = require("./features/puntos");
+const ranking = require("./features/ranking");
 
 const initPushNotifications = async () => {
   console.log("✓ Servicio local de push desactivado. Cloud Functions al mando.");
@@ -78,6 +80,8 @@ module.exports = {
   ...comedorOrdenes,
   ...certificados,
   ...incidencias,
+  ...puntos,
+  ...ranking,
   initPushNotifications,
   stopPushNotifications,
 };

@@ -19,7 +19,7 @@ export default function FullScreenLoader() {
         >
             {/* Start Img */}
             <img
-                src="/logo.png" alt="AQUA"
+                src="/aqua_medica_gif.gif" alt="AQUA"
                 style={{ width: "120px", marginBottom: "20px" }}
             />
             {/* End IMG */}

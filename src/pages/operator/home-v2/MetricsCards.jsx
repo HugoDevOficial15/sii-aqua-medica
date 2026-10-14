@@ -21,11 +21,13 @@ export default function MetricsCards({ onNavigate }) {
     const [posicionRanking, setPosicionRanking] = useState(0);
 
     // Listener de puntos en tiempo real
+    const userDocId = user?.id || user?.uid;
+
     useEffect(() => {
-        if (!user?.uid) return;
+        if (!userDocId) return;
 
         const año = new Date().getFullYear().toString();
-        const puntosRef = doc(collection(db, "users", user.uid, año, "informacion", "puntos_general"), "general");
+        const puntosRef = doc(collection(db, "users", userDocId, año, "informacion", "puntos_general"), "general");
 
         const unsubscribe = onSnapshot(puntosRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -38,13 +40,13 @@ export default function MetricsCards({ onNavigate }) {
         });
 
         return () => unsubscribe();
-    }, [user?.uid]);
+    }, [userDocId]);
 
     // Listener de ranking en tiempo real (Firestore listener, sin polling)
     useEffect(() => {
-        if (!user?.uid) return;
+        if (!userDocId) return;
 
-        const rankingRef = doc(db, "rankings_users", user.uid);
+        const rankingRef = doc(db, "rankings_users", userDocId);
 
         const unsubscribe = onSnapshot(rankingRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -57,7 +59,7 @@ export default function MetricsCards({ onNavigate }) {
         });
 
         return () => unsubscribe();
-    }, [user?.uid]);
+    }, [userDocId]);
 
     return (
 

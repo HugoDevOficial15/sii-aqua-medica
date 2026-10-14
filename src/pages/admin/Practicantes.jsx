@@ -1,7 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 import { sanitizeText } from "../../utils/sanitize";
 import { readCachedData, writeCachedData, invalidateCacheGroup } from "../../utils/cacheStore";
@@ -27,7 +26,8 @@ import { useComedorMenus } from "../../hooks/useComedorMenus";
 import { usePracticanteMealRequest } from "../../hooks/usePracticanteMealRequest";
 
 // Config Comedor
-import { EXTRAS_PRECIOS, DIAS_SEMANA } from "../../config/comedorConfig";
+import { COMEDOR_API, EXTRAS_PRECIOS, DIAS_SEMANA } from "../../config/comedorConfig";
+import { getCurrentWeekRange, getNextWeekRange } from "../../utils/weekCalculator";
 
 // Notify
 import { notifySuccess, notifyError } from "../../utils/notify";
@@ -63,7 +63,6 @@ const PRACTICANTES_SEARCH_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutos
 export default function Practicantes({ onClose }) {
   const location = useLocation();
   const { user } = useAuth();
-  const db = getFirestore();
 
   // Loading
   const [loading, setLoading] = useState(true);
@@ -433,6 +432,81 @@ export default function Practicantes({ onClose }) {
     }
   };
 
+  const [pedidosModal, setPedidosModal] = useState(null);
+  const [pedidosSemanas, setPedidosSemanas] = useState({ actual: undefined, siguiente: undefined });
+
+  const cargarPedidosPracticante = async (nomina, idSemana) => {
+    const response = await fetch(`${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.MENU_EMPLEADO}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nomina: Number(nomina), idSemana, tipo: "practicante" }),
+    });
+    const data = await response.json();
+    return data.status === "OK" && data.existe ? data.menu : null;
+  };
+
+  const handleAbrirPedidos = async (practicante) => {
+    const semanaActual = getCurrentWeekRange().formatted;
+    const semanaSiguiente = getNextWeekRange().formatted;
+    setPedidosModal({ practicante, semanaActual, semanaSiguiente });
+    setPedidosSemanas({ actual: undefined, siguiente: undefined });
+
+    try {
+      const [actual, siguiente] = await Promise.all([
+        cargarPedidosPracticante(practicante.nomina, semanaActual),
+        cargarPedidosPracticante(practicante.nomina, semanaSiguiente),
+      ]);
+      setPedidosSemanas({ actual, siguiente });
+    } catch (error) {
+      console.error("Error cargando pedidos del practicante:", error);
+      notifyError("Error", "No se pudieron cargar los pedidos.");
+      setPedidosSemanas({ actual: null, siguiente: null });
+    }
+  };
+
+  const costoPlatilloLectura = (valor) => {
+    const multiplicador = parseFloat(String(valor).split("-")[3]) || 1;
+    return 25 * multiplicador;
+  };
+
+  const handleCancelarPlatilloPracticante = async (semana, diaIndex, opcion, costo, etiqueta) => {
+    const confirmacion = await Swal.fire({
+      title: "¿Solicitar cancelación?",
+      text: `${etiqueta} del ${DIAS_SEMANA[diaIndex]} (${semana})`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, solicitar",
+      cancelButtonText: "No",
+    });
+    if (!confirmacion.isConfirmed) return;
+
+    const practicante = pedidosModal?.practicante;
+    try {
+      const response = await fetch(`${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.CANCELAR_ORDEN}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          Opcion: opcion,
+          Dia: diaIndex,
+          IdOperador: String(practicante.nomina),
+          IDFirebase: semana,
+          Amount: costo,
+          Solicitar: true,
+          Nombre: practicante.nombre,
+          Area: practicante.area,
+          tipo: "practicante",
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.result !== "Solicitado") {
+        throw new Error(data.message || "No se pudo enviar la solicitud.");
+      }
+      notifySuccess("Solicitud enviada", "La cancelación está pendiente de aprobación.");
+    } catch (error) {
+      notifyError("Error", error.message || "No se pudo enviar la solicitud.");
+    }
+  };
+
   const handleSolicitudComida = (practicante) => {
     handleAbrirSolicitudComida(practicante);
   };
@@ -671,17 +745,16 @@ export default function Practicantes({ onClose }) {
         return;
       }
 
-      // Cargar desde: AquaMedica-Morelos/Usuarios/Comedor/{nomina}/Comida/{semana}
-      const docRef = doc(db, "AquaMedica-Morelos", "Usuarios", "Comedor", nominaUser, "Comida", semanaTrim);
-      const docSnap = await getDoc(docRef);
+      const response = await fetch(`${COMEDOR_API.BASE_URL}${COMEDOR_API.ENDPOINTS.MENU_EMPLEADO}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nomina: Number(nominaUser), idSemana: semanaTrim, tipo: "practicante" }),
+      });
+      const data = await response.json();
 
-      console.log("📊 Documento encontrado:", docSnap.exists());
-
-      if (docSnap.exists()) {
-        const pedidosData = docSnap.data();
-        console.log("✅ Pedidos encontrados:", pedidosData);
+      if (data.status === "OK" && data.existe) {
         setTienePedidosExistentes(true);
-        setPedidosExistentes(pedidosData);
+        setPedidosExistentes(data.menu);
       } else {
         console.log("❌ No hay pedidos previos");
         setTienePedidosExistentes(false);
@@ -704,6 +777,10 @@ export default function Practicantes({ onClose }) {
       notifyError("Error", "Selecciona un plato");
       return;
     }
+    if (desayunosAcumulados.some((o) => o.dia === desayunoData.dia)) {
+      notifyError("Día repetido", `Ya tienes un desayuno para el ${desayunoData.dia}.`);
+      return;
+    }
     const costoBase = 25;
     const costoExtras = desayunoData.extras.reduce((t, e) => t + (EXTRAS_PRECIOS[e] || 10), 0);
     const costo = (costoBase * desayunoData.cantidad) + costoExtras;
@@ -724,6 +801,10 @@ export default function Practicantes({ onClose }) {
   const handleAgregarComida = () => {
     if (!comidaData.plato) {
       notifyError("Error", "Selecciona un plato");
+      return;
+    }
+    if (comidasAcumuladas.some((o) => o.dia === comidaData.dia)) {
+      notifyError("Día repetido", `Ya tienes una comida para el ${comidaData.dia}.`);
       return;
     }
     const costoBase = 25;
@@ -751,24 +832,25 @@ export default function Practicantes({ onClose }) {
 
     const desayunos = Array(7).fill("NA");
     const comidas = Array(7).fill("NA");
+    const desayunosExtras = Array.from({ length: 7 }, () => ["NA"]);
     const diaMap = { "Lunes": 0, "Martes": 1, "Miércoles": 2, "Jueves": 3, "Viernes": 4, "Sábado": 5, "Domingo": 6 };
 
-    // Llenar desayunos
     for (const orden of desayunosAcumulados) {
       const diaIndex = diaMap[orden.dia];
-      const firebaseIndex = diaIndex === 6 ? 0 : diaIndex + 1;
-      let menuText = orden.plato;
-      if (orden.extras.length > 0) menuText += `|${orden.extras.join(",")}`;
-      desayunos[firebaseIndex] = menuText;
+      const extrasDia = orden.extras.map((extra) => `${extra.split(" ")[0]}-${EXTRAS_PRECIOS[extra] || 10}`);
+      if (orden.plato === "Asada") {
+        desayunosExtras[diaIndex] = ["Asada-25", ...extrasDia];
+      } else {
+        desayunos[diaIndex] = `G1-${orden.plato}-25-${orden.cantidad}`;
+        if (extrasDia.length > 0) desayunosExtras[diaIndex] = extrasDia;
+      }
     }
 
-    // Llenar comidas
     for (const orden of comidasAcumuladas) {
       const diaIndex = diaMap[orden.dia];
-      const firebaseIndex = diaIndex === 6 ? 0 : diaIndex + 1;
-      let menuText = orden.plato;
-      if (orden.extras.length > 0) menuText += `|${orden.extras.join(",")}`;
-      comidas[firebaseIndex] = menuText;
+      comidas[diaIndex] = orden.plato === "Asada"
+        ? `Asada-Asada-25-${orden.cantidad}`
+        : `G1-${orden.plato}-25-${orden.cantidad}`;
     }
 
     const costos = {
@@ -778,7 +860,7 @@ export default function Practicantes({ onClose }) {
       cantidadComida: comidasAcumuladas.length,
     };
 
-    const success = await guardarSolicitudComida(practicanteSolicitud, "Desayuno", { desayunos, comidas, cenas: Array(7).fill("NA"), costos }, [], menus.semana);
+    const success = await guardarSolicitudComida(practicanteSolicitud, "Desayuno", { desayunos, comidas, cenas: Array(7).fill("NA"), costos, desayunosExtras }, [], menus.semana);
 
     if (success) {
       notifySuccess("Éxito", "¡Solicitudes guardadas!");
@@ -794,6 +876,21 @@ export default function Practicantes({ onClose }) {
   const totalDesayunos = desayunosAcumulados.reduce((s, o) => s + o.costo, 0);
   const totalComidas = comidasAcumuladas.reduce((s, o) => s + o.costo, 0);
   const cobraDesayuno = totalDesayunos > 0;
+
+  const DIAS_LECTURA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+  const TAMANOS_LECTURA = { "0.5": "Media orden", "1": "Una orden", "1.5": "Orden y media", "2": "Dos órdenes" };
+  const nombrePlatilloLectura = (valor) => {
+    if (!valor || valor === "NA") return null;
+    const partes = valor.split("-");
+    return partes.length > 1 ? partes[1] : valor;
+  };
+  const tamanoLectura = (valor) => {
+    if (!valor || valor === "NA") return null;
+    return TAMANOS_LECTURA[valor.split("-")[3]] || null;
+  };
+  const extrasLectura = (extras) => (extras || [])
+    .filter((extra) => extra && extra !== "NA")
+    .map((extra) => extra.split("-")[0]);
 
   // Estilos Modal
   const styles = {
@@ -976,10 +1073,10 @@ export default function Practicantes({ onClose }) {
                 onClick={() => handleSort("nomina")}
                 style={{ cursor: "pointer" }}
                 >
-                  Nomina
+                  Nómina
                 </th>
-                <th width="15%">Estado</th>
-                <th width="10%">Acciones</th>
+                <th style={{ width: "110px", whiteSpace: "nowrap" }}>Estado</th>
+                <th style={{ width: "96px", minWidth: "96px", whiteSpace: "nowrap", textAlign: "center" }}>Acciones</th>
               </tr>
             </thead>
 
@@ -1069,6 +1166,20 @@ export default function Practicantes({ onClose }) {
                             >
                               <FaUtensils className="me-1" />
                               Solicitar comida
+                            </button>
+
+                            <button
+                              type="button"
+                              className="practicante-action-menu-comida"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenActionsId(null);
+                                handleAbrirPedidos(practicante);
+                              }}
+                              onMouseDown={(event) => event.stopPropagation()}
+                            >
+                              <FaUtensils className="me-1" />
+                              Pedidos
                             </button>
 
                             <button
@@ -1833,10 +1944,13 @@ export default function Practicantes({ onClose }) {
           overflow: visible !important;
           position: relative;
           z-index: 3;
-          display: flex;
-          justify-content: center;
-          align-items: center;
+          min-width: 96px;
+          max-width: 96px;
           padding: 5px !important;
+        }
+
+        .practicantes-actions-wrapper {
+          display: inline-block;
         }
 
         .practicantes-actions-wrapper {
@@ -1971,6 +2085,100 @@ export default function Practicantes({ onClose }) {
         }
       `}</style>
 
+      {/* Modal Pedidos Practicante */}
+      {pedidosModal && (
+        <div
+          style={{position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: "20px"}}
+          onClick={() => setPedidosModal(null)}
+        >
+          <div
+            style={{background: "var(--operator-card)", borderRadius: "8px", width: "100%", maxWidth: "560px", maxHeight: "90vh", overflowY: "auto", padding: "24px", border: "1px solid var(--operator-border)", color: "var(--operator-text)"}}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px"}}>
+              <h3 style={{margin: 0}}>Pedidos - {pedidosModal.practicante.nombre}</h3>
+              <button
+                onClick={() => setPedidosModal(null)}
+                style={{background: "none", border: "none", fontSize: "24px", color: "var(--operator-text)", cursor: "pointer"}}
+              >×</button>
+            </div>
+
+            {[
+              { key: "actual", titulo: "Semana actual", semana: pedidosModal.semanaActual, cancelable: true },
+              { key: "siguiente", titulo: "Siguiente semana", semana: pedidosModal.semanaSiguiente, cancelable: false },
+            ].map((seccion) => {
+              const menu = pedidosSemanas[seccion.key];
+              return (
+                <details
+                  key={seccion.key}
+                  open={seccion.key === "actual"}
+                  style={{marginBottom: "12px", border: "1px solid var(--operator-border)", borderRadius: "8px", padding: "10px 14px"}}
+                >
+                  <summary style={{cursor: "pointer", fontWeight: 700}}>
+                    {seccion.titulo} ({seccion.semana})
+                  </summary>
+
+                  {menu === undefined && <p style={{fontSize: "13px"}}>Cargando...</p>}
+                  {menu === null && <p style={{fontSize: "13px", color: "var(--operator-text-soft)"}}>Sin pedidos para esta semana.</p>}
+
+                  {menu && DIAS_LECTURA.map((dia, i) => {
+                    const desayuno = nombrePlatilloLectura(menu.desayuno?.[i]);
+                    const extras = extrasLectura(menu.desayunoExtra?.[i]);
+                    const comida = nombrePlatilloLectura(menu.comida?.[i]);
+                    const cena = nombrePlatilloLectura(menu.cena?.[i]);
+                    if (!desayuno && extras.length === 0 && !comida && !cena) return null;
+
+                    const botonCancelar = (opcion, costo, etiqueta) => (
+                      <button
+                        key={etiqueta}
+                        onClick={() => handleCancelarPlatilloPracticante(seccion.semana, i, opcion, costo, etiqueta)}
+                        style={{marginLeft: "8px", padding: "2px 8px", fontSize: "12px", borderRadius: "6px", border: "none", background: "#ef4444", color: "white", cursor: "pointer"}}
+                      >
+                        Cancelar
+                      </button>
+                    );
+
+                    return (
+                      <div key={dia} style={{fontSize: "13px", padding: "8px 0", borderTop: "1px solid var(--operator-border)"}}>
+                        <strong>{dia}</strong>
+                        {(desayuno || extras.length > 0) && (
+                          <div>
+                            Desayuno: {desayuno || "—"}{extras.length > 0 && ` + ${extras.join(", ")}`}
+                            {seccion.cancelable && desayuno && botonCancelar(extras.length > 0 ? "DEN" : "D", costoPlatilloLectura(menu.desayuno?.[i]), "Desayuno")}
+                            {seccion.cancelable && !desayuno && extras.length > 0 && botonCancelar("DE", 0, "Extras")}
+                          </div>
+                        )}
+                        {comida && (
+                          <div>
+                            Comida: {comida}
+                            {seccion.cancelable && botonCancelar("C", costoPlatilloLectura(menu.comida?.[i]), "Comida")}
+                          </div>
+                        )}
+                        {cena && (
+                          <div>
+                            Cena: {cena}
+                            {seccion.cancelable && botonCancelar("CE", costoPlatilloLectura(menu.cena?.[i]), "Cena")}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {menu?.totales && (
+                    <div style={{marginTop: "10px", borderTop: "1px solid var(--operator-border)", paddingTop: "10px", fontSize: "13px"}}>
+                      <div>Total desayunos: <strong>${menu.totales.desayuno}</strong></div>
+                      <div>Total comidas: <strong>${menu.totales.comida}</strong></div>
+                      <div>Total cenas: <strong>${menu.totales.cena}</strong></div>
+                      <div style={{marginTop: "6px", color: "#4CAF50"}}>Total general: <strong>${menu.totales.semana}</strong></div>
+                    </div>
+                  )}
+                </details>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Modal Solicitud Comida Practicante */}
       {showMealRequestModal && practicanteSolicitud && menus && (
         <div style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: "20px"}}>
@@ -1994,11 +2202,43 @@ export default function Practicantes({ onClose }) {
                 <p style={{fontSize: "16px", fontWeight: "bold", marginBottom: "20px"}}>
                   Ya tiene registrado un pedido para la semana {menus?.semana}
                 </p>
-                <div style={{background: "var(--operator-card)", padding: "15px", borderRadius: "8px", marginBottom: "15px"}}>
-                  <p><strong>Semana:</strong> {pedidosExistentes?.semana}</p>
-                  <p><strong>Desayunos:</strong> {pedidosExistentes?.Desayuno ? JSON.parse(pedidosExistentes.Desayuno).filter(d => d !== "NA").length : 0} días</p>
-                  <p><strong>Comidas:</strong> {pedidosExistentes?.Comida ? JSON.parse(pedidosExistentes.Comida).filter(c => c !== "NA").length : 0} días</p>
-                  <p><strong>Cena:</strong> {pedidosExistentes?.Cena ? JSON.parse(pedidosExistentes.Cena).filter(c => c !== "NA").length : 0} días</p>
+                <div style={{background: "var(--operator-card)", padding: "15px", borderRadius: "8px", marginBottom: "15px", textAlign: "left"}}>
+                  <p><strong>Desayunos:</strong> {pedidosExistentes?.desayuno?.filter(d => d !== "NA").length || 0} días</p>
+                  <p><strong>Comidas:</strong> {pedidosExistentes?.comida?.filter(c => c !== "NA").length || 0} días</p>
+                  <p><strong>Cenas:</strong> {pedidosExistentes?.cena?.filter(c => c !== "NA").length || 0} días</p>
+                  <div style={{marginTop: "12px"}}>
+                    {DIAS_LECTURA.map((dia, i) => {
+                      const desayuno = nombrePlatilloLectura(pedidosExistentes?.desayuno?.[i]);
+                      const tamDesayuno = tamanoLectura(pedidosExistentes?.desayuno?.[i]);
+                      const extras = extrasLectura(pedidosExistentes?.desayunoExtra?.[i]);
+                      const comida = nombrePlatilloLectura(pedidosExistentes?.comida?.[i]);
+                      const tamComida = tamanoLectura(pedidosExistentes?.comida?.[i]);
+                      const cena = nombrePlatilloLectura(pedidosExistentes?.cena?.[i]);
+                      const tamCena = tamanoLectura(pedidosExistentes?.cena?.[i]);
+                      if (!desayuno && extras.length === 0 && !comida && !cena) return null;
+
+                      return (
+                        <div key={dia} style={{fontSize: "13px", padding: "8px 0", borderTop: "1px solid var(--operator-border)"}}>
+                          <strong>{dia}</strong>
+                          {(desayuno || extras.length > 0) && (
+                            <div>Desayuno: {desayuno || "—"}{tamDesayuno && ` (${tamDesayuno})`}{extras.length > 0 && ` + ${extras.join(", ")}`}</div>
+                          )}
+                          {comida && <div>Comida: {comida}{tamComida && ` (${tamComida})`}</div>}
+                          {cena && <div>Cena: {cena}{tamCena && ` (${tamCena})`}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {pedidosExistentes?.totales && (
+                    <div style={{marginTop: "12px", borderTop: "1px solid var(--operator-border)", paddingTop: "12px", fontSize: "13px"}}>
+                      <div>Total desayunos: <strong>${pedidosExistentes.totales.desayuno}</strong></div>
+                      <div>Total comidas: <strong>${pedidosExistentes.totales.comida}</strong></div>
+                      <div>Total cenas: <strong>${pedidosExistentes.totales.cena}</strong></div>
+                      <div style={{marginTop: "6px", fontSize: "15px", color: "#4CAF50"}}>
+                        Total general: <strong>${pedidosExistentes.totales.semana}</strong>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <p style={{fontSize: "14px", color: "var(--operator-text-soft)"}}>
                   Para realizar cambios, comuníquese con administración.

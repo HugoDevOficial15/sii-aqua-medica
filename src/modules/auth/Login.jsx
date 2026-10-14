@@ -185,7 +185,7 @@ export default function Login() {
                 <div className="login-card-premium">
                     <div className="login-logo-wrapper">
                         <img
-                            src="/logo.png"
+                            src="/aqua_medica_gif.gif"
                             alt="AQUA"
                             className="login-logo-premium"
                         />
