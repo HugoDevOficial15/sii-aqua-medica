@@ -73,6 +73,7 @@ export const FiltrosMedicamentos = ({
                 display: flex;
                 align-items: center;
                 gap: 10px;
+                overflow: hidden;
             }
 
             .form-control {

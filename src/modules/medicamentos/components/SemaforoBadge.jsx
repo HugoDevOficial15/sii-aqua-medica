@@ -3,9 +3,9 @@
 import { FaCircle } from "react-icons/fa"
 
 const map = {
-    rojo: "danger",
-    amarillo: "warning",
-    verde: "success"
+    rojo: "rojo",
+    amarillo: "amarillo",
+    verde: "verde"
 }
 
 export const SemaforoBadge = ({ semaforo }) => {
@@ -18,6 +18,21 @@ export const SemaforoBadge = ({ semaforo }) => {
                 <FaCircle className="me-1" />
                 {label}
             </span>
+            <style>{`
+                .bg-rojo {
+                
+                    background-color: var(--operator-producto-terminado) !important;
+                    color: var(--operator-producto-terminado-text) !important;
+                }
+                .badge.bg-amarillo {
+                    background-color: var(--operator-cambio) !important;
+                    color: var(--operator-cambio-text) !important;
+                }
+                .bg-verde {
+                    background-color: var(--operator-badge-activa) !important;
+                    color: var(--operator-badge-activa-text) !important;
+                }
+            `}</style>
 
         </div>
     )

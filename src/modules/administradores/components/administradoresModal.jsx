@@ -1025,7 +1025,7 @@ export default function AdministradoresModal({
         }
 
         .btn-cancelar {
-          background-color: var(--operator-border);
+          background-color: var(--operator-cancelar);
           border: none;
           color: var(--operator-text);
           padding: 10px 18px;
@@ -1041,7 +1041,8 @@ export default function AdministradoresModal({
         .btn-cancelar:hover {
           transform: scale(1.02) !important;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
-          color: var(--operator-danger);
+          background-color: var(--operator-cancelar-hover);
+          color: var(--operator-text);
         }
       `}</style>
     </div>

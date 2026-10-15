@@ -514,13 +514,28 @@ export default function CreateSurvey() {
 
             if (editing) {
 
+                Swal.fire({
+                    title: 'Actualizando encuesta',
+                    text: 'Por favor espera...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
                 await updateSurvey(currentId, surveyData);
 
                 Swal.close();
                 notifySuccess("Encuesta Actualizada", "Se actualizó correctamente");
 
             } else {
-
+                Swal.fire({
+                    title: 'Creando encuesta',
+                    text: 'Por favor espera...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
                 await createSurvey(surveyData);
 
                 Swal.close();
@@ -2018,12 +2033,12 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
 .modal-primary-btn {
     background: var(--operator-primary);
     color: #fff;
-    box-shadow: 0 0 20px var(--operator-primary-light);
+    box-shadow: 0 0 5px 1px var(--operator-primary-light);
 }
 
 .modal-primary-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 0 24px var(--operator-primary-light);
+    box-shadow: 0 0 10px 1px var(--operator-primary-light);
 }
 
 .modal-primary-btn-success {
@@ -2032,13 +2047,17 @@ rgba(8, 6, 6, 0.12) color: #dc2626 !important;
 }
 
 .modal-secondary-btn {
-    background: var(--operator-background);
+    background: var(--operator-cancelar);
     color: var(--operator-text);
-    border: 1px solid var(--operator-border);
+    border: 3px solid var(--operator-cancelar);
 }
 
 .modal-secondary-btn:hover {
-    background: var(--operator-border);
+    transform: scale(1.02);
+    transition: all 0.2s ease-in-out;
+    background: var(--operator-cancelar-hover);
+    border: 3px solid var(--operator-cancelar-hover);
+    color: var(--operator-text);
 }
 
 .modal-full::-webkit-scrollbar {

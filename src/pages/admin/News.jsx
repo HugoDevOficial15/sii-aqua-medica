@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaEdit, FaEllipsisV, FaTrash, FaPlus} from "react-icons/fa";
+import { FaEdit, FaEllipsisV, FaTrash, FaPlus, FaArrowLeft} from "react-icons/fa";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete } from "../../utils/notify";
 import { uploadNewsFile, uploadNewsImage } from "../../services/newsStorageService";
 import { getNoticias, createNoticia, updateNoticia, deleteNoticia } from "../../services/newsService";
@@ -181,7 +181,6 @@ export default function News() {
       return;
     }
 
-    setLoading(true);
     try {
       const noticeId = noticiaEditando?.id || `noticia_${Date.now()}`;
 
@@ -244,7 +243,6 @@ export default function News() {
       console.error("Error en Firebase:", error);
       notifyError("Error", "Hubo un error al procesar la noticia.");
     } finally {
-      setLoading(false);
     }
   };
 
@@ -272,11 +270,11 @@ export default function News() {
       <div className="contenedor-header">
         {vistaActual === "lista" ? (
           <button className="btn btn-sm btn-primary btn-custom "
-           onClick={abrirFormularioCrear}>
+            onClick={abrirFormularioCrear}>
             <FaPlus className="me-2" /> Crear Noticia
           </button>
         ) : (
-          <button className="btn btn-outline-secondary" onClick={() => setVistaActual("lista")}>Volver a la lista</button>
+          <button className="btn btn-outline-secondary" onClick={() => setVistaActual("lista")}> <FaArrowLeft className="me-2" /> Volver a la lista</button>
         )}
       </div>
 
@@ -302,7 +300,7 @@ export default function News() {
                         className={openActionsId === noticia.id ? "news-row-active news-row-open" : ""}>
                       <td className="py-3 border-0"><span className="fw-medium">{noticia.titulo}</span></td>
                       <td className="border-0">
-                        <span className={`badge ${noticia.areaDestino === 'Todas' ? 'bg-primary' : 'bg-secondary'}`}>
+                        <span className={`badge ${noticia.areaDestino === 'Todas' ? 'bg-todo' : 'bg-areas'}`}>
                           {noticia.areaDestino === 'Todas' ? 'Toda la empresa' : noticia.areaDestino}
                         </span>
                       </td>
@@ -420,8 +418,8 @@ export default function News() {
                 </div>
               </div>
               <div className="d-flex justify-content-end gap-3 mt-2">
-                <button type="button" className="btn btn-secondary" onClick={() => setVistaActual("lista")} disabled={loading}>Cancelar</button>
-                <button type="submit" className="btn btn-primary " disabled={loading}>{loading ? "Guardando..." : (noticiaEditando ? "Guardar Cambios" : "Publicar Noticia")}</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setVistaActual("lista")}>Cancelar</button>
+                <button type="submit" className="btn btn-primary " >{ loading ? "Guardando..." : (noticiaEditando ? "Guardar Cambios" : "Publicar Noticia")}</button>
               </div>
             </form>
           </div>
@@ -468,7 +466,6 @@ export default function News() {
           height: 50px;
           padding: 0 24px;
           border-radius: 14px;
-          border: none;
           background: var(--operator-primary);
           color: #fff;
           font-weight: 700;
@@ -487,9 +484,8 @@ export default function News() {
           height: 50px;
           max-width: 200px;
           padding: 0 24px;   
-          border: none;
           border-radius: 14px;
-          background: var(--operator-border);
+          background: var(--operator-cancelar);
           color: var(--operator-text);
           font-weight: 700;
           cursor: pointer;
@@ -497,38 +493,41 @@ export default function News() {
           align-items: center;
           justify-content: center;
           box-shadow: 0 0px 20px var(--operator-shadow);
-       }
+        }
 
-       .btn-secondary:hover {
-          background: var(--operator-border);
-          color: var(--operator-danger);
-       }
+        .btn-secondary:hover {
+            color: var(--operator-text);
+            transform: scale(1.02);
+            transition: all 0.2s ease-in-out;
+            background: var(--operator-cancelar-hover);
+        }
 
-       .btn-primary:hover {
-          background: var(--operator-primary);
-          color: #fff;
-          box-shadow: 0 0px 20px var(--operator-primary-light);
-       }
+        .btn-primary:hover {
+            background: var(--operator-primary);
+            color: #fff;
+            box-shadow: 0 0px 20px var(--operator-primary-light);
+        }
 
-       .btn-outline-secondary {
-          height: 50px;
-          padding: 0 24px;   
-          border: none;
-          border-radius: 14px;
-          background: var(--operator-border);
-          color: var(--operator-text);
-          font-weight: 700;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 0px 20px var(--operator-shadow);
-       }
+        .btn-outline-secondary {
+            height: 50px;
+            padding: 0 24px;   
+            border-radius: 14px;
+            background: var(--operator-cancelar);
+            color: var(--operator-text);
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0px 20px var(--operator-shadow);
+          }
 
-       .btn-outline-secondary:hover {
-          background: var(--operator-border);
-          color: var(--operator-danger);
-       }
+        .btn-outline-secondary:hover {
+            color: var(--operator-text);
+            transform: scale(1.02);
+            transition: all 0.2s ease-in-out;
+            background: var(--operator-cancelar-hover);
+        }
 
         /* TABLA */
 
@@ -722,6 +721,15 @@ export default function News() {
           color: rgba(107, 114, 128, 1) !important;
         }
 
+        .bg-todo {
+          background: var(--operator-aqua) !important;
+          color: var(--operator-aqua-text) !important;
+        }
+
+        .bg-areas {
+          background: var(--operator-badge-disabled) !important;
+          color: var(--operator-badge-disabled-text) !important;
+        }
 `}</style>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaArrowLeft, FaCheck, FaTimes, FaEllipsisV } from "react-icons/fa";
+import { FaArrowLeft, FaCheck, FaTimes, FaEllipsisV, FaEye, FaFilePdf } from "react-icons/fa";
 
 import Loader from "../../components/Loader";
 import { notifyError, notifySuccess } from "../../utils/notify";
@@ -14,6 +14,7 @@ import {
     atenderCita,
     cancelarCitaPorAdmin
 } from "../../services/citasMedicasService";
+import PdfModal from "./components/pdfModal";
 
 export default function AgendaDetalle({ agenda, onBack }) {
 
@@ -21,6 +22,7 @@ export default function AgendaDetalle({ agenda, onBack }) {
     const [citas, setCitas] = useState([]);
     const [loading, setLoading] = useState(false);
     const [openActionsId, setOpenActionsId] = useState(null);
+    const [showPdfModal, setShowPdfModal] = useState(false);
 
     // 🔥 MODAL DE CANCELACIÓN CON MOTIVO
     const [citaACancelar, setCitaACancelar] = useState(null);
@@ -78,8 +80,8 @@ export default function AgendaDetalle({ agenda, onBack }) {
         try {
             const citaAtendida = citas.find(c => c.id === id);
                 Swal.fire({
-                    title: "Creando agenda",
-                    text: "Creando la agenda y generando citas...",
+                    title: "Atendiendo cita...",
+                    text: "Marcando la cita como atendida...",
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     didOpen: () => {
@@ -269,6 +271,14 @@ export default function AgendaDetalle({ agenda, onBack }) {
         
     return (
         <div className="page-transition">
+            {showPdfModal && (
+                <PdfModal
+                    agenda={agenda}
+                    citas={citasFiltradas}
+                    fechaInicial={fecha}
+                    onClose={() => setShowPdfModal(false)}
+                />
+            )}
 
             {/* HEADER */}
             <div>
@@ -282,14 +292,23 @@ export default function AgendaDetalle({ agenda, onBack }) {
             <div className="d-flex gap-4 custom-users-header">
 
                 <div className="d-flex align-items-center gap-4">
+                    <h6 className="mb-0"> Agenda: {agenda.nombre}</h6>
+                    
                     <button
-                        className="btn btn-outline-secondary btn-sm"
+                        className="btn-volver"
                         onClick={onBack}
                     >
                         <FaArrowLeft /> Volver
                     </button>
 
-                    <h6 className="mb-0">{agenda.nombre}</h6>
+                    <button
+                        className="btn-pdf"
+                        onClick={() => setShowPdfModal(true)}
+                        type="button"
+                    >
+                        <FaFilePdf /> PDF
+                    </button>
+
                     
                 </div>
 
@@ -297,18 +316,17 @@ export default function AgendaDetalle({ agenda, onBack }) {
                     <input
                         type="date"
                         className="form-control"
-                        style={{ width: "14rem" }}
                         value={fecha}
                         onChange={(e) => setFecha(e.target.value)}
                         placeholder="Selecciona una fecha"
                     />
                     {fecha && (
                         <button
-                            className="btn btn-sm btn-outline-secondary"
+                            className="btn-todas"
                             onClick={() => setFecha("")}
                             title="Mostrar todas las citas"
                         >
-                            Ver todas
+                            <FaEye /> Ver todas
                         </button>
                     )}
                 </div>
@@ -483,6 +501,21 @@ export default function AgendaDetalle({ agenda, onBack }) {
             {/*  ESTILOS PRO (Con la corrección de JSX) */}
             <style >{`
 
+            .mb-3 {
+                display: flex;
+                flex-direction: column;
+                margin-bottom: 1rem;
+            }
+
+            .mb-0 {
+                font-size: 20px;
+                font-weight: 500;
+            }
+            
+            .table-responsive-container {
+                padding: 16px;
+            }
+
             .contenedor-header {
                 display: flex;
                 justify-content: end;
@@ -490,6 +523,7 @@ export default function AgendaDetalle({ agenda, onBack }) {
                 background: var(--operator-card);
                 padding: 30px;
                 margin: 0;
+                border: 1px solid var(--operator-border);
                 border-radius: 30px;
                 margin-top: 20px;
             }
@@ -499,7 +533,8 @@ export default function AgendaDetalle({ agenda, onBack }) {
             }
 
             .custom-users-card {
-                border-radius: 16px;
+                border-radius: 30px;
+                padding: 0px;
                 border: 1px solid var(--operator-border);
                 background: var(--operator-card);
                 color: var(--operator-text);
@@ -507,13 +542,73 @@ export default function AgendaDetalle({ agenda, onBack }) {
             }
 
             .custom-users-header,
-            .custom-users-header .form-control {
+            .custom-users-header{
                 color: var(--operator-text);
             }
 
             .custom-users-header .form-control {
-                background: var(--operator-background);
+                background: var(--operator-card);
                 border-color: var(--operator-border);
+                color: var(--operator-text);
+                height: 50px;
+            }
+
+            .btn-pdf {
+                border-radius: 10px;
+                background: var(--operator-danger);
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 5px 10px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                height: 50px;
+            }
+
+            .btn-pdf:hover {
+                transform: scale(1.02);
+                transition: transform 0.2s ease-in-out;
+                box-shadow: 0 0px 10px 1px rgba(255, 21, 21, 0.34);
+            }
+
+            .btn-volver {
+                border-radius: 10px;
+                background: var(--operator-cancelar);
+                color: var(--operator-text);
+                border: 2px solid var(--operator-cancelar);
+                border-radius: 12px;
+                padding: 5px 10px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                height: 50px;
+            }
+
+            .btn-volver:hover {
+                transform: scale(1.02);
+                transition: transform 0.2s ease-in-out;
+                background: var(--operator-cancelar-hover);
+                border: 2px solid var(--operator-cancelar-hover);
+            }
+
+            .btn-todas {
+                border-radius: 10px;
+                background: var(--operator-cancelar);
+                color: var(--operator-text);
+                border: 2px solid var(--operator-cancelar);
+                border-radius: 12px;
+                padding: 5px 10px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                height: 50px;
+                min-width: 140px;
+            }
+
+            .btn-todas:hover {
+                transform: scale(1.02);
+                transition: transform 0.2s ease-in-out;
+                background: var(--operator-cancelar-hover);
+                border: 2px solid var(--operator-cancelar-hover);
+                color: var(--operator-text);
             }
 
             .custom-table {
@@ -594,8 +689,8 @@ export default function AgendaDetalle({ agenda, onBack }) {
             }
 
             .badge-activa {
-                background: var(--operator-activo);
-                color: var(--operator-activo-text);
+                background: var(--operator-badge-activa);
+                color: var(--operator-badge-activa-text);
                 padding: 6px 12px;
                 border-radius: 999px;
             }
@@ -622,8 +717,8 @@ export default function AgendaDetalle({ agenda, onBack }) {
             }
 
             .badge-cancelada {
-                background: var(--operator-badge-disabled);
-                color: var(--operator-badge-disabled-text);
+                background: var(--operator-badge-cancelado);
+                color: var(--operator-badge-cancelado-text);
                 padding: 6px 12px;
                 border-radius: 999px;
             }

@@ -818,22 +818,21 @@ export default function RackSalidaModal({
 
                 height: 50px;
                 padding: 0 24px;
-                border: none;
+                border: 3px solid var(--operator-cancelar);
                 border-radius: 14px;
-                background: var(--operator-border);
+                background: var(--operator-cancelar);
                 color: var(--operator-text);
                 font-weight: 700;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 0px 20px var(--operator-shadow);
-
             }
 
             .salida-cancel:hover {
-                background: var(--operator-border);
-                color: var(--operator-danger);
+                background: var(--operator-cancelar-hover);
+                color: var(--operator-text);
+                border: 3px solid var(--operator-cancelar-hover);
                 transition: transform 0.2s;
                 transform: scale(1.02);
             }

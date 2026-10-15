@@ -88,6 +88,18 @@
 
     --operator-badge-disabled-text: #141516;
 
+    --operator-badge-cancelado: #cacaca4d;
+
+    --operator-badge-cancelado-text: #363636;
+
+    --operator-badge-activa: #00a00859;
+
+    --operator-badge-activa-text: #115300;
+
+    --operator-cancelar: #e5e6e7;
+
+    --operator-cancelar-hover: #c9c8c8;
+
     --operator-radius: 24px; 
 
     --operator-shadow:
@@ -206,6 +218,18 @@ html[data-theme="dark"] {
     --operator-badge-disabled: #b4b4b46e;
     
     --operator-badge-disabled-text: #ffffff;
+
+    --operator-badge-cancelado: #7a7a7a73;
+
+    --operator-badge-cancelado-text: #b4b4b4;
+
+    --operator-badge-activa: #037a0963;
+
+    --operator-badge-activa-text: #24b600;
+
+    --operator-cancelar: #414a5a;
+
+    --operator-cancelar-hover: #5c687e;
 }
 
 /* Superficies principales del shell operador que no usan las variables

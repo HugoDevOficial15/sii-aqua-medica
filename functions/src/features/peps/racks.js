@@ -1,4 +1,4 @@
-const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const {
   db,
   FieldValue,
@@ -9,47 +9,6 @@ const {
   normalizeRackList,
 } = require("./utils");
 
-const isCallableEnvelope = (body = {}) => {
-  return !!body && typeof body === "object" && !Array.isArray(body) && Object.prototype.hasOwnProperty.call(body, "data");
-};
-
-const isCallableRequest = (req = {}) => {
-  const headers = req.headers || {};
-  return Boolean(
-    headers["x-client-version"]
-      || headers["x-firebase-client"]
-      || headers["x-firebase-client-log-type"]
-      || isCallableEnvelope(req.body)
-  );
-};
-
-const getRequestPayload = (req = {}) => {
-  if (req?.body && typeof req.body === "object" && !Array.isArray(req.body)) {
-    if (isCallableEnvelope(req.body)) {
-      return req.body.data;
-    }
-    return req.body;
-  }
-
-  if (req?.data !== undefined) {
-    return req.data;
-  }
-
-  return {};
-};
-
-const toCallableError = (error) => {
-  const code = error?.code || "internal";
-  const status = String(code).toUpperCase().replace(/-/g, "_") || "INTERNAL";
-  const message = error instanceof Error ? error.message : "Error al registrar el movimiento.";
-
-  return {
-    error: {
-      message,
-      status,
-    },
-  };
-};
 
 exports.crearRack = onCall(async (request) => {
   const datos = validatePayload(getPayload(request), "datos de rack");
@@ -125,21 +84,10 @@ const registrarMovimientoCore = async (data) => {
   return { id: docRef.id };
 };
 
-exports.registrarMovimiento = onRequest({ cors: true }, async (req, res) => {
-  const callable = isCallableRequest(req);
-
-  try {
-    const data = getRequestPayload(req);
-    const result = await registrarMovimientoCore(data);
-
-    return res.status(200).json(callable ? { data: result } : result);
-  } catch (error) {
-    const code = error?.code || "internal";
-    const statusCode = code === "invalid-argument" ? 400 : code === "unauthenticated" ? 401 : code === "permission-denied" ? 403 : 500;
-    const payload = callable ? toCallableError(error) : { ok: false, message: error instanceof Error ? error.message : "Error al registrar el movimiento." };
-
-    return res.status(statusCode).json(payload);
-  }
+exports.registrarMovimiento = onCall(async (request) => {
+  const data = request?.data ?? {};
+  const result = await registrarMovimientoCore(data);
+  return result;
 });
 
 const obtenerMovimientosPorFechaCore = async (data = {}) => {
@@ -161,21 +109,9 @@ const obtenerMovimientosPorFechaCore = async (data = {}) => {
   return { movimientos: filtered };
 };
 
-exports.obtenerMovimientosPorFecha = onRequest({ cors: true }, async (req, res) => {
-  const callable = isCallableRequest(req);
-
-  try {
-    const result = await obtenerMovimientosPorFechaCore(getRequestPayload(req));
-    return res.status(200).json(callable ? { data: result } : result);
-  } catch (error) {
-    const code = error?.code || "internal";
-    const statusCode = code === "invalid-argument" ? 400 : code === "unauthenticated" ? 401 : code === "permission-denied" ? 403 : 500;
-    const payload = callable
-      ? toCallableError(error)
-      : { ok: false, message: error instanceof Error ? error.message : "Error al obtener los movimientos por fecha." };
-
-    return res.status(statusCode).json(payload);
-  }
+exports.obtenerMovimientosPorFecha = onCall(async (request) => {
+  const data = request?.data ?? {};
+  return obtenerMovimientosPorFechaCore(data);
 });
 
 exports.suscribirMovimientos = onCall(async (request) => {

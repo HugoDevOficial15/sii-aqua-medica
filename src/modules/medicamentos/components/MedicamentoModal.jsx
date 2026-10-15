@@ -67,30 +67,18 @@ const schema = z.object({
     const fechaIngreso = parseDateInput(data.fechaIngreso)
 
     if (fechaCaducidad && fechaCaducidad < today) {
-        ctx.addIssue({
-            path: ["fechaCaducidad"],
-            code: z.ZodIssueCode.custom,
-            message: "La fecha de caducidad no puede ser menor a la fecha actual."
-        })
+        notifyError("La fecha de caducidad no puede ser menor a la fecha actual.")
     }
 
     const minCaducidad = new Date(today)
     minCaducidad.setFullYear(minCaducidad.getFullYear() + 1)
 
     if (fechaCaducidad && fechaCaducidad < minCaducidad) {
-        ctx.addIssue({
-            path: ["fechaCaducidad"],
-            code: z.ZodIssueCode.custom,
-            message: "La fecha de caducidad debe ser al menos 1 año posterior a la fecha actual."
-        })
+        notifyError("La fecha de caducidad debe ser al menos 1 año posterior a la fecha actual.")
     }
 
     if (fechaIngreso && fechaIngreso < today) {
-        ctx.addIssue({
-            path: ["fechaIngreso"],
-            code: z.ZodIssueCode.custom,
-            message: "La fecha de ingreso no puede ser anterior a la fecha actual."
-        })
+        notifyError("La fecha de ingreso no puede ser anterior a la fecha actual.")
     }
 })
 
@@ -101,6 +89,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
     const [focusedField, setFocusedField] = useState(null)
     const [isCloseHovered, setIsCloseHovered] = useState(false)
     const [isSaveHovered, setIsSaveHovered] = useState(false)
+    const [isCancelHovered, setIsCancelHovered] = useState(false)
     const todayString = new Date().toISOString().split("T")[0]
 
     const {
@@ -184,7 +173,14 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                 if (!result.isConfirmed) {
                     return
                 }
-
+                Swal.fire({
+                    title: 'Actualizando...',
+                    text: 'Por favor espera...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                })
                 await updateMedicamento(data.id, sanitizedForm)
 
                 await Swal.close();
@@ -208,7 +204,14 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                 if (!result.isConfirmed) {
                     return
                 }
-
+                Swal.fire({
+                    title: 'Creando...',
+                    text: 'Por favor espera...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                })
                 await createMedicamento(sanitizedForm)
 
                 await Swal.close();
@@ -450,6 +453,19 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
 
                         {/* FOOTER */}
                         <div style={styles.footer}>
+
+                            <button
+                                type="button"
+                                style={{
+                                    ...styles.cancelButton,
+                                    ...(isCancelHovered ? styles.cancelButtonHover : {})
+                                }}
+                                onMouseEnter={() => setIsCancelHovered(true)}
+                                onMouseLeave={() => setIsCancelHovered(false)}
+                                onClick={onClose}
+                            >
+                                Cancelar
+                            </button>
 
                             <button
                                 type="submit"
@@ -728,7 +744,7 @@ const styles = {
 
         justifyContent: "center",
 
-        boxShadow: "0 12px 24px rgba(37,99,235,0.14)"
+        boxShadow: "0 0px 5px 1px var(--operator-primary-light)"
     },
     
     saveButtonHover: {
@@ -737,5 +753,38 @@ const styles = {
         color: "var(--operator-primary)",
         boxShadow: "0 0px 10px 1px var(--operator-primary)"
 
+    },
+
+    cancelButton: {
+
+        height: "50px",
+
+        padding: "0 24px",
+
+        borderRadius: "14px",
+
+        border: "3px solid var(--operator-cancelar)",
+
+        background: "var(--operator-cancelar)",
+
+        color: "var(--operator-text)",
+
+        fontWeight: "700",
+
+        cursor: "pointer",
+
+        display: "flex",
+
+        alignItems: "center",
+
+        justifyContent: "center"
+
+    },
+    cancelButtonHover: {
+        background: "var(--operator-cancelar-hover)",
+        color: "var(--operator-text)",
+        border: "3px solid var(--operator-cancelar-hover)",
+        transition: "transform 0.2s",
+        transform: "scale(1.02)"    
     }
 };

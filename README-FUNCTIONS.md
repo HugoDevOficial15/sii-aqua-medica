@@ -7,6 +7,27 @@
 # ###########  SII  ############ #
 
 **Functions-Nuevas**
+
+
+**Functions-Refactorizadas**
+* getCitasPorAgenda
+* getAvailableSchedules
+* bookAppointment
+* obtenerMovimientosPorFecha
+* registrarMovimiento
+
+# #########  COMEDOR  ########## #
+
+
+==================================
+
+            ============
+            = 14/10/26 =
+            ============
+
+# ###########  SII  ############ #
+
+**Functions-Nuevas**
 * registrarPuntos
 * obtenerPuntosUsuario
 * obtenerHistorialPuntos

@@ -284,7 +284,7 @@ export default function DisponibilidadMesModal({
     padding: 0 24px;   
     border: none;
     border-radius: 14px;
-    background: var(--operator-border);
+    background: var(--operator-cancelar);
     color: var(--operator-text);
     font-weight: 700;
     cursor: pointer;
@@ -295,8 +295,10 @@ export default function DisponibilidadMesModal({
 }
 
 .btn-secondary:hover {
-    background: var(--operator-border);
-    color: var(--operator-danger)
+    transform: scale(1.02);
+    transition: all 0.2s ease-in-out;
+    background: var(--operator-cancelar-hover);
+    color: var(--operator-text);
 }
 
 .btn-close {

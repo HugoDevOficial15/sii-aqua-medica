@@ -995,14 +995,15 @@ export default function PdfGeneralModal({
         }
 
         .personal-modal-btn.secondary {
-          background: var(--operator-border);
+          background: var(--operator-cancelar);
           color: var(--operator-text);
         }
 
         .personal-modal-btn.secondary:hover {
           filter: brightness(1.05);
           scale: 1.02;
-          color: var(--operator-danger);
+          background: var(--operator-cancelar-hover);
+          color: var(--operator-text);
         }
 
         .personal-modal-btn.primary {

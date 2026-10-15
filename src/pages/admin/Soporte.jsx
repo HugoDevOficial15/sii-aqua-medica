@@ -417,7 +417,7 @@ export default function SoporteAdmin() {
         }
 
         .btn-cancelar {
-            background-color: var(--operator-form);
+            background-color: var(--operator-cancelar);
             color: var(--operator-text);
             border: none;
             border-radius: 10px;
@@ -431,8 +431,8 @@ export default function SoporteAdmin() {
         .btn-cancelar:hover {
             transform: scale(1.05);
             transition: transform 0.2s ease-in-out;        
-            background-color: var(--operator-form);
-            color: var(--operator-danger);
+            background-color: var(--operator-cancelar-hover);
+            color: var(--operator-text);
         }
       `}</style>
 

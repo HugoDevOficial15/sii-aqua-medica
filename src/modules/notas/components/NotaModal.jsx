@@ -137,7 +137,6 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     border-radius: 20px;
                     overflow: hidden;
                     box-shadow: 0 20px 40px rgba(0,0,0,0.12);
-                    border: 1px solid var(--operator-border);
                 }
 
                 .custom-modal-header {
@@ -187,9 +186,9 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                 .btn-secondary {
                     height: 50px;
                     padding: 0 24px;   
-                    border: none;
+                    border: 3px solid var(--operator-cancelar);
                     border-radius: 12px;
-                    background: var(--operator-border);
+                    background: var(--operator-cancelar);
                     color: var(--operator-text);
                     font-weight: 700;
                     cursor: pointer;
@@ -200,8 +199,11 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                 }
 
                 .btn-secondary:hover {
-                    background: var(--operator-border);
-                    color: var(--operator-danger)
+                    color: var(--operator-text);
+                    transform: scale(1.02);
+                    transition: all 0.2s ease-in-out;
+                    background: var(--operator-cancelar-hover);
+                    border: 3px solid var(--operator-cancelar-hover);
                 }
 
                 .form-control {

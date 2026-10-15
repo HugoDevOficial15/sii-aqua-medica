@@ -12,7 +12,18 @@ const CITA_ESTADOS = {
 };
 
 const ESTADOS_CANCELABLES = [CITA_ESTADOS.ACTIVA, "pendiente", "reservado"];
-const ESTADOS_OCUPADOS = [CITA_ESTADOS.ACTIVA, "pendiente", "reservado"];
+const ESTADOS_OCUPADOS = [
+  CITA_ESTADOS.ACTIVA,
+  CITA_ESTADOS.CANCELADA_USUARIO,
+  CITA_ESTADOS.CANCELADA_ADMIN,
+  CITA_ESTADOS.ATENDIDA,
+  CITA_ESTADOS.FINALIZADA,
+  CITA_ESTADOS.EXPIRADA,
+  "pendiente",
+  "reservado",
+];
+
+const esEstadoBloqueado = (estado) => ESTADOS_OCUPADOS.includes(estado);
 
 const normalizeCitaListado = (snapshot) =>
   snapshot.docs.map((docSnap) => ({
@@ -269,7 +280,7 @@ exports.getCitasPorAgenda = onCall(async (request) => {
 
   citas.forEach((cita) => {
     const estado = cita.estado;
-    if (!estado || ![CITA_ESTADOS.ACTIVA, "pendiente", "reservado", CITA_ESTADOS.ATENDIDA, CITA_ESTADOS.FINALIZADA].includes(estado)) {
+    if (!estado || !esEstadoBloqueado(estado)) {
       return;
     }
 
@@ -467,6 +478,7 @@ exports.getAvailableSchedules = onCall(async (request) => {
       if (String(cita.nominaCancelada) === String(nominaUsuarioActual)) {
         horasOcultasParaNomina.add(hora);
       }
+      horasOcupadas.add(hora);
       return;
     }
 
@@ -475,17 +487,20 @@ exports.getAvailableSchedules = onCall(async (request) => {
       if (userIdActual && String(usuarioAfectado) === String(userIdActual)) {
         horasOcultasParaNomina.add(hora);
       }
+      horasOcupadas.add(hora);
       return;
     }
 
-    if (ESTADOS_OCUPADOS.includes(estado)) {
+    if (esEstadoBloqueado(estado)) {
       horasOcupadas.add(hora);
     }
   });
 
+  const horariosBloqueados = new Set([...horasOcupadas, ...horasOcultasParaNomina]);
+
   return {
-    bloques: bloquesPosibles.filter((h) => !horasOcultasParaNomina.has(h)),
-    ocupadas: Array.from(horasOcupadas),
+    bloques: bloquesPosibles,
+    ocupadas: Array.from(horariosBloqueados),
   };
 });
 
@@ -554,14 +569,14 @@ exports.bookAppointment = onCall(async (request) => {
 
   snapFecha.docs.forEach((docSnap) => {
     const cita = docSnap.data() || {};
+    const horaExistente = cita.horaInicio || cita.hora || "";
 
-    if (cita.estado !== CITA_ESTADOS.ACTIVA) {
+    if (horaExistente !== horaInicio) {
       return;
     }
 
-    const horaExistente = cita.horaInicio || cita.hora || "";
-    if (horaExistente === horaInicio) {
-      throw new HttpsError("failed-precondition", "Ya tienes otra cita agendada a esta misma hora.");
+    if (esEstadoBloqueado(cita.estado)) {
+      throw new HttpsError("failed-precondition", "Este horario ya no está disponible.");
     }
   });
 
@@ -572,6 +587,15 @@ exports.bookAppointment = onCall(async (request) => {
     .where("horaInicio", "==", horaInicio)
     .limit(10)
     .get();
+
+  const slotOcupado = slotsDisponibles.docs.some((docSnap) => {
+    const cita = docSnap.data() || {};
+    return esEstadoBloqueado(cita.estado);
+  });
+
+  if (slotOcupado) {
+    throw new HttpsError("failed-precondition", "Este horario ya no está disponible.");
+  }
 
   const slotLibre = slotsDisponibles.docs.find((docSnap) => {
     const cita = docSnap.data() || {};

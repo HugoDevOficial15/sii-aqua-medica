@@ -209,7 +209,8 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
             </label>
 
             <div style={styles.footer}>
-              <button type="submit" style={styles.saveButton}>
+              <button type="submit"
+                      className="btn-guardar">
                 {loading ? "Guardando..." : "Guardar"}
               </button>
             </div>
@@ -233,6 +234,22 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
         textarea::placeholder {
           color: var(--operator-text-soft, #64748b);
           opacity: 1;
+        }
+
+        .btn-guardar {
+            background-color: var(--operator-primary) !important;
+            color: var(--operator-text) !important;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 16px;
+            cursor: pointer;
+            box-shadow: 0 0 5px 1px var(--operator-primary-light) !important;
+        }
+
+        .btn-guardar:hover {
+            transform: scale(1.02);
+            transition: transform 0.2s ease-in-out;
+            box-shadow: 0 0 10px 1px var(--operator-primary-light) !important;
         }
 
         .

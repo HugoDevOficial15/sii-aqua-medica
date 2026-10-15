@@ -140,9 +140,6 @@ export default function OperatorPreferences({ onBack, usuarioActual, adminMode =
             <MobileBackButton onBack={onBack} />
 
             <div className={adminMode ? "preferences-hero admin-mode" : "preferences-hero"}>
-                
-                <h6><strong>Configuración</strong></h6>
-                <span className="badge-title">AQUA Médica</span>
             </div>
 
             {/*  NUEVA SECCIÓN: Tarjeta de Foto de Perfil  */}

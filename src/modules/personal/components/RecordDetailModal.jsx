@@ -416,20 +416,20 @@ export default function RecordDetailModal({ record, onClose }) {
           padding: 0 24px;   
           border: none;
           border-radius: 14px;
-          background: var(--operator-border);
+          background: var(--operator-cancelar);
           color: var(--operator-text);
           font-weight: 700;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0px 20px var(--operator-shadow);
+          box-shadow: 0 0px 5px 1px var(--operator-shadow);
         }
 
         .personal-modal-primary:hover {
-          filter: brightness(1.05);
           scale: 1.02;
-          color: var(--operator-danger);
+          background: var(--operator-cancelar-hover);
+          color: var(--operator-text);
         }
 
         .personal-modal-pdf {

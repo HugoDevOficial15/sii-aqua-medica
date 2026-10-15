@@ -871,23 +871,23 @@ export default function MovimientoModal({
 
                     height: 50px;
                     padding: 0 24px;
-                    border: none;
+                    border: 3px solid var(--operator-cancelar);
                     border-radius: 14px;
-                    background: var(--operator-border);
+                    background: var(--operator-cancelar);
                     color: var(--operator-text);
                     font-weight: 700;
                     cursor: pointer;
                     display: flex;
                     justify-content: center;
                     align-items: center;
-                    box-shadow: 0 0px 10px var(--operator-secondary-light);
                 }
 
                 .movement-cancel:hover {
-                    box-shadow: 0 0px 20px var(--operator-secondary-light);
+                    background: var(--operator-cancelar-hover);
+                    border: 3px solid var(--operator-cancelar-hover);
                     transition: transform 0.2s ease-in-out;
                     transform: scale(1.02);
-                    color: var(--operator-danger);
+                    color: var(--operator-text);
                 }
 
             `}</style>

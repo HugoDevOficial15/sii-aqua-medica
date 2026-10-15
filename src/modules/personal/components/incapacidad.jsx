@@ -654,14 +654,14 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
         }
 
         .personal-modal-btn.secondary {
-          background: rgba(148, 163, 184, 0.12);
+          background: var(--operator-cancelar);
           color: var(--operator-text, #0f172a);
         }
         
         .personal-modal-btn.secondary:hover {
-            filter: brightness(1.05);
             transform: translateY(-1px);
-            color: var(--operator-danger);
+            background: var(--operator-cancelar-hover);
+            color: var(--operator-text, #0f172a);
         }
 
         .personal-modal-btn.primary {

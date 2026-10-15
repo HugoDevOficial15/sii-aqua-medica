@@ -463,20 +463,20 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                     height: 50px;
                     padding: 0 24px;
                     border-radius: 14px;
-                    border: none;
-                    background: var(--operator-form);
+                    border: 3px solid var(--operator-cancelar);
+                    background: var(--operator-cancelar);
                     color: var(--operator-text);
                     font-weight: 700;
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 0px 20px var(--operator-secondary-light);
                 }
 
                 .btn-cerrar:hover {
-                    color: var(--operator-danger);
-                    box-shadow: 0 0px 10px var(--operator-secondary-light);
+                    color: var(--operator-text);
+                    background: var(--operator-cancelar-hover);
+                    border: 3px solid var(--operator-cancelar-hover);
                     transition: 0.2s ease-in-out;
                     transform: scale(1.02);
                 }

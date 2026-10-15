@@ -389,7 +389,7 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
                 padding: 0 24px;   
                 border: none;
                 border-radius: 14px;
-                background: var(--operator-border);
+                background: var(--operator-cancelar);
                 color: var(--operator-text);
                 font-weight: 700;
                 cursor: pointer;
@@ -400,8 +400,10 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
             }
 
             .btn-light:hover {
-                background: var(--operator-border);
-                color: var(--operator-danger) !important;
+                transform: scale(1.02);
+                transition: all 0.2s ease-in-out;
+                background: var(--operator-cancelar-hover);
+                color: var(--operator-text) !important;
             }
 
             .btn-primary {

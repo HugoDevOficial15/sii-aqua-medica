@@ -182,7 +182,7 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                 padding: 0 24px;   
                 border: none;
                 border-radius: 12px;
-                background: var(--operator-border);
+                background: var(--operator-cancelar);
                 color: var(--operator-text);
                 font-weight: 700;
                 cursor: pointer;
@@ -193,8 +193,8 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
             }
                 
             .btn-secondary:hover {
-                background: var(--operator-border);
-                color: var(--operator-danger) !important;
+                background: var(--operator-cancelar-hover);
+                color: var(--operator-text) !important;
             }
 
             .btn-primary {

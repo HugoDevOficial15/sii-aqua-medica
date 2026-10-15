@@ -351,6 +351,21 @@ export default function IdeasAdmin() {
             transition: transform 0.2s;
             transform: scale(1.01);
         }
+
+        .btn-cerrar {
+            background-color: var(--operator-cancelar) !important;
+            color: var(--operator-text) !important;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+
+        .btn-cerrar:hover {
+            transform: scale(1.01);
+            transition: transform 0.2s ease-in-out;
+            background-color: var(--operator-cancelar-hover) !important;
+        }
       `}</style>
       <div className="page-transition">
 
@@ -690,7 +705,7 @@ export default function IdeasAdmin() {
               </div>
             </div>
             <div style={styles.footer}>
-              <button className="btn btn-secondary px-4 text-white" style={{ backgroundColor: "var(--operator-form)", }} onClick={() => setModalOpen(false)}>
+              <button className="btn-cerrar"  onClick={() => setModalOpen(false)}>
                 Cerrar
               </button>
             </div>

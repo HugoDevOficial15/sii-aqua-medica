@@ -312,13 +312,13 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
         }
 
         .personal-modal-secondary {
-          background: var(--operator-border);
+          background: var(--operator-cancelar);
           color: var(--operator-text);
         }
 
         .personal-modal-secondary:hover {
-          background: var(--operator-border);
-          color: var(--operator-danger);
+          background: var(--operator-cancelar-hover);
+          color: var(--operator-text);
           transform: scale(1.02);
         }
 

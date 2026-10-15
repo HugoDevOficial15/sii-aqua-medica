@@ -1983,13 +1983,14 @@ export default function Users({ onClose }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0px 10px var(--operator-primary-light);
+          box-shadow: 0 0px 5px 1px var(--operator-primary-light);
         }
 
         .btn-primary:hover {
           background: var(--operator-primary);
+          transform: scale(1.02) !important;
           transition: all 0.2s ease-in-out;
-          box-shadow: 0 0px 20px var(--operator-primary-light);
+          box-shadow: 0 0px 10px 1px var(--operator-primary-light);
         }
 
         .custom-users-card {
@@ -2317,7 +2318,7 @@ export default function Users({ onClose }) {
           padding: 0 24px;
           border: none;
           border-radius: 12px;
-          background: var(--operator-border) !important;
+          background: var(--operator-cancelar) !important;
           color: var(--operator-text);
           font-weight: 700;
           cursor: pointer;
@@ -2328,8 +2329,8 @@ export default function Users({ onClose }) {
         }
 
         .btn-secondary:hover {
-          background: var(--operator-border) !important;
-          color: var(--operator-danger) !important;
+          background: var(--operator-cancelar-hover) !important;
+          color: var(--operator-text) !important;
           scale: 1.02 !important;
         }
 
@@ -2345,7 +2346,7 @@ export default function Users({ onClose }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0px 10px var(--operator-primary-light);
+          box-shadow: 0 0px 5px 1px var(--operator-primary-light);
         }
 
         .col-md-4 label,

@@ -3,6 +3,17 @@ import { functions } from "../config/firebase";
 
 const callCitasFunction = (name) => httpsCallable(functions, name);
 
+export const exportAgendaCitasPdf = async ({
+    agenda = {},
+    citas = [],
+    fechaFiltro = "",
+    filtro = "all",
+    nominaFiltro = "",
+} = {}) => {
+    const { exportAgendaCitasPDF } = await import("../utils/exportAgendaCitasPDF");
+    return exportAgendaCitasPDF({ agenda, citas, fechaFiltro, filtro, nominaFiltro });
+};
+
 export const getCitasMedicas = async ({ agendaId = null, userId = null, estado = null } = {}) => {
     const result = await callCitasFunction("getCitasMedicas")({ agendaId, userId, estado });
     return result?.data?.citas ?? [];

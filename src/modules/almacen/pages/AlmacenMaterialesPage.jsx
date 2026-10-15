@@ -593,6 +593,7 @@ export default function AlmacenMaterialesPage() {
               display: flex;
               box-shadow: none !important;
               border-bottom: none !important;
+              background: none !important;
             }
 
 

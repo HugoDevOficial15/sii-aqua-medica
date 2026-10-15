@@ -227,7 +227,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                 padding: 0 24px;   
                 border: none;
                 border-radius: 14px;
-                background: var(--operator-border);
+                background: var(--operator-cancelar);
                 color: var(--operator-text);
                 font-weight: 700;
                 cursor: pointer;
@@ -238,7 +238,8 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
             }
 
             .btn-light.custom-btn:hover {
-                color: var(--operator-danger);
+                background: var(--operator-cancelar-hover);
+                color: var(--operator-text);
             }
 
             .btn-success.custom-btn {

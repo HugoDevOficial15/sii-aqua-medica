@@ -651,8 +651,8 @@ export default function RackPdfModal({
                 height: 50px;
                 padding: 0 24px;
                 border-radius: 14px;
-                border: none;
-                background: var(--operator-border);
+                border: 3px solid var(--operator-cancelar);
+                background: var(--operator-cancelar);
                 color: var(--operator-text);
                 font-weight: 700;
                 cursor: pointer;
@@ -663,7 +663,9 @@ export default function RackPdfModal({
             }
 
             .pdf-button-secondary:hover {
-                color: var(--operator-danger);
+                color: var(--operator-texts);
+                background: var(--operator-cancelar-hover);
+                border: 3px solid var(--operator-cancelar-hover);
                 transition: transform 0.2s;
                 transform: scale(1.02);
             }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {FaEllipsisV, FaTimesCircle, FaCheckCircle} from "react-icons/fa";
-import { FiEye, FiEdit, FiTrash2, FiArrowLeft, FiSave, FiPlus, FiToggleLeft, FiToggleRight } from "react-icons/fi";
+import { FiEye, FiEdit, FiTrash2, FiArrowLeft, FiSave, FiToggleLeft, FiToggleRight } from "react-icons/fi";
+import { FaPlus } from "react-icons/fa";
 import Loader from "../../components/Loader";
 
 import { useAuth } from "../../hooks/useAuth";
@@ -353,7 +354,7 @@ export default function AgendaMedicaPage() {
         return (
             <div className="container-fluid p-4 agenda-medica-page" style={{ maxWidth: '600px' }}>
                 <button 
-                    className="btn btn-link text-secondary p-0 mb-4 d-flex align-items-center gap-2 text-decoration-none"
+                    className="btn"
                     onClick={() => setVista("lista")}
                 >
                     <FiArrowLeft /> Volver a la lista
@@ -451,7 +452,7 @@ export default function AgendaMedicaPage() {
                     className="btn btn-primary"
                     onClick={() => setVista("crear")}
                 >
-                    <FiPlus size={18} /> Nueva Agenda
+                    <FaPlus size={15} style={{ marginRight: "6px" }} /> Nueva Agenda
                 </button>
             </div>
 
@@ -665,6 +666,9 @@ export default function AgendaMedicaPage() {
                     min-width: 100px;
                 }
 
+                .agenda-medica-table thead th:nth-child(5) {
+                    text-align: center;
+                }
 
                 .agenda-medica-table tbody tr.agenda-activation-menu {
                     transform: none !important;

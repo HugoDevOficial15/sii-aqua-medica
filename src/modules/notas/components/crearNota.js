@@ -59,6 +59,16 @@ export const completarNota = async (nota) => {
     const nuevoEstado = nota.estado === "completada" ? "activa" : "completada";
 
     try {
+
+        if (!(await Swal.fire({
+            title: "Seguro de completar la nota",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Sí, completar",
+            cancelButtonText: "Cancelar"
+        })).isConfirmed) {
+            throw new Error("Acción cancelada");
+        }
         Swal.fire({
             title: "Actualizando estado de la nota",
             icon: "info",
@@ -115,7 +125,20 @@ export const editarNota = async ({ nota, data }) => {
 
 // ELIMINAR
 export const eliminarNota = async (nota) => {
+    
     try {
+        await Swal.fire({
+        title: "Confirmar eliminación",
+        text: "¿Estás seguro de que deseas eliminar esta nota?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar"
+    }).then((result) => {
+        if (!result.isConfirmed) {
+            throw new Error("Eliminación cancelada");
+        }
+    });
         Swal.fire({
             title: "Eliminando nota",
             icon: "info",

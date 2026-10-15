@@ -737,8 +737,8 @@ export default function RackModal({ onClose, onSuccess, data }) {
                     height: 50px;
                     padding: 0 24px;
                     border-radius: 14px;
-                    border: none;
-                    background: var(--operator-form);
+                    border: 3px solid var(--operator-cancelar);
+                    background: var(--operator-cancelar);
                     color: var(--operator-text);
                     font-weight: 700;
                     cursor: pointer;
@@ -748,9 +748,11 @@ export default function RackModal({ onClose, onSuccess, data }) {
                 }
 
                 .btn-cerrar:hover {
-                    color: var(--operator-danger);
-                    transition: 0.2s ease-in-out;
+                    color: var(--operator-text);
                     transform: scale(1.02);
+                    transition: all 0.2s ease-in-out;
+                    background: var(--operator-cancelar-hover);
+                    border: 3px solid var(--operator-cancelar-hover);
                 }
 
             `}</style>
