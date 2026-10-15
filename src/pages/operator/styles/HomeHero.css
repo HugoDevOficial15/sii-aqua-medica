@@ -82,6 +82,15 @@
 
     border: 3px solid rgba(255, 255, 255, .9);
     flex-shrink: 0;
+
+    /* Mismo pulso de ondas que el resto de avatares (definido en index.css) */
+    animation: profile-avatar-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .heroAvatar {
+        animation: none;
+    }
 }
 
 .homeHero {

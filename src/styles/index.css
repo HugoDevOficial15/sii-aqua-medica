@@ -347,6 +347,38 @@ html[data-theme="dark"] .profile-avatar {
     border-width: 4px;
 }
 
+/* Pulso en el perfil de operador/admin */
+/* El color de la onda sale de --pulse-color (azul por defecto) */
+@keyframes profile-avatar-pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--pulse-color, #0d6efd) 45%, transparent);
+    }
+    70% {
+        transform: scale(1.06);
+        box-shadow: 0 0 0 10px color-mix(in srgb, var(--pulse-color, #0d6efd) 0%, transparent);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--pulse-color, #0d6efd) 0%, transparent);
+    }
+}
+
+.profile-avatar {
+    animation: profile-avatar-pulse 2s ease-in-out infinite;
+}
+
+.profile-avatar-v2 img {
+    animation: profile-avatar-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profile-avatar,
+    .profile-avatar-v2 img {
+        animation: none;
+    }
+}
+
 /* File input adaptive styling: style the browser file button */
 .adaptive-input[type="file"] {
     font-size: 14px;

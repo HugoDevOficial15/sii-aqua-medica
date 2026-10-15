@@ -45,6 +45,16 @@ export default function ComedorVistaLectura({ onBack, uid }) {
         };
     };
 
+       // Si el día ya pasó, la cancelación se bloquea.
+    const diaYaPaso = (indexDia) => {
+        const [inicioSemana] = idSemanaActual.split("-");
+        const [dd, mm, yyyy] = inicioSemana.split(".").map(Number);
+        const fechaDia = new Date(yyyy, mm - 1, dd + indexDia);
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        return fechaDia < hoy;
+    };
+
     const handleCancelar = async (diaIndex, dayName, conExtras, costo) => {
         const tipoComida = mealTypes.find(m => m.type === activeMealTab).label;
 
@@ -149,18 +159,18 @@ export default function ComedorVistaLectura({ onBack, uid }) {
             {menuEmpleado && !loading && (
             <div style={styles.menuDays}>
                 {diasSemana.map((dayName, index) => {
-                    
-                    // Extraer los datos específicos según la pestaña activa y el día de la semana (0-6)
+                    // Los arreglos del menú empiezan en domingo; la vista empieza en lunes.
+                    const menuIndex = (index + 1) % diasSemana.length;
                     let platilloActual = "NA";
                     let extrasArray = [];
 
                     if (activeMealTab === "desayuno") {
-                        platilloActual = menuEmpleado.desayuno[index];
-                        extrasArray = menuEmpleado.desayunoExtra[index] || [];
+                        platilloActual = menuEmpleado.desayuno[menuIndex];
+                        extrasArray = menuEmpleado.desayunoExtra[menuIndex] || [];
                     } else if (activeMealTab === "comida") {
-                        platilloActual = menuEmpleado.comida[index];
+                        platilloActual = menuEmpleado.comida[menuIndex];
                     } else if (activeMealTab === "cena") {
-                        platilloActual = menuEmpleado.cena[index];
+                        platilloActual = menuEmpleado.cena[menuIndex];
                     }
 
                     const platilloProcesado = procesarPlatillo(platilloActual);
@@ -211,9 +221,13 @@ export default function ComedorVistaLectura({ onBack, uid }) {
                                                     )}
                                                 </div>
                                                 <button
-                                                    style={styles.cancelButton}
-                                                    disabled={cancelando}
-                                                    onClick={() => handleCancelar(index, dayName, activeMealTab === "desayuno" && extrasArray.length > 0 && extrasArray[0] !== "NA", costoPlatillo)}
+                                                    style={diaYaPaso(index) ? { ...styles.cancelButton, opacity: 0.5, cursor: "not-allowed" } : styles.cancelButton}
+                                                    disabled={cancelando || diaYaPaso(index)}
+                                                    title={diaYaPaso(index) ? "Ya no se puede cancelar: el día ya pasó" : undefined}
+                                                    onClick={() => {
+                                                        if (diaYaPaso(index)) return;
+                                                        handleCancelar(menuIndex, dayName, activeMealTab === "desayuno" && extrasArray.length > 0 && extrasArray[0] !== "NA", costoPlatillo);
+                                                    }}
                                                 >
                                                     <FiTrash2 /> Cancelar
                                                 </button>

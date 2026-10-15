@@ -193,7 +193,7 @@ export default function OperadorComedor({ onBack }) {
 
             {/* Mostrar pedidos existentes si los hay */}
             {/* PRUEBAS: banner de pedido registrado desactivado (quitar "false &&" para reactivar) */}
-            {/*false && */tienePedidosExistentes && pedidosExistentes ? (
+            {/* false && */ tienePedidosExistentes && pedidosExistentes ? (
                 <div style={{ ...styles.carritoSection, borderColor: "#FF9800" }}>
                     <h3 style={{ ...styles.carritoTitle, color: "#FF9800" }}>✓ Pedido Registrado para la siguiente semana</h3> 
                      <p style={styles.dateRange}>
@@ -210,20 +210,21 @@ export default function OperadorComedor({ onBack }) {
                     </p>
                     <div style={{ marginTop: "12px" }}>
                         {DIAS_LECTURA.map((dia, i) => {
-                            const desayuno = nombrePlatillo(pedidosExistentes.desayuno?.[i]);
-                            const extras = extrasDelDia(pedidosExistentes.desayunoExtra?.[i]);
-                            const comida = nombrePlatillo(pedidosExistentes.comida?.[i]);
-                            const cena = nombrePlatillo(pedidosExistentes.cena?.[i]);
+                            const menuIndex = (i + 1) % DIAS_LECTURA.length;
+                            const desayuno = nombrePlatillo(pedidosExistentes.desayuno?.[menuIndex]);
+                            const extras = extrasDelDia(pedidosExistentes.desayunoExtra?.[menuIndex]);
+                            const comida = nombrePlatillo(pedidosExistentes.comida?.[menuIndex]);
+                            const cena = nombrePlatillo(pedidosExistentes.cena?.[menuIndex]);
                             if (!desayuno && extras.length === 0 && !comida && !cena) return null;
 
                             return (
                                 <div key={dia} style={{ fontSize: "13px", padding: "8px 0", borderTop: "1px solid var(--operator-border)" }}>
                                     <strong>{dia}</strong>
                                     {(desayuno || extras.length > 0) && (
-                                        <div>Desayuno: {desayuno || "—"}{tamanoPlatillo(pedidosExistentes.desayuno?.[i]) && ` (${tamanoPlatillo(pedidosExistentes.desayuno?.[i])})`}{extras.length > 0 && ` + ${extras.join(", ")}`}</div>
+                                        <div>Desayuno: {desayuno || "—"}{tamanoPlatillo(pedidosExistentes.desayuno?.[menuIndex]) && ` (${tamanoPlatillo(pedidosExistentes.desayuno?.[menuIndex])})`}{extras.length > 0 && ` + ${extras.join(", ")}`}</div>
                                     )}
-                                    {comida && <div>Comida: {comida}{tamanoPlatillo(pedidosExistentes.comida?.[i]) && ` (${tamanoPlatillo(pedidosExistentes.comida?.[i])})`}</div>}
-                                    {cena && <div>Cena: {cena}{tamanoPlatillo(pedidosExistentes.cena?.[i]) && ` (${tamanoPlatillo(pedidosExistentes.cena?.[i])})`}</div>}
+                                    {comida && <div>Comida: {comida}{tamanoPlatillo(pedidosExistentes.comida?.[menuIndex]) && ` (${tamanoPlatillo(pedidosExistentes.comida?.[menuIndex])})`}</div>}
+                                    {cena && <div>Cena: {cena}{tamanoPlatillo(pedidosExistentes.cena?.[menuIndex]) && ` (${tamanoPlatillo(pedidosExistentes.cena?.[menuIndex])})`}</div>}
                                 </div>
                             );
                         })}

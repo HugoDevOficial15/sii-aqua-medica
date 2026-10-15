@@ -86,7 +86,7 @@ export default function Practicantes({ onClose }) {
   const [solicitudComidaModal, setSolicitudComidaModal] = useState(false);
   const [practicanteSolicitud, setPracticanteSolicitud] = useState(null);
 
-  // Solicitud Comida - VENTANA COMPLETA CON 3 CUADROS
+  // Solicitud Comida 
   const [showMealRequestModal, setShowMealRequestModal] = useState(false);
   const [tienePedidosExistentes, setTienePedidosExistentes] = useState(false);
   const [pedidosExistentes, setPedidosExistentes] = useState(null);
@@ -1075,7 +1075,7 @@ export default function Practicantes({ onClose }) {
                 >
                   Nómina
                 </th>
-                <th style={{ width: "110px", whiteSpace: "nowrap" }}>Estado</th>
+                <th style={{ width: "650px", whiteSpace: "nowrap" }}>Estado</th>
                 <th style={{ width: "96px", minWidth: "96px", whiteSpace: "nowrap", textAlign: "center" }}>Acciones</th>
               </tr>
             </thead>
@@ -1170,7 +1170,7 @@ export default function Practicantes({ onClose }) {
 
                             <button
                               type="button"
-                              className="practicante-action-menu-comida"
+                              className="practicante-action-menu-pedidos"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 setOpenActionsId(null);
@@ -1354,10 +1354,10 @@ export default function Practicantes({ onClose }) {
 
       {infoModal && selectedPracticante && (
         <div className="modal-backdrop-custom custom-modal-backdrop">
-          <div className="modal-card-info custom-modal">
-            <div className="modal-header custom-modal-header">
-              <h5 className="modal-title">
-                <FaAddressCard/>
+          <div className="modal-card-info custom-modal practicante-info-card">
+            <div className="modal-header custom-modal-header practicante-info-header">
+              <h5 className="modal-title practicante-info-title">
+                <span className="practicante-info-icon"><FaAddressCard/></span>
                 Información del Practicante</h5>
               <button
                 type="button"
@@ -1960,6 +1960,7 @@ export default function Practicantes({ onClose }) {
           justify-content: center;
           width: 36px;
           height: 36px;
+          margin: 0 auto;
           overflow: visible;
         }
 
@@ -2003,6 +2004,7 @@ export default function Practicantes({ onClose }) {
         .practicante-action-menu-editar,
         .practicante-action-menu-info,
         .practicante-action-menu-comida,
+        .practicante-action-menu-pedidos,
         .practicante-action-menu-baja,
         .practicante-action-menu-activar {
           border: none;
@@ -2031,18 +2033,252 @@ export default function Practicantes({ onClose }) {
         }
 
         .practicante-action-menu-comida:hover {
-          background: rgba(100, 200, 100, 0.15);
-          color: #22c55e;
+          background: var(--operator-border);
+          color: #f0e984;
+        }
+
+        .practicante-action-menu-pedidos:hover {
+          background: var(--operator-border);
+          color: #1ecfcf;
         }
 
         .practicante-action-menu-baja:hover {
-          background: rgba(231, 26, 26, 0.15);
-          color: var(--operator-danger);
+          background: var(--operator-border);
+          color: #e11c1ce8;
         }
 
         .practicante-action-menu-activar:hover {
           background: rgba(26, 226, 26, 0.18);
           color: var(--operator-success);
+        }
+
+        /* ===== Modal de pedidos del practicante ===== */
+        .pedidos-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(2, 6, 23, 0.72);
+          backdrop-filter: blur(3px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+          padding: 20px;
+          animation: pedidos-fade-in 0.2s ease-out;
+        }
+
+        .pedidos-modal {
+          position: relative;
+          width: 100%;
+          max-width: 560px;
+          max-height: 90vh;
+          overflow-y: auto;
+          padding: 24px;
+          border-radius: 16px;
+          background: var(--operator-card);
+          border: 1px solid var(--operator-border);
+          color: var(--operator-text);
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+          animation: pedidos-slide-up 0.25s ease-out;
+        }
+
+        .pedidos-modal::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
+          height: 4px;
+          border-radius: 16px 16px 0 0;
+          background: linear-gradient(90deg, #1883ff, #1ecfcf);
+        }
+
+        .pedidos-modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+
+        .pedidos-modal-eyebrow {
+          display: block;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #1ecfcf;
+        }
+
+        .pedidos-modal-title {
+          margin: 4px 0 0;
+          font-size: 20px;
+          font-weight: 800;
+          line-height: 1.25;
+        }
+
+        .pedidos-modal-close {
+          flex-shrink: 0;
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          border: 1px solid var(--operator-border);
+          background: transparent;
+          color: var(--operator-text);
+          font-size: 20px;
+          line-height: 1;
+          cursor: pointer;
+          transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .pedidos-modal-close:hover {
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+        }
+
+        .pedidos-section {
+          margin-bottom: 12px;
+          border: 1px solid var(--operator-border);
+          border-radius: 12px;
+          padding: 4px 14px 10px;
+          background: rgba(255, 255, 255, 0.02);
+        }
+
+        .pedidos-section-summary {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 4px 10px;
+          padding: 10px 0;
+          cursor: pointer;
+          list-style: none;
+          font-weight: 700;
+        }
+
+        .pedidos-section-summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .pedidos-section-summary::before {
+          content: "▸";
+          color: #1883ff;
+          transition: transform 0.2s ease;
+        }
+
+        .pedidos-section[open] > .pedidos-section-summary::before {
+          transform: rotate(90deg);
+        }
+
+        .pedidos-section-semana {
+          font-size: 12px;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 999px;
+          background: rgba(24, 131, 255, 0.15);
+          color: #1883ff;
+        }
+
+        .pedidos-empty {
+          margin: 4px 0 10px;
+          font-size: 13px;
+          color: var(--operator-text-soft);
+        }
+
+        .pedidos-day {
+          font-size: 13px;
+          padding: 10px 0;
+          border-top: 1px solid var(--operator-border);
+          line-height: 1.6;
+        }
+
+        .pedidos-day-nombre {
+          display: inline-block;
+          margin-bottom: 2px;
+          color: #1ecfcf;
+        }
+
+        .pedidos-cancel-btn {
+          margin-left: 8px;
+          padding: 2px 10px;
+          font-size: 12px;
+          font-weight: 700;
+          border-radius: 6px;
+          border: 1px solid rgba(239, 68, 68, 0.4);
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          cursor: pointer;
+          transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .pedidos-cancel-btn:hover {
+          background: #ef4444;
+          color: #ffffff;
+        }
+
+        @keyframes pedidos-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes pedidos-slide-up {
+          from { opacity: 0; transform: translateY(16px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .pedidos-modal-overlay,
+          .pedidos-modal {
+            animation: none;
+          }
+        }
+
+        /* ===== Modal de información del practicante ===== */
+        .practicante-info-card {
+          position: relative;
+          padding: 0;
+          overflow: hidden;
+          border-radius: 16px;
+          background: var(--operator-card);
+          border: 1px solid var(--operator-border);
+          color: var(--operator-text);
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+          animation: pedidos-slide-up 0.25s ease-out;
+        }
+
+        .practicante-info-card::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #1883ff, #1ecfcf);
+        }
+
+        .practicante-info-header {
+          padding: 22px 24px 8px;
+          border-bottom: none;
+        }
+
+        .practicante-info-title {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 0;
+          font-size: 18px;
+          font-weight: 800;
+          color: var(--operator-text);
+        }
+
+        .practicante-info-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 38px;
+          height: 38px;
+          border-radius: 12px;
+          background: rgba(24, 131, 255, 0.15);
+          color: #1883ff;
+          font-size: 16px;
         }
 
         .custom-btn {
@@ -2088,18 +2324,23 @@ export default function Practicantes({ onClose }) {
       {/* Modal Pedidos Practicante */}
       {pedidosModal && (
         <div
-          style={{position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: "20px"}}
+          className="pedidos-modal-overlay"
           onClick={() => setPedidosModal(null)}
         >
           <div
-            style={{background: "var(--operator-card)", borderRadius: "8px", width: "100%", maxWidth: "560px", maxHeight: "90vh", overflowY: "auto", padding: "24px", border: "1px solid var(--operator-border)", color: "var(--operator-text)"}}
+            className="pedidos-modal"
             onClick={(event) => event.stopPropagation()}
           >
-            <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px"}}>
-              <h3 style={{margin: 0}}>Pedidos - {pedidosModal.practicante.nombre}</h3>
+            <div className="pedidos-modal-header">
+              <div>
+                <span className="pedidos-modal-eyebrow">Pedidos de comida</span>
+                <h3 className="pedidos-modal-title">{pedidosModal.practicante.nombre}</h3>
+              </div>
               <button
+                type="button"
+                className="pedidos-modal-close"
                 onClick={() => setPedidosModal(null)}
-                style={{background: "none", border: "none", fontSize: "24px", color: "var(--operator-text)", cursor: "pointer"}}
+                aria-label="Cerrar"
               >×</button>
             </div>
 
@@ -2111,15 +2352,16 @@ export default function Practicantes({ onClose }) {
               return (
                 <details
                   key={seccion.key}
+                  className="pedidos-section"
                   open={seccion.key === "actual"}
-                  style={{marginBottom: "12px", border: "1px solid var(--operator-border)", borderRadius: "8px", padding: "10px 14px"}}
                 >
-                  <summary style={{cursor: "pointer", fontWeight: 700}}>
-                    {seccion.titulo} ({seccion.semana})
+                  <summary className="pedidos-section-summary">
+                    <span className="pedidos-section-titulo">{seccion.titulo}</span>
+                    <span className="pedidos-section-semana">{seccion.semana}</span>
                   </summary>
 
-                  {menu === undefined && <p style={{fontSize: "13px"}}>Cargando...</p>}
-                  {menu === null && <p style={{fontSize: "13px", color: "var(--operator-text-soft)"}}>Sin pedidos para esta semana.</p>}
+                  {menu === undefined && <p className="pedidos-empty">Cargando...</p>}
+                  {menu === null && <p className="pedidos-empty">Sin pedidos para esta semana.</p>}
 
                   {menu && DIAS_LECTURA.map((dia, i) => {
                     const desayuno = nombrePlatilloLectura(menu.desayuno?.[i]);
@@ -2131,16 +2373,17 @@ export default function Practicantes({ onClose }) {
                     const botonCancelar = (opcion, costo, etiqueta) => (
                       <button
                         key={etiqueta}
+                        type="button"
+                        className="pedidos-cancel-btn"
                         onClick={() => handleCancelarPlatilloPracticante(seccion.semana, i, opcion, costo, etiqueta)}
-                        style={{marginLeft: "8px", padding: "2px 8px", fontSize: "12px", borderRadius: "6px", border: "none", background: "#ef4444", color: "white", cursor: "pointer"}}
                       >
                         Cancelar
                       </button>
                     );
 
                     return (
-                      <div key={dia} style={{fontSize: "13px", padding: "8px 0", borderTop: "1px solid var(--operator-border)"}}>
-                        <strong>{dia}</strong>
+                      <div key={dia} className="pedidos-day">
+                        <strong className="pedidos-day-nombre">{dia}</strong>
                         {(desayuno || extras.length > 0) && (
                           <div>
                             Desayuno: {desayuno || "—"}{extras.length > 0 && ` + ${extras.join(", ")}`}
@@ -2277,8 +2520,9 @@ export default function Practicantes({ onClose }) {
                   <label style={{fontSize: "12px", color: "var(--operator-text-soft)", display: "block", marginBottom: "4px"}}>Orden:</label>
                   <select value={desayunoData.cantidad} onChange={(e) => setDesayunoData({...desayunoData, cantidad: parseInt(e.target.value)})} style={{width: "100%", padding: "6px", background: "var(--operator-form)", color: "var(--operator-text)", border: `1px solid var(--operator-border)`, borderRadius: "4px", fontSize: "12px"}}>
                     <option value="1">Una orden</option>
-                    <option value="2">Dos órdenes</option>
-                    <option value="3">Tres órdenes</option>
+                    <option value="2">Media orden</option>
+                    <option value="3">Orden y media</option>
+                    <option value="4">Dos órdenes</option>
                   </select>
                 </div>
 

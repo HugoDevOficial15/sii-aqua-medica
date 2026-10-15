@@ -26,8 +26,8 @@ const RUTA_POR_DESTINO = {
     "citas-medicas": "citas-medicas",
     "Noticias": "news",
     "/news": "news",
-    "Cumpleaños": "home",
-    "Aniversario": "home",
+    "Cumpleaños": "profile",
+    "Aniversario": "profile",
     "SolicitudAprobada": "profile",
     "SolicitudRechazada": "profile",
     "soporte": "soporte",
@@ -53,7 +53,8 @@ const RUTA_POR_DESTINO = {
     "reconocimientos": "recognitions",
     "recognitions": "recognitions",
     "incidencias": "incidences",
-    "incidences": "incidences"
+    "incidences": "incidences",
+    "comedor": "comedor-menu",
 };
 
 export default function OperatorNotifications({ onNavigate, onBack }) {

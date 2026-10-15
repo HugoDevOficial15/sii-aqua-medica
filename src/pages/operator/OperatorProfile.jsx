@@ -107,7 +107,7 @@ export default function OperatorProfile({ usuarioActual, onBack, onNavigate }) {
             <div className="profile-hero-v2">
 
                 {/*  AQUÍ ESTÁ EL AVATAR PRINCIPAL CORREGIDO  */}
-                <div className="profile-avatar-v2" style={{ overflow: 'hidden' }}>
+                <div className="profile-avatar-v2" style={{ overflow: 'visible' }}>
                     {datosUsuario?.fotoPerfil ? (
                         <img
                             src={datosUsuario.fotoPerfil}

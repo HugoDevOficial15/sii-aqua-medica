@@ -437,6 +437,7 @@ export default function Dashboard() {
                             <div
                                 className="metric-icon"
                                 style={{
+                                    "--pulse-color": card.color,
                                     background: `${card.color}15`,
                                     color: card.color
                                 }}
@@ -484,7 +485,7 @@ export default function Dashboard() {
 
                     <div style={{ width: "100%", height: isMobile ? 260 : 520 }}>
 
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" className="dashboard-chart-pulse">
 
                             <PieChart>
 
@@ -615,6 +616,7 @@ export default function Dashboard() {
                             <div
                                 className="metric-icon"
                                 style={{
+                                    "--pulse-color": card.color,
                                     background: `${card.color}15`,
                                     color: card.color
                                 }}
@@ -663,7 +665,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="area-chart-wrapper">
-                    <ResponsiveContainer width="100%" height={420}>
+                    <ResponsiveContainer width="100%" height={420} className="dashboard-chart-pulse">
                         <PieChart>
                             <defs>
                                 <filter id="areaHoverGlow" x="-50%" y="-50%" width="200%" height="200%">
@@ -868,16 +870,19 @@ export default function Dashboard() {
 
                     width:74px;
                     height:74px;
-
                     border-radius:24px;
-
                     display:flex;
                     align-items:center;
                     justify-content:center;
-
                     font-size:34px;
-
                     margin-bottom:18px;
+                    animation: profile-avatar-pulse 2s ease-in-out infinite;
+                }
+
+                @media (prefers-reduced-motion: reduce){
+                    .metric-icon{
+                        animation:none;
+                    }
                 }
 
                 .metric-card span{
@@ -935,6 +940,7 @@ export default function Dashboard() {
                     backdrop-filter: blur(10px);
 
                     transition:.35s ease;
+
                 }
 
                 .chart-main-card:hover{
