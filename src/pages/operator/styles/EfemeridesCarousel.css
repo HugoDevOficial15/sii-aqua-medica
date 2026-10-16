@@ -1,0 +1,251 @@
+.efemerides-carousel {
+    width: min(calc(100% - 2rem), 700px);
+    margin: 0 auto 2.75rem;
+    padding: 8px 0 0;
+    text-align: center;
+}
+
+.efemerides-carousel__title {
+    margin: 0 0 4px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--operator-text, #0f172a);
+}
+
+.efemerides-carousel__track {
+    width: 100%;
+    list-style: none;
+    padding-block: 0.3rem 1.5rem;
+    display: grid;
+    grid-auto-flow: column;
+    --card-w: 250px;
+    grid-auto-columns: var(--card-w);
+    gap: 0;
+    anchor-name: --efemerides-carousel;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+}
+
+.efemerides-carousel__track::-webkit-scrollbar {
+    display: none;
+}
+
+/* Elementos vacíos para centrar el primero y el último */
+.efemerides-carousel__track::before,
+.efemerides-carousel__track::after {
+    content: "";
+}
+
+/* Marcadores debajo del carrusel */
+.efemerides-carousel__track {
+    scroll-marker-group: after;
+}
+
+.efemerides-carousel__track::scroll-marker-group {
+    position: absolute;
+    position-anchor: --efemerides-carousel;
+    inline-size: min(90cqi, 400px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: center;
+    gap: 0.25rem;
+    padding-block-start: 0.5rem;
+    top: anchor(bottom);
+    left: calc(anchor(left) - 10%);
+    right: calc(anchor(right) - 10%);
+}
+
+/* Cada efeméride */
+.efemerides-carousel__item {
+    position: relative;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    container-type: scroll-state;
+    display: grid;
+    grid-template-areas: "img" "title" "desc" "vig";
+    justify-items: center;
+    text-align: center;
+    padding-inline: 8px;
+}
+
+.efemerides-carousel__media {
+    grid-area: img;
+    width: calc(var(--card-w) + 18px);
+    height: calc((var(--card-w) + 56px) * 4 / 3);
+    border-radius: 20px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(34, 182, 240, 0.705);
+    transition: all 300ms ease-in-out;
+    transform-origin: center center;
+}
+
+.efemerides-carousel__media img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.efemerides-carousel__item > h2 {
+    grid-area: title;
+    margin: 0.9rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--operator-text, #0f172a);
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 300ms ease-in-out;
+}
+
+/* Descripción (contenido de la efeméride), máximo tres líneas */
+.efemerides-carousel__item > p {
+    grid-area: desc;
+    margin: 0.4rem 0 0;
+    max-width: 100%;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--operator-text, #0f172a);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: all 300ms ease-in-out;
+}
+
+/* Vigencia debajo de la descripción */
+.efemerides-carousel__item > small {
+    grid-area: vig;
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--operator-text-soft, #64748b);
+    transition: all 300ms ease-in-out;
+}
+
+/* Elementos que no están centrados: a escala 0.5 y atenuados, como en la referencia */
+@container not scroll-state(snapped: inline) {
+    .efemerides-carousel__media {
+        scale: 0.5;
+        opacity: 0.5;
+    }
+    .efemerides-carousel__item > h2 {
+        scale: 0.5;
+        opacity: 0.5;
+        translate: 0 -100px;
+    }
+    .efemerides-carousel__item > p {
+        scale: 0.5;
+        opacity: 0;
+    }
+}
+
+/* Marcador de cada efeméride */
+.efemerides-carousel__item::scroll-marker {
+    content: " ";
+    height: 10px;
+    aspect-ratio: 1;
+    background-color: rgb(64, 172, 190);
+    border-radius: 50%;
+    transition: 150ms ease-in-out;
+    scale: 0.75;
+    opacity: 0.25;
+}
+
+.efemerides-carousel__item::scroll-marker:target-current {
+    opacity: 1;
+    scale: 1;
+}
+
+.efemerides-carousel__item::scroll-marker:where(:hover, :focus-visible) {
+    opacity: 1;
+}
+
+.efemerides-carousel__item::scroll-marker:focus-visible {
+    outline: 1px dashed rgb(15, 23, 43);
+    outline-offset: 4px;
+}
+
+/* Botones anterior y siguiente */
+.efemerides-carousel__track::scroll-button(*) {
+    position: absolute;
+    position-anchor: --efemerides-carousel;
+    width: 30px;
+    aspect-ratio: 1 / 1;
+    font: inherit;
+    background-color: transparent;
+    display: grid;
+    place-content: center;
+    color: var(--operator-text, rgb(15, 23, 43));
+    border: none;
+    border-radius: 50%;
+    opacity: 0.7;
+    cursor: pointer;
+    transition: all 150ms ease-in-out;
+    outline: 1px dashed transparent;
+    outline-offset: 0;
+}
+
+.efemerides-carousel__track::scroll-button(inline-start) {
+    content: "❮";
+    left: calc(anchor(left) + 35px);
+    top: calc(anchor(top) + 1rem + (var(--card-w) - 16px) * 2 / 3 + 33px);
+}
+
+.efemerides-carousel__track::scroll-button(inline-end) {
+    content: "❯";
+    right: calc(anchor(right) + 1px);
+    top: calc(anchor(top) + 1rem + (var(--card-w) - 16px) * 2 / 3 + 33px);
+}
+
+.efemerides-carousel__track::scroll-button(*):not(:disabled):where(:hover, :focus-visible) {
+    opacity: 1;
+    scale: 1.1;
+}
+
+.efemerides-carousel__track::scroll-button(*):focus-visible {
+    outline: 1px dashed rgb(15, 23, 43);
+    outline-offset: 4px;
+}
+
+.efemerides-carousel__track::scroll-button(*):disabled {
+    opacity: 0.25;
+    cursor: unset;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .efemerides-carousel__track {
+        scroll-behavior: auto;
+    }
+}
+
+/* En pantallas angostas: tarjetas un poco más pequeñas para que quepan */
+@media (max-width: 380px) {
+    .efemerides-carousel__track {
+        --card-w: 200px;
+    }
+}
+
+/* Recuadro cuando la efeméride no tiene imagen */
+.efemerides-carousel__placeholder {
+    color: var(--operator-text-soft, #64748b);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+/* Mensaje cuando no hay efemérides o falla la carga */
+.efemerides-carousel__vacio {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    color: var(--operator-text-soft, #64748b);
+}

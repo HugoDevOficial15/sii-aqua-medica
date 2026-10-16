@@ -1,4 +1,5 @@
 import HomeHero from "./home-v2/HomeHero";
+import EfemeridesCarousel from "./home-v2/EfemeridesCarousel";
 import MetricsCards from "./home-v2/MetricsCards";
 import ProgressBanner from "./home-v2/ProgressBanner";
 // import TodayTasks from "./home-v2/TodayTasks";
@@ -12,6 +13,8 @@ export default function OperatorHome({ onNavigate }) {
         <>
 
             <HomeHero />
+
+            <EfemeridesCarousel />
 
             <MetricsCards onNavigate={onNavigate} />
 

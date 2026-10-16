@@ -122,12 +122,24 @@ html[data-theme="dark"] .card .text-muted {
 
 html[data-fontsize="small"] #root {
   zoom: 0.9;
-  width: calc(100vw / 0.9);
+  width: calc(100% / 0.9);
+  max-width: none;
+  height: calc(100vh / 0.9);
 }
 
 html[data-fontsize="large"] #root {
   zoom: 1.15;
-  width: calc(100vw / 1.15);
+  width: calc(100% / 1.15);
+  max-width: none;
+  height: calc(100vh / 1.15);
+}
+
+html[data-fontsize="small"] .pro-sidebar {
+  height: calc(100vh / 0.9);
+}
+
+html[data-fontsize="large"] .pro-sidebar {
+  height: calc(100vh / 1.15);
 }
 
 /* ENLACES */

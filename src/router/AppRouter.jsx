@@ -15,6 +15,7 @@ const ChangePassword = lazy(() => import("../modules/auth/ChangePassword"));
 const CreateSurvey = lazy(() => import("../modules/encuestas/CreateSurvey"));
 const InventarioPage = lazy(() => import("../modules/inventarios/InventarioPage"));
 const News = lazy(() => import("../pages/admin/News"));
+const Efemerides = lazy(() => import("../pages/admin/efemerides"));
 const OperadorCitasMedicas = lazy(() => import("../pages/operator/OperadorCitasMedicas"));
 const AgendaPage = lazy(() => import("../modules/agenda/AgendaPage"));
 const AgendaMesPage = lazy(() => import("../modules/agendabymes/AgendaMesPage"));
@@ -251,6 +252,16 @@ export default function AppRouter() {
                             element={
                                 <ProtectedRoute permiso="noticias.ver">
                                     <News />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* EFEMERIDES */}
+                        <Route
+                            path="/efemerides"
+                            element={
+                                <ProtectedRoute permiso="efemerides.ver">
+                                    <Efemerides />
                                 </ProtectedRoute>
                             }
                         />

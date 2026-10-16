@@ -19,6 +19,7 @@ const soporte = require("./features/soporte");
 const compConductual = require("./features/CompConductual");
 const corregirEmailsAquaMedica = require("./features/usuarios/updateUserFieldsService");
 const news = require("./features/news");
+const efemerides = require("./features/efemerides");
 const medicamentos = require("./features/medicamentos");
 const agendaMedica = require("./features/agendaMedica");
 const citasMedicas = require("./features/citasMedicas");
@@ -66,6 +67,7 @@ module.exports = {
   ...soporte,
   ...compConductual,
   ...news,
+  ...efemerides,
   ...medicamentos,
   ...agendaMedica,
   ...citasMedicas,

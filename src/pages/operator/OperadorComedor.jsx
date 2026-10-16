@@ -193,7 +193,7 @@ export default function OperadorComedor({ onBack }) {
 
             {/* Mostrar pedidos existentes si los hay */}
             {/* PRUEBAS: banner de pedido registrado desactivado (quitar "false &&" para reactivar) */}
-            {/* false && */ tienePedidosExistentes && pedidosExistentes ? (
+            { false &&  tienePedidosExistentes && pedidosExistentes ? (
                 <div style={{ ...styles.carritoSection, borderColor: "#FF9800" }}>
                     <h3 style={{ ...styles.carritoTitle, color: "#FF9800" }}>✓ Pedido Registrado para la siguiente semana</h3> 
                      <p style={styles.dateRange}>

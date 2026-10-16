@@ -1,7 +1,32 @@
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../config/firebase";
 
-const callCitasFunction = (name) => httpsCallable(functions, name);
+import { clearCachedByPrefix, getOrFetchCached } from "../utils/cacheStore";
+
+// Caché de citas: se usa en las lecturas y se invalida después de cada escritura
+const CITAS_CACHE_PREFIX = "sii-aqua-citas:";
+const CITAS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const FUNCIONES_DE_ESCRITURA = new Set([
+    "bookAppointment",
+    "atenderCita",
+    "cancelarCitaPorAdmin",
+    "cancelAppointmentByUser",
+    "cancelAppointmentsByAgenda",
+]);
+
+const invalidarCitas = () => clearCachedByPrefix(CITAS_CACHE_PREFIX);
+
+const callCitasFunction = (name) => {
+    const callable = httpsCallable(functions, name);
+    return async (data) => {
+        const result = await callable(data);
+        if (FUNCIONES_DE_ESCRITURA.has(name)) {
+            invalidarCitas();
+        }
+        return result;
+    };
+};
 
 export const exportAgendaCitasPdf = async ({
     agenda = {},
@@ -15,8 +40,11 @@ export const exportAgendaCitasPdf = async ({
 };
 
 export const getCitasMedicas = async ({ agendaId = null, userId = null, estado = null } = {}) => {
-    const result = await callCitasFunction("getCitasMedicas")({ agendaId, userId, estado });
-    return result?.data?.citas ?? [];
+    const key = `${CITAS_CACHE_PREFIX}medicas:${agendaId ?? ""}:${userId ?? ""}:${estado ?? ""}`;
+    return getOrFetchCached(key, async () => {
+        const result = await callCitasFunction("getCitasMedicas")({ agendaId, userId, estado });
+        return result?.data?.citas ?? [];
+    }, CITAS_CACHE_TTL_MS);
 };
 
 export const atenderCita = async (id, observacion) => {
@@ -42,8 +70,10 @@ export const cancelarCitaPorAdmin = async (citaId, motivo, adminUid, adminNombre
 };
 
 export const getCitasPorAgenda = async (agendaId) => {
-    const result = await callCitasFunction("getCitasPorAgenda")({ agendaId });
-    return result?.data?.citas ?? [];
+    return getOrFetchCached(`${CITAS_CACHE_PREFIX}agenda:${agendaId}`, async () => {
+        const result = await callCitasFunction("getCitasPorAgenda")({ agendaId });
+        return result?.data?.citas ?? [];
+    }, CITAS_CACHE_TTL_MS);
 };
 
 // ======================================================
@@ -57,8 +87,10 @@ export const getUserAppointments = async (nomina, userId) => {
             throw new Error("Se requiere el ID de usuario o nómina para obtener citas");
         }
 
-        const result = await callCitasFunction("getUserAppointments")({ nomina, userId });
-        return result?.data?.citas ?? [];
+        return await getOrFetchCached(`${CITAS_CACHE_PREFIX}usuario:${nomina ?? ""}:${userId ?? ""}`, async () => {
+            const result = await callCitasFunction("getUserAppointments")({ nomina, userId });
+            return result?.data?.citas ?? [];
+        }, CITAS_CACHE_TTL_MS);
     } catch (error) {
         console.error("Error al obtener las citas del usuario:", error);
         throw error;

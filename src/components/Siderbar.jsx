@@ -35,6 +35,7 @@ import {
     FaUserCog,
     FaCalendarDay,
     FaHotel,
+    FaFlag,
 
 } from "react-icons/fa";
 
@@ -70,6 +71,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onCloseMobileMe
             { to: "/encuestas", icon: <FaClipboardList />, label: "Encuestas", permiso: "encuestas.ver" },
             { to: "/capacitaciones", icon: <FaGraduationCap />, label: "Capacitaciones", permiso: "capacitaciones.ver" },
             { to: "/noticias", icon: <FaNewspaper />, label: "Noticias", permiso: "noticias.ver" },
+            { to: "/efemerides", icon: <FaFlag />, label: "Efemerides", permiso: "efemerides.ver" },
             { to: "/medicamento", icon: <FaSyringe />, label: "Medicamentos", permiso: "medicamentos.ver" }, 
             { to: "/citas-medicas", icon: <FaAmbulance />, label: "Citas Médicas", permiso: "citas.ver" },
             { to: "/detalle-orden-medico", icon: <FaFileMedical/>, label: "Orden Médico", permiso: "ordenes.ver"},

@@ -227,3 +227,15 @@ export const MAIN_BOOTSTRAP_CACHE_KEY = "main-bootstrap-shell";
 export const FIREBASE_BOOTSTRAP_CACHE_KEY = "firebase-bootstrap-shell";
 export const CRITICAL_MODULES_CACHE_KEY = "critical-modules-shell";
 export const STARTUP_RESOURCES_CACHE_KEY = "startup-resources-shell";
+
+// Devuelve los datos de caché si existen; si no, ejecuta fetcher, guarda el resultado y lo devuelve.
+export const getOrFetchCached = async (key, fetcher, ttlMs = DEFAULT_TTL_MS) => {
+  const cached = readCachedData(key, ttlMs);
+  if (cached !== null && cached !== undefined) {
+    return cached;
+  }
+
+  const data = await fetcher();
+  writeCachedData(key, data, ttlMs);
+  return data;
+};
