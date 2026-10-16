@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 import { crearServicio } from "../../../services/serviciosService";
-
+import { IoMdClose } from "react-icons/io";
 import { notifyError, notifySuccess } from "../../../utils/notify";
 import { useAuth } from "../../../hooks/useAuth";
 import Swal from "sweetalert2";
@@ -209,7 +209,7 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
                 <div className="custom-modal-header d-flex justify-content-between align-items-center">
                     <h6 className="mb-0 fw-bold">AGENDAR SERVICIO</h6>
                     <button className="btn-close-custom" onClick={onClose}>
-                        <FaTimes />
+                        <IoMdClose />
                     </button>
                 </div>
 
@@ -338,6 +338,11 @@ export default function AgendarServicioModal({ equipo, mes, onClose, onSuccess, 
             .btn-close-custom:hover {
                 background: var(--operator-border);
                 color: var(--operator-primary);
+            }
+
+            .btn-close-custom:focus {
+                outline: none;
+                box-shadow: none;
             }
 
             .custom-modal-body {

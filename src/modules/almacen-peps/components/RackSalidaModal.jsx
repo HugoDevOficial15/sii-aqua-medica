@@ -6,6 +6,7 @@ import {
 import {
     useForm
 } from "react-hook-form";
+import { IoMdClose } from "react-icons/io";
 
 import {
     sanitizeText,
@@ -393,7 +394,7 @@ export default function RackSalidaModal({
 
                         onClick={onClose}
                     >
-                        ×
+                        <IoMdClose />   
                     </button>
 
                 </div>
@@ -554,7 +555,6 @@ export default function RackSalidaModal({
                             disabled={loading}
                         >
 
-                            <FaCloudDownloadAlt className="salida-icon" />
                             {
                                 loading
                                     ? "Procesando..."

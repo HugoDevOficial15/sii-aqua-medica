@@ -3,6 +3,7 @@ import { FaPlus, FaEdit } from "react-icons/fa";
 import { addSala, updateSala } from "../../../services/agregarSalasService";
 import Swal from "sweetalert2";
 import { notifyError, notifySuccess } from "../../../utils/notify";
+import { IoMdClose } from "react-icons/io";
 
 export default function AgregarSalaModal({ onClose, onSuccess, salaEdit }) {
     const [nombre, setNombre] = useState("");
@@ -54,7 +55,7 @@ export default function AgregarSalaModal({ onClose, onSuccess, salaEdit }) {
                     <h5 className="salas-title">{salaEdit ? <><FaEdit /> Editar Sala</> : <><FaPlus /> Agregar Sala</>}</h5>
 
                     <button className="btn-cerrar" onClick={onClose}>
-                        ×
+                        <IoMdClose />
                     </button>
                 </div>
 

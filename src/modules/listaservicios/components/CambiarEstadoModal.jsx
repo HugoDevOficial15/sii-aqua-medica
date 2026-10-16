@@ -4,7 +4,8 @@ import { notifySuccess, notifyError } from "../../../utils/notify";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import Swal from "sweetalert2";
 import { useAuth } from "../../../hooks/useAuth";
-import { FaCheck, FaTimes, FaClosedCaptioning } from "react-icons/fa";
+import { FaCheck, FaClosedCaptioning } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
 
@@ -72,7 +73,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                         <FaClosedCaptioning style={{ marginRight: "8px", marginBottom: "2px" }} />
                         FINALIZAR SERVICIO</h6>
                     <button className="btn-close-custom" onClick={onClose}>
-                        <FaTimes />
+                        <IoMdClose />
                     </button>
                 </div>
 
@@ -150,7 +151,7 @@ export default function CambiarEstadoModal({ servicio, onClose, onSuccess }) {
                 border-radius: 10px;
                 background: var(--operator-card); 
                 color: var(--operator-text); 
-                font-size: 20px;
+                font-size: 24px;
                 cursor: pointer;
                 display: flex;
                 align-items: center;

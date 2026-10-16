@@ -205,7 +205,7 @@ export default function AgregarSala() {
                                                 }}
                                                 aria-label="Abrir menú de acciones"
                                             >
-                                                <FaEllipsisV className="me-1" />
+                                                <FaEllipsisV className="" />
                                             </button>
 
                                             {openActionsId === sala.id && (

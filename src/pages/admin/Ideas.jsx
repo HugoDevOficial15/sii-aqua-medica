@@ -5,6 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { createNotification } from "../../utils/createNotification";
 import { notifyError, notifySuccess, confirmDelete } from "../../utils/notify";
 import { getAllIdeas, updateIdeaStatus, deleteIdea } from "../../services/ideasService";
+import { IoMdClose } from "react-icons/io";
 import Loader from "../../components/Loader";
 
 import Swal from "sweetalert2";
@@ -370,6 +371,23 @@ export default function IdeasAdmin() {
             transition: transform 0.2s ease-in-out;
             background-color: var(--operator-cancelar-hover) !important;
         }
+
+        .btn-cerrar-modal {
+            background-color: transparent !important;
+            color: var(--operator-text) !important;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 24px;
+        }
+
+        .btn-cerrar-modal:hover {
+            transform: scale(1.01);
+            transition: transform 0.2s ease-in-out;
+            color: var(--operator-primary) !important;
+            background-color: var(--operator-border) !important;
+        }
       `}</style>
       <div className="page-transition">
 
@@ -409,8 +427,8 @@ export default function IdeasAdmin() {
       </div>
       </center> 
 
-      <div className="card border-0 mb-4" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px" }}>
-        <div className="card-body p-3">
+      <div className="card border-0 mb-4" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px", padding: "14px" }}>
+        <div className="card-body p-3 ">
           <div className="row g-3">
             <div className="col-12 col-md-4">
               <input
@@ -577,8 +595,8 @@ export default function IdeasAdmin() {
                   Enviado por {selectedIdea.solicitante} (Nómina: {selectedIdea.nomina})
                 </small>
               </div>
-              <button style={styles.closeButton} onClick={() => setModalOpen(false)}>
-                <FiX />
+              <button className="btn-cerrar-modal" onClick={() => setModalOpen(false)}>
+                <IoMdClose />
               </button>
             </div>
             <div style={styles.body}>
@@ -767,14 +785,6 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     padding: "24px",
-    borderBottom: "1px solid var(--operator-border)",
-  },
-  closeButton: {
-    border: "none",
-    background: "transparent",
-    color: "var(--operator-text)",
-    cursor: "pointer",
-    fontSize: "1.1rem",
   },
   body: {
     padding: "24px",

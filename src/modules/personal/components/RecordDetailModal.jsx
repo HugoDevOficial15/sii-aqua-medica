@@ -3,6 +3,7 @@ import { FaTimes, FaFilePdf, FaNotesMedical, FaChalkboardTeacher, FaHouseUser, F
 import { createPortal } from "react-dom";
 import { getUsers } from "../../../services/usersService";
 import { generatePersonalRecordPDF } from "./pdf-generator";
+import { IoMdClose } from "react-icons/io";
 
 const parseLocalDate = (value) => {
   if (!value) return null;
@@ -260,7 +261,7 @@ export default function RecordDetailModal({ record, onClose }) {
             <h3>{getRecordTitle(record, isMedicalHistory)}</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
-            <FaTimes />
+            <IoMdClose />
           </button>
         </div>
 
@@ -331,16 +332,16 @@ export default function RecordDetailModal({ record, onClose }) {
         .personal-modal-header h2 {
           margin: 0;
           padding: 10px 0;
-          font-size: 1.5rem;
+          font-size: 20px;
           font-weight: 700;
           color: var(--operator-text);
         }
 
         .personal-modal-header h3 {
           margin: 0;
-          font-size: 1.0rem;
+          font-size: 13px;
           font-weight: 800;
-          color: var(--operator-text);
+          color: var(--operator-text-soft);
         }
 
         .personal-modal-close {

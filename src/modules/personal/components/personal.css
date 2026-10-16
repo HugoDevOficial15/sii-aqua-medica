@@ -309,8 +309,10 @@
 }
 
 .personal-record-view-btn:hover {
+  background: var(--operator-border);
   color: var(--operator-primary);
-  scale: 1.02;
+  transform: scale(1.02);
+  transition: transform 0.2s ease-in-out;
 }
 
 .personal-status-badge {

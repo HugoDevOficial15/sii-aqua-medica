@@ -60,13 +60,14 @@ import {
   FaHouseUser,
   FaAddressCard,
 } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 // Areas
 import { AREAS } from "../../catalogs/areas";
 
 export default function Users({ onClose }) {
   const location = useLocation();
-
+  
   // Loading
   const [loading, setLoading] = useState(true);
 
@@ -1655,7 +1656,7 @@ export default function Users({ onClose }) {
                 }}
                 aria-label="Cerrar"
               >
-                ×
+                <IoMdClose />
               </button>
             </div>
 
@@ -1780,7 +1781,7 @@ export default function Users({ onClose }) {
                 }}
                 aria-label="Cerrar"
               >
-                ×
+                <IoMdClose />
               </button>
             </div>
             <div className="modal-body-info">
@@ -1846,7 +1847,7 @@ export default function Users({ onClose }) {
                 onClick={() => setShowModal(false)}
                 aria-label="Cerrar"
               >
-                ×
+                <IoMdClose />
               </button>
             </div>
 

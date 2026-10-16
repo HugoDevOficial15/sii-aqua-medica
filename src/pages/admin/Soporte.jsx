@@ -10,7 +10,8 @@ import {
   cambiarEstadoProblema,
   eliminarProblema,
 } from "../../services/supportTicketService";
-import Swal from "sweetalert2";
+import Swal from "sweetalert2"; 
+import { IoMdClose } from "react-icons/io";
 
 export default function SoporteAdmin() {
   const { user } = useAuth();
@@ -393,6 +394,7 @@ export default function SoporteAdmin() {
             width: 100%;
             border-collapse: separate !important;
             border-spacing: 0 10px !important;
+            padding: 46px !important;
         }
 
         .table-soporte thead th {
@@ -438,6 +440,26 @@ export default function SoporteAdmin() {
             background-color: var(--operator-cancelar-hover);
             color: var(--operator-text);
         }
+
+        .btn-cerrar {
+            background: none;
+            border: none;
+            color: var(--operator-text);
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn-cerrar:hover {
+            background: var(--operator-border);
+            color: var(--operator-primary);
+        }
       `}</style>
 
       <div className="page-transition">
@@ -450,7 +472,7 @@ export default function SoporteAdmin() {
             </div>
 
       {/* BARRA DE FILTROS (Estilo Img 2) */}
-      <div className="card border-0 mb-4" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px" }}>
+      <div className="card border-0 mb-4" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px", padding: "30px" }}>
         <div className="contenedor-header">
           <div className="soporte-filters">
             <div className="soporte-filter-item" style={{ flex: "1.4 1 0" }}>
@@ -515,7 +537,7 @@ export default function SoporteAdmin() {
       </div>
 
       {/* TABLA DE Soporte */}
-      <div className="card border-0 shadow-sm" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px" }}>
+      <div className="card border-0 shadow-sm" style={{ backgroundColor: "var(--operator-card)", borderRadius: "14px", padding: "0px" }}>
         <div className="card-body p-0 table-responsive-container">
           {loading ? (
             <div className="p-5 text-center text-secondary">Cargando problemas reportados...</div>
@@ -650,8 +672,8 @@ export default function SoporteAdmin() {
                   {getOrigenBadge(selectedProblema.tipoRemitente).icon} {getOrigenBadge(selectedProblema.tipoRemitente).label} — Enviado por {selectedProblema.solicitante} (Nómina: {selectedProblema.nomina})
                 </small>
               </div>
-              <button style={styles.closeButton} onClick={() => setModalOpen(false)}>
-                <FiX />
+              <button className="btn-cerrar" onClick={() => setModalOpen(false)}>
+                <IoMdClose />
               </button>
             </div>
 
@@ -865,18 +887,9 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
   },
-  closeButton: {
-    background: "var(--operator-background)",
-    border: "1px solid var(--operator-border)",
-    color: "var(--operator-text)",
-    width: "36px",
-    height: "36px",
-    borderRadius: "10px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-  },
+
+
+
   body: {
     padding: "24px",
     maxHeight: "75vh",

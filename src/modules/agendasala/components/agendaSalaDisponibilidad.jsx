@@ -6,6 +6,7 @@ import {
     FaRegCalendarCheck
     
 } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 const parseFechaLocal = (fechaStr) => {
     if (!fechaStr) return null;
@@ -181,7 +182,7 @@ export default function AgendaSalaDisponibilidad({
                         <div className="day-modal-header">
                             <strong>{getNombreDia(diaSeleccionado)}</strong>
                             <button type="button" className="btn-close-modal" onClick={() => setDiaSeleccionado(null)}>
-                                ×
+                                <IoMdClose />
                             </button>
                         </div>
 
@@ -579,6 +580,11 @@ export default function AgendaSalaDisponibilidad({
                 .btn-close:hover {
                     background: var(--operator-border);
                     color: var(--operator-primary);
+                }
+
+                .btn-close:focus {
+                    outline: none;
+                    box-shadow: none;
                 }
 
                 .btn-close-modal{

@@ -659,8 +659,8 @@ export default function AlmacenMaterialesPage() {
 /* BOTONES */
 
             .rack-location-button {
-                background: var(--operator-primary);
-                color: #fff;
+                background: var(--operator-form);
+                color: var(--operator-text);
                 border-radius: 12px;
                 padding: 5px 2px;
                 font-size: 14px;

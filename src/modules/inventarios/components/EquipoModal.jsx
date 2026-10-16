@@ -10,6 +10,7 @@ import { AREAS } from "../../../catalogs/areas";
 import { createEquipo, updateEquipo } from "../../../services/equiposServices";
 import { createLogEquipo } from "../../../services/logsServices";
 import { useAuth } from "../../../hooks/useAuth";
+import { IoMdClose } from "react-icons/io";
 import Swal from "sweetalert2";
 
 
@@ -149,8 +150,8 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
       <div style={styles.modalCard}>
         <div style={styles.header}>
           <h5 style={styles.title}>{data ? (<><FaEdit/> Editar Equipo</>) : (<><FaPlus/> Nuevo Equipo</>)}</h5>
-          <button type="button" className="close-button" style={styles.closeButton} onClick={onClose}>
-            ×
+          <button type="button" className="close-button" onClick={onClose}>
+            <IoMdClose />
           </button>
         </div>
 
@@ -225,8 +226,22 @@ export default function EquipoModal({ onClose, onSuccess, data }) {
           border: 1px solid var(--operator-primary) !important;
           outline: none;
         }
+        .close-button {
+          background: none;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          color: var(--operator-text);
+          height: 36px;
+          width: 36px;
+          border-radius: 12px;
+        }
 
         .close-button:hover {
+          background: var(--operator-border);
           color: var(--operator-primary);
         }
 
@@ -292,20 +307,7 @@ const styles = {
     fontWeight: 800,
     color: "var(--operator-text)",
   },
-  closeButton: {
-    width: "36px",
-    height: "36px",
-    border: "none",
-    borderRadius: "10px",
-    background: "var(--operator-card)",
-    color: "var(--operator-text)",
-    fontSize: "30px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "color 0.2s ease",
-  },
+
   body: {
     padding: "30px",
     background: "var(--operator-card)",

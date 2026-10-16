@@ -52,6 +52,7 @@ import {
   FaStickyNote,
   FaCog,
 } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 import { AREAS } from "../../../catalogs/areas";
 import { useAuth } from "../../../hooks/useAuth";
@@ -402,7 +403,7 @@ export default function AdministradoresModal({
             onClick={onClose}
             aria-label="Cerrar modal"
           >
-            <FaTimes />
+            <IoMdClose />
           </button>
         </div>
 
@@ -715,7 +716,7 @@ export default function AdministradoresModal({
           cursor: pointer;
           padding: 8px 8px;
           gap: 8px;
-          font-size: 18px;
+          font-size: 24px;
           border-radius: 12px;
         }
 

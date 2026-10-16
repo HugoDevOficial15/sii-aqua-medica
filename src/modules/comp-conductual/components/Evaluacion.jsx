@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../hooks/useAuth";
 import { useLoader } from "../../../hooks/useLoader";
+import { IoMdClose } from "react-icons/io";
 import { guardarEvaluacionConductual } from "../../../services/compConductual";
 import { sanitizeText } from "../../../utils/sanitize";
 import { FaClipboardList } from "react-icons/fa";
@@ -574,7 +575,7 @@ export default function EvaluacionModal({
             aria-label="Cerrar evaluación"
             onClick={cerrar}
           >
-            ×
+            <IoMdClose />
           </button>
         </div>
 

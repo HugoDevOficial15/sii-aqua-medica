@@ -17,6 +17,7 @@ import {
     FaTools,
     FaFilePdf
 } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 import {
     notifySuccess,
@@ -371,9 +372,9 @@ export default function LogsEquipoModal({
 
                     <button
                         onClick={onClose}
-                        style={{ ...styles.closeBtn, ...dynamicStyles.closeBtn }}
+                        className="close-button"
                     >
-                        ×
+                        <IoMdClose />
                     </button>
 
                 </div>
@@ -549,6 +550,25 @@ export default function LogsEquipoModal({
                         background: var(--operator-danger);
                         box-shadow: 0 0px 15px var(--operator-danger);
                     }
+
+                    .close-button {
+                        background: none;
+                        border: none;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 24px;
+                        color: var(--operator-text);
+                        height: 36px;
+                        width: 36px;
+                        border-radius: 12px;
+                    }
+
+                    .close-button:hover {
+                        background: var(--operator-border);
+                        color: var(--operator-primary);
+                    }
                 `}</style>
 
             </div>
@@ -593,13 +613,6 @@ const styles = {
     subtitle: {
         color: "#6b7280",
         fontSize: "14px"
-    },
-
-    closeBtn: {
-        border: "none",
-        background: "transparent",
-        fontSize: "28px",
-        cursor: "pointer"
     },
 
     infoCard: {

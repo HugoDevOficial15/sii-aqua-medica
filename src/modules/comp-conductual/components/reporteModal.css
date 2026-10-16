@@ -49,7 +49,7 @@
 }
 
 .reporte-modal-close:hover {
-  background: rgba(148, 163, 184, 0.14);
+  background: var(--operator-border);
   color: var(--operator-primary, #2563eb);
 }
 

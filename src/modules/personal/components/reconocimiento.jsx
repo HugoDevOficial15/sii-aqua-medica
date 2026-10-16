@@ -3,6 +3,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { notifySuccess, notifyError } from "../../../utils/notify";import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { createPersonalReconocimiento } from "../../../services/personalService";
 import { FaMedal } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 import Swal from "sweetalert2";
 
 export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
@@ -87,7 +88,7 @@ export default function ReconocimientoModal({ empleado, onClose, onSuccess }) {
               Nuevo reconocimiento</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
-            ×
+            <IoMdClose />
           </button>
         </div>
 

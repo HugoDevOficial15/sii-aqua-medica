@@ -3,6 +3,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { notifySuccess, notifyError } from "../../../utils/notify";import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { createPersonalIncidencia } from "../../../services/personalService";
 import { FaUserTimes } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 import Swal from "sweetalert2";
 
 export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
@@ -82,7 +83,7 @@ export default function IncidenciaModal({ empleado, onClose, onSuccess }) {
               Nueva incidencia</h3>
           </div>
           <button type="button" className="personal-modal-close" onClick={onClose} aria-label="Cerrar modal">
-            ×
+            <IoMdClose />
           </button>
         </div>
 

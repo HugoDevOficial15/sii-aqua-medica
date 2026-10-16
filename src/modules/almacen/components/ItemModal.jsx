@@ -22,6 +22,7 @@ import {
     crearProducto,
     actualizarProducto
 } from "../../../services/productoService";
+import { IoMdClose } from "react-icons/io";
 
 export default function ItemModal({ data, onClose, onSuccess }) {
 
@@ -224,7 +225,7 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                         className="btn-close"
                         onClick={onClose}
                     >
-                        ×
+                            <IoMdClose />
                     </button>
 
                 </div>
@@ -457,6 +458,12 @@ export default function ItemModal({ data, onClose, onSuccess }) {
                 .btn-close:hover {
                     background: var(--operator-border);
                     color: var(--operator-primary);
+                }
+
+                .btn-close:focus {
+                    outline: none;
+                    background: var(--operator-border);
+                    box-shadow: none;
                 }
 
                 .btn-cerrar {

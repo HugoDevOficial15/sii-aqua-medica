@@ -6,6 +6,7 @@ import {
   invalidateUserAndPersonalCaches,
   updateUser,
 } from "../../../services/usersService";
+import { IoMdClose } from "react-icons/io";
 import { createPersonalIncapacidad } from "../../../services/personalService";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { notifySuccess, notifyError } from "../../../utils/notify";
@@ -434,7 +435,7 @@ export default function IncapacidadModal({ usuario, open, onClose, setUsuarios, 
             onClick={onClose}
             aria-label="Cerrar modal"
           >
-            ×
+            <IoMdClose />
           </button>
         </div>
 

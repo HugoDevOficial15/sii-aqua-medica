@@ -7,6 +7,7 @@ import Swal from "sweetalert2";
 import { notifySuccess, notifyError } from "../../utils/notify";
 import { sanitizeTextTrim } from "../../utils/sanitize";
 import { FaPlus, FaEdit } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
     const [isCloseHovered, setIsCloseHovered] = useState(false);
@@ -83,7 +84,9 @@ export default function PuestoModal({ onClose, onSuccess, puestoEdit }) {
                         onClick={onClose}
                         onMouseEnter={() => setIsCloseHovered(true)}
                         onMouseLeave={() => setIsCloseHovered(false)}
-                    >×</button>
+                    >
+                        <IoMdClose />
+                    </button>
 
                 </div>
 

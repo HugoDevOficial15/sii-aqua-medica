@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 // Iconos
 import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaSave, FaTrash, FaChartBar, FaEllipsisV,FaGlobe,FaWarehouse,FaFlask,FaUtensils,FaUserTie,FaCalculator,FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaShieldAlt,FaHeartbeat,FaHandsHelping,FaStethoscope,FaLaptopCode,FaClipboardCheck,FaEye,FaShoppingCart } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 // Service
 import { createSurvey, getSurveys, updateSurvey, deleteSurvey } from "../../services/surveyService";
 // Resultados/respuestas
@@ -839,7 +840,7 @@ export default function CreateSurvey() {
                                     resetSurveyForm();
                                 }}
                             >
-                                ×
+                                <IoMdClose />
                             </button>
                         </div>
 

@@ -227,7 +227,12 @@ export default function Header({ toggleSidebar }) {
                         </button>
 
                         <div className="brand-box">
-                            <div className="brand-glow"></div>
+                            <div className="brand-glow" aria-hidden="true">
+                                <span className="brand-bubble bubble-1" />
+                                <span className="brand-bubble bubble-2" />
+                                <span className="brand-bubble bubble-3" />
+                                <span className="brand-bubble bubble-4" />
+                            </div>
 
                             <div>
                                 <h4 className="brand-title">
@@ -458,7 +463,7 @@ export default function Header({ toggleSidebar }) {
 }
 
 /* =========================
-   BRAND
+    BRAND
 ========================= */
 
 .brand-box {
@@ -468,20 +473,150 @@ export default function Header({ toggleSidebar }) {
 }
 
 .brand-glow {
-    width: 14px;
-    height: 52px;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+
+    width: 18px;
+    height: 54px;
 
     border-radius: 999px;
 
     background:
         linear-gradient(
             180deg,
-            #2563eb,
-            #60a5fa
+            rgba(77, 124, 255, 0.15),
+            rgba(0, 255, 234, 0.31)
         );
 
+    border: 1px solid rgba(22, 72, 179, 0.27);
     box-shadow:
-        0 0 20px rgba(37,99,235,0.3);
+        inset 0 0 16px 1px rgba(111, 145, 255, 0.41),
+        0 0 5px 1px rgba(3, 62, 255, 0.29);
+}
+
+.brand-glow::before,
+.brand-glow::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    filter: blur(9px);
+    opacity: 0.7;
+}
+
+.brand-glow::before {
+    top: 10px;
+    background: rgba(86, 152, 250, 0.51);
+    box-shadow: 0 0 16px rgba(33, 89, 209, 0.67);
+}
+
+.brand-glow::after {
+    bottom: 7px;
+    background: rgba(35, 156, 255, 0.16);
+    box-shadow: 0 0 20px 1px rgb(141, 231, 253);
+}
+
+.brand-bubble {
+    position: absolute;
+    bottom: -12px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    opacity: 0;
+    background: radial-gradient(
+        circle at 30% 30%,
+        rgba(255,255,255,1),
+        rgba(191,219,254,0.95) 30%,
+        rgba(96,165,250,0.72) 58%,
+        rgba(59, 131, 246, 0.05) 100%
+    );
+    box-shadow:
+        0 0 14px rgba(191,219,254,0.9),
+        0 0 24px rgba(96,165,250,0.42),
+        0 0 34px rgba(59,130,246,0.28);
+    animation: brandBubbleRise 7s ease-in infinite;
+}
+
+.bubble-1 {
+    left: 48%;
+    --x-shift: -1px;
+    animation-delay: 0s;
+}
+
+.bubble-2 {
+    left: 42%;
+    --x-shift: 8px;
+    animation-delay: 1.2s;
+}
+
+.bubble-3 {
+    left: 62%;
+    --x-shift: -8px;
+    animation-delay: 2.5s;
+}
+
+.bubble-4 {
+    left: 78%;
+    --x-shift: 12px;
+    animation-delay: 4s;
+}
+
+@keyframes brandBubbleRise {
+    0% {
+        opacity: 0;
+        transform: translate3d(var(--x-shift), 0, 0) scale(0.4);
+    }
+    14% {
+        opacity: 0.9;
+    }
+    24% {
+        transform: translate3d(calc(var(--x-shift) + 5px), -14px, 0) scale(0.8);
+    }
+    48% {
+        opacity: 0.82;
+        transform: translate3d(calc(var(--x-shift) - 8px), -26px, 0) scale(1.1);
+    }
+    68% {
+        transform: translate3d(calc(var(--x-shift) + 10px), -38px, 0) scale(1.25);
+    }
+    100% {
+        opacity: 0;
+        transform: translate3d(calc(var(--x-shift) - 12px), -52px, 0) scale(1.4);
+    }
+}
+
+html[data-theme="dark"] .brand-glow {
+    background: linear-gradient(180deg, rgba(55, 192, 255, 0.12), rgba(59, 218, 246, 0.48));
+    border-color: rgba(147,197,253,0.34);
+    box-shadow: inset 0 0 5px 1px rgba(146, 250, 241, 0.47), 0 0 5px 1px rgba(28, 255, 244, 0.47);
+}
+
+html[data-theme="dark"] .brand-glow::before {
+    background: rgba(191,219,254,0.52);
+    box-shadow: 0 0 18px rgba(191,219,254,0.7);
+}
+
+html[data-theme="dark"] .brand-glow::after {
+    background: rgba(96,165,250,0.24);
+    box-shadow: 0 0 22px rgba(147,197,253,0.5);
+}
+
+html[data-theme="dark"] .brand-bubble {
+    background: radial-gradient(
+        circle at 30% 30%,
+        rgba(255,255,255,1),
+        rgba(191,219,254,0.97) 28%,
+        rgba(96,165,250,0.82) 60%,
+        rgba(96,165,250,0) 100%
+    );
+    box-shadow:
+        0 0 18px rgba(191,219,254,0.92),
+        0 0 28px rgba(96,165,250,0.56),
+        0 0 40px rgba(59,130,246,0.32);
 }
 
 .brand-title {
@@ -503,7 +638,7 @@ export default function Header({ toggleSidebar }) {
 }
 
 /* =========================
-   RIGHT
+    RIGHT
 ========================= */
 
 .pro-right {
@@ -513,7 +648,7 @@ export default function Header({ toggleSidebar }) {
 }
 
 /* =========================
-   NOTIFICATIONS
+    NOTIFICATIONS
 ========================= */
 
 .notification-btn {

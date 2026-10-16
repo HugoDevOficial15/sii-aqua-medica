@@ -10,8 +10,7 @@
 
 
 **Functions-Refactorizadas**
-* verificarUsuariosLogueadosHttp
-* verificacionLogs
+
 * registrarMovimiento
 * obtenerMovimientosPorFecha
 

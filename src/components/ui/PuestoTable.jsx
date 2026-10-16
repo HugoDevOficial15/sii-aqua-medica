@@ -121,7 +121,7 @@ export default function PuestoTable({ puestos = [], loading, onEdit, onRefresh }
                                 }}
                                 arial-label="Abrir menú de acciones"
                             >
-                                <FaEllipsisV className="me-1" />
+                                <FaEllipsisV className="" />
 
                             </button>
                                 
@@ -211,7 +211,7 @@ export default function PuestoTable({ puestos = [], loading, onEdit, onRefresh }
                     border-radius: 999px;
                     background: var(--operator-card);
                     color: var(--operator-text);
-                    display: inline-flex;
+                    display: flex;
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;

@@ -42,7 +42,6 @@ export default function FiltersMateriales({ filters, setFilters }) {
           justify-content: flex-end;
           align-items: center;
           gap: 10px;
-          padding: 10px;
         }
 
         .form-control {

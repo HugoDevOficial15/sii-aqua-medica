@@ -268,10 +268,10 @@ export const MedicamentosTable = ({ data, onEdit, onToggle, onDelete }) => {
         }
 
         .table tbody tr {
-          background: #ffffff;
+          background: var(--operator-card);
           transition: all 0.2s ease;
           transform-origin: center center;
-          box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.03);
+          box-shadow: none !important;
         }
 
         .table tbody tr:hover {

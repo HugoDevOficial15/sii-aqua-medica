@@ -276,7 +276,7 @@ export default function Administradores() {
           background-color: var(--operator-card);
           border: 1px solid var(--operator-border);
           border-radius: 30px;
-          padding: 24px 18px;
+          padding: 30px;
           display: flex;
           align-items: center;
           justify-content: end;

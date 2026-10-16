@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize";
 import { FaPlus, FaEdit } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 export default function NotaModal({ show, onClose, onSave, data }) {
 
@@ -58,7 +59,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
 
                 <div className="custom-modal-header">
                     <h5 className="custom-modal-title">{data ? <><FaEdit className="me-2" />Editar Nota</> : <><FaPlus className="me-2" />Nueva Nota</>}</h5>
-                    <button className="btn-close" onClick={onClose}> × </button>
+                    <button className="btn-close" onClick={onClose}> <IoMdClose />   </button>
                 </div>
 
                 <div className="custom-modal-body">
@@ -132,7 +133,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     background: var(--operator-card);
                     color: var(--operator-text);
                     width: 600px;
-                    padding: 15px;
+                    padding: 20px;
                     max-width: 95%;
                     border-radius: 20px;
                     overflow: hidden;
@@ -144,7 +145,7 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     border: none;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 24px 30px;
+                    padding: 10px;
                     background: var(--operator-card);
                 }
 
@@ -153,11 +154,13 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     font-size: 1.5rem;
                     font-weight: 800;
                     color: var(--operator-text);
+                    align-items: center;
+                    display: flex;
                 }
 
                 .custom-modal-body {
                     border: none;
-                    padding: 30px;
+                    padding: 20px;
                     background: var(--operator-card);
                     display: flex;
                     flex-direction: column;
@@ -180,6 +183,8 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                     font-weight: 700;
                     justify-content: end;
                     justify-self: end;
+                    margin-bottom: 10px;
+                    margin-top: 10px;
 
                 }
 
@@ -268,6 +273,12 @@ export default function NotaModal({ show, onClose, onSave, data }) {
                 .btn-close:hover {
                     background: var(--operator-border);
                     color: var(--operator-primary);
+                }
+
+                .btn-close:focus {
+                    outline: none;
+                    background: var(--operator-border);
+                    box-shadow: none;
                 }
 
 

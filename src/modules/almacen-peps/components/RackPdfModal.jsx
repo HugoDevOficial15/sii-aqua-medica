@@ -18,6 +18,7 @@ import {
 } from "../../../utils/rackLocation";
 
 import {FaFilePdf} from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 export default function RackPdfModal({
     rack,
@@ -324,7 +325,7 @@ export default function RackPdfModal({
 
                         onClick={onClose}
                     >
-                        ×
+                        <IoMdClose />   
                     </button>
 
                 </div>
@@ -424,7 +425,6 @@ export default function RackPdfModal({
                         disabled={loading || !fechaInicio || !fechaFin}
                     >
 
-                        <FaFilePdf className="pdf-icon" />
                         {
                             loading
                                 ? "Generando..."

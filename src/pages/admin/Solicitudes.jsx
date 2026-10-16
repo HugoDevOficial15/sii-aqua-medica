@@ -703,6 +703,10 @@ export default function Solicitudes() {
             <style>{`
 
 /* TABLE RESPONSIVE */
+.card-body {
+    padding: 30px;
+}
+
 .table-responsive-container {
     overflow: visible !important;
     padding: 46px;

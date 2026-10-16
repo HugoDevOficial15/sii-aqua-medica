@@ -11,6 +11,7 @@ import {
     sanitizeTextTrim
 } from "../../../utils/sanitize";
 import {FaArrowRightArrowLeft} from "react-icons/fa6";
+import { IoMdClose } from "react-icons/io";
 // import {
 //     obtenerStockPorRack,
 //     trasladarStockPEPS
@@ -499,7 +500,7 @@ export default function RackTransferModal({
 
                         onClick={onClose}
                     >
-                        ×
+                        <IoMdClose />
                     </button>
 
                 </div>
@@ -663,8 +664,6 @@ export default function RackTransferModal({
 
                             disabled={loading}
                         >
-                            <FaArrowRightArrowLeft className="transfer-icon" />
-
                             {
                                 loading
                                     ? "Procesando..."

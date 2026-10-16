@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import { FaPlus, FaCarAlt } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 import Loader from "../../../components/Loader";
 
@@ -491,7 +492,7 @@ export default function MovimientoModal({
 
                         }}
                     >
-                        ×
+                        <IoMdClose />   
                     </button>
 
                 </div>
@@ -687,7 +688,6 @@ export default function MovimientoModal({
                             type="submit"
                             className="movement-submit"
                         >
-                            <FaCarAlt className="movement-icon" />
                             Guardar entrada
                         </button>
                     </div>

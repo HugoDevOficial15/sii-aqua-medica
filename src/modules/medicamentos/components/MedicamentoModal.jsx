@@ -6,6 +6,7 @@ import { notifySuccess, notifyError } from "../../../utils/notify"
 import { sanitizeText, sanitizeTextTrim } from "../../../utils/sanitize"
 import Loader from "../../../components/Loader"
 import { FaPlus, FaEdit } from "react-icons/fa"
+import { IoMdClose } from "react-icons/io"
 import { useEffect, useState } from "react"
 import Swal from "sweetalert2";
 import { color } from "chart.js/helpers"
@@ -259,6 +260,11 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                     border: none;
                 }
 
+                .btn-close:focus {
+                    box-shadow: none !important;
+                    outline: none;
+                }
+
 
             `}</style>
 
@@ -281,7 +287,7 @@ export default function MedicamentoModal({ onClose, onSuccess, data }) {
                         onMouseEnter={() => setIsCloseHovered(true)}
                         onMouseLeave={() => setIsCloseHovered(false)}
                     >
-                        ×
+                        <IoMdClose />
                     </button>
 
                 </div>
@@ -555,7 +561,7 @@ const styles = {
 
         alignItems: "center",
 
-        padding: "24px 30px",
+        padding: "20px",
     },
 
     title: {
@@ -600,7 +606,7 @@ const styles = {
 
     closeButtonHover: {
 
-        background: "var(--operator-card)",
+        background: "var(--operator-border)",
 
         color: "var(--operator-primary)",
 

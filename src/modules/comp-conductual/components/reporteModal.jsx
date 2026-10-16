@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaFilePdf } from "react-icons/fa";
+import { FaFilePdf } from "react-icons/fa"
+import { IoMdClose } from "react-icons/io"
 import { getEvaluacionesConductuales } from "../../../services/compConductual";
 import { sanitizeText } from "../../../utils/sanitize";
 import { generateCompConductualReportPDF } from "./pdfGenerator";
@@ -336,7 +337,7 @@ const termino = sanitizeText(busqueda).trim().toLowerCase();
             aria-label="Cerrar modal"
             onClick={onClose}
           >
-            ×
+            <IoMdClose />
           </button>
         </div>
 

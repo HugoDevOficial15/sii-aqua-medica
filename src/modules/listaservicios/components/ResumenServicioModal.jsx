@@ -283,9 +283,9 @@ export default function ResumenServiciosModal({
                 }
 
                 .badge.pendiente {
-                    background: #fee2e2;
+                    background: var(--operator-producto-terminado);
                     height: 30px;
-                    color: #991b1b;
+                    color: var(--operator-producto-terminado-text);
                     padding: 10px 10px;
                     border-radius: 12px;
                     font-size: 12px;

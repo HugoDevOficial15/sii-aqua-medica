@@ -999,7 +999,7 @@ export default function ListaServiciosPage() {
           padding: 0 20px;
           border-radius: 10px;
           border: none;
-          background: var(--operator-border);
+          background: var(--operator-cancelar);
           color: var(--operator-text);
           font-weight: 700;
           cursor: pointer;
@@ -1012,7 +1012,8 @@ export default function ListaServiciosPage() {
         .btn-cancelar-pdf:hover {
           scale: 1.05;
           transition: scale 0.2s ease-in-out;
-          color: var(--operator-danger);
+          background: var(--operator-cancelar-hover);
+          color: var(--operator-text);
           box-shadow: 0 0px 20px var(--operator-shadow);
         }
 

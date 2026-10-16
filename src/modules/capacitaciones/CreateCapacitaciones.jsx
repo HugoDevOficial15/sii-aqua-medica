@@ -10,6 +10,7 @@ import { trainingSchema } from "../../schemas/trainingSchema";
 import { getAuth } from "firebase/auth";
 import EncuestaResultados from "../../modules/encuestas/EncuestaResultados";
 import { FaEdit, FaCheckCircle, FaTimesCircle, FaPlus, FaDoorClosed, FaSave, FaTrash, FaChartBar,FaWindowClose,FaEllipsisV,FaGlobe,FaWarehouse,FaFlask,FaUtensils,FaUserTie,FaCalculator,FaBuilding,FaTools,FaHardHat,FaLeaf,FaIndustry,FaDoorOpen,FaUsers,FaShieldAlt,FaHeartbeat,FaHandsHelping,FaStethoscope,FaLaptopCode,FaClipboardCheck,FaEye,FaShoppingCart,FaFileUpload } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 import { sanitizeText, sanitizeTextTrim } from "../../utils/sanitize";
 import '../../styles/index.css';
 
@@ -818,7 +819,7 @@ export default function CreateCapacitaciones() {
                                 className="modal-close-btn"
                                 onClick={() => setShowModal(false)}
                             >
-                                ×
+                                <IoMdClose />   
                             </button>
                         </div>
 

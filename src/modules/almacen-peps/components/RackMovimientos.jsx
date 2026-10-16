@@ -11,6 +11,7 @@ import SnapshotManager
     from "../../../services/snapshots/snapshotManager";
 
 import { FaHistory } from "react-icons/fa";
+import { IoMdClose } from "react-icons/io";
 
 export default function RackMovimientos({
     rack
@@ -281,15 +282,15 @@ export default function RackMovimientos({
                                     <FaHistory className="me-2" />
                                     Historial del Rack
                                 </h5>
-
                                 <button
                                     type="button"
                                     className="btn-close"
-                                    aria-label="Cerrar"
                                     onClick={() =>
                                         setShowModal(false)
                                     }
-                                />
+                                >
+                                    <IoMdClose />
+                                </button>
 
                             </div>
 
@@ -637,29 +638,15 @@ export default function RackMovimientos({
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
+                    font-size: 30px;
                     --rack-close-color: var(--operator-text);
                 }
 
-                .rack-modal-header .btn-close::before,
-                .rack-modal-header .btn-close::after {
-                    content: "";
-                    position: absolute;
-                    width: 18px;
-                    height: 2px;
-                    background: var(--rack-close-color);
-                    border-radius: 2px;
-                }
-
-                .rack-modal-header .btn-close::before {
-                    transform: rotate(45deg);
-                }
-
-                .rack-modal-header .btn-close::after {
-                    transform: rotate(-45deg);
-                }
-
                 .rack-modal-header .btn-close:hover {
-                    opacity: 0.8;
+                    background: var(--operator-border);
+                    color: var(--operator-primary);
+                    outline: none;
+                    box-shadow: none;
                 }
 
                 .rack-modal-header .btn-close:focus {

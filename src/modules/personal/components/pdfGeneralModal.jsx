@@ -3,6 +3,7 @@ import logo2Image from "../../../utils/img/logo2.jpg";
 import { notifyError } from "../../../utils/notify";
 import { FaGlobe, FaNotesMedical, FaChalkboardTeacher, FaHouseUser, FaMedal, FaUserTimes, FaFilePdf } from "react-icons/fa";
 import { getPersonalPdfReportData } from "../../../services/personalService";
+import { IoMdClose } from "react-icons/io";
 
 const normalizeDate = (value) => {
   if (!value) return "Sin fecha";
@@ -607,7 +608,7 @@ export default function PdfGeneralModal({
             onClick={onClose}
             aria-label="Cerrar modal"
           >
-            ×
+            <IoMdClose />
           </button>
         </div>
 

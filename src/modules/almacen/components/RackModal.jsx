@@ -8,6 +8,7 @@ import { FaPlus, FaEdit } from "react-icons/fa";
 import { validateRack } from "../../../schemas/rackSchema";
 import Swal from "sweetalert2";
 import { obtenerStockPorRack } from "../../../services/rackStockService";
+import { IoMdClose } from "react-icons/io";
 
 
 const normalizarTipo = (valor = "") => String(valor || "").trim().toLowerCase();
@@ -409,7 +410,7 @@ export default function RackModal({ onClose, onSuccess, data }) {
                         className="close-button"
                         onClick={onClose}
                     >
-                        ×
+                        <IoMdClose />   
                     </button>
 
                 </div>

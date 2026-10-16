@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaSearch, FaUserInjured, FaFingerprint, FaCheckCircle, FaClock, FaHeartbeat, FaCheckDouble, FaTrash, FaEllipsisV, FaHandHoldingMedical} from "react-icons/fa";
 import { FiTrash2 } from "react-icons/fi";
+import { IoMdClose } from "react-icons/io";
 import { notifySuccess, notifyError, notifyWarning, confirmDelete, notifyInfo } from "../../utils/notify";
 import { useAuth } from "../../hooks/useAuth";
 import { dismissNotification } from "../../utils/notificationPersistence";
@@ -658,7 +659,7 @@ export default function DetalleOrdenMedica() {
                 onClick={() => setMostrarModalAtencionRapida(false)}
                 disabled={procesandoAtencionRapida}
                 aria-label="Close"
-              >×</button>
+              ><IoMdClose />  </button>
             </div>
             <div className="modal-body-atencion">
               <label className="form-label fw-medium mb-2">Ingresa la nómina del paciente:</label>
@@ -1097,18 +1098,20 @@ export default function DetalleOrdenMedica() {
 
         .btn-close-atencion {
             background: none;
+            border-radius: 12px;
             border: none;
             color: var(--operator-text-soft);
             font-size: 28px;
             cursor: pointer;
             padding: 0;
-            width: 28px;
-            height: 28px;
+            width: 36px;
+            height: 36px;
             line-height: 1;
         }
 
         .btn-close-atencion:hover {
-            color: var(--operator-text);
+            background: var(--operator-border);
+            color: var(--operator-primary);
         }
 
         .btn-close-atencion:disabled {
