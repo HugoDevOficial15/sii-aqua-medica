@@ -1,6 +1,5 @@
 const { onCall, onRequest } = require("firebase-functions/v2/https");
 const { admin, db } = require("../../config/firebase");
-const { normalize } = require("zod");
 
 const usersCollection = db.collection("users");
 const VALID_LOGIN_CUTOFF = new Date("2026-09-26T06:00:00.000Z");

@@ -512,6 +512,7 @@ export default function News() {
             height: 50px;
             padding: 0 24px;   
             border-radius: 14px;
+            border: none;
             background: var(--operator-cancelar);
             color: var(--operator-text);
             font-weight: 700;

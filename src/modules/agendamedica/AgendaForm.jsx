@@ -359,8 +359,8 @@ export default function AgendaForm({ onSaved }) {
                 .form-control:focus { background: var(--operator-card); color: var(--operator-text); border-color: var(--operator-primary); }
                 .form-control::placeholder { color: var(--operator-text); background: transparent; }
                 .agenda-form-divider { border-color: var(--operator-border); opacity: 1; }
-                .btn-guardar { background: var(--operator-success); color: #fff; border: none; border-radius: 14px; padding: 10px 20px; font-weight: 700; cursor: pointer; }
-                .btn-guardar:hover { transition: transform 0.3s ease; transform: scale(1.02); box-shadow: 0 0px 10px 3px rgba(44, 223, 53, 0.2); }
+                .btn-guardar { background: var(--operator-primary); color: #fff; border: none; border-radius: 14px; padding: 10px 20px; font-weight: 700; cursor: pointer; }
+                .btn-guardar:hover { transition: transform 0.3s ease; transform: scale(1.02); box-shadow: 0 0px 5px 1px var(--operator-primary-light); }
                 .btn-agregar { background: var(--operator-primary); align-items: center; color: #fff; border: none; border-radius: 10px; padding: 5px 5px; font-size: 12px; font-weight: 700; cursor: pointer; }
                 .btn-agregar:hover { transition: transform 0.3s ease; transform: scale(1.02); box-shadow: 0 0px 10px 3px rgba(44, 123, 223, 0.2); }
             `}</style>

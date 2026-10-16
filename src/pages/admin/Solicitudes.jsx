@@ -705,7 +705,7 @@ export default function Solicitudes() {
 /* TABLE RESPONSIVE */
 .table-responsive-container {
     overflow: visible !important;
-    padding: 16;
+    padding: 46px;
 }
 
 .table-responsive-inner {
@@ -843,7 +843,8 @@ export default function Solicitudes() {
 
 .card {
     border-radius: 30px;
- }
+    padding: 0px;
+}
 
                 /* HEADER */
 

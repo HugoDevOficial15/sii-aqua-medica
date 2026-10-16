@@ -2003,11 +2003,16 @@ export default function Users({ onClose }) {
 
         .card-body.table-responsive-container {
           overflow: visible;
-          padding: 0;
+          padding: 46px;
         }
 
         .btn-outline-warning {
           height: 50px;
+        }
+
+        .card {
+          padding: 0px !important;
+          border-radius: 30px !important;
         }
 
 /* CONTENEDOR HEADER */

@@ -89,6 +89,11 @@ export default function MaterialesPage() {
       )}
 
       <style >{`
+
+        .card {
+          border-radius: 30px !important;
+        }
+          
         .btn-primary {
           height: 50px;
           padding: 0 20px;

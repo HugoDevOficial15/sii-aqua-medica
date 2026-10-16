@@ -829,7 +829,7 @@ export default function AgendarSalaMes() {
                 .bookings-panel {
                     background: var(--operator-card);
                     border: 1px solid var(--operator-border);
-                    border-radius: 22px;
+                    border-radius: 30px;
                     padding: 20px;
                     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
                     min-height: 0;

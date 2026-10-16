@@ -402,7 +402,7 @@ export default function DetalleOrdenMedica() {
             <h5 className="mb-0 text-white">
                   {`${filtroActivo === "pendientes" ? "Pacientes en espera: " + kpis.pendientes : filtroActivo === "tratamiento" ?
                   "Pacientes en tratamiento: " + kpis.enTratamiento :
-                  filtroActivo === "altas" ? "Pacientes de alta: " + kpis.altasDelDia : 0}`}</h5>
+                  filtroActivo === "altas" ? "Pacientes de alta: " + kpis.altasDelDia : "Pacientes en espera: " + kpis.pendientes}`}</h5>
           </div>
           <div className="card-body table-responsive-container">
             <table className="table table-sol">
@@ -701,6 +701,10 @@ export default function DetalleOrdenMedica() {
 
       {/* ESTILOS EXACTOS DE SOLICITUDES.JSX */}
       <style>{`
+        .card {
+            padding: 46px !important;
+        }
+        
         .custom-users-header input {
             height: 50px;
             border-radius: 12px;
@@ -881,6 +885,7 @@ export default function DetalleOrdenMedica() {
         /* TABLE RESPONSIVE & ACCIONES (COPIADO EXACTO DE SOLICITUDES) */
         .table-responsive-container {
             overflow: visible !important;
+            padding: 0 !important;
         }
 
         .table-responsive-inner {
@@ -983,6 +988,10 @@ export default function DetalleOrdenMedica() {
             border-spacing: 0 10px !important;
             color: var(--operator-text);
         }
+
+        .table-sol {
+        margin-top: 20px !important;
+            padding: 0 !important;}
 
         .table-sol thead th {
             border-bottom: 3px solid var(--operator-text);

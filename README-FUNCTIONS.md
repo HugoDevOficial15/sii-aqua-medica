@@ -1,7 +1,27 @@
 ==================================
 
             ============
-            = 14/10/26 =
+            = 16/10/26 =
+            ============
+
+# ###########  SII  ############ #
+
+**Functions-Nuevas**
+
+
+**Functions-Refactorizadas**
+* verificarUsuariosLogueadosHttp
+* verificacionLogs
+* registrarMovimiento
+* obtenerMovimientosPorFecha
+
+# #########  COMEDOR  ########## #
+
+
+==================================
+
+            ============
+            = 15/10/26 =
             ============
 
 # ###########  SII  ############ #

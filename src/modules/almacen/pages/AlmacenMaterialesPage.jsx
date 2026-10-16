@@ -606,6 +606,10 @@ export default function AlmacenMaterialesPage() {
                 flex-direction: column;
             }
 
+            .rack-location-list:hover {
+                box-shadow: 0 0 5px 1px rgba(37, 37, 37, 0.1);
+            }
+
             .rack-location-table {
                 border-collapse: separate;
                 border-spacing: 0;
@@ -649,6 +653,7 @@ export default function AlmacenMaterialesPage() {
 
             .expanded-row {
               transform: none !important;
+              box-shadow: none !important;
             }
 
 /* BOTONES */

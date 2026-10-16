@@ -321,6 +321,11 @@ export default function Administradores() {
 
         /* BODY */
 
+        .card {
+          padding: 0px !important;
+          border-radius: 30px !important;
+        }
+
         .custom-users-card {
           border: 1px solid var(--operator-border);
           border-radius: 30px;
@@ -329,6 +334,7 @@ export default function Administradores() {
         }
 
         .card-body.table-responsive-container {
+          padding: 46px !important;
           overflow: visible;
           position: relative;
         }

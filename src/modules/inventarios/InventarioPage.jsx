@@ -416,7 +416,7 @@ export default function InventarioPage() {
                 .custom-users-card {
                     background: var(--operator-card);
                     border-radius: 30px;
-                    padding: 30px; 
+                    padding: 0px; 
                     border: 1px solid var(--operator-border);
                     box-shadow: 0 8px 25px var(--operator-shadow);
 
@@ -429,7 +429,7 @@ export default function InventarioPage() {
                     empty-cells: hide;
                     table-layout: fixed;
                     width: 100%;
-                    padding: 16px !important;
+                    padding: 46px !important;
                 }
 
                 .custom-table thead th {

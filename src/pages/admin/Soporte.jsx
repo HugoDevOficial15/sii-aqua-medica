@@ -254,6 +254,10 @@ export default function SoporteAdmin() {
           opacity: 1;
         }
 
+        .card {
+          border-radius: 30px !important;
+        }
+
         .soporte-filters {
           display: flex;
           align-items: stretch;

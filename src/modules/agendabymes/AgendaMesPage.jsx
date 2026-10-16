@@ -470,6 +470,11 @@ export default function AgendaMesPage() {
             }
 
             /* CARD */
+
+            .card {
+                padding: 0px !important;
+                border-radius: 30px !important;
+            }
             .custom-users-card {
                 border-radius: 16px;
                 border: none;
@@ -483,7 +488,7 @@ export default function AgendaMesPage() {
                 width: 100%;
                 border-collapse: separate !important;
                 border-spacing: 0 10px !important;
-                padding: 16px !important;
+                padding: 46px !important;
             }
 
             .custom-table thead th {
@@ -502,7 +507,6 @@ export default function AgendaMesPage() {
             }
 
             .custom-table thead th:nth-child(10) {
-                display: flex;
                 align-items: center;
                 justify-content: center;
             }

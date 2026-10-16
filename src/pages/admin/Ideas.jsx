@@ -228,6 +228,10 @@ export default function IdeasAdmin() {
   return (
     <>
       <style>{`
+        .card {
+          border-radius: 30px !important;
+        }
+
         .ideas-search-input::placeholder {
           color: var(--operator-text);
           opacity: 1;
@@ -753,7 +757,7 @@ const styles = {
     maxHeight: "85vh",
     backgroundColor: "var(--operator-card)",
     border: "1px solid var(--operator-border)",
-    borderRadius: "22px",
+    borderRadius: "30px",
     overflow: "auto",
     WebkitOverflowScrolling: "touch",
     boxShadow: "0 30px 80px rgba(15,23,42,0.25)",

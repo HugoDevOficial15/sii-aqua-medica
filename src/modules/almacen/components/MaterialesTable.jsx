@@ -118,9 +118,10 @@ export default function MaterialesTable({ data, onEdit }) {
         /* PAGINA */
 
         .card {
-            border-radius: 30px;
+            border-radius: 30px !important;
             box-shadow: 0px 8px 25px var(--operator-shadow);
             padding: 40px;
+
         }
 
         .row {
@@ -169,30 +170,30 @@ export default function MaterialesTable({ data, onEdit }) {
         }
 
         .table tbody tr.materiales-row-active {
-          transform: none !important;
-          box-shadow: none !important;
+            transform: none !important;
+            box-shadow: none !important;
         }
 
         /*  COLORS BADGES   */
 
         .materia-prima-badge {
-          color: var(--operator-materia-prima-text);
-          background-color: var(--operator-materia-prima);
+            color: var(--operator-materia-prima-text);
+            background-color: var(--operator-materia-prima);
         }
 
         .producto-terminado-badge {
-          color: var(--operator-producto-terminado-text);
-          background-color: var(--operator-producto-terminado);
+            color: var(--operator-producto-terminado-text);
+            background-color: var(--operator-producto-terminado);
         }
 
         .material-acondicionamiento-badge {
-          color: var(--operator-material-acondicionamiento-text);
-          background-color: var(--operator-material-acondicionamiento);
+            color: var(--operator-material-acondicionamiento-text);
+            background-color: var(--operator-material-acondicionamiento);
         }
 
         .activo-badge {
-          color: var(--operator-activo-text);
-          background-color: var(--operator-activo);
+            color: var(--operator-activo-text);
+            background-color: var(--operator-activo);
         }
 
         /* MENU DE ACCIONES */

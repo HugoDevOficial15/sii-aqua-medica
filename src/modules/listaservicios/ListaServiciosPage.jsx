@@ -780,6 +780,7 @@ export default function ListaServiciosPage() {
 
         .card {
           border-radius: 30px;
+          padding: 0px;
         }
 
         /* CONTENEDOR HEADER */
@@ -806,6 +807,7 @@ export default function ListaServiciosPage() {
 
         .table-responsive-container {
           overflow: visible !important;
+          padding: 46px;
         }
         /* TABLA */
 

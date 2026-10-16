@@ -495,8 +495,6 @@ export default function AgendaMedicaPage() {
                                                 </span>
                                             </td>
 
-
-
                                             <td className="agenda-actions-cell">
                                                 <div className="agenda-action-menu-wrapper">
                                                     <button
@@ -593,7 +591,8 @@ export default function AgendaMedicaPage() {
                 }
 
                 .table-responsive{
-                    padding:46px;
+                    padding: 46px;
+                    border-radius: 30px !important;
                 }
                     
                 .agenda-medica-input {
@@ -620,9 +619,12 @@ export default function AgendaMedicaPage() {
                     gap: 20px;
                     justify-content: end;
                 }
+
+                .card {
+                    border-radius: 30px !important;
+                }
                 
                 .agenda-medica-table { 
-                    table-layout: fixed;
                     width: 100%;
                     border-collapse: separate !important;
                     border-spacing: 0 10px !important;
